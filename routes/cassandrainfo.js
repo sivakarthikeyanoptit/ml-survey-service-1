@@ -1,17 +1,17 @@
 var cassandra = require('cassandra-driver');
 
-var client = new cassandra.Client({contactPoints: [process.env.CASSANDRA_IP || 'cassandra']});
+var client = new cassandra.Client({ contactPoints: ["35.200.172.221"] });
 
 /*
  * GET home page.
  */
 
-exports.init_cassandra = function(req, res){
+exports.init_cassandra = function (req, res) {
 
 	client.connect()
 		.then(function () {
 			const query = "CREATE KEYSPACE IF NOT EXISTS people WITH replication =" +
-			  "{'class': 'SimpleStrategy', 'replication_factor': '1' }";
+				"{'class': 'SimpleStrategy', 'replication_factor': '1' }";
 			return client.execute(query);
 		})
 		.then(function () {
@@ -35,8 +35,8 @@ exports.init_cassandra = function(req, res){
 			var i = 0;
 			client.hosts.forEach(function (host) {
 				i++;
-	  			str += '{"address" : "' + host.address + '", "version" : "' + host.cassandraVersion + '", "rack" : "' + host.rack + '", "datacenter" : "' + host.datacenter + '"}';
-	  			console.log("hosts.length: " + client.hosts.length);
+				str += '{"address" : "' + host.address + '", "version" : "' + host.cassandraVersion + '", "rack" : "' + host.rack + '", "datacenter" : "' + host.datacenter + '"}';
+				console.log("hosts.length: " + client.hosts.length);
 				if (i < client.hosts.length)
 					str += ',';
 
@@ -44,12 +44,12 @@ exports.init_cassandra = function(req, res){
 			str += ']}';
 			console.log('JSON string: ' + str);
 			var jsonHosts = JSON.parse(str);
-			res.render('cassandra', {page_title:"Cassandra Details", data: jsonHosts.hosts});
+			res.render('cassandra', { page_title: "Cassandra Details", data: jsonHosts.hosts });
 			console.log('initCassandra: success');
 		})
 		.catch(function (err) {
 			console.error('There was an error', err);
-			res.status(404).send({msg: err});
+			res.status(404).send({ msg: err });
 			return client.shutdown();
 		});
 
