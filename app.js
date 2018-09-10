@@ -9,7 +9,7 @@ var http = require('http');
 var path = require('path');
 
 //load customers route
-var customers = require('./routes/customers');
+var schools = require('./routes/schools');
 //load cassandra route
 var cassandrainfo = require('./routes/cassandrainfo');
 
@@ -32,7 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', routes.index);
 app.get('/cassandrainfo', cassandrainfo.init_cassandra);
-app.get('/schools', customers.list);
+app.get('/schools', schools.list);
 
 
 app.use(app.router);
