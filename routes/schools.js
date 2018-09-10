@@ -1,6 +1,8 @@
 var cassandra = require('cassandra-driver');
 
-var client = new cassandra.Client({ contactPoints: ['35.200.172.221'] });
+//10.160.0.8
+//35.200.172.221
+var client = new cassandra.Client({ contactPoints: ['10.160.0.8'] });
 client.connect(function (err, result) {
 	console.log('customers: cassandra connected');
 });
@@ -21,5 +23,9 @@ exports.list = function (req, res) {
 	});
 
 };
+
+// INSERT INTO shikshalokam.school_registry
+//   ( )
+//   VALUES (  )
 
 

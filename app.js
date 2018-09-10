@@ -17,7 +17,7 @@ var app = express();
 
 var cassandra = require('cassandra-driver');
 
-const client = new cassandra.Client({ contactPoints: ["35.200.172.221"] });
+const client = new cassandra.Client({ contactPoints: ["10.160.0.8"] });
 
 // all environments
 app.set('port', process.env.PORT || 4201);
