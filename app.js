@@ -6,7 +6,8 @@ var compression = require("compression");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
-let app = require("express")();
+let express = require("express");
+let app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -51,6 +52,7 @@ app.all("*", (req, res, next) => {
   next();
 });
 
+app.use(express.static("public"));
 router(app);
 
 app.listen(config.port, () => {

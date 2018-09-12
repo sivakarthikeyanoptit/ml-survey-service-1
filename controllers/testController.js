@@ -8,8 +8,8 @@ module.exports = class test extends AbstractController {
   }
 
   insert(req) {
-    console.log("reached here!");
-    req.db = "cassandra";
+    // console.log("reached here!");
+    // req.db = "cassandra";
     return super.insert(req);
   }
 
@@ -20,7 +20,7 @@ module.exports = class test extends AbstractController {
     });
   }
   find(req) {
-    req.db = "cassandra";
+    // req.db = "cassandra";
     return super.find(req);
   }
 };

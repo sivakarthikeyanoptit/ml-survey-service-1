@@ -1,0 +1,153 @@
+paths:
+  /schools/find:
+    get:
+      description: Returns all schools from the system that the user has access to
+      operationId: findschoolss
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      # parameters:
+      # - name: tags
+      #   in: query
+      #   description: tags to filter by
+      #   required: false
+      #   type: array
+      #   items:
+      #     type: string
+      #   collectionFormat: csv
+      # - name: limit
+      #   in: query
+      #   description: maximum number of results to return
+      #   required: false
+      #   type: integer
+      #   format: int32
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: schools response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+
+  /schools/findByIdAndUpdate:
+    post:
+      description: Returns a user based on a single ID
+      operationId: findUserById
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      parameters:
+        - name: schools
+          in: body
+          description: schools to add to the store
+          required: true
+          schema:
+            $ref: "#/definitions/schools"
+        - name: token
+          in: query
+          description: Authorization Token
+          format: string
+          required: true
+      tags:
+        - Driver
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+    put:
+      description: Creates a new schools in the store.  Duplicates are allowed
+      operationId: addschools
+      produces:
+        - application/json
+      parameters:
+        - name: schools
+          in: body
+          description: schools to add to the store
+          required: true
+          schema:
+            $ref: "#/definitions/schools"
+      tags:
+        - Driver
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+
+  /schools/create:
+    post:
+      description: Creates a new schools in the store.  Duplicates are allowed
+      operationId: addschools
+      produces:
+        - application/json
+      parameters:
+        - name: schools
+          in: body
+          description: schools to add to the store
+          required: true
+          schema:
+            $ref: "#/definitions/schools"
+      tags:
+        - Driver
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+
+  /schools/remove:
+    delete:
+      description: deletes a single schools based on the ID supplied
+      operationId: deleteschools
+      parameters:
+        - name: id
+          in: path
+          description: ID of schools to delete
+          required: true
+          type: integer
+          format: int64
+      tags:
+        - Driver
+      responses:
+        "204":
+          description: schools deleted
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+
+definitions:
+  schools:
+    type: object
+    required:
+      - id
+    properties:
+      _id:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string

@@ -21,7 +21,7 @@ const configuration = {
       name: "doxtro-api"
     },
     host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 4201,
     DB_Config: {
       connection: {
         mongodb: {
@@ -32,7 +32,7 @@ const configuration = {
             "mongodb://localhost:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "Project-Name-Development"
+          database: process.env.DB || "Shikshalokam-Development"
         }
       },
       cassandraConnection: {
@@ -80,7 +80,7 @@ const configuration = {
             "mongodb://localhost:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "Project-Name-Staging"
+          database: process.env.DB || "Shikshalokam-Staging"
         }
       }
     },
@@ -120,7 +120,7 @@ const configuration = {
             "mongodb://localhost:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "Project-Name-Testing"
+          database: process.env.DB || "Shikshalokam-Testing"
         }
       }
     },

@@ -1,4 +1,9 @@
 module.exports = function(app) {
+  //swagger docs
+  const swagger = require("../swagger");
+  const swaggerMW = new swagger();
+  app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
+
   var router = function(req, res, next) {
     req.params.controller += "Controller";
     if (!controllers[req.params.controller]) next();
@@ -50,11 +55,14 @@ module.exports = function(app) {
     }
   };
 
-  app.all("/api/v1/:controller/:method", router);
+  app.all("/assessment/api/v1/:controller/:method", router);
 
-  app.all("/api/v1/:controller/:_id/:method", router);
+  app.all("/assessment/api/v1/:controller/:_id/:method", router);
 
-  app.all("/api/v1/:controller/:middlewear/redirect/:method", router);
+  app.all(
+    "/assessment/api/v1/:controller/:middlewear/redirect/:method",
+    router
+  );
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");
