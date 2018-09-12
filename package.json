@@ -1,0 +1,27 @@
+{
+  "name": "project-name",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "async": "^2.6.0",
+    "body-parser": "^1.18.2",
+    "compression": "^1.7.1",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.13.4",
+    "express-cassandra": "^2.2.3",
+    "merge": "^1.2.0",
+    "mongoosastic": "^4.3.0",
+    "mongoose": "^4.7.7",
+    "mongoose-autopopulate": "^0.6.0",
+    "mongoose-delete": "^0.4.0",
+    "mongoose-timestamp": "^0.6.0",
+    "morgan": "^1.9.0",
+    "require-all": "^2.2.0"
+  },
+  "author": "Lloyd Presly Saldanha <lloyd.presly@above-inc.com>",
+  "license": "ISC"
+}
