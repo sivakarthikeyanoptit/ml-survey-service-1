@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "MONGODB_URL=mongodb://35.200.172.221:27017 DB=sl-assessment node app.js",
-    "dev": "MONGODB_URL=mongodb://10.160.0.8:27017 DB=sl-assessment node app.js",
+    "dev": "MONGODB_URL=mongodb://35.200.172.221:27017 DB=sl-assessment node app.js",
+    "start": "MONGODB_URL=mongodb://10.160.0.8:27017 DB=sl-assessment node app.js",
     "nodemon": "MONGODB_URL=mongodb://35.200.172.221:27017 DB=sl-assessment nodemon app.js"
   },
   "dependencies": {
