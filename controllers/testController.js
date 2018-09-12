@@ -1,28 +1,26 @@
 module.exports = class test extends AbstractController {
-    constructor(schema) {
-        super(schema);
-    }
+  constructor(schema) {
+    super(schema);
+  }
 
-    static get name() {
-        return "test";
-    }
+  static get name() {
+    return "test";
+  }
 
-    insert(req) {
-        console.log("reached here!")
-        req.db = 'cassandra';
-        return super.insert(req);
-    }
+  insert(req) {
+    console.log("reached here!");
+    req.db = "cassandra";
+    return super.insert(req);
+  }
 
-    create(req) {
-        return new Promise((res, rej) => {
-            cqlsh
-            res({ data: { key: "value" }, message: "success", status: 200 });
-        });
-    }
-    find(req) {
-
-        req.db = 'cassandra';
-        return super.find(req);
-    }
-}
-
+  create(req) {
+    return new Promise((res, rej) => {
+      cqlsh;
+      res({ data: { key: "value" }, message: "success", status: 200 });
+    });
+  }
+  find(req) {
+    req.db = "cassandra";
+    return super.find(req);
+  }
+};
