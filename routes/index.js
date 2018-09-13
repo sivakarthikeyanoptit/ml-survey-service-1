@@ -1,11 +1,11 @@
 let authenticator = require("../Generic/middleware/authenticator");
 module.exports = function(app) {
-  app.use(authenticator);
   //swagger docs
   const swagger = require("../swagger");
   const swaggerMW = new swagger();
   app.get("/assessment/api/v1/swagger", swaggerMW.sendFile);
 
+  app.use(authenticator);
   var router = function(req, res, next) {
     req.params.controller += "Controller";
     if (!controllers[req.params.controller]) next();

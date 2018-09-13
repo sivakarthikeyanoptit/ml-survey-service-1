@@ -1,6 +1,7 @@
 var ApiInterceptor = require("./lib/sb_api_interceptor");
 var messageUtil = require("./lib/messageUtil");
 var responseCode = require("../httpStatusCodes");
+var http = require("https");
 
 var reqMsg = messageUtil.REQUEST;
 var keyCloakConfig = {
@@ -33,6 +34,45 @@ var respUtil = function(resp) {
   };
 };
 
+var getUserInfo = function(authorization, token, userId) {
+  let options = {
+    host: "dev.shikshalokam.org",
+    port: 443,
+    path: "/api/user/v1/read/" + userId,
+    method: "GET",
+    headers: {
+      authorization: authorization,
+      "x-authenticated-user-token": token
+    }
+  };
+  let body = "";
+  return new Promise(function(resolve, reject) {
+    try {
+      var httpreq = http.request(options, function(response) {
+        response.setEncoding("utf8");
+        response.on("data", function(chunk) {
+          body += chunk;
+        });
+        response.on("end", function() {
+          // console.log(response.headers["content-type"]);
+          if (
+            response.headers["content-type"] ==
+              "application/json; charset=utf-8" ||
+            response.headers["content-type"] == "application/json"
+          ) {
+            body = JSON.parse(body);
+            return resolve(body);
+            // console.log(body);
+          }
+        });
+      });
+      httpreq.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 var apiInterceptor = new ApiInterceptor(keyCloakConfig, cacheConfig);
 var removedHeaders = [
   "host",
@@ -57,9 +97,12 @@ module.exports = function(req, res, next) {
   });
 
   var token = req.headers["x-authenticated-user-token"];
-  var rspObj = req.rspObj || {};
+  var authorization = req.headers["authorization"];
+  if (!req.rspObj) req.rspObj = {};
+  var rspObj = req.rspObj;
+  console.log(!token, authorization);
 
-  if (!token) {
+  if (!token || !authorization) {
     console.error("Token Not Found!!");
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
     rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
@@ -68,8 +111,8 @@ module.exports = function(req, res, next) {
   }
 
   apiInterceptor.validateToken(token, function(err, tokenData) {
+    // console.error(err, tokenData, rspObj);
     if (err) {
-      console.error(err, tokenData, rspObj);
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
       rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
@@ -78,10 +121,18 @@ module.exports = function(req, res, next) {
       delete req.headers["x-authenticated-userid"];
       delete req.headers["x-authenticated-user-token"];
       req.rspObj.userId = tokenData.userId;
-      rspObj.telemetryData.actor = utilsService.getTelemetryActorData(req);
+      // rspObj.telemetryData.actor = utilsService.getTelemetryActorData(req);
       req.headers["x-authenticated-userid"] = tokenData.userId;
       req.rspObj = rspObj;
-      next();
+      getUserInfo(authorization, token, tokenData.userId)
+        .then(userDetails => {
+          req.userDetails = userDetails;
+          // console.log(userDetails);
+          next();
+        })
+        .catch(error => {
+          return res.status(401).send(respUtil(rspObj));
+        });
     }
   });
 };

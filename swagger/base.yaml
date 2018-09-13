@@ -25,3 +25,9 @@ securityDefinitions:
     type: apiKey
     in: header
     name: x-authenticated-user-token
+    description: User access token.
+  Bearer:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: Add 'Bearer ' before token.
