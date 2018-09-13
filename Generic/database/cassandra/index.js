@@ -21,7 +21,8 @@ module.exports = class database {
       defaults.cassandraConnection
     );
     this.dataTypes = {
-      String: "text"
+      String: "text",
+      ObjectId: "text"
     };
   }
 

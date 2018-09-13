@@ -4,7 +4,7 @@ module.exports = class test extends AbstractController {
   }
 
   static get name() {
-    return "schools";
+    return "schoolAssessors";
   }
 
   insert(req) {
@@ -12,9 +12,8 @@ module.exports = class test extends AbstractController {
     // req.db = "cassandra";
     return super.insert(req);
   }
-
   find(req) {
-    // console.log("reached here!");
+    console.log("reached here!");
     // req.db = "cassandra";
     return super.find(req);
   }

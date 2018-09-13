@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "1.0.0"
+  version: "0.0.1"
   title: "Shikshalokam: Assessment"
   description: Evaluation Platform
   termsOfService: https://dev.shikshalokam.org/
@@ -20,3 +20,8 @@ consumes:
   - application/json
 produces:
   - application/json
+securityDefinitions:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: x-authenticated-user-token

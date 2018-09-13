@@ -5,19 +5,21 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "MONGODB_URL=mongodb://35.200.172.221:27017 DB=sl-assessment node app.js",
+    "dev": "DB=sl-assessment nodemon app.js",
     "start": "MONGODB_URL=mongodb://10.160.0.8:27017 DB=sl-assessment node app.js",
     "nodemon": "MONGODB_URL=mongodb://35.200.172.221:27017 DB=sl-assessment nodemon app.js"
   },
   "dependencies": {
     "async": "^2.6.0",
     "body-parser": "^1.18.2",
+    "cache-manager": "^2.9.0",
     "compression": "^1.7.1",
     "cookie-parser": "^1.4.3",
     "express": "^4.13.4",
     "express-cassandra": "^2.2.3",
     "extendify": "^1.0.0",
     "glob": "^7.1.3",
+    "keycloak-auth-utils": "^3.3.0",
     "merge": "^1.2.0",
     "mongoosastic": "^4.3.0",
     "mongoose": "^4.7.7",
