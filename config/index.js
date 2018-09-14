@@ -1,9 +1,9 @@
 /**
- * Project          : Doxtro
+ * Project          : Shikshalokam
  * Module           : Configuration
  * Source filename  : index.js
  * Description      : Environment related configuration variables
- * Author           : Lloyd Presly Saldanha <lloyd.presly@above-inc.com>
+ * Author           : Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>
  * Copyright        : Copyright © 2017
  *                    Written under contract by Above Solutions Pvt. Ltd.
  */
@@ -18,7 +18,7 @@ const configuration = {
   development: {
     root: require("path").normalize(__dirname + "/.."),
     app: {
-      name: "doxtro-api"
+      name: "shikshalokam-api"
     },
     host: process.env.HOST || "http://localhost",
     port: process.env.PORT || 4201,
@@ -66,7 +66,7 @@ const configuration = {
   staging: {
     root: require("path").normalize(__dirname + "/.."),
     app: {
-      name: "doxtro-api"
+      name: "shikshalokam-api"
     },
     host: process.env.HOST || "http://localhost",
     port: process.env.PORT || 8001,
@@ -106,7 +106,7 @@ const configuration = {
   testing: {
     root: require("path").normalize(__dirname + "/.."),
     app: {
-      name: "doxtro-api"
+      name: "shikshalokam-api"
     },
     host: process.env.HOST || "http://localhost",
     port: process.env.PORT || 8000,

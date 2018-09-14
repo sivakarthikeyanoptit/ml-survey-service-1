@@ -9,7 +9,7 @@ module.exports = {
     programId: "ObjectId",
     assessmentStatus: "String",
     parentId: "ObjectId",
-    schools: ["ObjectId"],
+    schools: [{ type: "ObjectId", ref: "schools" }],
     createdBy: "String",
     updatedBy: "String"
   },

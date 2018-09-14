@@ -16,6 +16,8 @@ module.exports = class test extends AbstractController {
   find(req) {
     // console.log("reached here!");
     // req.db = "cassandra";
+    console.log();
+
     return super.find(req);
   }
 };

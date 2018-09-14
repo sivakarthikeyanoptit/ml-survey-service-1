@@ -126,12 +126,19 @@ module.exports = function(req, res, next) {
       req.rspObj = rspObj;
       getUserInfo(authorization, token, tokenData.userId)
         .then(userDetails => {
-          req.userDetails = userDetails;
+          if (userDetails.responseCode == "OK") {
+            req.userDetails = userDetails.result.response;
+            next();
+          } else {
+            rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
+            rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
+            rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
+            return res.status(401).send(respUtil(rspObj));
+          }
           // console.log(userDetails);
-          next();
         })
         .catch(error => {
-          return res.status(401).send(respUtil(rspObj));
+          return res.status(401).send(error);
         });
     }
   });

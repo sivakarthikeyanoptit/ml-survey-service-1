@@ -291,6 +291,51 @@ let AbstractController = class AbstractController {
     });
   }
 
+  _mongoAggregate(query) {
+    var self = this;
+    return new Promise((resolve, reject) => {
+      return this.mongoModel
+        .aggregate(query)
+        .then(result => {
+          resolve({
+            data: result,
+            status: httpStatus.ok,
+            message: self.mongoSchema + " record fetched successfully"
+          });
+        })
+        .catch(error => {
+          reject({
+            error: error,
+            status: httpStatus.bad_request,
+            message: self._mongoErrorHandler(error)
+          });
+        });
+    });
+  }
+
+  _mongoPopulate(query, populate) {
+    var self = this;
+    return new Promise((resolve, reject) => {
+      return this.mongoModel
+        .find(query)
+        .populate(populate)
+        .then(result => {
+          resolve({
+            data: result,
+            status: httpStatus.ok,
+            message: self.mongoSchema + " record fetched successfully"
+          });
+        })
+        .catch(error => {
+          reject({
+            error: error,
+            status: httpStatus.bad_request,
+            message: self._mongoErrorHandler(error)
+          });
+        });
+    });
+  }
+
   _mongoFind(queryString) {
     var self = this;
     var findQuery = self.constructFindQuery(queryString);

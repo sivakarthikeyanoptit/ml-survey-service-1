@@ -79,6 +79,22 @@ let BaseController = class BaseController extends mix(
     });
   }
 
+  aggregate(req) {
+    let prefix = "_mongo";
+    return this.isValidMethod("GET", req.method).then(result => {
+      let prefix = "_mongo";
+      return eval(super[prefix + "Aggregate"](req.query));
+    });
+  }
+
+  populate(req) {
+    let prefix = "_mongo";
+    return this.isValidMethod("GET", req.method).then(result => {
+      let prefix = "_mongo";
+      return eval(super[prefix + "Populate"](req.query, req.populate));
+    });
+  }
+
   insert(req) {
     return this.isValidMethod("POST", req.method).then(result => {
       let prefix = "_" + (req.db || "mongo");
