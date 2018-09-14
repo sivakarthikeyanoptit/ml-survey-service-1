@@ -1,4 +1,4 @@
-module.exports = class test extends AbstractController {
+module.exports = class SchoolAssessors extends AbstractController {
   constructor(schema) {
     super(schema);
   }
