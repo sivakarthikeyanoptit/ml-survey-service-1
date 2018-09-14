@@ -3,11 +3,11 @@ info:
   version: "0.0.1"
   title: "Shikshalokam: Assessment"
   description: Evaluation Platform
-  termsOfService: https://dev.shikshalokam.org/
+  termsOfService: http://shikshalokam.org/terms_service_providers.html
   contact:
     name: Shikshalokam API team
-    email: foo@example.com
-    url: https://dev.shikshalokam.org/
+    email: info@shikshalokam.org
+    url: http://shikshalokam.org/
   license:
     name: MIT
     url: http://opensource.org/licenses/MIT
