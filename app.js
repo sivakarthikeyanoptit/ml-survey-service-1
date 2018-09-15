@@ -1,4 +1,9 @@
 require("dotenv").config();
+
+// Global variables
+global._ = require("lodash");
+global.async = require("async");
+
 let config = require("./config");
 let router = require("./routes");
 

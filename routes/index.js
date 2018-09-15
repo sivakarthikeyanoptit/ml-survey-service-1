@@ -1,4 +1,4 @@
-let authenticator = require("../Generic/middleware/authenticator");
+let authenticator = require("../generic/middleware/authenticator");
 module.exports = function(app) {
   //swagger docs
   const swagger = require("../swagger");

@@ -9,7 +9,7 @@
  */
 
 var installModule = function(config) {
-  global.AbstractController = require("../Generic/AbstractController").init(
+  global.AbstractController = require("../generic/abstractController").init(
     config
   );
 };

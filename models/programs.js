@@ -1,4 +1,3 @@
-// let ObjectId = require("mongoose").Types.ObjectId;
 module.exports = {
   name: "programs",
   schema: {
@@ -16,6 +15,7 @@ module.exports = {
     keywords: ["String"],
     concepts: ["json"],
     createdFor: ["String"],
+    components: ["json"],
     components: ["json"]
   },
   key: ["id"]

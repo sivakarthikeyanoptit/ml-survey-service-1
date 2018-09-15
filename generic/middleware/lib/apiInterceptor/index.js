@@ -5,7 +5,7 @@
  */
 
 var keyCloakAuthUtils = require("keycloak-auth-utils");
-var CacheManager = require("../sb_cache_manager");
+var CacheManager = require("../cacheManager");
 
 function ApiInterceptor(keyclock_config, cache_config) {
   this.config = keyclock_config;

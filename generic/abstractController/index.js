@@ -116,6 +116,13 @@ let BaseController = class BaseController extends mix(
     });
   }
 
+  findById(req) {
+    return this.isValidMethod("GET", req.method).then(result => {
+      let prefix = "_" + (req.db || "mongo");
+      return eval(super[prefix + "FindById"](req.query));
+    });
+  }
+
   findOneAndUpdate(req) {
     return this.isValidMethod("PUT", req.method).then(result => {
       let prefix = "_" + (req.db || "mongo");

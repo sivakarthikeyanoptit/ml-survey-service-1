@@ -1,4 +1,4 @@
-var ApiInterceptor = require("./lib/sb_api_interceptor");
+var ApiInterceptor = require("./lib/apiInterceptor");
 var messageUtil = require("./lib/messageUtil");
 var responseCode = require("../httpStatusCodes");
 var http = require("https");
