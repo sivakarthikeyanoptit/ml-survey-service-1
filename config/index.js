@@ -69,7 +69,7 @@ const configuration = {
             process.env.MONGODB_URL ||
             process.env.MONGOLAB_URI ||
             process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
+            "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
           database: process.env.DB || "sl-assessment-stage"
@@ -106,7 +106,7 @@ const configuration = {
             process.env.MONGODB_URL ||
             process.env.MONGOLAB_URI ||
             process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
+            "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
           database: process.env.DB || "sl-assessment-qa"
@@ -143,7 +143,7 @@ const configuration = {
             process.env.MONGODB_URL ||
             process.env.MONGOLAB_URI ||
             process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
+            "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
           database: process.env.DB || "sl-assessment"

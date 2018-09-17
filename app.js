@@ -73,7 +73,7 @@ app.use(morgan("dev"));
 //swagger docs
 const swagger = require("./swagger");
 const swaggerMW = new swagger();
-app.use("/api/v1/api-doc", swaggerMW.sendFile);
+app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
 
 // Add headers
 /* app.use(function(req, res, next) {
