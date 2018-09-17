@@ -1,0 +1,72 @@
+paths:
+  /schools/find:
+    get:
+      description: Returns all schools from the system that the user has access to
+      operationId: findschoolss
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      security:
+        - ApiKeyAuth: []
+        - Bearer: []
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/schools"
+
+definitions:
+  schools:
+    type: object
+    properties:
+      "_id":
+        type: string
+      "externalId":
+        type: string
+      "addressLine1":
+        type: string
+      "addressLine2":
+        type: string
+      "city":
+        type: string
+      "country":
+        type: string
+      "createdBy":
+        type: string
+      "createdDate":
+        type: string
+      "isDeleted":
+        type: boolean
+      "name":
+        type: string
+      "phone":
+        type: string
+      "principalName":
+        type: string
+      "state":
+        type: string
+      "status":
+        type: string
+      "updatedBy":
+        type: string
+      "updatedDate":
+        type: string
+      "pincode":
+        type: string
+      "deleted":
+        type: boolean
+      "gpsLocation":
+        type: object
+        properties:
+          "lat":
+            type: string
+          "long":
+            type: string

@@ -1,0 +1,33 @@
+swagger: "2.0"
+info:
+  version: "0.0.1"
+  title: "Shikshalokam: Assessment"
+  description: Evaluation Platform
+  termsOfService: http://shikshalokam.org/terms_service_providers.html
+  contact:
+    name: Shikshalokam API team
+    email: info@shikshalokam.org
+    url: http://shikshalokam.org/
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+host: https://dev.shikshalokam.org/
+basePath: /assessment/api/v1/
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: x-authenticated-user-token
+    description: User access token.
+  Bearer:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: Add 'Bearer ' before token.

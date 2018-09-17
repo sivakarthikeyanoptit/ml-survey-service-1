@@ -1,0 +1,36 @@
+{
+  "name": "udan",
+  "version": "1.0.0",
+  "description": "udan",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "keywords": [
+    "udan",
+    "Logistics"
+  ],
+  "author": "Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "cache-manager": "^2.9.0",
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
+    "express": "^4.16.3",
+    "express-fileupload": "^0.4.0",
+    "extendify": "^1.0.0",
+    "glob": "^6.0.4",
+    "keycloak-auth-utils": "^3.3.0",
+    "log": "^1.4.0",
+    "mongoose": "^5.0.17",
+    "mongoose-autopopulate": "^0.6.1",
+    "mongoose-delete": "^0.4.0",
+    "mongoose-timestamp": "^0.6.0",
+    "mongoose-ttl": "0.0.3",
+    "morgan": "^1.9.0",
+    "require-all": "^2.2.0",
+    "yaml-js": "^0.1.3"
+  }
+}
