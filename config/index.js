@@ -109,7 +109,7 @@ const configuration = {
             "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "sl-assessment-qa"
+          database: process.env.DB || "sl-assessment"
         }
       },
       plugins: {
