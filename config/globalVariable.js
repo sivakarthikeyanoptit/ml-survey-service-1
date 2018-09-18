@@ -1,7 +1,8 @@
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 let fs = require("fs"),
-  path = require("path").join(__dirname + "/../logs/" + process.env.NODE_ENV);
-mkdirp(path);
+  path = require("path");
+mkdirp(path.join(__dirname + "/../logs/" + process.env.NODE_ENV));
+mkdirp(path.join(__dirname + "/../" + "uploads"));
 
 gen = Object.assign(global, {});
 
@@ -21,11 +22,8 @@ module.exports = function() {
 
   global.log = new Log(global.config.log);
   global._ = require("lodash");
-  gen.file = require("../generics/helpers/fileUpload")(
-    __dirname + "/../" + "upload"
-  );
   gen.http = require("../generics/helpers/httpRequest")();
-  // gen.jwt = require("./../generics/jwt");
+  gen.jwt = require("../generics/helpers/jwt");
 };
 
 function mkdirp(dir, exist = "", state = 1) {

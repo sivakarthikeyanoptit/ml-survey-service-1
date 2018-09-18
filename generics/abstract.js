@@ -1,10 +1,3 @@
-const path = require("path");
-//file upload
-const FileUpload = require("./helpers/fileUpload");
-
-const uploadPath = path.join(__dirname, "../uploads");
-let fileUpload = new FileUpload(uploadPath);
-
 let Abstract = class Abstract {
   constructor(schema) {
     this.model = database.createModel(schema);

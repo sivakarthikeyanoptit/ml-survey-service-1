@@ -35,7 +35,10 @@ const configuration = {
             "mongodb://localhost:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "sl-assessment"
+          database: process.env.DB || "sl-assessment",
+          options: {
+            useNewUrlParser: true
+          }
         }
       },
       plugins: {
@@ -72,7 +75,10 @@ const configuration = {
             "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "sl-assessment-stage"
+          database: process.env.DB || "sl-assessment-stage",
+          options: {
+            useNewUrlParser: true
+          }
         }
       },
       plugins: {
@@ -109,7 +115,10 @@ const configuration = {
             "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "sl-assessment"
+          database: process.env.DB || "sl-assessment",
+          options: {
+            useNewUrlParser: true
+          }
         }
       },
       plugins: {
@@ -146,7 +155,10 @@ const configuration = {
             "mongodb://10.160.0.8:27017",
           user: "",
           pass: "",
-          database: process.env.DB || "sl-assessment"
+          database: process.env.DB || "sl-assessment",
+          options: {
+            useNewUrlParser: true
+          }
         }
       },
       plugins: {

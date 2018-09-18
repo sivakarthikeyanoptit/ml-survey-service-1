@@ -26,7 +26,8 @@ module.exports = function(app) {
             pagination: result.pagination,
             totalCount: result.totalCount,
             total: result.total,
-            count: result.count
+            count: result.count,
+            failed: result.failed
           });
         })
         .catch(error => {

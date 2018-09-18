@@ -10,7 +10,7 @@ paths:
         - text/html
       security:
         - ApiKeyAuth: []
-        - Bearer: []
+        # - Bearer: []
       tags:
         - Schools Assessors
       responses:

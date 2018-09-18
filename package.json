@@ -15,6 +15,7 @@
   "author": "Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/storage": "^2.0.3",
     "body-parser": "^1.18.2",
     "cache-manager": "^2.9.0",
     "cookie-parser": "^1.4.3",
@@ -23,6 +24,7 @@
     "express-fileupload": "^0.4.0",
     "extendify": "^1.0.0",
     "glob": "^6.0.4",
+    "jsonwebtoken": "^8.3.0",
     "keycloak-auth-utils": "^3.3.0",
     "log": "^1.4.0",
     "mongoose": "^5.0.17",

@@ -2,7 +2,7 @@ paths:
   /schools/find:
     get:
       description: Returns all schools from the system that the user has access to
-      operationId: findschoolss
+      operationId: find schools
       produces:
         - application/json
         - application/xml
@@ -10,7 +10,7 @@ paths:
         - text/html
       security:
         - ApiKeyAuth: []
-        - Bearer: []
+        # - Bearer: []
       tags:
         - Schools
       responses:

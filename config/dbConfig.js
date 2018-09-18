@@ -8,8 +8,8 @@ let ObjectId = mongoose.Types.ObjectId;
 
 var DB = function(config) {
   var db = mongoose.createConnection(
-    config.host + "/" + config.database
-    // config.options
+    config.host + "/" + config.database,
+    config.options
   );
   db.on("error", console.error.bind(console, "connection error:"));
   db.once("open", function() {

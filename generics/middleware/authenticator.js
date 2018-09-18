@@ -97,7 +97,8 @@ module.exports = function(req, res, next) {
   });
 
   var token = req.headers["x-authenticated-user-token"];
-  var authorization = req.headers["authorization"];
+  var authorization =
+    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkYTJiMTA5MWVlMDE0MDQ3OTdhYjRjZDI3ODJmYTFkZCJ9.olC-mJ9JVqeeIf-eyBVYciPIIsqDm46XHbKuO1GgNG0"; //req.headers["authorization"];
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
   // console.log(!token, authorization);
@@ -126,6 +127,7 @@ module.exports = function(req, res, next) {
       req.rspObj = rspObj;
       getUserInfo(authorization, token, tokenData.userId)
         .then(userDetails => {
+          // log.debug(userDetails);
           if (userDetails.responseCode == "OK") {
             req.userDetails = userDetails.result.response;
             next();
@@ -135,7 +137,6 @@ module.exports = function(req, res, next) {
             rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
             return res.status(401).send(respUtil(rspObj));
           }
-          // console.log(userDetails);
         })
         .catch(error => {
           return res.status(401).send(error);

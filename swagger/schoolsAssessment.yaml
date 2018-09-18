@@ -10,7 +10,41 @@ paths:
         - text/html
       security:
         - ApiKeyAuth: []
-        - Bearer: []
+        # - Bearer: []
+      tags:
+        - Schools Assessments
+      responses:
+        "200":
+          description: schools assessments response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
+
+  /schoolAssessments/fileUpload:
+    post:
+      description: Returns all schools from the system that the user has access to
+      operationId: upload image
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      summary: Uploads a file.
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: formData
+          name: upfile
+          type: file
+          description: The file to upload.
+      security:
+        - ApiKeyAuth: []
+        # - Bearer: []
       tags:
         - Schools Assessments
       responses:
