@@ -8,134 +8,106 @@ module.exports = class SchoolAssessments extends Abstract {
   }
 
   async find(req) {
-    return await controllers.programsController
-      .find(req)
-      .then(async programs => {
-        // async.forEach(
-        //   programs.data,
-        //   async (program, cb1) => {
-        //     async.forEach(
-        //       program.components,
-        //       async (component, cb2) => {
-        //         if (component.type == "evaluationFramework") {
-        //           component[
-        //             "evaluationFramework"
-        //           ] = await database.models["evaluation-frameworks"].findOne(
-        //             {
-        //               _id: ObjectId(component.id)
-        //             }
-        //           );
-        //           await cb2();
-        //         } else {
-        //           await cb2();
-        //         }
-        //       },
-        //       async error => {
-        //         await cb1();
-        //         console.log("2 Done");
-        //       }
-        //     );
-        //   },
-        //   error => {
-        //     console.log("1 Done");
-        //   }
-        // );
-        await _.forEachRight(programs.data, async function(program, key) {
-          await _.forEachRight(programs.data[key].components, async function(
-            component,
-            key2
-          ) {
-            if (
-              programs.data[key].components[key2].type == "evaluationFramework"
-            ) {
-              let eF = await database.models["evaluation-frameworks"].findOne({
-                _id: ObjectId(programs.data[key].components[key2].id)
-              });
-              programs.data[key].components[key2][
+    return new Promise(async (resolve, reject) => {
+      let programs = await controllers.programsController.find(req);
+      async.forEachOf(
+        programs.data,
+        (program, key1, cb1) => {
+          async.forEachOf(
+            programs.data[key1].components,
+            (component, key2, cb2) => {
+              if (
+                programs.data[key1].components[key2].type ==
                 "evaluationFramework"
-              ] = await eF;
-
-              // return await programs;
-              await _.forEachRight(
-                programs.data[key].components[key2]["evaluationFramework"]
-                  .themes,
-                async (theme, key3) => {
-                  await _.forEachRight(
-                    programs.data[key].components[key2]["evaluationFramework"]
-                      .themes[key3].aoi,
-                    async (aoi, key4) => {
-                      await _.forEachRight(
-                        programs.data[key].components[key2][
-                          "evaluationFramework"
-                        ].themes[key3].aoi[key4].indicators,
-                        async (indicator, key6) => {
-                          indicator.criterias = await database.models.criterias.find();
-                          await _.forEachRight(
-                            indicator.criterias,
-                            async (criteria, key7) => {
-                              let i = indicator.criteria.indexOf(criteria._id);
-                              if (i > -1) indicator.criteria[i] = criteria;
-                              log.debug(criteria._id);
-
-                              // let criteriaData = await database.models.criterias.findOne(
-                              //   {
-                              //     _id: ObjectId(criteria)
-                              //   }
-                              // );
-                              // programs.data[key].components[key2][
-                              //   "evaluationFramework"
-                              // ].themes[key3].aoi[key4].indicators[
-                              //   key6
-                              // ].criteria[key7] = await criteriaData;
-                              // console.log(key7, ":", criteria, criteriaData, {
-                              //   _id: ObjectId(criteria)
-                              // });
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+              ) {
+                database.models["evaluation-frameworks"]
+                  .findOne({
+                    _id: ObjectId(programs.data[key1].components[key2].id)
+                  })
+                  .then(eF => {
+                    programs.data[key1].components[
+                      key2
+                    ].evaluationFramework = eF;
+                    async.forEachOf(
+                      eF.themes,
+                      (theme, key3, cb3) => {
+                        // log.debug(theme, key3);
+                        async.forEachOf(
+                          theme.aoi,
+                          (aoi, key4, cb4) => {
+                            // log.debug(aoi, key4);
+                            async.forEachOf(
+                              theme.aoi,
+                              (aoi, key4, cb4) => {
+                                // log.debug(aoi, key4);
+                                async.forEachOf(
+                                  aoi.indicators,
+                                  (indicator, key5, cb5) => {
+                                    // log.debug(indicator, key5);
+                                    async.forEachOf(
+                                      indicator.criteria,
+                                      (criteria, key6, cb6) => {
+                                        // log.debug(criteria, key6);
+                                        database.models.criterias
+                                          .findById(criteria)
+                                          .then(criteriaDetails => {
+                                            programs.data[key1].components[
+                                              key2
+                                            ].evaluationFramework.themes[
+                                              key3
+                                            ].aoi[key4].indicators[
+                                              key5
+                                            ].criteria[key6] = criteriaDetails;
+                                            cb6(null);
+                                          })
+                                          .catch(error => {
+                                            cb6(null);
+                                          });
+                                      },
+                                      error => {
+                                        cb5(null);
+                                      }
+                                    );
+                                  },
+                                  error => {
+                                    cb4(null);
+                                  }
+                                );
+                              },
+                              error => {
+                                cb3(null);
+                              }
+                            );
+                          },
+                          error => {
+                            cb3(null);
+                          }
+                        );
+                      },
+                      error => {
+                        cb2(null);
+                      }
+                    );
+                  })
+                  .catch(error => {
+                    log.error(error);
+                    cb3(null);
+                  });
+              } else {
+                cb2(null);
+              }
+            },
+            error => {
+              // log.debug("Second");
+              cb1(null);
             }
-          });
-        });
-        // req.query = "5b98f4069f664f7e1ae7498b";
-        // console.log(
-        await database.models["criterias"].findOne({
-          _id: ObjectId("5b98f4069f664f7e1ae7498b")
-        });
-        // );
-        // console.log(
-        await database.models["criterias"].findOne({
-          _id: ObjectId("5b98f3e19f664f7e1ae7498a")
-        });
-        // );
-        // console.log(
-        req.query = { _id: "5b98f3b19f664f7e1ae74988" };
-        database.models["criterias"]
-          .findById(ObjectId("5b98f3b19f664f7e1ae74988"))
-          .then(data => {
-            // console.log("asdfgh", data);
-          })
-          .catch(error => {
-            // console.error("sdfghjkuytghutr4y:", error);
-          });
-        // );
-        // req.query = await "5b98f.4069f664f7e1ae7498b";
-
-        // req.query = {
-        //   _id: ObjectId("5b98f4069f664f7e1ae7498b")
-        // };
-        // console.log("I am here", Object.keys(controllers.criteriasController));
-        // await controllers.criteriasController.findOne(req)
-        // await controllers.criteriasController.findById(req)
-
-        return await programs;
-      })
-      .catch(error => {
-        return error;
-      });
+          );
+        },
+        error => {
+          // log.debug("First");
+          return resolve(programs);
+        }
+      );
+    });
   }
 };
