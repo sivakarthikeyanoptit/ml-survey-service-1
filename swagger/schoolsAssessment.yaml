@@ -1,0 +1,26 @@
+paths:
+  /schoolAssessments/find:
+    get:
+      description: Returns all schools from the system that the user has access to
+      operationId: find schoolAssessments
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      security:
+        - ApiKeyAuth: []
+        - Bearer: []
+      tags:
+        - Schools Assessments
+      responses:
+        "200":
+          description: schools assessments response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
