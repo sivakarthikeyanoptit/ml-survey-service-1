@@ -1,21 +1,29 @@
 paths:
-  /schoolAssessments/find:
-    get:
+  /files/upload:
+    post:
       description: Returns all schools from the system that the user has access to
-      operationId: find schoolAssessments
+      operationId: upload image
       produces:
         - application/json
         - application/xml
         - text/xml
         - text/html
+      summary: Uploads a file.
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: formData
+          name: upfile
+          type: file
+          description: The file to upload.
       security:
         - ApiKeyAuth: []
         # - Bearer: []
       tags:
-        - Schools Assessments
+        - Files
       responses:
         "200":
-          description: schools assessments response
+          description: Files response
           schema:
             type: array
             items:
