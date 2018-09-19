@@ -1,7 +1,7 @@
 {
-  "name": "udan",
+  "name": "shikshalokam",
   "version": "1.0.0",
-  "description": "udan",
+  "description": "shikshalokam",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,8 +9,8 @@
     "dev": "nodemon app.js"
   },
   "keywords": [
-    "udan",
-    "Logistics"
+    "shikshalokam",
+    "Learning Management System"
   ],
   "author": "Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>",
   "license": "ISC",

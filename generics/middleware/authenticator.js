@@ -2,6 +2,7 @@ var ApiInterceptor = require("./lib/apiInterceptor");
 var messageUtil = require("./lib/messageUtil");
 var responseCode = require("../httpStatusCodes");
 var http = require("https");
+var env_tokens = require("../helpers/credentials/envTokens");
 
 var reqMsg = messageUtil.REQUEST;
 var keyCloakConfig = {
@@ -97,8 +98,7 @@ module.exports = function(req, res, next) {
   });
 
   var token = req.headers["x-authenticated-user-token"];
-  var authorization =
-    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJkYTJiMTA5MWVlMDE0MDQ3OTdhYjRjZDI3ODJmYTFkZCJ9.olC-mJ9JVqeeIf-eyBVYciPIIsqDm46XHbKuO1GgNG0"; //req.headers["authorization"];
+  var authorization = env_tokens.authorization;
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
   // console.log(!token, authorization);
