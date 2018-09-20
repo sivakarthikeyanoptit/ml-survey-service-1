@@ -22,6 +22,33 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/schools"
+  /schools/{_id}/assessments:
+    get:
+      description: Returns schools assessment data from the system that the user has access to
+      operationId: schools assessment
+      produces:
+        - application/json
+      parameters:
+        - name: _id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/schools"
 
 definitions:
   schools:

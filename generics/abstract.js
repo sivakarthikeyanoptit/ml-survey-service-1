@@ -104,7 +104,7 @@ let Abstract = class Abstract {
           });
         } else {
           resolve({
-            data: data,
+            result: data,
             status: self.httpStatus.ok,
             message: self.schema + " record updated successfully"
           });
@@ -161,7 +161,7 @@ let Abstract = class Abstract {
           });
         } else {
           resolve({
-            data: data,
+            result: data,
             status: self.httpStatus.ok,
             message: self.schema + " record found successfully"
           });
@@ -190,7 +190,7 @@ let Abstract = class Abstract {
           });
         } else {
           resolve({
-            data: data,
+            result: data,
             status: self.httpStatus.ok,
             message: self.schema + " record found successfully"
           });

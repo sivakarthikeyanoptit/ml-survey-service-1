@@ -1,6 +1,7 @@
 module.exports = {
   name: "schools",
   schema: {
+    form: Object,
     externalId: "String",
     addressLine1: "String",
     addressLine2: "String",
@@ -20,6 +21,17 @@ module.exports = {
     status: "String",
     updatedBy: "String",
     updatedDate: "String",
-    pincode: "String"
+    pincode: "String",
+    districtName: "String",
+    zoneId: "String",
+    administration: "String",
+    gender: "String",
+    shift: "String",
+    schoolType: "String",
+    totalStudents: "String",
+    totalGirls: "String",
+    totalBoys: "String",
+    lowestGrade: "String",
+    highestGrade: "String"
   }
 };

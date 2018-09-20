@@ -127,7 +127,7 @@ module.exports = function(req, res, next) {
       req.rspObj = rspObj;
       getUserInfo(authorization, token, tokenData.userId)
         .then(userDetails => {
-          log.debug(tokenData.userId);
+          // log.debug(userDetails);
           if (userDetails.responseCode == "OK") {
             req.userDetails = userDetails.result.response;
             next();

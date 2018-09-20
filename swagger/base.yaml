@@ -13,9 +13,9 @@ info:
     url: http://opensource.org/licenses/MIT
 host: https://dev.shikshalokam.org/
 basePath: /assessment/api/v1/
-schemes:
-  - http
-  - https
+# schemes:
+#   - http
+#   - https
 consumes:
   - application/json
 produces:
