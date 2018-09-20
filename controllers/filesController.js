@@ -5,15 +5,7 @@ let uploadFile = new UploadFile(
 );
 let fs = require("fs");
 
-module.exports = class FileUpload extends Abstract {
-  constructor(schema) {
-    super(schema);
-  }
-
-  static get name() {
-    return "files";
-  }
-
+module.exports = class FileUpload {
   find(req) {
     return super.find(req);
   }

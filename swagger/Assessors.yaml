@@ -1,18 +1,14 @@
 paths:
-  /schoolAssessors/find:
+  /assessors/schools:
     get:
       description: Returns all schools from the system that the user has access to
-      operationId: find schoolAssessors
+      operationId: Find assessors schools
       produces:
         - application/json
-        - application/xml
-        - text/xml
-        - text/html
       security:
         - ApiKeyAuth: []
-        # - Bearer: []
       tags:
-        - Schools Assessors
+        - Assessors
       responses:
         "200":
           description: schools response

@@ -36,7 +36,8 @@ global.controllers = requireAll({
   dirname: __dirname + "/controllers",
   filter: /(.+Controller)\.js$/,
   resolve: function(Controller) {
-    return new Controller(models[Controller.name]);
+    if (Controller.name) return new Controller(models[Controller.name]);
+    else return new Controller();
   }
 });
 
