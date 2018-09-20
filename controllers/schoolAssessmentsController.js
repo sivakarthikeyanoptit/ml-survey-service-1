@@ -1,9 +1,3 @@
-let gcp = require("../generics/helpers/gcpFileUpload");
-let UploadFile = require("../generics/helpers/fileUpload");
-let uploadFile = new UploadFile(
-  require("path").join(__dirname + "/../" + "uploads")
-);
-let fs = require("fs");
 module.exports = class SchoolAssessments extends Abstract {
   constructor(schema) {
     super(schema);
@@ -16,9 +10,24 @@ module.exports = class SchoolAssessments extends Abstract {
   async find(req) {
     return new Promise(async (resolve, reject) => {
       let programs = await controllers.programsController.find(req);
+
       async.forEachOf(
         programs.data,
         (program, key1, cb1) => {
+          programs.data[key1].resourceType = undefined;
+          programs.data[key1].language = undefined;
+          programs.data[key1].keywords = undefined;
+          programs.data[key1].concepts = undefined;
+          programs.data[key1].createdFor = undefined;
+          programs.data[key1].deleted = undefined;
+          programs.data[key1].isDeleted = undefined;
+          programs.data[key1].externalId = undefined;
+          programs.data[key1].owner = undefined;
+          programs.data[key1].createdAt = undefined;
+          programs.data[key1].updatedAt = undefined;
+          programs.data[key1].createdBy = undefined;
+          programs.data[key1].updatedBy = undefined;
+
           async.forEachOf(
             programs.data[key1].components,
             (component, key2, cb2) => {

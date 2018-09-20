@@ -1,3 +1,10 @@
+let gcp = require("../generics/helpers/gcpFileUpload");
+let UploadFile = require("../generics/helpers/fileUpload");
+let uploadFile = new UploadFile(
+  require("path").join(__dirname + "/../" + "uploads")
+);
+let fs = require("fs");
+
 module.exports = class FileUpload extends Abstract {
   constructor(schema) {
     super(schema);

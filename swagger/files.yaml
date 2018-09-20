@@ -8,7 +8,7 @@ paths:
         - application/xml
         - text/xml
         - text/html
-      summary: Uploads a file.
+      summary: Uploads Files.
       consumes:
         - multipart/form-data
       parameters:
