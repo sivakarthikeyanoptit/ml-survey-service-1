@@ -11,8 +11,9 @@ module.exports = class Schools extends Abstract {
     return super.find(req);
   }
 
-  assessments(req) {
-    // req.query = {};
-    return super.find(req);
+  async assessments(req) {
+    req.body = { _id: req.params._id };
+    let res = await super.findByIdAndUpdate(req);
+    return res;
   }
 };
