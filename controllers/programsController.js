@@ -15,22 +15,38 @@ module.exports = class Programs extends Abstract {
   // async getParentId(id, role) {}
 
   async getParents(programId, userId) {
-    log.debug(programId, userId);
+    // log.debug(programId, userId);
     let user = {};
     let assessor = await database.models["school-assessors"]
-      .find({ programId: ObjectId(programId), userId: userId })
+      .findOne({ programId: ObjectId(programId), userId: userId })
       .select({ role: 1, userId: 1, parentId: 1 });
-    log.debug(assessor);
+    // log.debug(assess.or);
     // user[assessor.role] = {
     //   userId: assessor.userId,
     //   parentId: assessor.parentId,
     //   role: assessor.role
     // };
 
-    if (assessor.role == "ASSESSOR" || assessor.role == "assessor") {
+    if (assessor.parentId) {
+      user["LEAD_ASSESSOR"] = await database.models["school-assessors"]
+        .find({
+          programId: ObjectId(programId),
+          _id: ObjectId(assessor.parentId)
+        })
+        .select({ role: 1, userId: 1, parentId: 1 });
+
+      if (user["LEAD_ASSESSOR"][0].parentId) {
+        user["PROJECT_MANAGER"] = await database.models["school-assessors"]
+          .find({
+            programId: ObjectId(programId),
+            _id: ObjectId(user["LEAD_ASSESSOR"][0].parentId)
+          })
+          .select({ role: 1, userId: 1, parentId: 1 });
+      }
+
       // let parent = await this.getParents(programId, assessor.parentId);
       // user[parent.role] = parent.userId;
-      // log.debug(parent);
+      // log.debug(user);
     }
 
     return user;
