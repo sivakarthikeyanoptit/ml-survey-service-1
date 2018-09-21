@@ -22,7 +22,7 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/schools"
-  /schools/{_id}/assessments:
+  /schools/assessments/{_id}:
     get:
       description: Returns schools assessment data from the system that the user has access to
       operationId: schools assessment

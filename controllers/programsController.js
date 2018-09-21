@@ -12,20 +12,23 @@ module.exports = class Programs extends Abstract {
     return super.find(req);
   }
 
-  // async getParentId(id, role) {}
+  async getParentsDetails(req, programId, userId) {
+    let users = await this.getParents(req, programId, userId);
+    await _.forEachRight(Object.keys(users), key => {
+      console.log(key);
 
-  async getParents(programId, userId) {
-    // log.debug(programId, userId);
+      _.forEachRight(users[key], (user, i) => {
+        users[key][i].data = "[]";
+      });
+    });
+    return users;
+  }
+
+  async getParents(req, programId, userId) {
     let user = {};
     let assessor = await database.models["school-assessors"]
       .findOne({ programId: ObjectId(programId), userId: userId })
       .select({ role: 1, userId: 1, parentId: 1 });
-    // log.debug(assess.or);
-    // user[assessor.role] = {
-    //   userId: assessor.userId,
-    //   parentId: assessor.parentId,
-    //   role: assessor.role
-    // };
 
     if (assessor.parentId) {
       user["LEAD_ASSESSOR"] = await database.models["school-assessors"]
@@ -34,6 +37,15 @@ module.exports = class Programs extends Abstract {
           _id: ObjectId(assessor.parentId)
         })
         .select({ role: 1, userId: 1, parentId: 1 });
+      user["LEAD_ASSESSOR"][0].details = {};
+
+      // let details = await shikshalokam.userInfo(
+      //   req.rspObj.userToken,
+      //   user["LEAD_ASSESSOR"][0].userId
+      // );
+
+      // user["LEAD_ASSESSOR"][0].email = await details.result.response.email;
+      // log.debug(details.result.response);
 
       if (user["LEAD_ASSESSOR"][0].parentId) {
         user["PROJECT_MANAGER"] = await database.models["school-assessors"]
@@ -43,10 +55,6 @@ module.exports = class Programs extends Abstract {
           })
           .select({ role: 1, userId: 1, parentId: 1 });
       }
-
-      // let parent = await this.getParents(programId, assessor.parentId);
-      // user[parent.role] = parent.userId;
-      // log.debug(user);
     }
 
     return user;
@@ -73,7 +81,7 @@ module.exports = class Programs extends Abstract {
     // log.debug(req.userDetails.id);
     program = Object.assign(
       program,
-      await this.getParents(program._id, req.userDetails.id)
+      await this.getParentsDetails(req, program._id, req.userDetails.id)
     );
 
     return program;
