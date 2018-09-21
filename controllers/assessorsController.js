@@ -12,7 +12,7 @@ module.exports = class Assessors {
 
       req.query = { userId: req.userDetails.userId };
       req.populate = "schools";
-      const queryResult = await super.populate(req)
+      const queryResult = await controllers.schoolAssessorsController.populate(req)
       let schools = []
       queryResult.result.forEach(assessor => {
         assessor.schools.forEach(assessorSchool => {
@@ -32,7 +32,14 @@ module.exports = class Assessors {
         })
       });
       return resolve({
-        message: schools
+        message: "School list fetched successfully",
+        result:schools
+      });
+    }).catch(error => {
+      reject({
+        error: true,
+        status: 404,
+        message: "No record found"
       });
     })
   }
