@@ -26,6 +26,7 @@ module.exports = class Criterias extends Abstract {
     // return criteria;
     return new Promise(async function(resolve, reject) {
       var evidences = [],
+        merged = [],
         query = [];
 
       await criteria.forEach(function(value, i) {
@@ -36,8 +37,11 @@ module.exports = class Criterias extends Abstract {
 
       // log.debug(criteria);
 
-      await criteria.forEach(function(value, i) {
-        evidences = _.concat(evidences, value.evidences);
+      await criteria.forEach(async function(crit, i) {
+        evidences = evidences.concat(crit.evidences);
+        // await crit.evidences.forEach(async function(evidence, i) {
+        //   log.debug(evidence.externalId);
+        // });
       });
       return resolve(evidences);
     });

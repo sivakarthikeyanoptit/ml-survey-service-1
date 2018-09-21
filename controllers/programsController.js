@@ -15,7 +15,7 @@ module.exports = class Programs extends Abstract {
   async getParentsDetails(req, programId, userId) {
     let users = await this.getParents(req, programId, userId);
     await _.forEachRight(Object.keys(users), key => {
-      console.log(key);
+      // console.log(key);
 
       _.forEachRight(users[key], (user, i) => {
         users[key][i].data = "[]";
