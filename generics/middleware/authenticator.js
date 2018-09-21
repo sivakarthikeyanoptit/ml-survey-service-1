@@ -1,8 +1,8 @@
 var ApiInterceptor = require("./lib/apiInterceptor");
 var messageUtil = require("./lib/messageUtil");
 var responseCode = require("../httpStatusCodes");
-var http = require("https");
-var env_tokens = require("../helpers/credentials/envTokens");
+
+var shikshalokam = require("../helpers/shikshalokam");
 
 var reqMsg = messageUtil.REQUEST;
 var keyCloakConfig = {
@@ -35,45 +35,6 @@ var respUtil = function(resp) {
   };
 };
 
-var getUserInfo = function(authorization, token, userId) {
-  let options = {
-    host: "dev.shikshalokam.org",
-    port: 443,
-    path: "/api/user/v1/read/" + userId,
-    method: "GET",
-    headers: {
-      authorization: authorization,
-      "x-authenticated-user-token": token
-    }
-  };
-  let body = "";
-  return new Promise(function(resolve, reject) {
-    try {
-      var httpreq = http.request(options, function(response) {
-        response.setEncoding("utf8");
-        response.on("data", function(chunk) {
-          body += chunk;
-        });
-        response.on("end", function() {
-          // console.log(response.headers["content-type"]);
-          if (
-            response.headers["content-type"] ==
-              "application/json; charset=utf-8" ||
-            response.headers["content-type"] == "application/json"
-          ) {
-            body = JSON.parse(body);
-            return resolve(body);
-            // console.log(body);
-          }
-        });
-      });
-      httpreq.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
-
 var apiInterceptor = new ApiInterceptor(keyCloakConfig, cacheConfig);
 var removedHeaders = [
   "host",
@@ -92,18 +53,25 @@ var removedHeaders = [
   "connection"
 ];
 
+async function getAllRoles(obj) {
+  let roles = await obj.roles;
+  await _.forEach(obj.organisations, async value => {
+    roles = await roles.concat(value.roles);
+  });
+  return roles;
+}
+
 module.exports = function(req, res, next) {
   removedHeaders.forEach(function(e) {
     delete req.headers[e];
   });
 
   var token = req.headers["x-authenticated-user-token"];
-  var authorization = env_tokens.authorization;
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
   // console.log(!token, authorization);
 
-  if (!token || !authorization) {
+  if (!token) {
     console.error("Token Not Found!!");
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
     rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
@@ -119,17 +87,19 @@ module.exports = function(req, res, next) {
       rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
       return res.status(401).send(respUtil(rspObj));
     } else {
+      req.rspObj.userId = tokenData.userId;
+      req.rspObj.userToken = req.headers["x-authenticated-user-token"];
       delete req.headers["x-authenticated-userid"];
       delete req.headers["x-authenticated-user-token"];
-      req.rspObj.userId = tokenData.userId;
       // rspObj.telemetryData.actor = utilsService.getTelemetryActorData(req);
       req.headers["x-authenticated-userid"] = tokenData.userId;
       req.rspObj = rspObj;
-      getUserInfo(authorization, token, tokenData.userId)
-        .then(userDetails => {
-          // log.debug(userDetails);
+      shikshalokam
+        .userInfo(token, tokenData.userId)
+        .then(async userDetails => {
           if (userDetails.responseCode == "OK") {
             req.userDetails = userDetails.result.response;
+            req.userDetails.allRoles = await getAllRoles(req.userDetails);
             next();
           } else {
             rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;

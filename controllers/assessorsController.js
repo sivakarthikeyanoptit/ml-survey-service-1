@@ -3,7 +3,7 @@ module.exports = class Assessors {
     req.query = { userId: req.userDetails.userId };
     req.populate = "schools";
     let result = await controllers.schoolAssessorsController.populate(req);
-    result.data = await result.data[0];
+    result.data = await result.data;
     return result;
   }
 };

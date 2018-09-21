@@ -7,19 +7,36 @@ module.exports = class Schools extends Abstract {
     return "schools";
   }
 
-  async addFields(obj, notEditable = [], notVisible = []) {
-    await _.forEach(Object.keys(obj), key => {
-      if (notVisible.indexOf(key) < 0) {
-        obj[key] = {
-          label: key,
-          value: obj[key],
-          editable: notEditable.indexOf(key) > -1 ? false : true,
-          input: "text"
-        };
-      }
+  async userFiledFilter(req, obj) {
+    // log.debug(req.userDetails.allRoles);
+    await _.forEach(Object.keys(obj.form), key => {
+      // log.debug(obj.form[key].visibileTo);
+      obj.form[key].visibile =
+        obj.form[key].visibileTo.filter(
+          value => -1 !== req.userDetails.allRoles.indexOf(value)
+        ).length > 0;
+      obj.form[key].editable =
+        obj.form[key].editableBy.filter(
+          value => -1 !== req.userDetails.allRoles.indexOf(value)
+        ).length > 0;
+
+      obj.form[key].visibileTo = undefined;
+      obj.form[key].editableBy = undefined;
+      obj.form[key].input = "text";
     });
 
+    obj.formFields = await obj.form;
+    obj.form = undefined;
+
     return obj;
+  }
+
+  async schoolArrayToObject(array) {
+    let objs = {};
+    await _.forEachRight(array, obj => {
+      objs[obj.field] = obj;
+    });
+    return objs;
   }
 
   insert(req) {
@@ -29,6 +46,7 @@ module.exports = class Schools extends Abstract {
   }
 
   async assessments(req) {
+    req.body = req.body || {};
     let response = {
       message: "Assessment fetched successfully",
       result: {}
@@ -40,36 +58,23 @@ module.exports = class Schools extends Abstract {
       let school = await database.models.schools.findOne({
         _id: ObjectId(req.params._id)
       });
-      log.debug(school);
-      response.result.profile = school.form;
-      // delete (await response.result.form);
+      response.result.SchoolProfile = await _.pick(school, ["_id", "form"]);
 
-      response.result.programs = await database.models.programs.find();
-      await _.forEachRight(response.result.programs, value => {
-        value.resourceType = undefined;
-        value.language = undefined;
-        value.keywords = undefined;
-        value.concepts = undefined;
-        value.createdFor = undefined;
-        value.deleted = undefined;
-        value.isDeleted = undefined;
-        value.externalId = undefined;
-        value.owner = undefined;
-        value.createdAt = undefined;
-        value.updatedAt = undefined;
-        value.createdBy = undefined;
-        value.updatedBy = undefined;
-      });
-
-      // log.debug(response.result.profile);
-      response.result.profile = await _.pick(school, ["_id", "form"]);
-
-      // response.result.profile = await this.addFields(
-      //   response.result.profile,
-      //   ["gpsLocation"],
-      //   ["_id", "externalId"]
-      // );
-
+      response.result.SchoolProfile = await this.userFiledFilter(
+        req,
+        response.result.SchoolProfile
+      );
+      req.body._id = "5b98d7b6d4f87f317ff615ee";
+      response.result.program = await controllers.programsController.getProgram(
+        req
+      );
+      req.body.evaluationFramework =
+        response.result.program.evaluationFramework;
+      response.result.assessments = await controllers.criteriasController.getEvidence(
+        req
+      );
+      response.result.program.evaluationFramework = undefined;
+      response.result.program.components = undefined;
       return resolve(response);
     });
   }
@@ -78,26 +83,3 @@ module.exports = class Schools extends Abstract {
     return super.find(req);
   }
 };
-
-// await async.waterfall(
-//   [
-//     cb1 => {
-//       cb1(null, "1");
-//     },
-//     (data, cb2) => {
-//       cb2(null, "a");
-//     },
-//     (data, cb3) => {
-//       cb3(null, "A");
-//     }
-//   ],
-//   function(error, success) {
-//     if (error) {
-//       log.debug("Something is wrong!");
-//     }
-//     response = {
-//       message: "Assessment fetched successfully",
-//       result: success
-//     };
-//   }
-// );

@@ -20,4 +20,48 @@ module.exports = class Criterias extends Abstract {
 
     return super.find(req);
   }
+  async getEvidence(req) {
+    let criteria = await this.getCriterias(req);
+    // log.debug(criteria);
+    // return criteria;
+    return new Promise(async function(resolve, reject) {
+      var evidences = [],
+        query = [];
+
+      await criteria.forEach(function(value, i) {
+        query.push({ _id: ObjectId(value) });
+      });
+
+      criteria = await database.models.criterias.find({ $or: query });
+
+      // log.debug(criteria);
+
+      await criteria.forEach(function(value, i) {
+        evidences = _.concat(evidences, value.evidences);
+      });
+      return resolve(evidences);
+    });
+  }
+  async getCriterias(req) {
+    return new Promise(function(resolve, reject) {
+      return database.models["evaluation-frameworks"]
+        .findOne({ _id: ObjectId(req.body.evaluationFramework) })
+        .then(async eF => {
+          let criteria = [];
+
+          _.forEachRight(eF.themes, theme => {
+            _.forEachRight(theme.aoi, aoi => {
+              _.forEachRight(aoi.indicators, indicator => {
+                criteria = criteria.concat(indicator.criteria);
+              });
+            });
+          });
+          return resolve(criteria);
+        })
+        .catch(error => {
+          log.error(error);
+        });
+    });
+    // return req.body.evaluationFramework;
+  }
 };
