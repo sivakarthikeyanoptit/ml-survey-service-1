@@ -33,18 +33,18 @@ module.exports = class Criterias extends Abstract {
         query.push({ _id: ObjectId(value) });
       });
 
-      criteria = await database.models.criterias.find({ $or: query });
+      let criterias = await database.models.criterias.find({ $or: query });
 
-      log.debug(criteria);
+      // log.debug(criterias);
 
-      if (Array.isArray(criteria)) {
-        await criteria.forEach(async function(crit, i) {
-          evidences = evidences.concat(crit.evidences);
-          // await crit.evidences.forEach(async function(evidence, i) {
-          //   log.debug(evidence.externalId);
-          // });
-        });
-      }
+      // if (Array.isArray(criterias)) {
+      await _.forEachRight(criterias, function(crit, i) {
+        evidences = evidences.concat(crit.evidences);
+        // await crit.evidences.forEach(async function(evidence, i) {
+        //   log.debug(evidence.externalId);
+        // });
+      });
+      // }
       return resolve(evidences);
     });
   }
