@@ -160,14 +160,22 @@ module.exports = class Schools extends Abstract {
       
       let evaluationFrameworkDocument = await database.models["evaluation-frameworks"].aggregate(evaluationFrameworkQueryObject)
 
-      let evidenceMethodArray = []
+      let evidenceMethodArray = {}
       evaluationFrameworkDocument.criteriaDocs.forEach(criteria => {
         criteria.evidences.forEach(evidenceMethod => {
-          evidenceMethod.sections.forEach(evidenceMethodSection => {
-            evidenceMethodSection.questions.forEach(question => {
-              
-            })
-          })
+          if(!evidenceMethodArray[evidenceMethod.externalId]) {
+            evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod
+          } else {
+              evidenceMethodArray[evidenceMethod.externalId].sections = Object.assign(evidenceMethodArray[evidenceMethod.externalId].sections,evidenceMethod.sections)
+              evidenceMethod.sections.forEach(evidenceMethodSection => {
+                evidenceMethodArray[evidenceMethod.externalId].sections.forEach( existingSection => {
+
+                })
+                evidenceMethodSection.questions.forEach(question => {
+                  
+                })
+              })
+          }
         })
       })
       response.result.evaluationFramework = evaluationFrameworkDocument

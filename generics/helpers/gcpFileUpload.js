@@ -5,7 +5,7 @@ const { Storage } = require("@google-cloud/storage");
 const BUCKET_NAME = "sl-dev-storage";
 const storage = new Storage({
   projectId: "shikshalokam",
-  keyFilename: "./backend/sl-assessments-service/generics/helpers/credentials/sl-dev-storage.json"
+  keyFilename: "./generics/helpers/credentials/sl-dev-storage.json"
 });
 
 var myBucket = storage.bucket(BUCKET_NAME);
