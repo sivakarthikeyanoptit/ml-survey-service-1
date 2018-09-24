@@ -82,4 +82,104 @@ module.exports = class Schools extends Abstract {
   find(req) {
     return super.find(req);
   }
+
+
+  async fetchAssessments(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      req.body = req.body || {};
+      let response = {
+        message: "Assessment fetched successfully",
+        result: {}
+      };
+
+      let schoolQueryObject = {
+        _id: ObjectId(req.params._id)
+      }
+      let schoolDocument = await database.models.schools.findOne(schoolQueryObject);
+      
+      let schoolProfileFormFields = []
+      schoolDocument.form.forEach(formField => {
+            schoolProfileFormFields.push({
+              field : formField.field,
+              label : formField.label,
+              value : formField.value,
+              visibile : (_.difference(formField.visibileTo, req.userDetails.allRoles).length < formField.visibileTo.length) ? true :false,
+              editable : (_.difference(formField.editableBy, req.userDetails.allRoles).length < formField.editableBy.length) ? true :false,
+              input : "text"
+            })
+      })
+
+      response.result.schoolProfile = {
+        "_id":schoolDocument._id,
+        form:schoolProfileFormFields
+      }
+
+      let programQueryObject = {
+        status: "active",
+        "components.schools": {$in:[ObjectId(req.params._id)]},
+        $or:[
+          {"components.users.assessors":{$in:[req.userDetails.id]}},
+          {"components.users.leadAssessors":{$in:[req.userDetails.id]}},
+          {"components.users.projectManagers":{$in:[req.userDetails.id]}}
+        ]
+      }
+      let programDocument = await database.models.programs.findOne(programQueryObject);
+      response.result.program = programDocument
+
+      let schoolAssessorHierarchyObject = [
+        { $match: { userId: req.userDetails.id, programId: programDocument._id} },
+        {
+          $graphLookup: {
+            from: 'school-assessors', // Use the school-assessors collection
+            startWith: '$parentId', // Start looking at the document's `parentId` property
+            connectFromField: 'parentId', // A link in the graph is represented by the parentId property...
+            connectToField: '_id', // ... pointing to another assessor's _id property
+            maxDepth: 2, // Only recurse one level deep
+            as: 'connections' // Store this in the `connections` property
+          }
+        }
+      ]
+
+      let userHierarchyDocument = await database.models["school-assessors"].aggregate(schoolAssessorHierarchyObject)
+      response.result.userHierarchy = userHierarchyDocument
+
+      let evaluationFrameworkQueryObject = [
+        { $match: { _id: ObjectId("5b98fa069f664f7e1ae7498c")} },
+        {
+          $lookup:
+             {
+                from: "criterias",
+                localField: "themes.aoi.indicators.criteria",
+                foreignField: "_id",
+                as: "criteriaDocs"
+            }
+        }
+      ]
+      
+      let evaluationFrameworkDocument = await database.models["evaluation-frameworks"].aggregate(evaluationFrameworkQueryObject)
+
+      let evidenceMethodArray = []
+      evaluationFrameworkDocument.criteriaDocs.forEach(criteria => {
+        criteria.evidences.forEach(evidenceMethod => {
+          evidenceMethod.sections.forEach(evidenceMethodSection => {
+            evidenceMethodSection.questions.forEach(question => {
+              
+            })
+          })
+        })
+      })
+      response.result.evaluationFramework = evaluationFrameworkDocument
+      // response.result.assessments = await controllers.criteriasController.getEvidence(
+      //   req
+      // );
+      // response.result.program.evaluationFramework = undefined;
+      // response.result.program.components = undefined;
+      return resolve(response);
+    }).catch(error => {
+      reject(error)
+    });
+  }
+
 };
