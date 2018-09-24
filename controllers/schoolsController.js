@@ -7,83 +7,17 @@ module.exports = class Schools extends Abstract {
     return "schools";
   }
 
-  async userFiledFilter(req, obj) {
-    // log.debug(req.userDetails.allRoles);
-    await _.forEach(Object.keys(obj.form), key => {
-      // log.debug(obj.form[key].visibileTo);
-      obj.form[key].visibile =
-        obj.form[key].visibileTo.filter(
-          value => -1 !== req.userDetails.allRoles.indexOf(value)
-        ).length > 0;
-      obj.form[key].editable =
-        obj.form[key].editableBy.filter(
-          value => -1 !== req.userDetails.allRoles.indexOf(value)
-        ).length > 0;
-
-      obj.form[key].visibileTo = undefined;
-      obj.form[key].editableBy = undefined;
-      obj.form[key].input = "text";
-    });
-
-    obj.formFields = await obj.form;
-    obj.form = undefined;
-
-    return obj;
-  }
-
-  async schoolArrayToObject(array) {
-    let objs = {};
-    await _.forEachRight(array, obj => {
-      objs[obj.field] = obj;
-    });
-    return objs;
-  }
-
   insert(req) {
     // console.log("reached here!");
     // req.db = "cassandra";
     return super.insert(req);
   }
 
-  async assessments(req) {
-    req.body = req.body || {};
-    let response = {
-      message: "Assessment fetched successfully",
-      result: {}
-    };
-
-    // return response;
-
-    return new Promise(async (resolve, reject) => {
-      let school = await database.models.schools.findOne({
-        _id: ObjectId(req.params._id)
-      });
-      response.result.SchoolProfile = await _.pick(school, ["_id", "form"]);
-
-      response.result.SchoolProfile = await this.userFiledFilter(
-        req,
-        response.result.SchoolProfile
-      );
-      req.body._id = "5b98d7b6d4f87f317ff615ee";
-      response.result.program = await controllers.programsController.getProgram(
-        req
-      );
-      req.body.evaluationFramework =
-        response.result.program.evaluationFramework;
-      response.result.assessments = await controllers.criteriasController.getEvidence(
-        req
-      );
-      response.result.program.evaluationFramework = undefined;
-      response.result.program.components = undefined;
-      return resolve(response);
-    });
-  }
-
   find(req) {
     return super.find(req);
   }
 
-  async fetchAssessments(req) {
+  async assessments(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
       let response = {
@@ -120,6 +54,10 @@ module.exports = class Schools extends Abstract {
 
       response.result.schoolProfile = {
         _id: schoolDocument._id,
+        isEditable : _.difference(["PROJECT_MANAGER","LEAD_ASSESSOR"], req.userDetails.allRoles)
+            .length < 2
+            ? true
+            : false,
         form: schoolProfileFormFields
       };
 
@@ -161,58 +99,71 @@ module.exports = class Schools extends Abstract {
         }
       })
 
-      let evaluationFrameworkQueryObject = [
-        { $match: { _id: ObjectId("5b98fa069f664f7e1ae7498c") } },
-        {
-          $lookup: {
-            from: "criterias",
-            localField: "themes.aoi.indicators.criteria",
-            foreignField: "_id",
-            as: "criteriaDocs"
+      req.body = {schoolId:schoolDocument._id,programId:programDocument._id}
+      let assessments = []
+      for (let counter = 0; counter < programDocument.components.length; counter++) {
+          let component = programDocument.components[counter]
+          let submissionId = await controllers.submissionsController.findBySchoolProgram(req)
+          let assessment = {
+            "submissionId" :submissionId.result._id
           }
-        }
-      ];
 
-      let evaluationFrameworkDocument = await database.models[
-        "evaluation-frameworks"
-      ].aggregate(evaluationFrameworkQueryObject);
+          let evaluationFrameworkQueryObject = [
+            { $match: { _id: ObjectId(component.id) } },
+            {
+              $lookup: {
+                from: "criterias",
+                localField: "themes.aoi.indicators.criteria",
+                foreignField: "_id",
+                as: "criteriaDocs"
+              }
+            }
+          ];
+    
+          let evaluationFrameworkDocument = await database.models[
+            "evaluation-frameworks"
+          ].aggregate(evaluationFrameworkQueryObject);
+          
+          assessment.name = evaluationFrameworkDocument[0].name
+          assessment.description = evaluationFrameworkDocument[0].description
+          assessment.externalId = evaluationFrameworkDocument[0].externalId
 
-      let evidenceMethodArray = {}
-      evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
-        criteria.evidences.forEach(evidenceMethod => {
-          if (!evidenceMethodArray[evidenceMethod.externalId]) {
-            evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
-          } else {
-            // Evidence method already exists
-            // Loop through all sections reading evidence method
-            evidenceMethod.sections.forEach(evidenceMethodSection => {
-              let sectionExisitsInEvidenceMethod = 0
-              let existingSectionQuestionsArrayInEvidenceMethod = []
-              evidenceMethodArray[evidenceMethod.externalId].sections.forEach( exisitingSectionInEvidenceMethod => {
-                if (exisitingSectionInEvidenceMethod.name == evidenceMethodSection.name) {
-                  sectionExisitsInEvidenceMethod = 1
-                  existingSectionQuestionsArrayInEvidenceMethod = exisitingSectionInEvidenceMethod.questions
-                }
-              })
-              if(!sectionExisitsInEvidenceMethod) {
-                evidenceMethodArray[evidenceMethod.externalId].sections.push(evidenceMethodSection)
-               } else {
-                evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {
-                  existingSectionQuestionsArrayInEvidenceMethod.push(questionInEvidenceMethodSection)
+          let evidenceMethodArray = {}
+          evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
+            criteria.evidences.forEach(evidenceMethod => {
+              if (!evidenceMethodArray[evidenceMethod.externalId]) {
+                evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
+              } else {
+                // Evidence method already exists
+                // Loop through all sections reading evidence method
+                evidenceMethod.sections.forEach(evidenceMethodSection => {
+                  let sectionExisitsInEvidenceMethod = 0
+                  let existingSectionQuestionsArrayInEvidenceMethod = []
+                  evidenceMethodArray[evidenceMethod.externalId].sections.forEach( exisitingSectionInEvidenceMethod => {
+                    if (exisitingSectionInEvidenceMethod.name == evidenceMethodSection.name) {
+                      sectionExisitsInEvidenceMethod = 1
+                      existingSectionQuestionsArrayInEvidenceMethod = exisitingSectionInEvidenceMethod.questions
+                    }
+                  })
+                  if(!sectionExisitsInEvidenceMethod) {
+                    evidenceMethodArray[evidenceMethod.externalId].sections.push(evidenceMethodSection)
+                  } else {
+                    evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {
+                      existingSectionQuestionsArrayInEvidenceMethod.push(questionInEvidenceMethodSection)
+                    })
+                  }
                 })
               }
             })
-          }
-        })
-      })
-      //response.result.evaluationFramework = evaluationFrameworkDocument
+          })
+    
+          assessment.evidences = Object.values(evidenceMethodArray)
+          assessments.push(assessment)
+        
+      }
 
-      response.result.temp = evidenceMethodArray
-      // response.result.assessments = await controllers.criteriasController.getEvidence(
-      //   req
-      // );
-      // response.result.program.evaluationFramework = undefined;
-      // response.result.program.components = undefined;
+      response.result.assessments = assessments
+
       return resolve(response);
     }).catch(error => {
       reject(error);
