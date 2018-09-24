@@ -126,7 +126,7 @@ module.exports = class Schools extends Abstract {
         ]
       }
       let programDocument = await database.models.programs.findOne(programQueryObject);
-      response.result.program = programDocument
+      response.result.program = _.pick(programDocument,["_id","externalId","name","description"])
 
       let schoolAssessorHierarchyObject = [
         { $match: { userId: req.userDetails.id, programId: programDocument._id} },
@@ -143,7 +143,14 @@ module.exports = class Schools extends Abstract {
       ]
 
       let userHierarchyDocument = await database.models["school-assessors"].aggregate(schoolAssessorHierarchyObject)
-      response.result.userHierarchy = userHierarchyDocument
+      userHierarchyDocument[0].connections.forEach(connection => {
+        if(connection.role === 'PROJECT_MANAGER') {
+          response.result.program.projectManagers = _.pick(connection,["userId","externalId"])
+        }
+        if(connection.role === 'LEAD_ASSESSOR') {
+          response.result.program.leadAssessors = _.pick(connection,["userId","externalId"])
+        }
+      })
 
       let evaluationFrameworkQueryObject = [
         { $match: { _id: ObjectId("5b98fa069f664f7e1ae7498c")} },
@@ -161,24 +168,36 @@ module.exports = class Schools extends Abstract {
       let evaluationFrameworkDocument = await database.models["evaluation-frameworks"].aggregate(evaluationFrameworkQueryObject)
 
       let evidenceMethodArray = {}
-      evaluationFrameworkDocument.criteriaDocs.forEach(criteria => {
+      evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
         criteria.evidences.forEach(evidenceMethod => {
           if(!evidenceMethodArray[evidenceMethod.externalId]) {
             evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod
           } else {
-              evidenceMethodArray[evidenceMethod.externalId].sections = Object.assign(evidenceMethodArray[evidenceMethod.externalId].sections,evidenceMethod.sections)
-              evidenceMethod.sections.forEach(evidenceMethodSection => {
-                evidenceMethodArray[evidenceMethod.externalId].sections.forEach( existingSection => {
-
-                })
-                evidenceMethodSection.questions.forEach(question => {
-                  
-                })
+            // Evidence method already exists
+            // Loop through all sections reading evidence method
+            evidenceMethod.sections.forEach(evidenceMethodSection => {
+              let sectionExisitsInEvidenceMethod = 0
+              let existingSectionQuestionsArrayInEvidenceMethod = []
+              evidenceMethodArray[evidenceMethod.externalId].sections.forEach( exisitingSectionInEvidenceMethod => {
+                if (exisitingSectionInEvidenceMethod.name == evidenceMethodSection.name) {
+                  sectionExisitsInEvidenceMethod = 1
+                  existingSectionQuestionsArrayInEvidenceMethod = exisitingSectionInEvidenceMethod.questions
+                }
               })
+              if(!sectionExisitsInEvidenceMethod) {
+                evidenceMethodArray[evidenceMethod.externalId].sections.push(evidenceMethodSection)
+               } else {
+                evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {
+                  existingSectionQuestionsArrayInEvidenceMethod.push(questionInEvidenceMethodSection)
+                })
+              }
+            })
           }
         })
       })
-      response.result.evaluationFramework = evaluationFrameworkDocument
+      //response.result.evaluationFramework = evaluationFrameworkDocument
+
+      response.result.temp = evidenceMethodArray
       // response.result.assessments = await controllers.criteriasController.getEvidence(
       //   req
       // );
