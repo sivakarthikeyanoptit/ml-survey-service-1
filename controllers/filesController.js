@@ -45,7 +45,7 @@ module.exports = class FileUpload {
             if (error) return reject(error);
             return resolve({
               message: "File uploaded successfully",
-              data: uploads.uploads,
+              result: uploads.uploads,
               failed: uploads.failedDocs.length ? uploads.failedDocs : undefined
             });
           }

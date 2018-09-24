@@ -21,7 +21,7 @@ module.exports = function(app) {
           res.status(result.status ? result.status : 200).json({
             message: result.message,
             status: result.status ? result.status : 200,
-            // data: result.data,
+            result: result.data,
             result: result.result,
             additionalDetails: result.additionalDetails,
             pagination: result.pagination,
