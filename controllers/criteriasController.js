@@ -25,27 +25,73 @@ module.exports = class Criterias extends Abstract {
     // log.debug(criteria);
     // return criteria;
     return new Promise(async function(resolve, reject) {
-      var evidences = [],
-        merged = [],
-        query = [];
+      let merged = {},
+        query = [],
+        sectionData = {};
 
       await criteria.forEach(function(value, i) {
         query.push({ _id: ObjectId(value) });
       });
 
       let criterias = await database.models.criterias.find({ $or: query });
-
       // log.debug(criterias);
-
       // if (Array.isArray(criterias)) {
-      await _.forEachRight(criterias, function(crit, i) {
-        evidences = evidences.concat(crit.evidences);
-        // await crit.evidences.forEach(async function(evidence, i) {
-        //   log.debug(evidence.externalId);
-        // });
+
+      await _.forEachRight(criterias, async function(crit, i) {
+        await crit.evidences.forEach(async function(evidence, i) {
+          if (!merged[evidence.externalId]) {
+            merged[evidence.externalId] = evidence;
+          } else {
+            log.debug("Already Done");
+            merged[evidence.externalId] = Object.assign(
+              merged[evidence.externalId],
+              evidence
+            );
+            await _.forEachRight(evidence.sections, (section, i2) => {
+              _.forEachRight(
+                merged[evidence.externalId].sections,
+                (Msection, mi2) => {
+                  log.debug(
+                    merged[evidence.externalId].sections.length,
+                    evidence.sections.length
+                  );
+                  if (Msection.name == section.name) {
+                    log.debug(
+                      Msection.name,
+                      "-----matched------>",
+                      section.name
+                    );
+                    // log.debug(
+                    //   merged[evidence.externalId].sections[mi2],
+                    //   section
+                    // );
+
+                    merged[evidence.externalId].sections[mi2].questions.concat(
+                      section.questions
+                    );
+                    log.debug(
+                      evidence.externalId,
+                      "######################################333",
+                      merged[evidence.externalId].sections[mi2].questions,
+                      "######################################",
+                      section.questions
+                    );
+                  } else {
+                    log.debug(
+                      Msection.name,
+                      "-----not matched------>",
+                      section.name
+                    );
+                  }
+                }
+              );
+            });
+          }
+        });
       });
       // }
-      return resolve(evidences);
+
+      return resolve(Object.values(merged));
     });
   }
   async getCriterias(req) {
