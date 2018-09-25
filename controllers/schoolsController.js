@@ -71,7 +71,7 @@ module.exports = class Schools extends Abstract {
         ]
       }
       let programDocument = await database.models.programs.findOne(programQueryObject);
-      response.result.program = _.pick(programDocument,["_id","externalId","name","description"])
+      response.result.program = _.pick(programDocument,["_id","externalId","name","description","imageCompression"])
 
       let schoolAssessorHierarchyObject = [
         {
