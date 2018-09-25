@@ -27,7 +27,7 @@ module.exports = {
     administration: "String",
     gender: "String",
     shift: "String",
-    schoolType: "String",
+    schoolTypes: "Array",
     totalStudents: "String",
     totalGirls: "String",
     totalBoys: "String",
