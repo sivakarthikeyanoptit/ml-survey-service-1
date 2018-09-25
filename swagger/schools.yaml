@@ -49,6 +49,39 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/schools"
+  /schools/upload:
+    post:
+      description: Returns all schools from the system that the user has access to
+      operationId: upload image
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      summary: Uploads Files.
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: formData
+          name: schools
+          type: file
+          description: The file to upload.
+      security:
+        - ApiKeyAuth: []
+        # - Bearer: []
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: Files response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
 
 definitions:
   schools:
