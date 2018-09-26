@@ -1,7 +1,7 @@
 module.exports = {
   name: "schools",
   schema: {
-    form: Object,
+    // form: Object,
     externalId: "String",
     addressLine1: "String",
     addressLine2: "String",
@@ -9,10 +9,7 @@ module.exports = {
     country: "String",
     createdBy: "String",
     createdDate: "String",
-    gpsLocation: {
-      lat: "String",
-      long: "String"
-    },
+    gpsLocation: Object,
     isDeleted: false,
     name: "String",
     phone: "String",
