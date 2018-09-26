@@ -4,8 +4,8 @@ module.exports = {
     schoolId: "String",
     programId: "ObjectId",
     status: "String",
-    evidences: "Array",
-    schoolProfile: "Array",
+    evidenceSubmissions: "Array",
+    schoolProfile: Object,
     ratings: "String"
   }
 };

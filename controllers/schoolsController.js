@@ -146,7 +146,10 @@ module.exports = class Schools extends Abstract {
 
       req.body = {
         schoolId: schoolDocument._id,
-        programId: programDocument._id
+        programId: programDocument._id,
+        evidenceSubmissions:[],
+        schoolProfile:{},
+        status:"Started"
       };
       let assessments = [];
       for (

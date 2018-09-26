@@ -25,4 +25,17 @@ module.exports = class Submission extends Abstract {
       result: result
     };
   }
+
+  async make(req) {
+    return new Promise(async (resolve, reject) => {
+      req.body = req.body || {};
+      let response = {
+        message: "Submission completed successfully",
+        result: {}
+      };
+      return resolve(response);
+    }).catch(error => {
+      reject(error);
+    });
+  }
 };
