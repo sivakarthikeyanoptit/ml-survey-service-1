@@ -13,7 +13,7 @@ module.exports = class Submission extends Abstract {
     var query = {},
       update = req.body,
       options = { upsert: true, new: true, setDefaultsOnInsert: true };
-
+console.log(update)
     let result = await database.models.submissions.findOneAndUpdate(
       query,
       update,
@@ -29,8 +29,7 @@ module.exports = class Submission extends Abstract {
   async make(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
-      console.log(req.params._id)
-      console.log(req.body)
+
       let queryObject = {
         _id: ObjectId(req.params._id)
       }
@@ -38,46 +37,25 @@ module.exports = class Submission extends Abstract {
       let result = {}
 
       if(req.body.schoolProfile) {
-        updateObject = {
-          $set: { schoolProfile : req.body.schoolProfile }
-        }
-        result = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject,
-          //optionsObject
-        );
-
-        console.log(result)
-        let response = {
-          message: "Submission completed successfully",
-          result: result
-        };
-        return resolve(response);
+        updateObject.$set = { schoolProfile : req.body.schoolProfile }
       }
       
       if(req.body.evidence) {
-        updateObject = {
-          $push: { evidenceSubmissions: req.body.evidence } 
-        }
-
-        result = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject,
-          //optionsObject
-        );
-
-        console.log(result)
-        let response = {
-          message: "Submission completed successfully",
-          result: result
-        };
-        return resolve(response);
-
+        updateObject.$push = { evidenceSubmissions: { $each: req.body.evidence }}
       }
       
-      // let optionsObject = {
-      //   sort: { "points" : 1 }, upsert:true, returnNewDocument : true 
-      // }
+
+      result = await database.models.submissions.findOneAndUpdate(
+        queryObject,
+        updateObject
+      );
+
+      let response = {
+        message: "Submission completed successfully"
+      };
+
+      return resolve(response);
+
       
     }).catch(error => {
       reject(error);

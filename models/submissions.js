@@ -1,11 +1,11 @@
 module.exports = {
   name: "submissions",
   schema: {
-    schoolId: "String",
+    schoolId: "ObjectId",
     programId: "ObjectId",
     status: "String",
     evidenceSubmissions: "Array",
     schoolProfile: Object,
-    ratings: "String"
+    ratings: Object
   }
 };
