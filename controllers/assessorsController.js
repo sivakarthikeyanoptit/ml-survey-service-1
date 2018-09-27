@@ -14,21 +14,8 @@ module.exports = class Assessors {
       req.populate = "schools";
       const queryResult = await controllers.schoolAssessorsController.populate(req)
       let schools = []
-      //console.log(schools)
       queryResult.result.forEach(assessor => {
         assessor.schools.forEach(assessorSchool => {
-          // let schoolInfo = {
-          //   "_id":assessorSchool._id
-          // }
-          // console.log(assessorSchool)
-          // assessorSchool.form.forEach(formField => {
-          //   if(formField.field === 'externalId') {
-          //     schoolInfo.externalId = formField.value
-          //   }
-          //   if(formField.field === 'name') {
-          //     schoolInfo.name = formField.value
-          //   }
-          // })
           schools.push(assessorSchool)
         })
       });
