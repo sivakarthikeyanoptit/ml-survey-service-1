@@ -34,7 +34,7 @@ module.exports = class Assessors {
       // });
       return resolve({
         message: "School list fetched successfully",
-        result:schools
+        result:schools.result
       });
     }).catch(error => {
       reject({
