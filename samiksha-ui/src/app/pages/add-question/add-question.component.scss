@@ -1,0 +1,23 @@
+.question-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.question-card {
+  margin: 7px 7px;
+}
+
+.question-input {
+  width: 90%;
+}
+
+.question-add {
+  width: 10%;
+}
+
+.question-options {
+  width: 45%;
+}
+.question-options-dev {
+  width: 100%;
+}

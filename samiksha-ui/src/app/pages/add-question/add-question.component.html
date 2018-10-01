@@ -1,0 +1,48 @@
+<div class="question-container">
+  <mat-card class="question-card">
+    <br> <button mat-fab (click)="addQuestion()">
+      <mat-icon class="mat-18">add</mat-icon>
+    </button>
+    Add New Question
+    <div class="ques-option-div" *ngFor="let option of questionForm.questions ; let i = index">
+      <mat-form-field class="col-md-11">
+        <input matInput [(ngModel)]="questionForm.questions[i].value" placeholder="Question {{i}}">
+      </mat-form-field>
+      <button mat-fab (click)="removeQuestion(i)" class="col-md-1">
+        <mat-icon class="mat-18">remove</mat-icon>
+      </button>
+    </div>
+
+    <br> <button mat-button (click)="addOption()">
+      <mat-icon class="mat-18">add</mat-icon>
+    </button>
+
+    <!-- <mat-grid-list cols="2" rowHeight="2:1"> -->
+    <div class="question-options-dev" *ngFor="let option of questionForm.options ; let i = index">
+      <mat-form-field>
+        <input class="question-options" matInput [(ngModel)]="questionForm.options[i].value" placeholder="value">
+      </mat-form-field>
+      <mat-form-field>
+        <input class="question-options" matInput [(ngModel)]="questionForm.options[i].label" placeholder="label">
+      </mat-form-field>
+      <button mat-fab (click)="removeOption(i)">
+        <mat-icon class="mat-18">remove</mat-icon>
+      </button>
+      <!-- </div> -->
+    </div>
+    <!-- </mat-grid-list> -->
+
+    <!-- <mat-form-field>
+    <textarea matInput placeholder="Textarea"></textarea>
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-select placeholder="Select">
+      <mat-option value="option">Option</mat-option>
+    </mat-select>
+  </mat-form-field> -->
+  </mat-card>
+
+</div>
+
+<pre>{{ questionForm | json}}</pre>
