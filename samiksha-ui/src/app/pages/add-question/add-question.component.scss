@@ -3,21 +3,10 @@
   flex-direction: column;
 }
 
-.question-card {
-  margin: 7px 7px;
+.form-control {
+  margin: 5px 0px;
 }
 
-.question-input {
-  width: 90%;
-}
-
-.question-add {
-  width: 10%;
-}
-
-.question-options {
-  width: 45%;
-}
-.question-options-dev {
-  width: 100%;
+.question-remove-btn {
+  cursor: pointer;
 }

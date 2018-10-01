@@ -1,48 +1,132 @@
 <div class="question-container">
   <mat-card class="question-card">
-    <br> <button mat-fab (click)="addQuestion()">
-      <mat-icon class="mat-18">add</mat-icon>
-    </button>
-    Add New Question
-    <div class="ques-option-div" *ngFor="let option of questionForm.questions ; let i = index">
-      <mat-form-field class="col-md-11">
-        <input matInput [(ngModel)]="questionForm.questions[i].value" placeholder="Question {{i}}">
-      </mat-form-field>
-      <button mat-fab (click)="removeQuestion(i)" class="col-md-1">
-        <mat-icon class="mat-18">remove</mat-icon>
+    <div class="input-group">
+      <input type="text" class="form-control" [(ngModel)]="questionForm.externalId" placeholder="External ID">
+    </div>
+    <hr>
+    <div class="input-group">
+      <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addQuestion()">
+        Add New Question
       </button>
+
+      <div class="input-group mb-3" *ngFor="let option of questionForm.questions ; let i = index">
+        <input type="text" class="form-control" [(ngModel)]="questionForm.questions[i].value" placeholder="Question"
+          aria-label="Question" aria-describedby="questions">
+        <div class="input-group-append">
+          <span class="input-group-text question-remove-btn" id="questions" (click)="removeQuestion(i)">Remove</span>
+        </div>
+      </div>
     </div>
 
-    <br> <button mat-button (click)="addOption()">
-      <mat-icon class="mat-18">add</mat-icon>
-    </button>
+    <div class="input-group">
+      <input type="text" class="form-control" [(ngModel)]="questionForm.tip" placeholder="Question Tip">
+    </div>
 
-    <!-- <mat-grid-list cols="2" rowHeight="2:1"> -->
-    <div class="question-options-dev" *ngFor="let option of questionForm.options ; let i = index">
-      <mat-form-field>
-        <input class="question-options" matInput [(ngModel)]="questionForm.options[i].value" placeholder="value">
-      </mat-form-field>
-      <mat-form-field>
-        <input class="question-options" matInput [(ngModel)]="questionForm.options[i].label" placeholder="label">
-      </mat-form-field>
-      <button mat-fab (click)="removeOption(i)">
-        <mat-icon class="mat-18">remove</mat-icon>
+    <div class="input-group">
+      <div class="form-group">
+        <label for="responseType">Question Type</label>
+        <select class="form-control" [(ngModel)]="questionForm.responseType" id="responseType">
+          <option value="radio">Radio</option>
+          <option value="multiSelect">Multi Select</option>
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="Date">Date</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addOption()" *ngIf="['multiSelect','radio'].indexOf(questionForm.responseType)> -1 ">
+        Add New Options
       </button>
+      <div class="question-options-dev" *ngFor="let option of questionForm.options ; let i = index">
+        <div class="row">
+          <div class="col">
+            <input type="text" class="form-control" [(ngModel)]="questionForm.options[i].value" placeholder="Value">
+          </div>
+          <div class="col">
+            <input type="text" class="form-control" [(ngModel)]="questionForm.options[i].label" placeholder="Label">
+          </div>
+
+          <!-- <div class="col"> -->
+          <button type="button" class=" btn btn-outline-dark btn-sm" (click)="removeOption(i)" *ngIf="['multiSelect','radio'].indexOf(questionForm.responseType)> -1 ">Remove</button>
+          <!-- </div> -->
+        </div>
+      </div>
+    </div>
+
+
+    <hr>
+    <div class="input-group">
+      <mat-checkbox [(ngModel)]="questionForm.file.required">File Required</mat-checkbox>
+    </div>
+    <div class="input-group" *ngIf="questionForm.file.required">
+      <mat-form-field class="col-md-6">
+        <mat-select [(ngModel)]="questionForm.file.type" placeholder="File Type" multiple>
+          <mat-option *ngFor="let type of typeList" [value]="type">{{type}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox class="col-md-6" [(ngModel)]="questionForm.file.caption">Caption</mat-checkbox>
+
       <!-- </div> -->
+      <!-- </div> -->
+      <div class="row">
+        <div class="col">
+          <input type="number" class="form-control" [(ngModel)]="questionForm.file.minCount" placeholder="Minimum number of files">
+        </div>
+        <div class="col">
+          <input type="number" class="form-control" [(ngModel)]="questionForm.file.maxCount" placeholder="Maximum number of files">
+        </div>
+
+      </div>
     </div>
-    <!-- </mat-grid-list> -->
 
-    <!-- <mat-form-field>
-    <textarea matInput placeholder="Textarea"></textarea>
-  </mat-form-field>
+    <hr>
+    <div class="input-group">
+      <label>Validation</label>
+      <div class="input-group">
+        <mat-checkbox class="col-md-6" [(ngModel)]="questionForm.validation.required">Answer Required</mat-checkbox>
 
-  <mat-form-field>
-    <mat-select placeholder="Select">
-      <mat-option value="option">Option</mat-option>
-    </mat-select>
-  </mat-form-field> -->
+        <!-- <input type="text" class="form-control" [(ngModel)]="questionForm.validation.required" placeholder="Required"> -->
+      </div>
+    </div>
+
+    <hr>
+    <div class="input-group">
+      <div class="form-group">
+        <label for="questionType">Question Type</label>
+        <select class="form-control" [(ngModel)]="questionForm.questionType" id="questionType">
+          <option value="auto">Auto</option>
+          <option value="manual">Manual</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="form-group">
+        <label for="modeOfCollection">Mode of Collection</label>
+        <select class="form-control" [(ngModel)]="questionForm.modeOfCollection" id="modeOfCollection">
+          <option value="onfield">On Field</option>
+          <option value="oncall">On Call</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group">
+      <input type="text" class="form-control" [(ngModel)]="questionForm.usedForScoring" placeholder="User For Scoring">
+    </div>
+
+    <div class="input-group">
+      <mat-form-field class="col-md-6">
+        <mat-select [(ngModel)]="questionForm.questionGroup" placeholder="Question Group" multiple>
+          <mat-option *ngFor="let type of ['GOVT','PRIVATE']" [value]="type">{{type}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <hr>
+    <button type="button" class=" btn btn-outline-dark btn-sm" (click)="submit()">
+      Submit
+    </button>
   </mat-card>
-
 </div>
-
 <pre>{{ questionForm | json}}</pre>

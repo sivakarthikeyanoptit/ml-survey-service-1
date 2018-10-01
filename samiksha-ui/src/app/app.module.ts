@@ -12,6 +12,7 @@ import { FooterComponent } from "./components/footer/footer.component";
 import { SidebarComponent } from "./components/sidebar/sidebar.component";
 
 import { LayoutModule } from "@angular/cdk/layout";
+import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import {
   MatToolbarModule,
   MatButtonModule,
@@ -24,10 +25,11 @@ import {
   MatFormFieldModule,
   MatInputModule,
   MatOptionModule,
-  MatSelectModule
+  MatSelectModule,
+  MatCheckboxModule
 } from "@angular/material";
 import { NavigationComponent } from "./components/navigation/navigation.component";
-import { FormsModule } from "@angular/forms";
+import { HttpClientModule } from "@angular/common/http";
 
 @NgModule({
   declarations: [
@@ -55,7 +57,10 @@ import { FormsModule } from "@angular/forms";
     MatInputModule,
     MatOptionModule,
     MatSelectModule,
-    FormsModule
+    FormsModule,
+    HttpClientModule,
+    ReactiveFormsModule,
+    MatCheckboxModule
   ],
   providers: [],
   bootstrap: [AppComponent]
