@@ -24,7 +24,8 @@ module.exports = class Schools extends Abstract {
     try {
       req.body = await csv().fromString(req.files.schools.data.toString());
       await req.body.forEach(async school => {
-        school.schoolTypes = await school.schoolTypes.split(",");
+        school.schoolType = await school.schoolType.split(",");
+        school.createdBy = school.updatedBy = await req.userDetails.id;
         await database.models.schools.findOneAndUpdate(
           { externalId: school.externalId },
           school,
