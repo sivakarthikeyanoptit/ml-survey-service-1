@@ -1,5 +1,6 @@
 import { BrowserModule } from "@angular/platform-browser";
 import { NgModule } from "@angular/core";
+import { HttpModule } from "@angular/http";
 
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 
@@ -30,6 +31,8 @@ import {
 } from "@angular/material";
 import { NavigationComponent } from "./components/navigation/navigation.component";
 import { HttpClientModule } from "@angular/common/http";
+import { Oauth2callbackComponent } from "./components/oauth2callback/oauth2callback.component";
+import { OauthLogoutcallbackComponent } from "./components/oauth-logoutcallback/oauth-logoutcallback.component";
 
 @NgModule({
   declarations: [
@@ -38,7 +41,9 @@ import { HttpClientModule } from "@angular/common/http";
     HeaderComponent,
     FooterComponent,
     SidebarComponent,
-    NavigationComponent
+    NavigationComponent,
+    Oauth2callbackComponent,
+    OauthLogoutcallbackComponent
   ],
   imports: [
     BrowserModule,
@@ -60,9 +65,12 @@ import { HttpClientModule } from "@angular/common/http";
     FormsModule,
     HttpClientModule,
     ReactiveFormsModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    HttpModule
   ],
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule {}
+export class AppModule {
+  baseUrl: string = "/";
+}

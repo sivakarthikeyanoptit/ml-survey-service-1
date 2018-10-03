@@ -1,4 +1,5 @@
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
+import { AuthService } from "../../service/auth/auth.service";
 import {
   BreakpointObserver,
   Breakpoints,
@@ -12,10 +13,35 @@ import { map } from "rxjs/operators";
   templateUrl: "./navigation.component.html",
   styleUrls: ["./navigation.component.css"]
 })
-export class NavigationComponent {
+export class NavigationComponent implements OnInit {
   isHandset$: Observable<boolean> = this.breakpointObserver
     .observe(Breakpoints.Handset)
     .pipe(map(result => result.matches));
 
-  constructor(private breakpointObserver: BreakpointObserver) {}
+  public isAuthenticated: Boolean = false;
+
+  constructor(
+    private breakpointObserver: BreakpointObserver,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit() {
+    let that = this;
+    this.authService
+      .validateApiToken()
+      .then(result => {
+        that.isAuthenticated = result;
+      })
+      .catch(console.error);
+
+    // throw new Error("Method not implemented.");
+  }
+
+  login() {
+    this.authService.doOAuthStepOne();
+  }
+
+  logout() {
+    this.authService.doLogout();
+  }
 }
