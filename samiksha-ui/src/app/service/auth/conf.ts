@@ -3,9 +3,9 @@ export const AppConfigs = {
   api_base_url: "https://dev.shikshalokam.org/assessment/api/v1",
   keyCloak: {
     getAccessToken: "/auth/realms/sunbird/protocol/openid-connect/token",
-    redirection_url: "http://localhost:3000/assessment/web/oauth2callback",
+    redirection_url: "http://localhost:4201/assessment/web/oauth2callback",
     logout_redirect_url:
-      "http://localhost:3000/assessment/web/oauthLogoutcallback"
+      "http://localhost:4201/assessment/web/oauthLogoutcallback"
   },
   survey: { submission: "/submissions/make/" }
 };
