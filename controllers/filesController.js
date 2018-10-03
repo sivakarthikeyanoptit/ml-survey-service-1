@@ -65,7 +65,7 @@ module.exports = class FileUpload {
                 action: 'write',
                 expires: expiry,
                 contentType: 'multipart/form-data',
-                "x-goog-meta-file": 'temp.jpg'
+                responseDisposition: 'filename=temp.jpg'
               };
               let fileUrls = []
               for (let counter = 0; counter < req.body.files.length; counter++) {
