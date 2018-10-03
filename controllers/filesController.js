@@ -64,8 +64,7 @@ module.exports = class FileUpload {
               const config = {
                 action: 'write',
                 expires: expiry,
-                contentType: 'multipart/form-data',
-                extensionHeaders:"x-goog-meta-temp:temp.jpg"
+                contentType: 'multipart/form-data'
               };
               let fileUrls = []
               for (let counter = 0; counter < req.body.files.length; counter++) {
