@@ -70,7 +70,7 @@ module.exports = class FileUpload {
               let fileUrls = []
               for (let counter = 0; counter < req.body.files.length; counter++) {
                 let gcpFile = gcp.bucket.file(req.body.files[counter])
-                config["x-goog-meta-filename"] = req.body.files[counter]
+                config["metadata"] = {filename:req.body.files[counter]}
                 const signedUrl = await gcpFile.getSignedUrl(config)
                 fileUrls.push({
                   file:req.body.files[counter],
