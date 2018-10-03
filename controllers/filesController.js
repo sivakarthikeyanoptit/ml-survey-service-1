@@ -65,7 +65,6 @@ module.exports = class FileUpload {
                 action: 'write',
                 expires: expiry,
                 contentType: 'multipart/form-data',
-                responseDisposition: 'filename=temp.jpg'
               };
               let fileUrls = []
               for (let counter = 0; counter < req.body.files.length; counter++) {
