@@ -59,3 +59,5 @@ generics/helpers/credentials/*
 
 package-lock.json
 
+public/assessment/web
+
