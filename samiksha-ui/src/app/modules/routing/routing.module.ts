@@ -7,15 +7,15 @@ import { OauthLogoutcallbackComponent } from "../../components/oauth-logoutcallb
 
 const routes: Routes = [
   {
-    path: environment.baseUrl + "questions/new",
+    path: "questions/new",
     component: AddQuestionComponent
   },
   {
-    path: environment.baseUrl + "oauth2callback",
+    path: "oauth2callback",
     component: Oauth2callbackComponent
   },
   {
-    path: environment.baseUrl + "oauthLogoutcallback",
+    path: "oauthLogoutcallback",
     component: OauthLogoutcallbackComponent
   }
 ];

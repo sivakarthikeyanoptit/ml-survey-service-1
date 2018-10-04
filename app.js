@@ -76,6 +76,10 @@ const swagger = require("./swagger");
 const swaggerMW = new swagger();
 app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
 
+app.get("/assessment/web/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+});
+
 // Add headers
 /* app.use(function(req, res, next) {
 

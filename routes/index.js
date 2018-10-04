@@ -1,6 +1,6 @@
 let authenticator = require("../generics/middleware/authenticator");
 module.exports = function(app) {
-  app.use(authenticator);
+  app.use("/assessment/api", authenticator);
 
   var router = function(req, res, next) {
     // console.log(req.params);
