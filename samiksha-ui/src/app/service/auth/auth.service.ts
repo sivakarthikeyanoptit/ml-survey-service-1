@@ -200,7 +200,6 @@ export class AuthService {
             // this.currentUser.removeUser();
             console.log("Utils: Logout,token invalid");
             console.log("error " + JSON.stringify(error));
-            this.doLogout();
             reject({ status: "401" });
           }
         );
