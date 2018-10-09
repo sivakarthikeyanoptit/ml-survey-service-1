@@ -16,8 +16,12 @@ module.exports = class SchoolAssessors extends Abstract {
   find(req) {
     // req.db = "cassandra";
     req.query = { userId: req.userDetails.userId };
-    req.populate = "schools";
-    console.log(req.query, req.populate);
+    //req.populate = "schools";
+    
+    req.populate = {
+      path: 'schools',
+      select: ["name","externalId"]
+    };
 
     // return super.find(req);
     return super.populate(req);

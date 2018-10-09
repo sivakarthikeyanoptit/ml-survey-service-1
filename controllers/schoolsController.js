@@ -26,6 +26,7 @@ module.exports = class Schools extends Abstract {
       await req.body.forEach(async school => {
         school.schoolType = await school.schoolType.split(",");
         school.createdBy = school.updatedBy = await req.userDetails.id;
+        school.gpsLocation = "";
         await database.models.schools.findOneAndUpdate(
           { externalId: school.externalId },
           school,
@@ -51,6 +52,7 @@ module.exports = class Schools extends Abstract {
   }
 
   find(req) {
+    req.query.fields = ["name","externalId"]
     return super.find(req);
   }
 

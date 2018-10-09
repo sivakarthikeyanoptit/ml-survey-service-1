@@ -199,8 +199,9 @@ let Abstract = class Abstract {
     });
   }
   _getSelectedFields(fields) {
-    let f = fields !== undefined ? fields.replace(/,/g, " ") : "";
-    return f;
+    // Removed below line from layer
+    //let f = fields !== undefined ? fields.replace(/,/g, " ") : "";
+    return fields;
   }
 
   _constructFindQuery(query) {

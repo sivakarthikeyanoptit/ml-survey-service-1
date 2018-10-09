@@ -11,7 +11,10 @@ module.exports = class Assessors {
     return new Promise(async (resolve,reject) => {
 
       req.query = { userId: req.userDetails.userId };
-      req.populate = "schools";
+      req.populate = {
+        path: 'schools',
+        select: ["name","externalId"]
+      };
       const queryResult = await controllers.schoolAssessorsController.populate(req)
       let schools = []
       queryResult.result.forEach(assessor => {
