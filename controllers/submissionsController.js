@@ -13,7 +13,7 @@ module.exports = class Submission extends Abstract {
     var query = {},
       update = req.body,
       options = { upsert: true, new: true, setDefaultsOnInsert: true };
-console.log(update)
+
     let result = await database.models.submissions.findOneAndUpdate(
       query,
       update,
