@@ -1,1 +1,1 @@
-export const environment = { production: true, baseUrl: "assessment/web/" };
+export const environment = { production: true, baseUrl: "" };

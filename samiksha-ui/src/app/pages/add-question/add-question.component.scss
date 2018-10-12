@@ -1,6 +1,6 @@
 .question-container {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
 }
 
 .form-control {
@@ -9,4 +9,22 @@
 
 .question-remove-btn {
   cursor: pointer;
+}
+
+.question-card {
+  // width: 25%; //calc(25% - 12px);
+  padding: 5px 2px;
+}
+
+.question-card-title {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.display-inline {
+  display: inline;
+}
+
+.question-dialog {
+  overflow-y: auto;
 }

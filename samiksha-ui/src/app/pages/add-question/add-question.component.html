@@ -1,132 +1,33 @@
 <div class="question-container">
-  <mat-card class="question-card">
-    <div class="input-group">
-      <input type="text" class="form-control" [(ngModel)]="questionForm.externalId" placeholder="External ID">
-    </div>
-    <hr>
-    <div class="input-group">
-      <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addQuestion()">
-        Add New Question
-      </button>
 
-      <div class="input-group mb-3" *ngFor="let option of questionForm.questions ; let i = index">
-        <input type="text" class="form-control" [(ngModel)]="questionForm.questions[i].value" placeholder="Question"
-          aria-label="Question" aria-describedby="questions">
-        <div class="input-group-append">
-          <span class="input-group-text question-remove-btn" id="questions" (click)="removeQuestion(i)">Remove</span>
-        </div>
-      </div>
-    </div>
+  <mat-card class="question-card col-md-3" *ngFor="let question of questionForm; let i = index">
+    <!-- <mat-card-header> -->
 
-    <div class="input-group">
-      <input type="text" class="form-control" [(ngModel)]="questionForm.tip" placeholder="Question Tip">
-    </div>
+    <mat-card-title class="question-card-title">{{i+1}}.{{this.questionForm[i].questions[0].value}} </mat-card-title>
+    <mat-card-subtitle>External ID: {{question.externalId || ""}}<br>Evidence: {{question.evidenceName || ""}}<br>Section:
+      {{question.sectionName || ""}}<br>Parent:
+      {{question.parentId}}<br>Child: {{question.children}}
+    </mat-card-subtitle>
+    <!-- </mat-card-header>
+    <mat-card-content>
 
-    <div class="input-group">
-      <div class="form-group">
-        <label for="responseType">Question Type</label>
-        <select class="form-control" [(ngModel)]="questionForm.responseType" id="responseType">
-          <option value="radio">Radio</option>
-          <option value="multiSelect">Multi Select</option>
-          <option value="text">Text</option>
-          <option value="number">Number</option>
-          <option value="Date">Date</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addOption()" *ngIf="['multiSelect','radio'].indexOf(questionForm.responseType)> -1 ">
-        Add New Options
-      </button>
-      <div class="question-options-dev" *ngFor="let option of questionForm.options ; let i = index">
-        <div class="row">
-          <div class="col">
-            <input type="text" class="form-control" [(ngModel)]="questionForm.options[i].value" placeholder="Value">
-          </div>
-          <div class="col">
-            <input type="text" class="form-control" [(ngModel)]="questionForm.options[i].label" placeholder="Label">
-          </div>
-
-          <!-- <div class="col"> -->
-          <button type="button" class=" btn btn-outline-dark btn-sm" (click)="removeOption(i)" *ngIf="['multiSelect','radio'].indexOf(questionForm.responseType)> -1 ">Remove</button>
-          <!-- </div> -->
-        </div>
-      </div>
-    </div>
-
-
-    <hr>
-    <div class="input-group">
-      <mat-checkbox [(ngModel)]="questionForm.file.required">File Required</mat-checkbox>
-    </div>
-    <div class="input-group" *ngIf="questionForm.file.required">
-      <mat-form-field class="col-md-6">
-        <mat-select [(ngModel)]="questionForm.file.type" placeholder="File Type" multiple>
-          <mat-option *ngFor="let type of typeList" [value]="type">{{type}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-checkbox class="col-md-6" [(ngModel)]="questionForm.file.caption">Caption</mat-checkbox>
-
-      <!-- </div> -->
-      <!-- </div> -->
-      <div class="row">
-        <div class="col">
-          <input type="number" class="form-control" [(ngModel)]="questionForm.file.minCount" placeholder="Minimum number of files">
-        </div>
-        <div class="col">
-          <input type="number" class="form-control" [(ngModel)]="questionForm.file.maxCount" placeholder="Maximum number of files">
-        </div>
-
-      </div>
-    </div>
-
-    <hr>
-    <div class="input-group">
-      <label>Validation</label>
-      <div class="input-group">
-        <mat-checkbox class="col-md-6" [(ngModel)]="questionForm.validation.required">Answer Required</mat-checkbox>
-
-        <!-- <input type="text" class="form-control" [(ngModel)]="questionForm.validation.required" placeholder="Required"> -->
-      </div>
-    </div>
-
-    <hr>
-    <div class="input-group">
-      <div class="form-group">
-        <label for="questionType">Question Type</label>
-        <select class="form-control" [(ngModel)]="questionForm.questionType" id="questionType">
-          <option value="auto">Auto</option>
-          <option value="manual">Manual</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="input-group">
-      <div class="form-group">
-        <label for="modeOfCollection">Mode of Collection</label>
-        <select class="form-control" [(ngModel)]="questionForm.modeOfCollection" id="modeOfCollection">
-          <option value="onfield">On Field</option>
-          <option value="oncall">On Call</option>
-        </select>
-      </div>
-    </div>
-    <div class="input-group">
-      <input type="text" class="form-control" [(ngModel)]="questionForm.usedForScoring" placeholder="User For Scoring">
-    </div>
-
-    <div class="input-group">
-      <mat-form-field class="col-md-6">
-        <mat-select [(ngModel)]="questionForm.questionGroup" placeholder="Question Group" multiple>
-          <mat-option *ngFor="let type of ['GOVT','PRIVATE']" [value]="type">{{type}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-    <hr>
-    <button type="button" class=" btn btn-outline-dark btn-sm" (click)="submit()">
-      Submit
-    </button>
+    </mat-card-content> -->
+    <!-- <mat-card-actions> -->
+    <!-- <br> -->
+    <button mat-button class="
+        float-right" (click)="openDialog(i)">View/Edit</button>
+    <button mat-button class="float-right" (click)="delete(i)">Delete</button>
+    <button mat-button class="float-right" (click)="duplicate(i)">Duplicate</button>
+    <!-- </mat-card-actions> -->
   </mat-card>
+
+  <mat-card class="col-md-3 question-card">
+    <mat-card-content>
+      <button mat-button (click)="addQuestion()">Add New</button>
+    </mat-card-content>
+  </mat-card>
+
+  <hr>
+  <br>
 </div>
 <pre>{{ questionForm | json}}</pre>

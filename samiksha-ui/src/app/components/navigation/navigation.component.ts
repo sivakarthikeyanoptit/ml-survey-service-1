@@ -19,11 +19,18 @@ export class NavigationComponent implements OnInit {
     .pipe(map(result => result.matches));
 
   public isAuthenticated: Boolean = false;
+  public navMenu: any;
 
   constructor(
     private breakpointObserver: BreakpointObserver,
     private authService: AuthService
-  ) {}
+  ) {
+    this.navMenu = [
+      { label: "Add Question", url: "/assessment/web/questions/new" },
+      // { label: "Add Criteria", url: "/assessment/web/criteria/new" },
+      { label: "Criteria", url: "/assessment/web/criteria" }
+    ];
+  }
 
   ngOnInit() {
     let that = this;
