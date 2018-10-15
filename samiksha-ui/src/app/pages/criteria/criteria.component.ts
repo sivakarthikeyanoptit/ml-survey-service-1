@@ -252,5 +252,6 @@ export class CriteriaComponent implements OnInit {
       rubric: {},
       evidences: []
     };
+    localStorage.clear();
   }
 }
