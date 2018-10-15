@@ -26,10 +26,10 @@ export class CriteriaComponent implements OnInit {
       )
       .then((result: any) => {
         if (result.status == 200) {
-          // self.resetCriteria();
-          // self.evidencesSelected = [];
-          // self.sectionsSelected = [];
-          // self.levelsSelected = [];
+          self.resetCriteria();
+          self.evidencesSelected = [];
+          self.sectionsSelected = [];
+          self.levelsSelected = [];
         }
       });
 
