@@ -7,6 +7,7 @@
     </mat-form-field>
     <mat-form-field class=" col-md-3" *ngIf="question.parentId">
       <mat-select placeholder="Visible If" [(ngModel)]="question.visibleIf[0].operator">
+        <mat-option value="">N.A.</mat-option>
         <mat-option value="===">Equals</mat-option>
         <mat-option value=">">Greater than</mat-option>
         <mat-option value="!==">Not equal</mat-option>
@@ -14,8 +15,9 @@
         <mat-option value="<=">Less than equals</mat-option>
       </mat-select>
     </mat-form-field>
-    <mat-form-field class=" col-md-3" *ngIf="question.visibleIf[0].operator">
-      <input matInput [(ngModel)]="question.visibleIf[0].value" placeholder="Value">
+    <mat-form-field class=" col-md-3" *ngIf="question.visibleIf[0].operator != ''">
+      <input matInput [(ngModel)]="
+      question.visibleIf[0].value" placeholder="Value">
     </mat-form-field>
     <!-- <div class="col-md-2"> -->
     <!-- <mat-input type="text" [(ngModel)]="question.visibleIfValue" placeholder="Value"> -->
@@ -66,7 +68,7 @@
   <div class="form-group">
     <div class="form-group">
       <label for="responseType">Question Type</label>
-      <select class="form-control" [(ngModel)]="question.responseType" id="responseType">
+      <select class="form-control" [(ngModel)]="question.responseType" id="responseType" (selectionChange)="questionType($event.value)">
         <option value="radio">Radio</option>
         <option value="multiSelect">Multi Select</option>
         <option value="text">Text</option>
@@ -104,7 +106,7 @@
     recorded">
       </div>
       <div class="col">
-        <mat-checkbox [(ngModel)]="question.notApplicable">Not Applicable</mat-checkbox>
+        <mat-checkbox [(ngModel)]="question.notApplicable">Can be not applicable ?</mat-checkbox>
       </div>
     </div>
     <br>
@@ -173,9 +175,7 @@
       </select>
     </div>
   </div>
-  <div class="form-group">
-    <input type="text" class="form-control" [(ngModel)]="question.usedForScoring" placeholder="User For Scoring">
-  </div>
+
 
   <div class="form-group">
     <mat-form-field class="col-md-6">
@@ -192,7 +192,7 @@
         <mat-option *ngFor="let accessibility of ['local','global']" [value]="accessibility">{{accessibility}}</mat-option>
       </mat-select>
     </mat-form-field>
-    <mat-checkbox class="col-md-6" [(ngModel)]="question.showRemarks">Show Remark</mat-checkbox>
+    <mat-checkbox class="col-md-6" [(ngModel)]="question.showRemarks">Show Remarks</mat-checkbox>
   </div>
   <button type="button" class=" btn btn-outline-dark btn-sm" (click)="save()">
     save

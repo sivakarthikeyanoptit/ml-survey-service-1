@@ -9,23 +9,23 @@ import { CriteriaComponent } from "../../pages/criteria/criteria.component";
 
 const routes: Routes = [
   {
-    path: environment.baseUrl + "questions/new",
+    path: "questions/new",
     component: AddQuestionComponent
   },
   {
-    path: environment.baseUrl + "criteria/new",
+    path: "criteria/new",
     component: AddCriteriaComponent
   },
   {
-    path: environment.baseUrl + "criteria",
+    path: "criteria",
     component: CriteriaComponent
   },
   {
-    path: environment.baseUrl + "oauth2callback",
+    path: "oauth2callback",
     component: Oauth2callbackComponent
   },
   {
-    path: environment.baseUrl + "oauthLogoutcallback",
+    path: "oauthLogoutcallback",
     component: OauthLogoutcallbackComponent
   }
 ];

@@ -288,7 +288,7 @@ export class AddQuestionComponent implements OnInit {
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
       file: {
-        required: true,
+        required: false,
         type: [],
         minCount: 1,
         maxCount: 0,
@@ -301,7 +301,7 @@ export class AddQuestionComponent implements OnInit {
       isCompleted: false,
       remarks: "",
       value: "",
-      notApplicable: "",
+      canBotApplicable: false,
       payload: {
         criteriaId: ""
       },
@@ -390,5 +390,14 @@ export class DialogOverviewExampleDialog implements OnInit {
 
   cancel(): void {
     this.dialogRef.close(null);
+  }
+
+  questionType(type) {
+    if (type != "matrix") {
+      delete this.question.instanceIdentifier;
+      delete this.question.noOfInstances;
+      delete this.question.notApplicable;
+      delete this.question.instanceQuestions;
+    }
   }
 }
