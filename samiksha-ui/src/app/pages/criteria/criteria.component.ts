@@ -1,4 +1,5 @@
 import { Component, OnInit } from "@angular/core";
+import { ApiService } from "../../service/api/api.service";
 
 @Component({
   selector: "sl-criteria",
@@ -14,69 +15,23 @@ export class CriteriaComponent implements OnInit {
   levels: any;
   criteria: any;
 
-  constructor() {}
+  constructor(private api: ApiService) {}
 
   submitCriteria() {
-    this.criteria = {
-      externalId: "TL/HM/HR/AL",
-      owner: "a082787f-8f8f-42f2-a706-35457ca6f1fd",
-      timesUsed: 12,
-      weightage: 20,
-      name: "Availability of leadership",
-      description: "Availability of leadership",
-      criteriaType: "manual",
-      score: "L1/L2/L3/L4",
-      resourceType: ["Program", "Framework", "Criteria"],
-      language: ["English"],
-      keywords: ["Keyword 1", "Keyword 2"],
-      concepts: [
-        {
-          identifier: "LPD20100",
-          name: "Teacher_Performance",
-          objectType: "Concept",
-          relation: "associatedTo",
-          description: null,
-          index: null,
-          status: null,
-          depth: null,
-          mimeType: null,
-          visibility: null,
-          compatibilityLevel: null
-        },
-        {
-          identifier: "LPD20400",
-          name: "Instructional_Programme",
-          objectType: "Concept",
-          relation: "associatedTo",
-          description: null,
-          index: null,
-          status: null,
-          depth: null,
-          mimeType: null,
-          visibility: null,
-          compatibilityLevel: null
-        },
-        {
-          identifier: "LPD20200",
-          name: "Teacher_Empowerment",
-          objectType: "Concept",
-          relation: "associatedTo",
-          description: null,
-          index: null,
-          status: null,
-          depth: null,
-          mimeType: null,
-          visibility: null,
-          compatibilityLevel: null
+    let self = this;
+    this.api
+      .reqHandler(
+        "createCriteria",
+        JSON.parse(localStorage.getItem("criteria"))
+      )
+      .then((result: any) => {
+        if (result.status == 200) {
+          // self.resetCriteria();
+          // self.evidencesSelected = [];
+          // self.sectionsSelected = [];
+          // self.levelsSelected = [];
         }
-      ],
-      createdFor: ["0125747659358699520", "0125748495625912324"],
-      rubric: {},
-      evidences: []
-    };
-    this.evidencesSelected = [];
-    this.sectionsSelected = [];
-    this.levelsSelected = [];
+      });
 
     console.log("Criteria submitted");
   }
@@ -135,63 +90,7 @@ export class CriteriaComponent implements OnInit {
       this.levelsSelected =
         JSON.parse(localStorage.getItem("levelsSelected")) || [];
     } else {
-      this.criteria = {
-        externalId: "TL/HM/HR/AL",
-        owner: "a082787f-8f8f-42f2-a706-35457ca6f1fd",
-        timesUsed: 12,
-        weightage: 20,
-        name: "Availability of leadership",
-        description: "Availability of leadership",
-        criteriaType: "manual",
-        score: "",
-        resourceType: ["Program", "Framework", "Criteria"],
-        language: ["English"],
-        keywords: ["Keyword 1", "Keyword 2"],
-        concepts: [
-          {
-            identifier: "LPD20100",
-            name: "Teacher_Performance",
-            objectType: "Concept",
-            relation: "associatedTo",
-            description: null,
-            index: null,
-            status: null,
-            depth: null,
-            mimeType: null,
-            visibility: null,
-            compatibilityLevel: null
-          },
-          {
-            identifier: "LPD20400",
-            name: "Instructional_Programme",
-            objectType: "Concept",
-            relation: "associatedTo",
-            description: null,
-            index: null,
-            status: null,
-            depth: null,
-            mimeType: null,
-            visibility: null,
-            compatibilityLevel: null
-          },
-          {
-            identifier: "LPD20200",
-            name: "Teacher_Empowerment",
-            objectType: "Concept",
-            relation: "associatedTo",
-            description: null,
-            index: null,
-            status: null,
-            depth: null,
-            mimeType: null,
-            visibility: null,
-            compatibilityLevel: null
-          }
-        ],
-        createdFor: ["0125747659358699520", "0125748495625912324"],
-        rubric: {},
-        evidences: []
-      };
+      this.resetCriteria();
     }
 
     this.levels = [
@@ -277,5 +176,80 @@ export class CriteriaComponent implements OnInit {
         questions: []
       }
     ];
+  }
+
+  resetCriteria() {
+    this.criteria = {
+      externalId: "TL/HM/HR/AL",
+      owner: "",
+      timesUsed: 12,
+      weightage: 20,
+      remarks: "",
+      name: "",
+      description: "",
+      criteriaType: "manual",
+      score: "",
+      resourceType: ["Program", "Framework", "Criteria"],
+      language: ["English"],
+      keywords: ["Keyword 1", "Keyword 2"],
+      concepts: [
+        {
+          identifier: "LPD20100",
+          name: "Teacher_Performance",
+          objectType: "Concept",
+          relation: "associatedTo",
+          description: null,
+          index: null,
+          status: null,
+          depth: null,
+          mimeType: null,
+          visibility: null,
+          compatibilityLevel: null
+        },
+        {
+          identifier: "LPD20400",
+          name: "Instructional_Programme",
+          objectType: "Concept",
+          relation: "associatedTo",
+          description: null,
+          index: null,
+          status: null,
+          depth: null,
+          mimeType: null,
+          visibility: null,
+          compatibilityLevel: null
+        },
+        {
+          identifier: "LPD20200",
+          name: "Teacher_Empowerment",
+          objectType: "Concept",
+          relation: "associatedTo",
+          description: null,
+          index: null,
+          status: null,
+          depth: null,
+          mimeType: null,
+          visibility: null,
+          compatibilityLevel: null
+        }
+      ],
+      flag: {
+        label: "I have a problem with :-",
+        remarks: "",
+        options: [
+          {
+            value: "R1",
+            label: "Criteria rating of multiple questions"
+          },
+          {
+            value: "R2",
+            label: "Criteria rating of one question only"
+          }
+        ]
+      },
+      createdFor: ["0125747659358699520", "0125748495625912324"],
+      rubric: {},
+      evidences: []
+    };
   }
 }

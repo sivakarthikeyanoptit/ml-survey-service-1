@@ -103,16 +103,18 @@
         <input type="number" class="form-control" [(ngModel)]="question.noOfInstances" placeholder="Enter no of meetings
     recorded">
       </div>
-    </div>
-    <br>
-    <div class="row">
       <div class="col">
         <mat-checkbox [(ngModel)]="question.notApplicable">Not Applicable</mat-checkbox>
       </div>
+    </div>
+    <br>
+    <div class="row">
+
       <div class="col">
-        <mat-select placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestions" multiple>
+        <textarea class="form-control" placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestions"></textarea>
+        <!-- <mat-select placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestions" multiple>
           <mat-option *ngFor="let que of questions;let i = index" [value]="que.externalId" [disabled]="que.externalId==question.externalId">{{que.externalId}}</mat-option>
-        </mat-select>
+        </mat-select> matInput-->
       </div>
     </div>
   </div>

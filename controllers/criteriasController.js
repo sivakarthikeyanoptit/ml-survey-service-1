@@ -7,10 +7,22 @@ module.exports = class Criterias extends Abstract {
     return "criterias";
   }
 
-  insert(req) {
-    // console.log("reached here!");
-    // req.db = "cassandra";
-    return super.insert(req);
+  async insert(req) {
+    console.log("reached here!");
+    req.body.evidences.forEach((evidence, k) => {
+      evidence.sections.forEach((section, j) => {
+        section.questions.forEach(async (question, i) => {
+          let result = await database.models.questions.create(question);
+          req.body.evidences[k].sections[j].questions[i] = result._id;
+        });
+      });
+    });
+    await this.sleep(2000);
+    return await super.insert(req);
+  }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   find(req) {

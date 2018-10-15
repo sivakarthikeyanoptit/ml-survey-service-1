@@ -86,6 +86,7 @@ export class AuthService {
   }
 
   getRefreshToken(): Promise<any> {
+    let self = this;
     let userTokens = JSON.parse(
       this.localStorage.get({
         name: "userTokens"
@@ -102,7 +103,7 @@ export class AuthService {
       // console.log(userTokens.refreshToken);
       // console.log(AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken);
 
-      this.http
+      self.http
         .post(AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken, body)
         .subscribe(
           (data: any) => {
@@ -118,7 +119,7 @@ export class AuthService {
 
             // console.log(parsedData);
 
-            this.localStorage.put({
+            self.localStorage.put({
               name: "userTokens",
               value: JSON.stringify(userTokens)
             });
@@ -194,7 +195,7 @@ export class AuthService {
               name: "userTokens",
               value: JSON.stringify(userTokens)
             });
-            resolve();
+            resolve(userTokens);
           },
           error => {
             // this.currentUser.removeUser();
@@ -205,7 +206,7 @@ export class AuthService {
         );
       } else {
         console.log("Utils: valid token");
-        resolve(true);
+        resolve(userTokens);
       }
     });
   }
