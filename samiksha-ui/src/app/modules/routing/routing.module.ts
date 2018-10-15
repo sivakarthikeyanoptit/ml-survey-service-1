@@ -27,6 +27,12 @@ const routes: Routes = [
   {
     path: "oauthLogoutcallback",
     component: OauthLogoutcallbackComponent
+  },
+  {
+    path: "",
+    component: CriteriaComponent
+    // redirectTo: "assessment/web/criteria",
+    // pathMatch: "full"
   }
 ];
 

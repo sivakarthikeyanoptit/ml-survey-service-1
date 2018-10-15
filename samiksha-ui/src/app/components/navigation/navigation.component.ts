@@ -26,9 +26,9 @@ export class NavigationComponent implements OnInit {
     private authService: AuthService
   ) {
     this.navMenu = [
-      { label: "Add Question", url: "/assessment/web/questions/new" },
       // { label: "Add Criteria", url: "/assessment/web/criteria/new" },
-      { label: "Criteria", url: "/assessment/web/criteria" }
+      { label: "Criteria Details", url: "/assessment/web/criteria" },
+      { label: "Questions", url: "/assessment/web/questions/new" }
     ];
   }
 
