@@ -4,7 +4,9 @@ module.exports = {
     schoolId: "ObjectId",
     programId: "ObjectId",
     status: "String",
-    evidenceSubmissions: "Array",
+    evidences:Object,
+    criterias:Array,
+    answers: Object,
     schoolProfile: Object,
     ratings: Object
   }
