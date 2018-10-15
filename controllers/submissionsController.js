@@ -47,8 +47,6 @@ module.exports = class Submission extends Abstract {
         queryObject
       );
 
-      //console.log(submissionDocument)
-
       let updateObject = {}
       let result = {}
 
@@ -113,6 +111,7 @@ module.exports = class Submission extends Abstract {
   async fetchRatingQuestions(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
+
       let result = {}
       
       let queryObject = {
@@ -126,7 +125,7 @@ module.exports = class Submission extends Abstract {
       let criteriaResponses = {}
       submissionDocument.criterias.forEach(criteria => {
         if (criteria.criteriaType === 'manual') {
-          criteriaResponses[criteria._id] = _.pick(criteria, ['name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
+          criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
           criteriaResponses[criteria._id].questions = []
         }
       })
@@ -141,7 +140,9 @@ module.exports = class Submission extends Abstract {
 
       result._id = submissionDocument._id
       result.status = submissionDocument.status
-      result.criterias = criteriaResponses
+      result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
+      result.criterias = _.values(criteriaResponses)
+
       let response = { message: "Rating questions fetched successfully.", result: result };
 
       return resolve(response);
@@ -228,13 +229,14 @@ module.exports = class Submission extends Abstract {
       let criteriaResponses = {}
       submissionDocument.criterias.forEach(criteria => {
         if (criteria.criteriaType === 'manual') {
-          criteriaResponses[criteria._id] = _.pick(criteria, ['name', 'externalId', 'description', 'score', 'remarks', 'flag'])
+          criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
         }
       })
 
       result._id = submissionDocument._id
       result.status = submissionDocument.status
-      result.criterias = criteriaResponses
+      result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? true : false
+      result.criterias = _.values(criteriaResponses)
       let response = { message: "Criteria ratings fetched successfully.", result: result };
 
       return resolve(response);
@@ -256,8 +258,6 @@ module.exports = class Submission extends Abstract {
       let submissionDocument = await database.models.submissions.findOne(
         queryObject
       );
-
-      //console.log(submissionDocument)
 
       let updateObject = {}
       let result = {}
