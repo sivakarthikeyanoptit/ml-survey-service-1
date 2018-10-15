@@ -236,6 +236,7 @@ export class CriteriaComponent implements OnInit {
       flag: {
         label: "I have a problem with :-",
         remarks: "",
+        value: "",
         options: [
           {
             value: "R1",
