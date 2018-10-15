@@ -358,7 +358,7 @@ module.exports = class Schools extends Abstract {
         }
       });
 
-      req.body = {
+      let submissionDocument = {
         schoolId: schoolDocument._id,
         programId: programDocument._id,
         evidenceSubmissions: [],
@@ -372,10 +372,7 @@ module.exports = class Schools extends Abstract {
         counter++
       ) {
         let component = programDocument.components[counter];
-        let submissionId = await controllers.submissionsController.findBySchoolProgram(
-          req
-        );
-        let assessment = { submissionId: submissionId.result._id };
+        let assessment = {};
 
         let evaluationFrameworkQueryObject = [
           { $match: { _id: ObjectId(component.id) } },
@@ -398,10 +395,15 @@ module.exports = class Schools extends Abstract {
         assessment.externalId = evaluationFrameworkDocument[0].externalId;
 
         let evidenceMethodArray = {};
+        let submissionDocumentEvidences = {};
+        let submissionDocumentCriterias = [];
+
         evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
+          submissionDocumentCriterias.push(_.omit(criteria, ['resourceType', 'language', 'keywords', 'concepts', 'createdFor', 'evidences']))
           criteria.evidences.forEach(evidenceMethod => {
             if (!evidenceMethodArray[evidenceMethod.externalId]) {
               evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
+              submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(evidenceMethod, ['sections'])
             } else {
               // Evidence method already exists
               // Loop through all sections reading evidence method
@@ -439,6 +441,14 @@ module.exports = class Schools extends Abstract {
         });
 
         assessment.evidences = Object.values(evidenceMethodArray);
+
+        submissionDocument.evidences = submissionDocumentEvidences;
+        submissionDocument.criterias = submissionDocumentCriterias;
+        let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
+          submissionDocument
+        );
+        assessment.submissionId = submissionDoc.result._id;
+
         assessments.push(assessment);
       }
 
