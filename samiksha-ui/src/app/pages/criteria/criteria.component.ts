@@ -153,9 +153,93 @@ export class CriteriaComponent implements OnInit {
         canBeNotApplicable: true
       },
       {
+        externalId: "IP",
+        tip: "Some tip at evidence level.",
+        name: "Interview Principal",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "CO",
+        tip: "Some tip at evidence level.",
+        name: "Classroom Observation",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "IT",
+        tip: "Some tip at evidence level.",
+        name: "Interview Teacher",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "IS",
+        tip: "Some tip at evidence level.",
+        name: "Interview Student",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC3",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 3",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC5",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 5",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC8",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 8",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
         externalId: "PI",
         tip: "Some tip at evidence level.",
-        name: "Principal interview",
+        name: "Parent Information",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -167,14 +251,10 @@ export class CriteriaComponent implements OnInit {
     ];
 
     this.sections = [
-      {
-        name: "Survey Questions",
-        questions: []
-      },
-      {
-        name: "Data to be Filled",
-        questions: []
-      }
+      { name: "Survey Questions", questions: [] },
+      { name: "Data to be Filled", questions: [] },
+      { name: "Group Interview", questions: [] },
+      { name: "Individual Interview", questions: [] }
     ];
   }
 
