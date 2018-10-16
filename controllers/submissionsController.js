@@ -38,7 +38,7 @@ module.exports = class Submission extends Abstract {
       req.body = req.body || {};
       let message = "Submission completed successfully"
       let runUpdateQuery = false
-
+      
       let queryObject = {
         _id: ObjectId(req.params._id)
       }
@@ -56,13 +56,21 @@ module.exports = class Submission extends Abstract {
       }
       
       if(req.body.evidence) {
+        req.body.evidence.assessorDetails = {
+          userId: req.userDetails.userId,
+          firstName: req.userDetails.firstName,
+          lastName: req.userDetails.lastName,
+          email: req.userDetails.email,
+          phone: req.userDetails.phone
+        }
+        req.body.evidence.submissionDate = new Date()
         if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
           runUpdateQuery = true
           let answerArray = new Array()
           Object.entries(req.body.evidence.answers).forEach(answer => {
             answerArray[answer[0]] = answer[1]
           });
-          //updateObject.$push = { answers: { $each: Object.entries(req.body.evidence.answers)}}
+          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
           updateObject.$set = { 
             answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
             ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
@@ -72,6 +80,7 @@ module.exports = class Submission extends Abstract {
           }
         } else {
           runUpdateQuery = true
+          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
           updateObject.$set = {
             status: "inprogress"
           }
