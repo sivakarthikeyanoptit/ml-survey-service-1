@@ -333,14 +333,14 @@ export class CriteriaComponent implements OnInit {
       rubric: {},
       evidences: []
     };
-    // [
-    //   "criteria",
-    //   "questions",
-    //   "evidencesSelected",
-    //   "sectionsSelected",
-    //   "levelsSelected"
-    // ].forEach(key => {
-    //   localStorage.removeItem(key);
-    // });
+    [
+      "criteria",
+      "questions",
+      "evidencesSelected",
+      "sectionsSelected",
+      "levelsSelected"
+    ].forEach(key => {
+      localStorage.removeItem(key);
+    });
   }
 }
