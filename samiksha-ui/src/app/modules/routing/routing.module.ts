@@ -30,9 +30,9 @@ const routes: Routes = [
   },
   {
     path: "",
-    component: CriteriaComponent
-    // redirectTo: "assessment/web/criteria",
-    // pathMatch: "full"
+    // component: CriteriaComponent
+    redirectTo: "assessment/web/criteria",
+    pathMatch: "full"
   }
 ];
 

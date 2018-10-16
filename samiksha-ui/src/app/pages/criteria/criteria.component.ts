@@ -26,6 +26,7 @@ export class CriteriaComponent implements OnInit {
       )
       .then((result: any) => {
         if (result.status == 200) {
+          alert(result.message);
           self.resetCriteria();
           self.evidencesSelected = [];
           self.sectionsSelected = [];
@@ -332,6 +333,14 @@ export class CriteriaComponent implements OnInit {
       rubric: {},
       evidences: []
     };
-    localStorage.clear();
+    // [
+    //   "criteria",
+    //   "questions",
+    //   "evidencesSelected",
+    //   "sectionsSelected",
+    //   "levelsSelected"
+    // ].forEach(key => {
+    //   localStorage.removeItem(key);
+    // });
   }
 }

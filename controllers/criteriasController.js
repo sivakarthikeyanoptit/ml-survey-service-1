@@ -7,22 +7,89 @@ module.exports = class Criterias extends Abstract {
     return "criterias";
   }
 
-  async insert(req) {
+  insert(req) {
+    let qError = {},
+      created = [];
     console.log("reached here!");
-    req.body.evidences.forEach((evidence, k) => {
-      evidence.sections.forEach((section, j) => {
-        section.questions.forEach(async (question, i) => {
-          let result = await database.models.questions.create(question);
-          req.body.evidences[k].sections[j].questions[i] = result._id;
-        });
-      });
-    });
-    await this.sleep(2000);
-    return await super.insert(req);
-  }
+    return new Promise((resole, reject) => {
+      async.forEachOf(
+        req.body.evidences,
+        (evidence, k, cb1) => {
+          console.log(evidence, k);
 
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+          async.forEachOf(
+            evidence.sections,
+            (section, j, cb2) => {
+              console.log(section, j);
+
+              async.forEachOf(
+                section.questions,
+                (question, i, cb3) => {
+                  console.log(question, i);
+
+                  database.models.questions
+                    .create(question)
+                    .then(result => {
+                      req.body.evidences[k].sections[j].questions[i] =
+                        result._id;
+                      created.push(result._id);
+                      cb3(null);
+                    })
+                    .catch(error => {
+                      qError[question.externalId] = error.message;
+                      cb3(error);
+                    });
+                },
+                error => {
+                  cb2(error);
+                }
+              );
+            },
+            error => {
+              cb1(error);
+            }
+          );
+        },
+        error => {
+          if (error) console.log(error);
+          console.log("done", JSON.stringify(req.body.evidences, "", 4));
+          if (Object.keys(qError).length) {
+            return database.models.questions
+              .deleteMany({ externalId: { $in: Object.keys(qError) } })
+              .then(result => {
+                console.log(result, created, typeof created[0]);
+
+                return resole({
+                  status: 400,
+                  failed: qError,
+                  message: "Criteria can not be created"
+                });
+              })
+              .catch(error => {
+                throw error;
+              });
+          } else {
+            return controllers.questionsController
+              .populateChildQuestions({ body: { created: created } })
+              .then(result => {
+                return super
+                  .insert(req)
+                  .then(criteria => {
+                    return resole(criteria);
+                  })
+                  .catch(error => {
+                    return reject(error);
+                  });
+              })
+              .catch(error => {
+                console.log(error);
+              });
+          }
+
+          // return resole(Object.assign(super.insert(req), { failed: error }));
+        }
+      );
+    });
   }
 
   find(req) {
