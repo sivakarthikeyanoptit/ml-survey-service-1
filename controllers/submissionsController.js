@@ -66,26 +66,35 @@ module.exports = class Submission extends Abstract {
       }
       
       if(req.body.evidence) {
+        req.body.evidence.gpsLocation = req.headers.gpslocation
         req.body.evidence.submittedBy = req.userDetails.userId
         req.body.evidence.submissionDate = new Date()
         if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
           runUpdateQuery = true
+          req.body.evidence.isValid = true
           let answerArray = new Array()
           Object.entries(req.body.evidence.answers).forEach(answer => {
             answerArray[answer[0]] = answer[1]
           });
-          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
+          updateObject.$push = { 
+            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+          }
           updateObject.$set = { 
             answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
             ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
             ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
             ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
+            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
             status: "inprogress"
           }
         } else {
           runUpdateQuery = true
-          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
+          req.body.evidence.isValid = false
+          updateObject.$push = { 
+            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+          }
           updateObject.$set = {
+            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
             status: "inprogress"
           }
           message = "Duplicate evidence method submission detected."
@@ -191,6 +200,7 @@ module.exports = class Submission extends Abstract {
             criteriaElm.remarks = rating[1].remarks
             criteriaElm.ratingSubmittedBy = req.userDetails.userId
             criteriaElm.ratingSubmissionDate = new Date()
+            criteriaElm.ratingSubmissionGpsLocation = req.headers.gpslocation
           });
           updateObject.$set = { criterias : submissionDocument.criterias }
         } else {
@@ -284,6 +294,7 @@ module.exports = class Submission extends Abstract {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
             flag[1].userId = req.userDetails.userId
             flag[1].submissionDate = new Date()
+            flag[1].submissionGpsLocation = req.headers.gpslocation
             if(criteriaElm.flagRaised) {
               criteriaElm.flagRaised.push(flag[1])
             } else {
