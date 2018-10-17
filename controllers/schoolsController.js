@@ -52,200 +52,8 @@ module.exports = class Schools extends Abstract {
   }
 
   find(req) {
-    req.query.fields = ["name","externalId"]
+    req.query.fields = ["name", "externalId"];
     return super.find(req);
-  }
-
-  async assessmentsold(req) {
-    return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-      let response = {
-        message: "Assessment fetched successfully",
-        result: {}
-      };
-
-      let schoolQueryObject = {
-        _id: ObjectId(req.params._id)
-      };
-      let schoolDocument = await database.models.schools.findOne(
-        schoolQueryObject
-      );
-
-      let schoolProfileFormFields = [];
-      schoolDocument.form.forEach(formField => {
-        schoolProfileFormFields.push({
-          field: formField.field,
-          label: formField.label,
-          value: formField.value,
-          visibile:
-            _.difference(formField.visibileTo, req.userDetails.allRoles)
-              .length < formField.visibileTo.length
-              ? true
-              : false,
-          editable:
-            _.difference(formField.editableBy, req.userDetails.allRoles)
-              .length < formField.editableBy.length
-              ? true
-              : false,
-          input: "text"
-        });
-      });
-
-      response.result.schoolProfile = {
-        _id: schoolDocument._id,
-        isEditable:
-          _.difference(
-            ["PROJECT_MANAGER", "LEAD_ASSESSOR"],
-            req.userDetails.allRoles
-          ).length < 2
-            ? true
-            : false,
-        form: schoolProfileFormFields
-      };
-
-      let programQueryObject = {
-        status: "active",
-        "components.schools": { $in: [ObjectId(req.params._id)] },
-        $or: [
-          { "components.users.assessors": { $in: [req.userDetails.id] } },
-          { "components.users.leadAssessors": { $in: [req.userDetails.id] } },
-          { "components.users.projectManagers": { $in: [req.userDetails.id] } }
-        ]
-      };
-      let programDocument = await database.models.programs.findOne(
-        programQueryObject
-      );
-      response.result.program = _.pick(programDocument, [
-        "_id",
-        "externalId",
-        "name",
-        "description",
-        "imageCompression"
-      ]);
-
-      let schoolAssessorHierarchyObject = [
-        {
-          $match: { userId: req.userDetails.id, programId: programDocument._id }
-        },
-        {
-          $graphLookup: {
-            from: "school-assessors", // Use the school-assessors collection
-            startWith: "$parentId", // Start looking at the document's `parentId` property
-            connectFromField: "parentId", // A link in the graph is represented by the parentId property...
-            connectToField: "_id", // ... pointing to another assessor's _id property
-            maxDepth: 2, // Only recurse one level deep
-            as: "connections" // Store this in the `connections` property
-          }
-        }
-      ];
-
-      let userHierarchyDocument = await database.models[
-        "school-assessors"
-      ].aggregate(schoolAssessorHierarchyObject);
-      userHierarchyDocument[0].connections.forEach(connection => {
-        if (connection.role === "PROJECT_MANAGER") {
-          response.result.program.projectManagers = _.pick(connection, [
-            "userId",
-            "externalId"
-          ]);
-        }
-        if (connection.role === "LEAD_ASSESSOR") {
-          response.result.program.leadAssessors = _.pick(connection, [
-            "userId",
-            "externalId"
-          ]);
-        }
-      });
-
-      req.body = {
-        schoolId: ObjectId(schoolDocument._id),
-        programId: programDocument._id
-      };
-      let assessments = [];
-      for (
-        let counter = 0;
-        counter < programDocument.components.length;
-        counter++
-      ) {
-        let component = programDocument.components[counter];
-        let submissionId = await controllers.submissionsController.findBySchoolProgram(
-          req
-        );
-        let assessment = {
-          submissionId: submissionId.result._id
-        };
-
-        let evaluationFrameworkQueryObject = [
-          { $match: { _id: ObjectId(component.id) } },
-          {
-            $lookup: {
-              from: "criterias",
-              localField: "themes.aoi.indicators.criteria",
-              foreignField: "_id",
-              as: "criteriaDocs"
-            }
-          }
-        ];
-
-        let evaluationFrameworkDocument = await database.models[
-          "evaluation-frameworks"
-        ].aggregate(evaluationFrameworkQueryObject);
-
-        assessment.name = evaluationFrameworkDocument[0].name;
-        assessment.description = evaluationFrameworkDocument[0].description;
-        assessment.externalId = evaluationFrameworkDocument[0].externalId;
-
-        let evidenceMethodArray = {};
-        evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
-          criteria.evidences.forEach(evidenceMethod => {
-            if (!evidenceMethodArray[evidenceMethod.externalId]) {
-              evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
-            } else {
-              // Evidence method already exists
-              // Loop through all sections reading evidence method
-              evidenceMethod.sections.forEach(evidenceMethodSection => {
-                let sectionExisitsInEvidenceMethod = 0;
-                let existingSectionQuestionsArrayInEvidenceMethod = [];
-                evidenceMethodArray[evidenceMethod.externalId].sections.forEach(
-                  exisitingSectionInEvidenceMethod => {
-                    if (
-                      exisitingSectionInEvidenceMethod.name ==
-                      evidenceMethodSection.name
-                    ) {
-                      sectionExisitsInEvidenceMethod = 1;
-                      existingSectionQuestionsArrayInEvidenceMethod =
-                        exisitingSectionInEvidenceMethod.questions;
-                    }
-                  }
-                );
-                if (!sectionExisitsInEvidenceMethod) {
-                  evidenceMethodArray[evidenceMethod.externalId].sections.push(
-                    evidenceMethodSection
-                  );
-                } else {
-                  evidenceMethodSection.questions.forEach(
-                    questionInEvidenceMethodSection => {
-                      existingSectionQuestionsArrayInEvidenceMethod.push(
-                        questionInEvidenceMethodSection
-                      );
-                    }
-                  );
-                }
-              });
-            }
-          });
-        });
-
-        assessment.evidences = Object.values(evidenceMethodArray);
-        assessments.push(assessment);
-      }
-
-      response.result.assessments = assessments;
-
-      return resolve(response);
-    }).catch(error => {
-      reject(error);
-    });
   }
 
   async assessments(req) {
@@ -399,11 +207,23 @@ module.exports = class Schools extends Abstract {
         let submissionDocumentCriterias = [];
 
         evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
-          submissionDocumentCriterias.push(_.omit(criteria, ['resourceType', 'language', 'keywords', 'concepts', 'createdFor', 'evidences']))
+          submissionDocumentCriterias.push(
+            _.omit(criteria, [
+              "resourceType",
+              "language",
+              "keywords",
+              "concepts",
+              "createdFor",
+              "evidences"
+            ])
+          );
           criteria.evidences.forEach(evidenceMethod => {
             if (!evidenceMethodArray[evidenceMethod.externalId]) {
               evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
-              submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(evidenceMethod, ['sections'])
+              submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
+                evidenceMethod,
+                ["sections"]
+              );
             } else {
               // Evidence method already exists
               // Loop through all sections reading evidence method
@@ -440,15 +260,16 @@ module.exports = class Schools extends Abstract {
           });
         });
 
-        assessment.evidences = Object.values(evidenceMethodArray);
-
+        assessment.evidences = await this.parseQuestions(
+          Object.values(evidenceMethodArray),
+          schoolDocument
+        );
         submissionDocument.evidences = submissionDocumentEvidences;
         submissionDocument.criterias = submissionDocumentCriterias;
         let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
           submissionDocument
         );
         assessment.submissionId = submissionDoc.result._id;
-
         assessments.push(assessment);
       }
 
@@ -457,6 +278,55 @@ module.exports = class Schools extends Abstract {
       return resolve(response);
     }).catch(error => {
       reject(error);
+    });
+  }
+
+  parseQuestions(evidences, schoolDocument) {
+    return new Promise((resolve, reject) => {
+      async.forEachOf(
+        evidences,
+        (evidence, e, cb1) => {
+          async.forEachOf(
+            evidence.sections,
+            (section, s, cb2) => {
+              async.forEachOf(
+                section.questions,
+                (question, q, cb3) => {
+                  // console.log(schoolDocument);
+                  evidences[e].sections[s].questions[q].payload = {
+                    criteriaId: question.criteriaId
+                  };
+                  delete evidences[e].sections[s].questions[q].criteriaId;
+                  if (question.responseType == "matrix") {
+                    async.forEachOf(
+                      evidence.sections,
+                      (section, ss, cb4) => {
+                        console.log("1234");
+
+                        cb4();
+                      },
+                      error => {
+                        cb3();
+                      }
+                    );
+                  }
+                  cb3();
+                },
+                error => {
+                  cb2();
+                }
+              );
+            },
+            error => {
+              cb1();
+            }
+          );
+        },
+        error => {
+          console.error(error);
+          return resolve(evidences);
+        }
+      );
     });
   }
 };
