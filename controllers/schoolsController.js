@@ -260,10 +260,12 @@ module.exports = class Schools extends Abstract {
           });
         });
 
-        assessment.evidences = await this.parseQuestions(
-          Object.values(evidenceMethodArray),
-          schoolDocument
-        );
+        // assessment.evidences = await this.parseQuestions(
+        //   Object.values(evidenceMethodArray),
+        //   schoolDocument
+        // );
+
+        assessment.evidences = Object.values(evidenceMethodArray)
         submissionDocument.evidences = submissionDocumentEvidences;
         submissionDocument.criterias = submissionDocumentCriterias;
         let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(

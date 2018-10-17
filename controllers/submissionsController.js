@@ -22,6 +22,16 @@ module.exports = class Submission extends Abstract {
     );
 
     if(!submissionDocument) {
+        let schoolAssessorsQueryObject = [
+          {
+            $match: { schools: document.schoolId, programId: document.programId}
+          }
+        ];
+
+        document.assessors = await database.models[
+          "school-assessors"
+        ].aggregate(schoolAssessorsQueryObject);
+
         submissionDocument = await database.models.submissions.create(
           document
         );
@@ -38,7 +48,7 @@ module.exports = class Submission extends Abstract {
       req.body = req.body || {};
       let message = "Submission completed successfully"
       let runUpdateQuery = false
-      
+
       let queryObject = {
         _id: ObjectId(req.params._id)
       }
@@ -56,13 +66,7 @@ module.exports = class Submission extends Abstract {
       }
       
       if(req.body.evidence) {
-        req.body.evidence.assessorDetails = {
-          userId: req.userDetails.userId,
-          firstName: req.userDetails.firstName,
-          lastName: req.userDetails.lastName,
-          email: req.userDetails.email,
-          phone: req.userDetails.phone
-        }
+        req.body.evidence.submittedBy = req.userDetails.userId
         req.body.evidence.submissionDate = new Date()
         if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
           runUpdateQuery = true
@@ -185,6 +189,8 @@ module.exports = class Submission extends Abstract {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
             criteriaElm.score = rating[1].score
             criteriaElm.remarks = rating[1].remarks
+            criteriaElm.ratingSubmittedBy = req.userDetails.userId
+            criteriaElm.ratingSubmissionDate = new Date()
           });
           updateObject.$set = { criterias : submissionDocument.criterias }
         } else {
@@ -276,6 +282,8 @@ module.exports = class Submission extends Abstract {
           runUpdateQuery = true
           Object.entries(req.body.flag).forEach(flag => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
+            flag[1].userId = req.userDetails.userId
+            flag[1].submissionDate = new Date()
             if(criteriaElm.flagRaised) {
               criteriaElm.flagRaised.push(flag[1])
             } else {
