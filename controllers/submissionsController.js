@@ -143,31 +143,56 @@ module.exports = class Submission extends Abstract {
       let submissionDocument = await database.models.submissions.findOne(
         queryObject
       );
-      
-      let criteriaResponses = {}
-      submissionDocument.criterias.forEach(criteria => {
-        if (criteria.criteriaType === 'manual') {
-          criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
-          criteriaResponses[criteria._id].questions = []
-        }
-      })
 
-      if(submissionDocument.answers) {
-        Object.entries(submissionDocument.answers).forEach(answer => {
-          if(criteriaResponses[answer[1].criteriaId] != undefined) {
-            criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
+      let ratingsEnabled = true
+      
+      if(submissionDocument.evidences && submissionDocument.status !== "blocked") {
+        const evidencesArray = Object.entries(submissionDocument.evidences)
+        for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
+          if(
+            evidencesArray[iterator][1].modeOfCollection === "onfield" && 
+              (
+                !evidencesArray[iterator][1].isSubmitted || 
+                evidencesArray[iterator][1].hasConflicts === true
+              )
+            ) {
+            ratingsEnabled = false
+            break
           }
-        });
+        }
+      } else {
+        ratingsEnabled = false
       }
 
-      result._id = submissionDocument._id
-      result.status = submissionDocument.status
-      result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
-      result.criterias = _.values(criteriaResponses)
+      if(ratingsEnabled) {
+        let criteriaResponses = {}
+        submissionDocument.criterias.forEach(criteria => {
+          if (criteria.criteriaType === 'manual') {
+            criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
+            criteriaResponses[criteria._id].questions = []
+          }
+        })
 
-      let response = { message: "Rating questions fetched successfully.", result: result };
+        if(submissionDocument.answers) {
+          Object.entries(submissionDocument.answers).forEach(answer => {
+            if(criteriaResponses[answer[1].criteriaId] != undefined) {
+              criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
+            }
+          });
+        }
 
-      return resolve(response);
+        result._id = submissionDocument._id
+        result.status = submissionDocument.status
+        result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
+        result.criterias = _.values(criteriaResponses)
+
+        let response = { message: "Rating questions fetched successfully.", result: result };
+        return resolve(response);
+      } else {
+        let response = { message: "Sorry! All evidence methods have to be completed to enable ratings.", result: result };
+        return resolve(response);
+      }
+
     }).catch(error => {
       reject(error);
     });

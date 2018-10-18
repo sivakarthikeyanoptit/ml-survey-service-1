@@ -260,18 +260,20 @@ module.exports = class Schools extends Abstract {
           });
         });
 
-        // assessment.evidences = await this.parseQuestions(
-        //   Object.values(evidenceMethodArray),
-        //   schoolDocument
-        // );
-
-        assessment.evidences = Object.values(evidenceMethodArray)
         submissionDocument.evidences = submissionDocumentEvidences;
         submissionDocument.criterias = submissionDocumentCriterias;
         let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
           submissionDocument
         );
         assessment.submissionId = submissionDoc.result._id;
+
+
+        assessment.evidences = await this.parseQuestions(
+          Object.values(evidenceMethodArray),
+          schoolDocument.schoolTypes,
+          submissionDoc.result.evidences
+        );
+
         assessments.push(assessment);
       }
 
@@ -283,52 +285,63 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  parseQuestions(evidences, schoolDocument) {
-    return new Promise((resolve, reject) => {
-      async.forEachOf(
-        evidences,
-        (evidence, e, cb1) => {
-          async.forEachOf(
-            evidence.sections,
-            (section, s, cb2) => {
-              async.forEachOf(
-                section.questions,
-                (question, q, cb3) => {
-                  // console.log(schoolDocument);
-                  evidences[e].sections[s].questions[q].payload = {
-                    criteriaId: question.criteriaId
-                  };
-                  delete evidences[e].sections[s].questions[q].criteriaId;
-                  if (question.responseType == "matrix") {
-                    async.forEachOf(
-                      evidence.sections,
-                      (section, ss, cb4) => {
-                        console.log("1234");
+  async parseQuestions(evidences, schoolTypes, submissionDocEvidences) {
 
-                        cb4();
-                      },
-                      error => {
-                        cb3();
-                      }
-                    );
-                  }
-                  cb3();
-                },
-                error => {
-                  cb2();
-                }
-              );
-            },
-            error => {
-              cb1();
-            }
-          );
-        },
-        error => {
-          console.error(error);
-          return resolve(evidences);
+    let schoolFilterQuestionArray = {}
+    let sectionQuestionArray = {}
+    let questionArray = {}
+
+    evidences.forEach(evidence => {
+
+      evidence.startTime = submissionDocEvidences[evidence.externalId].startTime
+      evidence.endTime = submissionDocEvidences[evidence.externalId].endTime
+      evidence.isSubmitted = submissionDocEvidences[evidence.externalId].isSubmitted
+      
+      evidence.sections.forEach(section => {
+        section.questions.forEach((question,index,section) => {
+          if(_.difference(question.questionGroup, schoolTypes).length < question.questionGroup.length) {
+            sectionQuestionArray[question._id] = section
+            questionArray[question._id] = question
+          } else {
+            schoolFilterQuestionArray[question._id] = section
+          }
+        })
+      })
+    })
+    
+    Object.entries(schoolFilterQuestionArray).forEach(schoolFilteredQuestion => {
+      schoolFilteredQuestion[1].forEach((questionElm,questionIndexInSection) => {
+        if(questionElm._id.toString() === schoolFilteredQuestion[0]) {
+          schoolFilteredQuestion[1].splice(questionIndexInSection,1)
         }
-      );
+      })
+    })
+
+
+    Object.entries(questionArray).forEach(questionArrayElm => {
+
+      questionArrayElm[1]["payload"] = {
+        criteriaId:questionArrayElm[1]["criteriaId"]
+      }
+      delete questionArrayElm[1]["criteriaId"]
+
+      if(questionArrayElm[1].responseType === "matrix") {
+        let instanceQuestionArray = new Array()
+        questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
+          let instanceQuestion = questionArray[instanceQuestionId.toString()]
+          instanceQuestionArray.push(instanceQuestion)
+          let sectionReferenceOfInstanceQuestion = sectionQuestionArray[instanceQuestionId.toString()]
+          sectionReferenceOfInstanceQuestion.forEach((questionInSection,index) => {
+            if(questionInSection._id.toString() === instanceQuestionId.toString()) {
+              sectionReferenceOfInstanceQuestion.splice(index,1)
+            }
+          })
+        })
+        questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray
+      }
+
     });
+    return evidences;
   }
+
 };
