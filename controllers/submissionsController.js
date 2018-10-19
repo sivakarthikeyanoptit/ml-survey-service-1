@@ -52,6 +52,10 @@ module.exports = class Submission extends Abstract {
       let queryObject = {
         _id: ObjectId(req.params._id)
       }
+      
+      let queryOptions = {
+        new: true
+      }
 
       let submissionDocument = await database.models.submissions.findOne(
         queryObject
@@ -85,7 +89,7 @@ module.exports = class Submission extends Abstract {
             ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
             ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
             ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
-            status: "inprogress"
+            status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
         } else {
           runUpdateQuery = true
@@ -93,23 +97,29 @@ module.exports = class Submission extends Abstract {
           updateObject.$push = { 
             ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
           }
+
           updateObject.$set = {
             ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
-            status: "inprogress"
+            status: (submissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) ? "inprogress" : "blocked"
           }
+
           message = "Duplicate evidence method submission detected."
         }
         
       }
       
       if(runUpdateQuery) {
-        result = await database.models.submissions.findOneAndUpdate(
+        let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
           queryObject,
-          updateObject
+          updateObject,
+          queryOptions
         );
+        
+        let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
 
         let response = {
-          message: message
+          message: message,
+          result: status
         };
 
         return resolve(response);
@@ -383,6 +393,18 @@ module.exports = class Submission extends Abstract {
     }).catch(error => {
       reject(error);
     });
+  }
+
+
+  extractStatusOfSubmission(submissionDocument) {
+
+    let result = {}
+    result._id = submissionDocument._id
+    result.status = submissionDocument.status
+    result.evidences = submissionDocument.evidences
+
+    return result;
+
   }
 
 };

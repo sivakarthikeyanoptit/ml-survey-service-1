@@ -171,7 +171,7 @@ module.exports = class Schools extends Abstract {
         programId: programDocument._id,
         evidenceSubmissions: [],
         schoolProfile: {},
-        status: "Started"
+        status: "started"
       };
       let assessments = [];
       for (
