@@ -22,6 +22,16 @@ module.exports = class Submission extends Abstract {
     );
 
     if(!submissionDocument) {
+        let schoolAssessorsQueryObject = [
+          {
+            $match: { schools: document.schoolId, programId: document.programId}
+          }
+        ];
+
+        document.assessors = await database.models[
+          "school-assessors"
+        ].aggregate(schoolAssessorsQueryObject);
+
         submissionDocument = await database.models.submissions.create(
           document
         );
@@ -38,9 +48,13 @@ module.exports = class Submission extends Abstract {
       req.body = req.body || {};
       let message = "Submission completed successfully"
       let runUpdateQuery = false
-      
+
       let queryObject = {
         _id: ObjectId(req.params._id)
+      }
+      
+      let queryOptions = {
+        new: true
       }
 
       let submissionDocument = await database.models.submissions.findOne(
@@ -56,47 +70,56 @@ module.exports = class Submission extends Abstract {
       }
       
       if(req.body.evidence) {
-        req.body.evidence.assessorDetails = {
-          userId: req.userDetails.userId,
-          firstName: req.userDetails.firstName,
-          lastName: req.userDetails.lastName,
-          email: req.userDetails.email,
-          phone: req.userDetails.phone
-        }
+        req.body.evidence.gpsLocation = req.headers.gpslocation
+        req.body.evidence.submittedBy = req.userDetails.userId
         req.body.evidence.submissionDate = new Date()
         if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
           runUpdateQuery = true
+          req.body.evidence.isValid = true
           let answerArray = new Array()
           Object.entries(req.body.evidence.answers).forEach(answer => {
             answerArray[answer[0]] = answer[1]
           });
-          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
+          updateObject.$push = { 
+            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+          }
           updateObject.$set = { 
             answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
             ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
             ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
             ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
-            status: "inprogress"
+            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
+            status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
         } else {
           runUpdateQuery = true
-          updateObject.$push = { ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence}
-          updateObject.$set = {
-            status: "inprogress"
+          req.body.evidence.isValid = false
+          updateObject.$push = { 
+            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
           }
+
+          updateObject.$set = {
+            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
+            status: (submissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) ? "inprogress" : "blocked"
+          }
+
           message = "Duplicate evidence method submission detected."
         }
         
       }
       
       if(runUpdateQuery) {
-        result = await database.models.submissions.findOneAndUpdate(
+        let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
           queryObject,
-          updateObject
+          updateObject,
+          queryOptions
         );
+        
+        let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
 
         let response = {
-          message: message
+          message: message,
+          result: status
         };
 
         return resolve(response);
@@ -122,6 +145,7 @@ module.exports = class Submission extends Abstract {
       req.body = req.body || {};
 
       let result = {}
+      let responseMessage
       
       let queryObject = {
         _id: ObjectId(req.params._id)
@@ -130,31 +154,125 @@ module.exports = class Submission extends Abstract {
       let submissionDocument = await database.models.submissions.findOne(
         queryObject
       );
-      
-      let criteriaResponses = {}
-      submissionDocument.criterias.forEach(criteria => {
-        if (criteria.criteriaType === 'manual') {
-          criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
-          criteriaResponses[criteria._id].questions = []
-        }
-      })
 
-      if(submissionDocument.answers) {
-        Object.entries(submissionDocument.answers).forEach(answer => {
-          if(criteriaResponses[answer[1].criteriaId] != undefined) {
-            criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
-          }
-        });
+      let ratingsEnabled = true
+      const allOnfieldEvidenceMethodsAreAccepted = submissionDocument.allOnfieldEvidenceMethodsAreAccepted
+      
+      if(allOnfieldEvidenceMethodsAreAccepted !== true) {
+        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(submissionDocument)
+        ratingsEnabled = canRatingsBeEnabled.ratingsEnabled
+        responseMessage = canRatingsBeEnabled.responseMessage
       }
 
-      result._id = submissionDocument._id
-      result.status = submissionDocument.status
-      result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
-      result.criterias = _.values(criteriaResponses)
+      if(ratingsEnabled) {
 
-      let response = { message: "Rating questions fetched successfully.", result: result };
+        result._id = submissionDocument._id
+        result.status = submissionDocument.status
 
-      return resolve(response);
+        if(allOnfieldEvidenceMethodsAreAccepted === true) {
+          let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
+          result.isEditable = isEditable
+          result.criterias = criterias
+          responseMessage = "Rating questions fetched successfully."
+        } else {
+          responseMessage = "All evidence methods submission needs to be accepted to fetch rating questions."
+        }
+
+        let {evidences} = await this.extractStatusOfSubmission(submissionDocument)
+        result.evidences = evidences
+        result.allOnfieldEvidenceMethodsAreAccepted = (allOnfieldEvidenceMethodsAreAccepted) ? allOnfieldEvidenceMethodsAreAccepted : ""
+        result.canAcceptOnfieldEvidenceMethods = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
+
+        let response = { message: responseMessage, result: result };
+        return resolve(response);
+        
+      } else {
+        let response = { message: responseMessage, result: result };
+        return resolve(response);
+      }
+
+    }).catch(error => {
+      reject(error);
+    });
+  }
+
+  async acceptOnfieldEvidenceMethods(req) {
+    return new Promise(async (resolve, reject) => {
+
+      req.body = req.body || {};
+      let responseMessage
+      let runUpdateQuery = false
+
+      let queryObject = {
+        _id: ObjectId(req.params._id)
+      }
+
+      let queryOptions = {
+        new: true
+      }
+
+      let submissionDocument = await database.models.submissions.findOne(
+        queryObject
+      );
+
+      let updateObject = {}
+      let result = {}
+
+      if(req.body.allOnfieldEvidenceMethodsAreAccepted === true) {
+        
+        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(submissionDocument)
+        let {ratingsEnabled,responseMessage} = canRatingsBeEnabled
+
+        if(ratingsEnabled) {
+          runUpdateQuery = true
+          updateObject.$set = {
+            allOnfieldEvidenceMethodsAreAccepted: true
+          }
+        }
+
+      } else {
+        responseMessage = "Invalid request."
+      }
+
+      if(runUpdateQuery) {
+        
+        let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+          queryObject,
+          updateObject,
+          queryOptions
+        );
+
+        result._id = updatedSubmissionDocument._id
+        result.status = updatedSubmissionDocument.status
+
+        if(updatedSubmissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) {
+          let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(updatedSubmissionDocument, req.userDetails.allRoles)
+          result.isEditable = isEditable
+          result.criterias = criterias
+          responseMessage = "Rating questions fetched successfully."
+        } else {
+          responseMessage = "All evidence methods submission needs to be accepted to fetch rating questions."
+        }
+
+        let {evidences} = await this.extractStatusOfSubmission(submissionDocument)
+        result.evidences = evidences
+        result.allOnfieldEvidenceMethodsAreAccepted = updatedSubmissionDocument.allOnfieldEvidenceMethodsAreAccepted
+        result.canAcceptOnfieldEvidenceMethods = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
+
+        let response = { message: responseMessage, result: result };
+
+        return resolve(response);
+
+      } else {
+
+        let response = {
+          message: responseMessage
+        };
+
+        return resolve(response);
+      }
+
+      
     }).catch(error => {
       reject(error);
     });
@@ -164,7 +282,7 @@ module.exports = class Submission extends Abstract {
   async submitRatingQuestions(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
-      let message = "Rating questions submission completed successfully"
+      let responseMessage = "Rating questions submission completed successfully"
       let runUpdateQuery = false
 
       let queryObject = {
@@ -179,17 +297,25 @@ module.exports = class Submission extends Abstract {
       let result = {}
 
       if(req.body.ratings) {
-        if(submissionDocument.status !== "blocked") {
+        if(submissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) {
           runUpdateQuery = true
           Object.entries(req.body.ratings).forEach(rating => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
             criteriaElm.score = rating[1].score
             criteriaElm.remarks = rating[1].remarks
+            criteriaElm.ratingSubmittedBy = req.userDetails.userId
+            criteriaElm.ratingSubmissionDate = new Date()
+            criteriaElm.ratingSubmissionGpsLocation = req.headers.gpslocation
           });
-          updateObject.$set = { criterias : submissionDocument.criterias }
+          updateObject.$set = { 
+            criterias : submissionDocument.criterias,
+            allManualCriteriaRatingSubmitted: true
+          }
         } else {
-          message = "Cannot submit ratings for a blocked submission."
+          responseMessage = "Cannot submit ratings for this submission."
         }
+      } else {
+        responseMessage = "Invalid request"
       }
 
       if(runUpdateQuery) {
@@ -200,7 +326,7 @@ module.exports = class Submission extends Abstract {
         );
 
         let response = {
-          message: message
+          message: responseMessage
         };
 
         return resolve(response);
@@ -208,7 +334,7 @@ module.exports = class Submission extends Abstract {
       } else {
 
         let response = {
-          message: message
+          message: responseMessage
         };
 
         return resolve(response);
@@ -226,7 +352,8 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
       let result = {}
-      
+      let responseMessage = ""
+
       let queryObject = {
         _id: ObjectId(req.params._id)
       }
@@ -235,19 +362,27 @@ module.exports = class Submission extends Abstract {
         queryObject
       );
       
-      let criteriaResponses = {}
-      submissionDocument.criterias.forEach(criteria => {
-        if (criteria.criteriaType === 'manual') {
-          criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
-        }
-      })
+      if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
+        let criteriaResponses = {}
+        submissionDocument.criterias.forEach(criteria => {
+          if (criteria.criteriaType === 'manual') {
+            criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
+          }
+        })
 
-      result._id = submissionDocument._id
-      result.status = submissionDocument.status
-      result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? true : false
-      result.criterias = _.values(criteriaResponses)
-      let response = { message: "Criteria ratings fetched successfully.", result: result };
+        result._id = submissionDocument._id
+        result.status = submissionDocument.status
+        result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? true : false
+        result.criterias = _.values(criteriaResponses)
+        responseMessage = "Criteria ratings fetched successfully."
+      } else {
+        responseMessage = "No Criteria ratings found for this assessment."
+      }
 
+      let response = {
+        message: responseMessage,
+        result: result
+      };
       return resolve(response);
     }).catch(error => {
       reject(error);
@@ -257,7 +392,7 @@ module.exports = class Submission extends Abstract {
   async flagCriteriaRatings(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
-      let message = "Criterias flagged successfully"
+      let responseMessage
       let runUpdateQuery = false
 
       let queryObject = {
@@ -272,10 +407,13 @@ module.exports = class Submission extends Abstract {
       let result = {}
 
       if(req.body.flag) {
-        if(submissionDocument.status !== "blocked") {
+        if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
           runUpdateQuery = true
           Object.entries(req.body.flag).forEach(flag => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
+            flag[1].userId = req.userDetails.userId
+            flag[1].submissionDate = new Date()
+            flag[1].submissionGpsLocation = req.headers.gpslocation
             if(criteriaElm.flagRaised) {
               criteriaElm.flagRaised.push(flag[1])
             } else {
@@ -285,8 +423,10 @@ module.exports = class Submission extends Abstract {
           });
           updateObject.$set = { criterias : submissionDocument.criterias }
         } else {
-          message = "Cannot flag ratings for a blocked submission."
+          responseMessage = "Cannot flag ratings for this assessment."
         }
+      } else {
+        responseMessage = "Invalid request"
       }
       
       if(runUpdateQuery) {
@@ -294,22 +434,16 @@ module.exports = class Submission extends Abstract {
           queryObject,
           updateObject
         );
+        
+        responseMessage = "Criterias flagged successfully"
 
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-
-      } else {
-
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
       }
 
+      let response = {
+        message: responseMessage
+      };
+
+      return resolve(response);
       
     }).catch(error => {
       reject(error);
@@ -339,6 +473,74 @@ module.exports = class Submission extends Abstract {
     }).catch(error => {
       reject(error);
     });
+  }
+
+
+  extractStatusOfSubmission(submissionDocument) {
+
+    let result = {}
+    result._id = submissionDocument._id
+    result.status = submissionDocument.status
+    result.evidences = submissionDocument.evidences
+
+    return result;
+
+  }
+
+  extractCriteriaQuestionsOfSubmission(submissionDocument, requestingUserRoles) {
+
+    let result = {}
+    let criteriaResponses = {}
+    submissionDocument.criterias.forEach(criteria => {
+      if (criteria.criteriaType === 'manual') {
+        criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
+        criteriaResponses[criteria._id].questions = []
+      }
+    })
+
+    if(submissionDocument.answers) {
+      Object.entries(submissionDocument.answers).forEach(answer => {
+        if(criteriaResponses[answer[1].criteriaId] != undefined) {
+          criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
+        }
+      });
+    }
+
+    result.isEditable = (_.includes(requestingUserRoles,"ASSESSOR")) ? false : true
+    result.criterias = _.values(criteriaResponses)
+
+    return result;
+
+  }
+
+  canEnableRatingQuestionsOfSubmission(submissionDocument) {
+
+    let result = {}
+    result.ratingsEnabled = true
+    result.responseMessage = ""
+
+    if(submissionDocument.evidences && submissionDocument.status !== "blocked") {
+      const evidencesArray = Object.entries(submissionDocument.evidences)
+      for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
+        if(
+          evidencesArray[iterator][1].modeOfCollection === "onfield" && 
+            (
+              !evidencesArray[iterator][1].isSubmitted || 
+              evidencesArray[iterator][1].hasConflicts === true
+            )
+          ) {
+          result.ratingsEnabled = false
+          result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
+          break
+        }
+      }
+    } else {
+      result.ratingsEnabled = false
+      result.responseMessage = "Sorry! This could be because the assessment has been blocked. Resolve conflicts to proceed further."
+    }
+
+    return result;
+
   }
 
 };
