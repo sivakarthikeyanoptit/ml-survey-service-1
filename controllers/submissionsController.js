@@ -100,7 +100,7 @@ module.exports = class Submission extends Abstract {
 
           updateObject.$set = {
             ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
-            status: (submissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) ? "inprogress" : "blocked"
+            status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
           }
 
           message = "Duplicate evidence method submission detected."
@@ -115,6 +115,21 @@ module.exports = class Submission extends Abstract {
           queryOptions
         );
         
+
+        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+        let {ratingsEnabled} = canRatingsBeEnabled
+
+        if(ratingsEnabled) {
+          updateObject.$set = {
+            ratingOfManualCriteriaEnabled: true
+          }
+          updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+            queryObject,
+            updateObject,
+            queryOptions
+          );
+        }
+
         let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
 
         let response = {
@@ -155,124 +170,23 @@ module.exports = class Submission extends Abstract {
         queryObject
       );
 
-      let ratingsEnabled = true
-      const allOnfieldEvidenceMethodsAreAccepted = submissionDocument.allOnfieldEvidenceMethodsAreAccepted
-      
-      if(allOnfieldEvidenceMethodsAreAccepted !== true) {
-        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(submissionDocument)
-        ratingsEnabled = canRatingsBeEnabled.ratingsEnabled
-        responseMessage = canRatingsBeEnabled.responseMessage
-      }
-
-      if(ratingsEnabled) {
+      if(submissionDocument.ratingOfManualCriteriaEnabled === true) {
 
         result._id = submissionDocument._id
         result.status = submissionDocument.status
 
-        if(allOnfieldEvidenceMethodsAreAccepted === true) {
-          let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
-          result.isEditable = isEditable
-          result.criterias = criterias
-          responseMessage = "Rating questions fetched successfully."
-        } else {
-          responseMessage = "All evidence methods submission needs to be accepted to fetch rating questions."
-        }
-
-        let {evidences} = await this.extractStatusOfSubmission(submissionDocument)
-        result.evidences = evidences
-        result.allOnfieldEvidenceMethodsAreAccepted = (allOnfieldEvidenceMethodsAreAccepted) ? allOnfieldEvidenceMethodsAreAccepted : ""
-        result.canAcceptOnfieldEvidenceMethods = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
-
-        let response = { message: responseMessage, result: result };
-        return resolve(response);
+        let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
+        result.isEditable = isEditable
+        result.criterias = criterias
+        responseMessage = "Rating questions fetched successfully."
         
       } else {
-        let response = { message: responseMessage, result: result };
-        return resolve(response);
+        responseMessage = "Rating questions not yet enabled for this submission."
       }
 
-    }).catch(error => {
-      reject(error);
-    });
-  }
+      let response = { message: responseMessage, result: result };
+      return resolve(response);
 
-  async acceptOnfieldEvidenceMethods(req) {
-    return new Promise(async (resolve, reject) => {
-
-      req.body = req.body || {};
-      let responseMessage
-      let runUpdateQuery = false
-
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
-
-      let queryOptions = {
-        new: true
-      }
-
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
-
-      let updateObject = {}
-      let result = {}
-
-      if(req.body.allOnfieldEvidenceMethodsAreAccepted === true) {
-        
-        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(submissionDocument)
-        let {ratingsEnabled,responseMessage} = canRatingsBeEnabled
-
-        if(ratingsEnabled) {
-          runUpdateQuery = true
-          updateObject.$set = {
-            allOnfieldEvidenceMethodsAreAccepted: true
-          }
-        }
-
-      } else {
-        responseMessage = "Invalid request."
-      }
-
-      if(runUpdateQuery) {
-        
-        let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject,
-          queryOptions
-        );
-
-        result._id = updatedSubmissionDocument._id
-        result.status = updatedSubmissionDocument.status
-
-        if(updatedSubmissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) {
-          let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(updatedSubmissionDocument, req.userDetails.allRoles)
-          result.isEditable = isEditable
-          result.criterias = criterias
-          responseMessage = "Rating questions fetched successfully."
-        } else {
-          responseMessage = "All evidence methods submission needs to be accepted to fetch rating questions."
-        }
-
-        let {evidences} = await this.extractStatusOfSubmission(submissionDocument)
-        result.evidences = evidences
-        result.allOnfieldEvidenceMethodsAreAccepted = updatedSubmissionDocument.allOnfieldEvidenceMethodsAreAccepted
-        result.canAcceptOnfieldEvidenceMethods = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? false : true
-
-        let response = { message: responseMessage, result: result };
-
-        return resolve(response);
-
-      } else {
-
-        let response = {
-          message: responseMessage
-        };
-
-        return resolve(response);
-      }
-
-      
     }).catch(error => {
       reject(error);
     });
@@ -297,7 +211,7 @@ module.exports = class Submission extends Abstract {
       let result = {}
 
       if(req.body.ratings) {
-        if(submissionDocument.allOnfieldEvidenceMethodsAreAccepted === true) {
+        if(submissionDocument.ratingOfManualCriteriaEnabled === true) {
           runUpdateQuery = true
           Object.entries(req.body.ratings).forEach(rating => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});

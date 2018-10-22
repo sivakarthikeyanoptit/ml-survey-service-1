@@ -9,7 +9,7 @@ module.exports = {
     criterias:Array,
     answers: Object,
     schoolProfile: Object,
-    allOnfieldEvidenceMethodsAreAccepted: Boolean,
+    ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,
     ratings: Object
   }
