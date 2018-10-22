@@ -309,7 +309,9 @@ export class AddQuestionComponent implements OnInit {
       payload: {
         criteriaId: ""
       },
-      accessibility: "local/global"
+      modeOfCollection: "onfield",
+      questionType: ["A1"],
+      accessibility: "local"
     });
 
     this.openDialog(this.questionForm.length - 1);

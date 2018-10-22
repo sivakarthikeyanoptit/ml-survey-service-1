@@ -116,32 +116,28 @@ export class CriteriaComponent implements OnInit {
       {
         level: "L1",
         label: "Level 1",
-        description:
-          "School does not have a principal or vice-principal; there is  a teacher in-charge of the post",
+        description: "",
         expression: "",
         expressionVariables: []
       },
       {
         level: "L2",
         label: "Level 2",
-        description:
-          "The school principal or vice-principal (one of the two) is available part time.",
+        description: "",
         expression: "",
         expressionVariables: []
       },
       {
         level: "L3",
         label: "Level 3",
-        description:
-          "School has full time principal but vice principal is not present / or is inadequate",
+        description: "",
         expression: "",
         expressionVariables: []
       },
       {
         level: "L4",
         label: "Level 4",
-        description:
-          "School has a full-time principal and vice principal as per norms (if applicable)",
+        description: "",
         expression: "",
         expressionVariables: []
       }
