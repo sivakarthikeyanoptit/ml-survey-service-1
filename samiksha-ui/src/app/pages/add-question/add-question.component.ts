@@ -4,6 +4,7 @@ import { QuestionsService } from "../../service/api/questions.service";
 
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material";
 import { Router } from "@angular/router";
+import { HeaderTextService } from "../../service/toolbar/header-text.service";
 
 @Component({
   selector: "sl-add-question",
@@ -17,7 +18,8 @@ export class AddQuestionComponent implements OnInit {
   constructor(
     private questionsApi: QuestionsService,
     public dialog: MatDialog,
-    private _router: Router
+    private _router: Router,
+    private headerTextService: HeaderTextService
   ) {
     if (!this.criteria) {
       var r = confirm("Please create criteria first.");
@@ -264,7 +266,8 @@ export class AddQuestionComponent implements OnInit {
       question.questions.forEach(obj => {
         quesValues.push(obj.value);
       });
-      question.questions = quesValues;
+      question.question = quesValues;
+      delete question.questions;
 
       if (qId > -1) {
         this.criteria.evidences[values.evidenceIndex].sections[
@@ -301,7 +304,8 @@ export class AddQuestionComponent implements OnInit {
       isCompleted: false,
       remarks: "",
       value: "",
-      canBotApplicable: false,
+      notApplicable: false,
+      usedForScoring: "",
       payload: {
         criteriaId: ""
       },
@@ -311,7 +315,9 @@ export class AddQuestionComponent implements OnInit {
     this.openDialog(this.questionForm.length - 1);
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.headerTextService.setHeader("Add Questions");
+  }
 }
 
 @Component({

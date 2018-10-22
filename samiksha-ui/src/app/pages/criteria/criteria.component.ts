@@ -1,5 +1,7 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ViewContainerRef } from "@angular/core";
 import { ApiService } from "../../service/api/api.service";
+import { NavigationComponent } from "../../components/navigation/navigation.component";
+import { HeaderTextService } from "../../service/toolbar/header-text.service";
 
 @Component({
   selector: "sl-criteria",
@@ -15,15 +17,25 @@ export class CriteriaComponent implements OnInit {
   levels: any;
   criteria: any;
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private navigationComponent: NavigationComponent,
+    private headerTextService: HeaderTextService
+  ) {}
+
+  testClick() {}
 
   submitCriteria() {
     let self = this;
+    let ques = [];
+    let criteria = JSON.parse(localStorage.getItem("criteria"));
+    let questions = JSON.parse(localStorage.getItem("questions"));
+    questions.forEach(obj => {
+      ques.push(obj.externalId);
+    });
+    criteria.questionsExtId = ques;
     this.api
-      .reqHandler(
-        "createCriteria",
-        JSON.parse(localStorage.getItem("criteria"))
-      )
+      .reqHandler("createCriteria", criteria)
       .then((result: any) => {
         if (result.status == 200) {
           alert(result.message);
@@ -32,6 +44,9 @@ export class CriteriaComponent implements OnInit {
           self.sectionsSelected = [];
           self.levelsSelected = [];
         }
+      })
+      .catch(error => {
+        console.log(error);
       });
 
     console.log("Criteria submitted");
@@ -81,6 +96,9 @@ export class CriteriaComponent implements OnInit {
   }
 
   ngOnInit() {
+    // this.navigationComponent.headerText =
+    this.headerTextService.setHeader("Criteria");
+
     let data = localStorage.getItem("criteria");
     if (data) {
       this.criteria = JSON.parse(data);
@@ -96,18 +114,10 @@ export class CriteriaComponent implements OnInit {
 
     this.levels = [
       {
-        level: "L4",
-        label: "Level 4",
+        level: "L1",
+        label: "Level 1",
         description:
-          "School has a full-time principal and vice principal as per norms (if applicable)",
-        expression: "",
-        expressionVariables: []
-      },
-      {
-        level: "L3",
-        label: "Level 3",
-        description:
-          "School has full time principal but vice principal is not present / or is inadequate",
+          "School does not have a principal or vice-principal; there is  a teacher in-charge of the post",
         expression: "",
         expressionVariables: []
       },
@@ -120,10 +130,18 @@ export class CriteriaComponent implements OnInit {
         expressionVariables: []
       },
       {
-        level: "L1",
-        label: "Level 1",
+        level: "L3",
+        label: "Level 3",
         description:
-          "School does not have a principal or vice-principal; there is  a teacher in-charge of the post",
+          "School has full time principal but vice principal is not present / or is inadequate",
+        expression: "",
+        expressionVariables: []
+      },
+      {
+        level: "L4",
+        label: "Level 4",
+        description:
+          "School has a full-time principal and vice principal as per norms (if applicable)",
         expression: "",
         expressionVariables: []
       }

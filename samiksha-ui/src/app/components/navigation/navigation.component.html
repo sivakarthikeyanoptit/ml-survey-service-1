@@ -11,7 +11,7 @@
       <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()" *ngIf="isHandset$ | async">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
-      <span>samiksha-ui</span>
+      <span>{{headerText}}</span>
       <span class="example-spacer"></span>
       <mat-icon class="auth-icon" (click)="logout()" *ngIf="isAuthenticated">verified_user</mat-icon>
       <a class="text-right" mat-list-item (click)="login()" *ngIf="!isAuthenticated">Login</a>
