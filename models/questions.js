@@ -30,8 +30,8 @@ module.exports = {
     instanceIdentifier: "String",
     noOfInstances: "number",
     notApplicable: "boolean",
-    instanceQuestions: "String",
-    instanceQuestionsArray: Array,
+    instanceQuestionsString: "String",
+    instanceQuestions: Array,
     payload: Object
   }
 };

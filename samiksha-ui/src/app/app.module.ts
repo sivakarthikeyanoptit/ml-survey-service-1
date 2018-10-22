@@ -45,6 +45,7 @@ import { AddCriteriaComponent } from "./pages/add-criteria/add-criteria.componen
 import { RubricComponent } from "./components/rubric/rubric.component";
 import { EvidenceComponent } from "./components/evidence/evidence.component";
 import { CriteriaComponent } from "./pages/criteria/criteria.component";
+import { HeaderTextService } from "./service/toolbar/header-text.service";
 
 @NgModule({
   declarations: [
@@ -89,7 +90,7 @@ import { CriteriaComponent } from "./pages/criteria/criteria.component";
     HttpModule,
     MatDialogModule
   ],
-  providers: [],
+  providers: [HeaderTextService],
   bootstrap: [AppComponent],
   entryComponents: [AppComponent, DialogOverviewExampleDialog]
 })

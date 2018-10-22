@@ -69,10 +69,10 @@
     <div class="form-group">
       <label for="responseType">Question Type</label>
       <select class="form-control" [(ngModel)]="question.responseType" id="responseType" (selectionChange)="questionType($event.value)">
-        <option value="radio">Radio</option>
-        <option value="multiSelect">Multi Select</option>
-        <option value="text">Text</option>
-        <option value="number">Number</option>
+        <option value="radio">MCQ-Only one correct</option>
+        <option value="multiSelect">MCQ-More than one correct</option>
+        <option value="text">Data entry-Text</option>
+        <option value="number">Data entry-Number</option>
         <option value="date">Date</option>
         <option value="matrix">Matrix</option>
       </select>
@@ -113,7 +113,7 @@
     <div class="row">
 
       <div class="col">
-        <textarea class="form-control" placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestions"></textarea>
+        <textarea class="form-control" placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestionsString"></textarea>
         <!-- <mat-select placeholder="Select Instance Questions" [(ngModel)]="question.instanceQuestions" multiple>
           <mat-option *ngFor="let que of questions;let i = index" [value]="que.externalId" [disabled]="que.externalId==question.externalId">{{que.externalId}}</mat-option>
         </mat-select> matInput-->
@@ -149,7 +149,7 @@
     <label>Validation</label>
     <div class="form-group">
       <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.required">Answer Required</mat-checkbox>
-      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" (change)="question.validation.regex = question.validation.isNumber?'(?<=s|^)d+(?=s|$)':''">Is
+      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" (change)="question.validation.regex = question.validation.isNumber?'/^[0-9\s]*$/':''">Is
         Number</mat-checkbox>
 
     </div>
@@ -184,13 +184,13 @@
   </div>
 
 
-  <div class="form-group">
+  <!-- <div class="form-group">
     <mat-form-field class="col-md-6">
       <mat-select [(ngModel)]="question.questionGroup" placeholder="Question Group" multiple>
         <mat-option *ngFor="let type of ['GOVT','PRIVATE']" [value]="type">{{type}}</mat-option>
       </mat-select>
     </mat-form-field>
-  </div>
+  </div> -->
   <hr>
 
   <div class="form-group">

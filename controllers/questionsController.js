@@ -119,15 +119,15 @@ module.exports = class Questions extends Abstract {
 
   populateInstanceQuestions(req) {
     return new Promise(async (resolve, reject) => {
-      let instanceQuestionsArray = [];
+      let instanceQuestions = [];
       let questions = await database.models.questions.find({
         _id: { $in: req.body.created }
       });
       async.forEach(
         questions,
         (question, cb1) => {
-          if (question.instanceQuestions) {
-            let ids = question.instanceQuestions.match(
+          if (question.instanceQuestionsString) {
+            let ids = question.instanceQuestionsString.match(
               /(?=\S)[^,]+?(?=\s*(,|$))/g
             );
             database.models.questions
@@ -140,7 +140,7 @@ module.exports = class Questions extends Abstract {
                 async.forEach(
                   instanceQuestion,
                   (ques, cb2) => {
-                    instanceQuestionsArray.push(ques._id);
+                    instanceQuestions.push(ques._id);
                     cb2();
                   },
                   error => {
@@ -149,7 +149,7 @@ module.exports = class Questions extends Abstract {
                         { _id: question._id },
                         {
                           $set: {
-                            instanceQuestionsArray: instanceQuestionsArray
+                            instanceQuestions: instanceQuestions
                           }
                         }
                       )
