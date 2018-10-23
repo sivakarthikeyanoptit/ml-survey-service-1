@@ -211,7 +211,7 @@ module.exports = class Submission extends Abstract {
       let result = {}
 
       if(req.body.ratings) {
-        if(submissionDocument.ratingOfManualCriteriaEnabled === true) {
+        if(submissionDocument.ratingOfManualCriteriaEnabled === true && submissionDocument.allManualCriteriaRatingSubmitted != true) {
           runUpdateQuery = true
           Object.entries(req.body.ratings).forEach(rating => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
@@ -281,6 +281,11 @@ module.exports = class Submission extends Abstract {
         submissionDocument.criterias.forEach(criteria => {
           if (criteria.criteriaType === 'manual') {
             criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
+            
+            if(criteria.flagRaised && criteria.flagRaised[req.userDetails.userId]) {
+              criteriaResponses[criteria._id].flagRaised = _.pick(criteria.flagRaised[req.userDetails.userId], ['value', 'remarks', 'submissionDate'])
+            }
+            
           }
         })
 
@@ -322,18 +327,24 @@ module.exports = class Submission extends Abstract {
 
       if(req.body.flag) {
         if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
-          runUpdateQuery = true
           Object.entries(req.body.flag).forEach(flag => {
             let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
+
             flag[1].userId = req.userDetails.userId
             flag[1].submissionDate = new Date()
             flag[1].submissionGpsLocation = req.headers.gpslocation
-            if(criteriaElm.flagRaised) {
-              criteriaElm.flagRaised.push(flag[1])
+
+            if(criteriaElm.flagRaised && criteriaElm.flagRaised[req.userDetails.userId]) {
+              responseMessage = "You cannot update an already flagged criteria."
+            } else if(criteriaElm.flagRaised) {
+              runUpdateQuery = true
+              criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
             } else {
-              criteriaElm.flagRaised = []
-              criteriaElm.flagRaised.push(flag[1])
+              runUpdateQuery = true
+              criteriaElm.flagRaised = {}
+              criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
             }
+
           });
           updateObject.$set = { criterias : submissionDocument.criterias }
         } else {
@@ -349,7 +360,7 @@ module.exports = class Submission extends Abstract {
           updateObject
         );
         
-        responseMessage = "Criterias flagged successfully"
+        responseMessage = "Criterias flagged successfully."
 
       }
 
