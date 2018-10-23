@@ -15,6 +15,8 @@ module.exports = {
     createdFor: ["String"],
     createdFor: ["String"],
     rubric: ["json"],
-    evidences: ["json"]
+    evidences: ["json"],
+    flag: Object,
+    criteriaType: "String"
   }
 };

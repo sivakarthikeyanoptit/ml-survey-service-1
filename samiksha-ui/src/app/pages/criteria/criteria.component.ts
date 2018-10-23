@@ -282,7 +282,7 @@ export class CriteriaComponent implements OnInit {
       remarks: "",
       name: "",
       description: "",
-      criteriaType: "manual",
+      criteriaType: "auto",
       score: "",
       resourceType: ["Program", "Framework", "Criteria"],
       language: ["English"],

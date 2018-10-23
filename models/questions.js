@@ -6,7 +6,7 @@ module.exports = {
       index: true,
       unique: true
     },
-    questions: Array,
+    question: Array,
     tip: "String",
     responseType: "String",
     value: "String",
