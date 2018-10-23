@@ -37,7 +37,7 @@ module.exports = class Criterias extends Abstract {
                       section.questions,
                       (question, i, cb3) => {
                         console.log(question, i);
-
+                        question.owner = req.userDetails.id;
                         database.models.questions
                           .create(question)
                           .then(result => {
@@ -87,6 +87,8 @@ module.exports = class Criterias extends Abstract {
                       body: { created: created }
                     })
                     .then(result => {
+                      req.body.owner = req.userDetails.id;
+
                       return super
                         .insert(req)
                         .then(criteria => {

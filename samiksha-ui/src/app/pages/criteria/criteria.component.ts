@@ -282,11 +282,12 @@ export class CriteriaComponent implements OnInit {
       remarks: "",
       name: "",
       description: "",
-      criteriaType: "manual",
+      criteriaType: "auto",
       score: "",
       resourceType: ["Program", "Framework", "Criteria"],
       language: ["English"],
       keywords: ["Keyword 1", "Keyword 2"],
+      showRemark:"",
       concepts: [
         {
           identifier: "LPD20100",

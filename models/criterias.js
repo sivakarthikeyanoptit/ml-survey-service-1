@@ -7,6 +7,9 @@ module.exports = {
     timesUsed: Number,
     weightage: Number,
     name: "String",
+    score: "String",
+    remark: "String",
+    showRemarks: "boolean",
     description: "String",
     resourceType: ["String"],
     language: ["String"],
@@ -15,6 +18,8 @@ module.exports = {
     createdFor: ["String"],
     createdFor: ["String"],
     rubric: ["json"],
-    evidences: ["json"]
+    evidences: ["json"],
+    flag: Object,
+    criteriaType: "String"
   }
 };

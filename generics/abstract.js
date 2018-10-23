@@ -40,7 +40,7 @@ let Abstract = class Abstract {
         .create(query)
         .then(result => {
           resolve({
-            data: result,
+            result: result,
             status: self.httpStatus.ok,
             message: self.schema + " record created successfully"
           });
