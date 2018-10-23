@@ -1,4 +1,3 @@
-process.env.NODE_ENV = process.env.NODE_ENV || "development";
 let fs = require("fs"),
   path = require("path");
 mkdirp(path.join(__dirname + "/../logs/" + process.env.NODE_ENV));

@@ -1,3 +1,4 @@
+require("dotenv").config();
 //config and routes
 global.config = require("./config");
 require("./config/globalVariable")();

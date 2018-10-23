@@ -5,7 +5,8 @@ const { Storage } = require("@google-cloud/storage");
 const BUCKET_NAME = "sl-dev-storage";
 const storage = new Storage({
   projectId: "shikshalokam",
-  keyFilename: "./generics/helpers/credentials/sl-dev-storage.json"
+  keyFilename:
+    process.env.GCP_PATH || "./generics/helpers/credentials/sl-dev-storage.json"
 });
 
 var myBucket = storage.bucket(BUCKET_NAME);
@@ -32,5 +33,5 @@ module.exports = {
   upload: gcpFileUpload,
   makePublic: makePublic,
   getThumbnail: getThumbnail,
-  bucket:myBucket
+  bucket: myBucket
 };

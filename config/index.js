@@ -17,168 +17,41 @@ let db_connect = function(configData) {
 };
 
 const configuration = {
-  development: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "sl-assessment-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 4201,
-    log: process.env.LOG || "debug",
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "sl-assessment",
-          options: {
-            useNewUrlParser: true
-          }
-        }
-      },
-      plugins: {
-        timestamps: true,
-        elasticSearch: false,
-        softDelete: true,
-        autoPopulate: false,
-        timestamps_fields: {
-          createdAt: "createdAt",
-          updatedAt: "updatedAt"
-        }
-      }
-    },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    webUrl: "https://dev.shikshalokam.org"
+  root: require("path").normalize(__dirname + "/.."),
+  app: {
+    name: "sl-assessment-api"
   },
-
-  stage: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "sl-assessment-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 4201,
-    log: process.env.LOG || "info",
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://10.160.0.8:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "sl-assessment-stage",
-          options: {
-            useNewUrlParser: true
-          }
-        }
-      },
-      plugins: {
-        timestamps: true,
-        elasticSearch: false,
-        softDelete: true,
-        autoPopulate: false,
-        timestamps_fields: {
-          createdAt: "createdAt",
-          updatedAt: "updatedAt"
+  host: process.env.HOST || "http://localhost",
+  port: process.env.PORT || 4201,
+  log: process.env.LOG || "debug",
+  DB_Config: {
+    connection: {
+      mongodb: {
+        host: process.env.MONGODB_URL || "mongodb://localhost:27017",
+        user: "",
+        pass: "",
+        database: process.env.DB || "sl-assessment",
+        options: {
+          useNewUrlParser: true
         }
       }
     },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    webUrl: "https://dev.shikshalokam.org"
+    plugins: {
+      timestamps: true,
+      elasticSearch: false,
+      softDelete: true,
+      autoPopulate: false,
+      timestamps_fields: {
+        createdAt: "createdAt",
+        updatedAt: "updatedAt"
+      }
+    }
   },
-
-  qa: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "sl-assessment-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 4201,
-    log: process.env.LOG || "notice",
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://10.160.0.8:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "sl-assessment",
-          options: {
-            useNewUrlParser: true
-          }
-        }
-      },
-      plugins: {
-        timestamps: true,
-        elasticSearch: false,
-        softDelete: true,
-        autoPopulate: false,
-        timestamps_fields: {
-          createdAt: "createdAt",
-          updatedAt: "updatedAt"
-        }
-      }
-    },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    webUrl: "https://dev.shikshalokam.org"
-  },
-
-  production: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "sl-assessment-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 4201,
-    log: process.env.LOG || "warning",
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://10.160.0.8:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "sl-assessment",
-          options: {
-            useNewUrlParser: true
-          }
-        }
-      },
-      plugins: {
-        timestamps: true,
-        elasticSearch: false,
-        softDelete: true,
-        autoPopulate: false,
-        timestamps_fields: {
-          createdAt: "createdAt",
-          updatedAt: "updatedAt"
-        }
-      }
-    },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    webUrl: "ewayapp.its-dost.com"
-  }
+  version: "0.0.1",
+  URLPrefix: "/api/v1",
+  webUrl: "https://dev.shikshalokam.org"
 };
 
-let env = process.env.NODE_ENV || "development";
-db_connect(configuration[env]);
+db_connect(configuration);
 
-module.exports = configuration[env];
+module.exports = configuration;

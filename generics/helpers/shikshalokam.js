@@ -1,5 +1,4 @@
 var http = require("https");
-var env_tokens = require("./credentials/envTokens");
 var getUserInfo = function(token, userId) {
   let options = {
     host: "dev.shikshalokam.org",
@@ -7,7 +6,7 @@ var getUserInfo = function(token, userId) {
     path: "/api/user/v1/read/" + userId,
     method: "GET",
     headers: {
-      authorization: env_tokens.authorization,
+      authorization: process.env.AUTHORIZATION,
       "x-authenticated-user-token": token
     }
   };
