@@ -38,7 +38,7 @@ export class CriteriaComponent implements OnInit {
       .reqHandler("createCriteria", criteria)
       .then((result: any) => {
         if (result.status == 200) {
-          alert(result.message);
+          alert(result.message + "\nCriteria ID:" + result.result._id);
           self.resetCriteria();
           self.evidencesSelected = [];
           self.sectionsSelected = [];
@@ -287,7 +287,7 @@ export class CriteriaComponent implements OnInit {
       resourceType: ["Program", "Framework", "Criteria"],
       language: ["English"],
       keywords: ["Keyword 1", "Keyword 2"],
-      showRemark:"",
+      showRemark: "",
       concepts: [
         {
           identifier: "LPD20100",
