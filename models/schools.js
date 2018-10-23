@@ -19,6 +19,7 @@ module.exports = {
     updatedBy: "String",
     updatedDate: "String",
     pincode: "String",
+    districtId: "String",
     districtName: "String",
     zoneId: "String",
     administration: "String",
