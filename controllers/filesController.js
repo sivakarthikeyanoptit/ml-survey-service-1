@@ -57,18 +57,27 @@ module.exports = class FileUpload {
     getImageUploadUrl(req) {
         return new Promise( async (resolve,reject) => {
 
+          let responseMessage = ""
+          let result = {}
+
+          if(req.body.submissionId && req.body.submissionId != "" && Array.isArray(req.body.files)) {
+
             let noOfMinutes = 30
             let expiry = Date.now() + noOfMinutes * 60 * 1000
 
-            let resp = await new Promise( async (resolve, reject) => {
+            result = await new Promise( async (resolve, reject) => {
               const config = {
                 action: 'write',
                 expires: expiry,
                 contentType: 'multipart/form-data'
               };
+              const folderPath = req.body.submissionId+"/"+req.userDetails.userId+"/"
+
               let fileUrls = []
               for (let counter = 0; counter < req.body.files.length; counter++) {
-                let gcpFile = gcp.bucket.file(req.body.files[counter])
+
+                let gcpFile = gcp.bucket.file(folderPath+req.body.files[counter])
+
                 const signedUrl = await gcpFile.getSignedUrl(config)
                 fileUrls.push({
                   file:req.body.files[counter],
@@ -77,11 +86,15 @@ module.exports = class FileUpload {
               }
               resolve(fileUrls)
             })
-            
-            return resolve({
-              message: "URLs generated successfully.",
-              result:resp
-            });
+            responseMessage = "URLs generated successfully."
+          } else {
+            responseMessage = "Invalid request."
+          }
+          
+          return resolve({
+            message: responseMessage,
+            result: result
+          });
 
         }).catch(error => {
             return reject({
