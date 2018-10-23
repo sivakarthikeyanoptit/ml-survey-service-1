@@ -263,6 +263,8 @@ export class AddQuestionComponent implements OnInit {
       delete question.sections;
       delete question.oldParent;
 
+      // if(question.questionType =! 'matrix')
+
       question.questions.forEach(obj => {
         quesValues.push(obj.value);
       });
@@ -310,7 +312,8 @@ export class AddQuestionComponent implements OnInit {
         criteriaId: ""
       },
       modeOfCollection: "onfield",
-      questionType: ["A1"],
+      questionType: "auto",
+      questionGroup: ["A1"],
       accessibility: "local"
     });
 

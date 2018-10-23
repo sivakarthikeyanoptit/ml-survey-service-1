@@ -27,9 +27,10 @@ module.exports = {
     file: Object,
     fileName: Array,
     validation: Object,
+    accessibility: "String",
     instanceIdentifier: "String",
     noOfInstances: "number",
-    notApplicable: "boolean",
+    notApplicable: "String",
     instanceQuestionsString: "String",
     instanceQuestions: Array,
     payload: Object

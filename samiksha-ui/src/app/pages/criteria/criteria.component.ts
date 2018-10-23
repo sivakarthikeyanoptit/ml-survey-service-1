@@ -287,6 +287,7 @@ export class CriteriaComponent implements OnInit {
       resourceType: ["Program", "Framework", "Criteria"],
       language: ["English"],
       keywords: ["Keyword 1", "Keyword 2"],
+      showRemark:"",
       concepts: [
         {
           identifier: "LPD20100",

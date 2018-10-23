@@ -159,7 +159,7 @@
   <div class="form-group">
     <div class="form-group">
       <label for="questionType">Question Group</label>
-      <mat-select class="form-control" [(ngModel)]="question.questionType" id="questionType" multiple>
+      <mat-select class="form-control" [(ngModel)]="question.questionGroup" id="questionType" multiple>
         <mat-option value="A1">A1 (All)</mat-option>
         <mat-option value="A2">A2 (All (if applicable))</mat-option>
         <mat-option value="A3">A3 (All Govt.)</mat-option>
@@ -184,13 +184,14 @@
   </div>
 
 
-  <!-- <div class="form-group">
+  <div class="form-group">
     <mat-form-field class="col-md-6">
-      <mat-select [(ngModel)]="question.questionGroup" placeholder="Question Group" multiple>
-        <mat-option *ngFor="let type of ['GOVT','PRIVATE']" [value]="type">{{type}}</mat-option>
+      <mat-select [(ngModel)]="question.questionType" placeholder="Question Type">
+        <mat-option value="auto">Auto</mat-option>
+        <mat-option value="Manual">Manual</mat-option>
       </mat-select>
     </mat-form-field>
-  </div> -->
+  </div>
   <hr>
 
   <div class="form-group">
