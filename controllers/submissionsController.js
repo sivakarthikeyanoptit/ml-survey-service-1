@@ -178,6 +178,7 @@ module.exports = class Submission extends Abstract {
         let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
         result.isEditable = isEditable
         result.criterias = criterias
+        result.allManualCriteriaRatingSubmitted = (submissionDocument.allManualCriteriaRatingSubmitted) ? submissionDocument.allManualCriteriaRatingSubmitted : false
         responseMessage = "Rating questions fetched successfully."
         
       } else {

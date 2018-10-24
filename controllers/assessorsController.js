@@ -1,11 +1,6 @@
+const csv = require("csvtojson");
+
 module.exports = class Assessors {
-  // async schools(req) {
-  //   req.query = { userId: req.userDetails.userId };
-  //   req.populate = "schools";
-  //   let result = await controllers.schoolAssessorsController.populate(req);
-  //   result.data = await result.data;
-  //   return result;
-  // }
 
   async schools(req) {
     return new Promise(async (resolve,reject) => {
@@ -34,4 +29,35 @@ module.exports = class Assessors {
       });
     })
   }
+
+
+  async upload(req) {
+    try {
+      req.body = await csv().fromString(req.files.assessors.data.toString());
+      console.log(req.body);
+      return {
+        message: "Assessor record created successfully."
+      };
+      await req.body.forEach(async school => {
+        school.schoolType = await school.schoolType.split(",");
+        school.createdBy = school.updatedBy = await req.userDetails.id;
+        school.gpsLocation = "";
+        await database.models.schools.findOneAndUpdate(
+          { externalId: school.externalId },
+          school,
+          {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true
+          }
+        );
+      });
+      return {
+        message: "Assessor record created successfully."
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
 };
