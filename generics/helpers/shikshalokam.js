@@ -1,7 +1,7 @@
 var http = require("https");
 var getUserInfo = function(token, userId) {
   let options = {
-    host: "dev.shikshalokam.org",
+    host: process.env.SHIKSHALOKAM_BASE_HOST,
     port: 443,
     path: "/api/user/v1/read/" + userId,
     method: "GET",
