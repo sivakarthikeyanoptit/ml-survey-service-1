@@ -38,7 +38,10 @@ module.exports = class Criterias extends Abstract {
                       (question, i, cb3) => {
                         console.log(question, i);
                         if(Object.keys(question.visibleIf[0]).length <= 0) {
-                          question.visibleIf = new Array()
+                          question.visibleIf = ""
+                        }
+                        if(question.file.required === false) {
+                          question.file = ""
                         }
                         question.owner = req.userDetails.id;
                         database.models.questions
