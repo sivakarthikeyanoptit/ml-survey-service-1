@@ -1,7 +1,8 @@
-import { Component, OnInit, ViewContainerRef } from "@angular/core";
+import { Component, OnInit, ViewContainerRef, Inject } from "@angular/core";
 import { ApiService } from "../../service/api/api.service";
 import { NavigationComponent } from "../../components/navigation/navigation.component";
 import { HeaderTextService } from "../../service/toolbar/header-text.service";
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material";
 
 @Component({
   selector: "sl-criteria",
@@ -20,6 +21,7 @@ export class CriteriaComponent implements OnInit {
   constructor(
     private api: ApiService,
     private navigationComponent: NavigationComponent,
+    public dialog: MatDialog,
     private headerTextService: HeaderTextService
   ) {}
 
@@ -38,7 +40,9 @@ export class CriteriaComponent implements OnInit {
       .reqHandler("createCriteria", criteria)
       .then((result: any) => {
         if (result.status == 200) {
-          alert(result.message + "\nCriteria ID:" + result.result._id);
+          // alert(result.message + "\nCriteria ID:" + result.result._id);
+          this.openDialog(result.result);
+
           self.resetCriteria();
           self.evidencesSelected = [];
           self.sectionsSelected = [];
@@ -275,7 +279,7 @@ export class CriteriaComponent implements OnInit {
 
   resetCriteria() {
     this.criteria = {
-      externalId: "TL/HM/HR/AL",
+      externalId: "",
       owner: "",
       timesUsed: 12,
       weightage: 20,
@@ -357,5 +361,48 @@ export class CriteriaComponent implements OnInit {
     ].forEach(key => {
       localStorage.removeItem(key);
     });
+  }
+
+  openDialog(data): void {
+    const dialogRef = this.dialog.open(DialogOverviewExampleDialog2, {
+      width: "80%",
+      height: "80%",
+      data: data,
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      // console.log(result);
+      this.resetCriteria();
+    });
+  }
+}
+
+@Component({
+  selector: "success-dialog",
+  templateUrl: "successful-dialog.html",
+  styleUrls: ["./successful-dialog.scss"]
+})
+export class DialogOverviewExampleDialog2 implements OnInit {
+  // sections: any = [];
+
+  ngOnInit(): void {
+    // console.log(this.question, this.criteria);
+  }
+
+  constructor(
+    public dialogRef: MatDialogRef<DialogOverviewExampleDialog2>,
+    @Inject(MAT_DIALOG_DATA) public criteria: any
+  ) {
+    // console.log("oldParent--->", this.oldParent);
+  }
+
+  save(): void {
+    alert("ID Copied");
+    this.dialogRef.close(this.criteria);
+  }
+
+  cancel(): void {
+    this.dialogRef.close(null);
   }
 }

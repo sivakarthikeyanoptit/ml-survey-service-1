@@ -1,6 +1,7 @@
 import { BrowserModule } from "@angular/platform-browser";
 import { NgModule } from "@angular/core";
 import { HttpModule } from "@angular/http";
+import { ClipboardModule } from "ngx-clipboard";
 
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
@@ -44,7 +45,10 @@ import { OauthLogoutcallbackComponent } from "./components/oauth-logoutcallback/
 import { AddCriteriaComponent } from "./pages/add-criteria/add-criteria.component";
 import { RubricComponent } from "./components/rubric/rubric.component";
 import { EvidenceComponent } from "./components/evidence/evidence.component";
-import { CriteriaComponent } from "./pages/criteria/criteria.component";
+import {
+  CriteriaComponent,
+  DialogOverviewExampleDialog2
+} from "./pages/criteria/criteria.component";
 import { HeaderTextService } from "./service/toolbar/header-text.service";
 
 @NgModule({
@@ -61,10 +65,12 @@ import { HeaderTextService } from "./service/toolbar/header-text.service";
     RubricComponent,
     EvidenceComponent,
     CriteriaComponent,
-    DialogOverviewExampleDialog
+    DialogOverviewExampleDialog,
+    DialogOverviewExampleDialog2
   ],
   imports: [
     BrowserModule,
+    ClipboardModule,
     RoutingModule,
     NgbModule.forRoot(),
     BrowserAnimationsModule,
@@ -92,7 +98,11 @@ import { HeaderTextService } from "./service/toolbar/header-text.service";
   ],
   providers: [HeaderTextService],
   bootstrap: [AppComponent],
-  entryComponents: [AppComponent, DialogOverviewExampleDialog]
+  entryComponents: [
+    AppComponent,
+    DialogOverviewExampleDialog,
+    DialogOverviewExampleDialog2
+  ]
 })
 export class AppModule {
   baseUrl: string = "/";

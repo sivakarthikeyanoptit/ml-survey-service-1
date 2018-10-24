@@ -293,7 +293,7 @@ export class AddQuestionComponent implements OnInit {
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
       file: {
-        required: false,
+        required: true,
         type: [],
         minCount: 1,
         maxCount: 0,
@@ -306,11 +306,9 @@ export class AddQuestionComponent implements OnInit {
       isCompleted: false,
       remarks: "",
       value: "",
-      notApplicable: false,
+      canBeNotApplicable: false,
+      notApplicable: "",
       usedForScoring: "",
-      payload: {
-        criteriaId: ""
-      },
       modeOfCollection: "onfield",
       questionType: "auto",
       questionGroup: ["A1"],
