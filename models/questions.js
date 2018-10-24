@@ -31,6 +31,7 @@ module.exports = {
     instanceIdentifier: "String",
     noOfInstances: "number",
     notApplicable: "String",
+    canBeNotApplicable: "String",
     instanceQuestionsString: "String",
     instanceQuestions: Array,
     payload: Object

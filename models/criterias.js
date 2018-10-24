@@ -8,7 +8,7 @@ module.exports = {
     weightage: Number,
     name: "String",
     score: "String",
-    remark: "String",
+    remarks: "String",
     showRemarks: "boolean",
     description: "String",
     resourceType: ["String"],

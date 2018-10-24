@@ -293,13 +293,15 @@ export class AddQuestionComponent implements OnInit {
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
       file: {
-        required: true,
+        required: false,
         type: [],
         minCount: 1,
         maxCount: 0,
         caption: false
       },
-      validation: {},
+      validation: {
+        required: true
+      },
       children: [],
       fileName: [],
       showRemarks: false,
