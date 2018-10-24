@@ -267,12 +267,12 @@ module.exports = class Schools extends Abstract {
         );
         assessment.submissionId = submissionDoc.result._id;
 
-
-        assessment.evidences = await this.parseQuestions(
-          Object.values(evidenceMethodArray),
-          schoolDocument.schoolTypes,
-          submissionDoc.result.evidences
-        );
+        assessment.evidences = Object.values(evidenceMethodArray);
+        // assessment.evidences = await this.parseQuestions(
+        //   Object.values(evidenceMethodArray),
+        //   schoolDocument.schoolTypes,
+        //   submissionDoc.result.evidences
+        // );
 
         assessments.push(assessment);
       }
