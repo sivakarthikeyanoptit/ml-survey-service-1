@@ -37,6 +37,9 @@ module.exports = class Criterias extends Abstract {
                       section.questions,
                       (question, i, cb3) => {
                         console.log(question, i);
+                        if(question.visibleIf[0] === null) {
+                          question.visibleIf = new Array()
+                        }
                         question.owner = req.userDetails.id;
                         database.models.questions
                           .create(question)
