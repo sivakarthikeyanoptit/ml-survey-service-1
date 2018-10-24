@@ -1,9 +1,10 @@
 <div class="question-dialog">
   <div class="form-group ">
     <mat-form-field class=" col-md-6">
-      <mat-select placeholder="Select Parent" [(ngModel)]="question.parentId">
+      <input matInput [(ngModel)]="question.parentId" placeholder="Enter Parent External ID">
+      <!-- <mat-select placeholder="Select Parent" [(ngModel)]="question.parentId">
         <mat-option *ngFor="let que of questions;let i = index" [value]="que.externalId" [disabled]="que.externalId==question.externalId">{{que.externalId}}</mat-option>
-      </mat-select>
+      </mat-select> -->
     </mat-form-field>
     <mat-form-field class=" col-md-3" *ngIf="question.parentId">
       <mat-select placeholder="Visible If" [(ngModel)]="question.visibleIf[0].operator">
@@ -15,7 +16,7 @@
         <mat-option value="<=">Less than equals</mat-option>
       </mat-select>
     </mat-form-field>
-    <mat-form-field class=" col-md-3" *ngIf="question.visibleIf[0].operator != ''">
+    <mat-form-field class=" col-md-3" *ngIf="question.visibleIf[0].operator != '' && question.visibleIf[0].operator">
       <input matInput [(ngModel)]="
       question.visibleIf[0].value" placeholder="Value">
     </mat-form-field>
