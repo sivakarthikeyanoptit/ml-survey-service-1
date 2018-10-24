@@ -146,7 +146,7 @@
     <label>Validation</label>
     <div class="form-group">
       <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.required">Answer Required</mat-checkbox>
-      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" (change)="question.validation.regex = question.validation.isNumber?'/^[0-9\s]*$/':''">Is
+      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" (change)="question.validation.regex = question.validation.isNumber?'^[0-9\s]*$':''">Is
         Number</mat-checkbox>
       <mat-checkbox [(ngModel)]="question.canBeNotApplicable">Can be not applicable ?</mat-checkbox>
     </div>
