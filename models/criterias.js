@@ -17,7 +17,7 @@ module.exports = {
     concepts: ["json"],
     createdFor: ["String"],
     createdFor: ["String"],
-    rubric: ["json"],
+    rubric: Object,
     evidences: ["json"],
     flag: Object,
     criteriaType: "String"
