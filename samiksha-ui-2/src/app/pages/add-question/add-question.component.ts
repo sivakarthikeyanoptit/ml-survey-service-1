@@ -21,14 +21,14 @@ export class AddQuestionComponent implements OnInit {
     private _router: Router,
     private headerTextService: HeaderTextService
   ) {
-    if (!this.criteria) {
-      var r = confirm("Please create criteria first.");
-      if (r == true) {
-        this._router.navigate(["criteria"]);
-      } else {
-        // this._router.navigate(["criteria"]);
-      }
-    }
+    // if (!this.criteria) {
+    //   var r = confirm("Please create criteria first.");
+    //   if (r == true) {
+    //     this._router.navigate(["criteria"]);
+    //   } else {
+    //     // this._router.navigate(["criteria"]);
+    //   }
+    // }
   }
 
   openDialog(i): void {
