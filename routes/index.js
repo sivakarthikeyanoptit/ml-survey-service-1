@@ -30,11 +30,17 @@ module.exports = function(app) {
             count: result.count,
             failed: result.failed
           });
+          loggerObj.info({ resp: result});
+          console.log('---------------------------------------------------------------------------');
+          console.log(result);
         })
         .catch(error => {
           res.status(error.status ? error.status : 400).json({
             message: error.message
           });
+          loggerObj.info({ resp: result});
+          console.log('---------------------------------------------------------------------------');
+          console.log(result);
         });
     }
   };

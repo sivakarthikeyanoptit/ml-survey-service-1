@@ -49,28 +49,28 @@ app.use(express.static("public"));
 
 //request logger
 var fs = require("fs");
-var morgan = require("morgan");
+//var morgan = require("morgan");
 var path = require("path");
 
 fs.existsSync("logs") || fs.mkdirSync("logs");
-var accessLogStream = fs.createWriteStream(
-  path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/access.log"),
-  { flags: "a" }
-);
-var errorLogStream = fs.createWriteStream(
-  path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/error.log"),
-  { flags: "a" }
-);
-app.use(morgan("combined", { stream: accessLogStream }));
-app.use(
-  morgan("combined", {
-    stream: errorLogStream,
-    skip: function(req, res) {
-      return res.statusCode < 400;
-    }
-  })
-);
-app.use(morgan("dev"));
+// var accessLogStream = fs.createWriteStream(
+//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/access.log"),
+//   { flags: "a" }
+// );
+// var errorLogStream = fs.createWriteStream(
+//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/error.log"),
+//   { flags: "a" }
+// );
+// app.use(morgan("combined", { stream: accessLogStream }));
+// app.use(
+//   morgan("combined", {
+//     stream: errorLogStream,
+//     skip: function(req, res) {
+//       return res.statusCode < 400;
+//     }
+//   })
+// );
+// app.use(morgan("dev"));
 
 //swagger docs
 const swagger = require("./swagger");
@@ -79,6 +79,26 @@ app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
 
 app.get("/assessment/web/*", function(req, res) {
   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+});
+
+var bunyan = require('bunyan');
+global.loggerObj = bunyan.createLogger({
+  name: 'foo',
+  streams: [{
+      type: 'rotating-file',
+      path: path.join(__dirname + '/logs/all.log'),
+      period: '1d', // daily rotation 
+      count: 3 // keep 3 back copies 
+  }]
+});
+app.all('*', (req, res, next) => {
+  loggerObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body });
+  console.log('---------------------------------------------------------------------------');
+  console.log('%s %s on %s from ', req.method, req.url, new Date(), req.headers['user-agent']);
+  console.log('Request Headers: ', req.headers);
+  console.log('Request Body: ', req.body);
+  console.log('Request Files: ', req.files);
+  next();
 });
 
 // Add headers
