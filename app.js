@@ -43,8 +43,8 @@ global.controllers = requireAll({
 });
 
 app.use(fileUpload());
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: false }));
+app.use(bodyParser.json({limit: '1mb'}));
+app.use(bodyParser.urlencoded({ limit: '1mb', extended: false }));
 app.use(express.static("public"));
 
 //request logger
