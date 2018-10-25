@@ -81,7 +81,7 @@ app.get("/assessment/web/*", function(req, res) {
   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
 });
 app.get("/assessment/web2/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+  res.sendFile(path.join(__dirname, "/public/assessment/web2/index.html"));
 });
 
 // Add headers
