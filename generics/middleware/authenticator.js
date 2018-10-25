@@ -6,25 +6,15 @@ var shikshalokam = require("../helpers/shikshalokam");
 
 var reqMsg = messageUtil.REQUEST;
 var keyCloakConfig = {
-  authServerUrl: process.env.sunbird_keycloak_auth_server_url
-    ? process.env.sunbird_keycloak_auth_server_url
-    : "https://dev.shikshalokam.org/auth",
-  realm: process.env.sunbird_keycloak_realm
-    ? process.env.sunbird_keycloak_realm
-    : "sunbird",
-  clientId: process.env.sunbird_keycloak_client_id
-    ? process.env.sunbird_keycloak_client_id
-    : "portal",
+  authServerUrl: process.env.sunbird_keycloak_auth_server_url,
+  realm: process.env.sunbird_keycloak_realm,
+  clientId: process.env.sunbird_keycloak_client_id,
   public: process.env.sunbird_keycloak_public
-    ? process.env.sunbird_keycloak_public
-    : true
 };
 
 var cacheConfig = {
-  store: process.env.sunbird_cache_store
-    ? process.env.sunbird_cache_store
-    : "memory",
-  ttl: process.env.sunbird_cache_ttl ? process.env.sunbird_cache_ttl : 1800
+  store: process.env.sunbird_cache_store,
+  ttl: process.env.sunbird_cache_ttl
 };
 
 var respUtil = function(resp) {

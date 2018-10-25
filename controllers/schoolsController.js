@@ -24,7 +24,7 @@ module.exports = class Schools extends Abstract {
     try {
       req.body = await csv().fromString(req.files.schools.data.toString());
       await req.body.forEach(async school => {
-        school.schoolType = await school.schoolType.split(",");
+        school.schoolTypes = await school.schoolType.split(",");
         school.createdBy = school.updatedBy = await req.userDetails.id;
         school.gpsLocation = "";
         await database.models.schools.findOneAndUpdate(
