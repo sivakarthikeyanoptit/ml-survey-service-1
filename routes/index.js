@@ -31,16 +31,18 @@ module.exports = function(app) {
             failed: result.failed
           });
           loggerObj.info({ resp: result});
-          console.log('---------------------------------------------------------------------------');
+          console.log('-------------------Response log starts here-------------------');
           console.log(result);
+          console.log('-------------------Response log ends here-------------------');
         })
         .catch(error => {
           res.status(error.status ? error.status : 400).json({
             message: error.message
           });
           loggerObj.info({ resp: result});
-          console.log('---------------------------------------------------------------------------');
+          console.log('-------------------Response log starts here-------------------');
           console.log(result);
+          console.log('-------------------Response log ends here-------------------');
         });
     }
   };
