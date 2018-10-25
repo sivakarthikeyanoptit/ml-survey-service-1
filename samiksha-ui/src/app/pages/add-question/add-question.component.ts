@@ -52,16 +52,18 @@ export class AddQuestionComponent implements OnInit {
     });
   }
 
-  duplicate(i) {
+  async duplicate(i) {
     let duplicate = {},
-      array = Object.keys(this.questionForm[i]);
+      array = Object.keys(JSON.parse(JSON.stringify(this.questionForm[i])));
     array.forEach(key => {
       duplicate[key] =
         ["externalId", "children", "parentId"].indexOf(key) == -1
-          ? this.questionForm[i][key]
+          ? typeof this.questionForm[i][key] == "string"
+            ? "" + this.questionForm[i][key]
+            : JSON.parse(JSON.stringify(this.questionForm[i][key]))
           : [];
     });
-    this.questionForm.push(duplicate);
+    await this.questionForm.push(duplicate);
     this.openDialog(this.questionForm.length - 1);
   }
   delete(i) {
