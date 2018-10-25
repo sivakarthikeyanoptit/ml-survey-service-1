@@ -1,0 +1,33 @@
+<div class="question-container">
+
+  <mat-card class="question-card col-md-3" *ngFor="let question of questionForm; let i = index">
+    <!-- <mat-card-header> -->
+
+    <mat-card-title class="question-card-title">{{i+1}}.{{this.questionForm[i].questions[0].value}} </mat-card-title>
+    <mat-card-subtitle>External ID: {{question.externalId || ""}}<br>Evidence: {{question.evidenceName || ""}}<br>Section:
+      {{question.sectionName || ""}}<br>Parent:
+      {{question.parentId}}<br>Child: {{question.children}}
+    </mat-card-subtitle>
+    <!-- </mat-card-header>
+    <mat-card-content>
+
+    </mat-card-content> -->
+    <!-- <mat-card-actions> -->
+    <!-- <br> -->
+    <button mat-button class="
+        float-right" (click)="openDialog(i)">View/Edit</button>
+    <button mat-button class="float-right" (click)="delete(i)">Delete</button>
+    <button mat-button class="float-right" (click)="duplicate(i)">Duplicate</button>
+    <!-- </mat-card-actions> -->
+  </mat-card>
+
+  <mat-card class="col-md-3 question-card">
+    <mat-card-content>
+      <button mat-button (click)="addQuestion()">Add New</button>
+    </mat-card-content>
+  </mat-card>
+
+  <hr>
+  <br>
+</div>
+<pre>{{ questionForm | json}}</pre>
