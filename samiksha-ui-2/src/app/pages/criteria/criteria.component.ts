@@ -29,10 +29,10 @@ export class CriteriaComponent implements OnInit {
 
   submitCriteria() {
     let self = this;
-    let criteria = JSON.parse(localStorage.getItem("criteria"));
+    // let criteria = JSON.parse(localStorage.getItem("criteria"));
 
     this.api
-      .reqHandler("createCriteria", criteria)
+      .reqHandler("createCriteria", this.criteria)
       .then((result: any) => {
         if (result.status == 200) {
           // alert(result.message + "\nCriteria ID:" + result.result._id);
