@@ -289,7 +289,6 @@ export class CriteriaComponent implements OnInit {
       resourceType: ["Program", "Framework", "Criteria"],
       language: ["English"],
       keywords: ["Keyword 1", "Keyword 2"],
-      showRemark: "",
       concepts: [
         {
           identifier: "LPD20100",
@@ -347,7 +346,38 @@ export class CriteriaComponent implements OnInit {
         ]
       },
       createdFor: ["0125747659358699520", "0125748495625912324"],
-      rubric: {},
+      rubric: {
+        levels: [
+          {
+            level: "L1",
+            label: "Level 1",
+            description: "",
+            expression: "",
+            expressionVariables: []
+          },
+          {
+            level: "L2",
+            label: "Level 2",
+            description: "",
+            expression: "",
+            expressionVariables: []
+          },
+          {
+            level: "L3",
+            label: "Level 3",
+            description: "",
+            expression: "",
+            expressionVariables: []
+          },
+          {
+            level: "L4",
+            label: "Level 4",
+            description: "",
+            expression: "",
+            expressionVariables: []
+          }
+        ]
+      },
       evidences: []
     };
     [
