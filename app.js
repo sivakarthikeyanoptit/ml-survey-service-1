@@ -80,6 +80,9 @@ app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
 app.get("/assessment/web/*", function(req, res) {
   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
 });
+app.get("/assessment/web2/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+});
 
 // Add headers
 /* app.use(function(req, res, next) {
