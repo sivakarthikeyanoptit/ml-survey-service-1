@@ -100,19 +100,20 @@ export class CriteriaComponent implements OnInit {
   ngOnInit() {
     // this.navigationComponent.headerText =
     this.headerTextService.setHeader("Criteria");
+    this.resetCriteria();
+    // let data = localStorage.getItem("criteria");
+    // if (data) {
 
-    let data = localStorage.getItem("criteria");
-    if (data) {
-      this.criteria = JSON.parse(data);
-      this.evidencesSelected =
-        JSON.parse(localStorage.getItem("evidencesSelected")) || [];
-      this.sectionsSelected =
-        JSON.parse(localStorage.getItem("sectionsSelected")) || {};
-      this.levelsSelected =
-        JSON.parse(localStorage.getItem("levelsSelected")) || [];
-    } else {
-      this.resetCriteria();
-    }
+    //   this.criteria = JSON.parse(data);
+    //   this.evidencesSelected =
+    //     JSON.parse(localStorage.getItem("evidencesSelected")) || [];
+    //   this.sectionsSelected =
+    //     JSON.parse(localStorage.getItem("sectionsSelected")) || {};
+    //   this.levelsSelected =
+    //     JSON.parse(localStorage.getItem("levelsSelected")) || [];
+    // } else {
+    //   this.resetCriteria();
+    // }
 
     this.levels = [
       {
