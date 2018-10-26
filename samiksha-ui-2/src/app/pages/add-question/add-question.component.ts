@@ -53,6 +53,9 @@ export class AddQuestionComponent implements OnInit {
       });
     this.question = {
       questions: ["", ""],
+      externalId:"",
+      parentId:"",
+      instanceParentId:"",
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
       file: {
@@ -296,14 +299,14 @@ export class DialogOverviewExampleDialog implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<DialogOverviewExampleDialog>,
-    @Inject(MAT_DIALOG_DATA) public response: any
+    @Inject(MAT_DIALOG_DATA) public question: any
   ) {
-    console.log(this.response);
+    console.log(this.question);
   }
 
   save(): void {
     alert("ID Copied");
-    this.dialogRef.close(this.criteria);
+    this.dialogRef.close(this.question);
   }
 
   cancel(): void {
