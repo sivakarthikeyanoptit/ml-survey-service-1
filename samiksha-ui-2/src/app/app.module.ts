@@ -36,7 +36,8 @@ import {
   MatExpansionModule,
   MatAccordion,
   MatExpansionPanel,
-  MatDialogModule
+  MatDialogModule,
+  MatAutocompleteModule
 } from "@angular/material";
 import { NavigationComponent } from "./components/navigation/navigation.component";
 import { HttpClientModule } from "@angular/common/http";
@@ -94,7 +95,8 @@ import { HeaderTextService } from "./service/toolbar/header-text.service";
     ReactiveFormsModule,
     MatCheckboxModule,
     HttpModule,
-    MatDialogModule
+    MatDialogModule,
+    MatAutocompleteModule
   ],
   providers: [HeaderTextService],
   bootstrap: [AppComponent],

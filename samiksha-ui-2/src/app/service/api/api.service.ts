@@ -13,8 +13,13 @@ export class ApiService {
   constructor(private auth: AuthService, private http: HttpClient) {
     this.host = environment.apiHost + "/assessment/api/v1";
     this.api = {
-      createCriteria: {
-        uri: this.host + "/criterias/insert",
+      createCriteria: { uri: this.host + "/criterias/insert", method: "post" },
+      getCriteriaAndQuestion: {
+        uri: this.host + "/criterias/getCriteriasParentQuesAndInstParentQues",
+        method: "get"
+      },
+      saveQuestion: {
+        uri: this.host + "/criterias/addQuestion",
         method: "post"
       }
     };
@@ -29,10 +34,10 @@ export class ApiService {
     return new Promise((resolve, reject) => {
       this.auth.validateApiToken().then(tokens => {
         console.log(tokens);
-
-        self.http[type](url, data, {
+        let options = {
           headers: { "x-authenticated-user-token": tokens.accessToken }
-        }).subscribe(
+        };
+        self.http[type](url, data || options, options).subscribe(
           result => {
             resolve(result);
           },
