@@ -201,26 +201,74 @@ module.exports = class Criterias extends Abstract {
       return resolve(Object.values(merged));
     });
   }
-  async getCriterias(req) {
-    return new Promise(function(resolve, reject) {
-      return database.models["evaluation-frameworks"]
-        .findOne({ _id: ObjectId(req.body.evaluationFramework) })
-        .then(async eF => {
-          let criteria = [];
 
-          _.forEachRight(eF.themes, theme => {
-            _.forEachRight(theme.aoi, aoi => {
-              _.forEachRight(aoi.indicators, indicator => {
-                criteria = criteria.concat(indicator.criteria);
-              });
-            });
-          });
-          return resolve(criteria);
+
+  async getCriteriasParentQuesAndInstParentQues(req) {
+    return new Promise(async function(resolve, reject) {
+
+      let criteriaQueryResult = await database.models.criterias.find({});
+
+      const questionQueryObject = {
+        //responseType: "matrix"
+      }
+      let questionQueryResult = await database.models[
+        "questions"
+      ].find(questionQueryObject);
+
+      let result = {
+        criteria : new Array(),
+        questions : new Array()
+      }
+
+      questionQueryResult.forEach(question => {
+        result.questions.push({
+          _id: question._id,
+          externalId: question.externalId,
+          name: question.question[0]
         })
-        .catch(error => {
-          log.error(error);
-        });
+      })
+
+      criteriaQueryResult.forEach(criteria => {
+        result.criteria.push({
+          _id: criteria._id,
+          externalId: criteria.externalId,
+          name: criteria.name
+        })
+      })
+
+      let responseMessage = "Fetched requested data successfully."
+
+      let response = { message: responseMessage, result: result };
+      return resolve(response);
+
+    }).catch(error => {
+      reject(error);
     });
-    // return req.body.evaluationFramework;
   }
+
+
+  async addQuestion(req) {
+    return new Promise(async function(resolve, reject) {
+
+      let criterias = await database.models.criterias.find({});
+
+      let questions = await database.models[
+        "questions"
+      ].find();
+
+      console.log(criterias)
+      console.log(questions)
+
+      let result = {}
+      let responseMessage = "Question added data successfully."
+
+      let response = { message: responseMessage, result: result };
+      return resolve(response);
+
+    }).catch(error => {
+      reject(error);
+    });
+  }
+
+
 };
