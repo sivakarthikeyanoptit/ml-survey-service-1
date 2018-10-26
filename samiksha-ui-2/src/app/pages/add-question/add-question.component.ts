@@ -44,7 +44,7 @@ export class AddQuestionComponent implements OnInit {
       if (result) {
         this.questionForm[i] = result;
         localStorage.setItem("questions", JSON.stringify(this.questionForm));
-        this.addToCriteria(result);
+        // this.addToCriteria(result);
       } else {
         window.location.reload();
         // delete this.questionForm[i];
@@ -67,236 +67,19 @@ export class AddQuestionComponent implements OnInit {
     this.openDialog(this.questionForm.length - 1);
   }
   delete(i) {
-    if (this.questionForm[i].parentId) {
-      let parentId = this.questionForm[i].parentId;
-      let childId = this.questionForm[i].externalId;
-      let pIqF = this.questionForm.findIndex(function(ques) {
-        return ques.externalId == parentId;
-      });
-      let pIc = this.criteria.evidences[
-        this.questionForm[pIqF].evidenceIndex
-      ].sections[this.questionForm[pIqF].sectionIndex].questions.findIndex(
-        function(que) {
-          return que.externalId == parentId;
-        }
-      );
-
-      let qCi = this.criteria.evidences[
-        this.questionForm[pIqF].evidenceIndex
-      ].sections[this.questionForm[pIqF].sectionIndex].questions[
-        pIqF
-      ].children.indexOf(childId);
-
-      this.criteria.evidences[this.questionForm[pIqF].evidenceIndex].sections[
-        this.questionForm[pIqF].sectionIndex
-      ].questions[pIqF].children.splice(qCi, 1);
-
-      let qQfI = this.questionForm[pIqF].children.indexOf(childId);
-
-      let cCi = this.criteria.evidences[
-        this.questionForm[i].evidenceIndex
-      ].sections[this.questionForm[i].sectionIndex].questions.findIndex(
-        function(que) {
-          return que.externalId == childId;
-        }
-      );
-      this.questionForm[pIqF].children.splice(qQfI, 1);
-      this.criteria.evidences[this.questionForm[i].evidenceIndex].sections[
-        this.questionForm[i].sectionIndex
-      ].questions.splice(cCi, 1);
-      this.questionForm.splice(i, 1);
-
-      localStorage.setItem("questions", JSON.stringify(this.questionForm));
-      localStorage.setItem("criteria", JSON.stringify(this.criteria));
-      window.location.reload();
-    } else {
-      this.questionForm.splice(i, 1);
-      localStorage.setItem("questions", JSON.stringify(this.questionForm));
-      window.location.reload();
-    }
-  }
-
-  addToCriteria(question) {
-    console.log(question);
-
-    if (question.evidenceIndex > -1 && question.sectionIndex > -1) {
-      let quesValues = [],
-        values = {
-          evidenceIndex: question.evidenceIndex,
-          sectionIndex: question.sectionIndex,
-          oldParent: question.oldParent
-        },
-        qId = this.criteria.evidences[question.evidenceIndex].sections[
-          question.sectionIndex
-        ].questions.findIndex(function(que) {
-          return que.externalId == question.externalId;
-        }),
-        qfId = this.questionForm.findIndex(function(ques) {
-          return question.externalId == ques.externalId;
-        }),
-        pqfId = this.questionForm.findIndex(function(ques) {
-          return question.parentId == ques.externalId;
-        }),
-        opqfId = this.questionForm.findIndex(function(ques) {
-          return question.oldParent == ques.externalId;
-        });
-
-      console.log(
-        qfId,
-        "----opqfId----->",
-        opqfId,
-        "----pqfId----->",
-        pqfId,
-        "----values.oldParent----->",
-        values.oldParent,
-        "----pQF----->",
-        this.questionForm[pqfId]
-      );
-      // "----QC----->",
-      // this.criteria.evidences[this.questionForm[pqfId].evidenceIndex].sections[
-      //   this.questionForm[pqfId].sectionIndex
-      // ].questions[pqId]
-
-      if (
-        typeof values.oldParent == "undefined" &&
-        typeof question.parentId == "undefined"
-      ) {
-        console.log("Parent not added");
-      } else if (question.parentId == values.oldParent) {
-        // question.visibleIf.externalId = question.parentId;
-
-        console.log("Same to same");
-      } else if (typeof values.oldParent == "undefined") {
-        question.visibleIf[0].externalId = question.parentId;
-
-        let pqId = this.criteria.evidences[
-          this.questionForm[pqfId] ? this.questionForm[pqfId].evidenceIndex : -1
-        ].sections[this.questionForm[pqfId].sectionIndex].questions.findIndex(
-          function(que) {
-            return que.externalId == question.parentId;
-          }
-        );
-        console.log(
-          "----qId----->",
-          qId,
-          "----pqId----->",
-          pqId,
-          "----opqId----->"
-        );
-
-        console.log(
-          "Parent added",
-          question.parentId,
-          this.questionForm[pqfId]
-        );
-        console.log(
-          "--im parent-->",
-          this.criteria.evidences[this.questionForm[pqfId].evidenceIndex]
-            .sections[this.questionForm[pqfId].sectionIndex]
-        );
-        this.criteria.evidences[
-          this.questionForm[pqfId].evidenceIndex
-        ].sections[this.questionForm[pqfId].sectionIndex].questions[
-          pqId
-        ].children.push(question.externalId + "");
-        this.questionForm[pqfId].children.push(question.externalId + "");
-        console.log(pqfId, this.questionForm[pqfId]);
-      } else if (question.parentId != values.oldParent) {
-        let cI = this.questionForm[opqfId].children.indexOf(
-            question.externalId + ""
-          ),
-          pqId = this.criteria.evidences[
-            this.questionForm[pqfId]
-              ? this.questionForm[pqfId].evidenceIndex
-              : -1
-          ].sections[this.questionForm[pqfId].sectionIndex].questions.findIndex(
-            function(que) {
-              return que.externalId == question.parentId;
-            }
-          ),
-          opqId = this.criteria.evidences[
-            this.questionForm[opqfId].evidenceIndex
-          ].sections[
-            this.questionForm[opqfId].sectionIndex
-          ].questions.findIndex(function(que) {
-            return que.externalId == question.oldParent;
-          });
-        console.log(
-          "----qId----->",
-          qId,
-          "----pqId----->",
-          pqId,
-          "----opqId----->",
-          opqId,
-          "----qfId----->"
-        );
-
-        console.log(
-          "Parent changed",
-          values.oldParent,
-          "---->",
-          question.parentId,
-          cI
-        );
-        question.visibleIf[0].externalId = question.parentId;
-        delete this.criteria.evidences[this.questionForm[opqfId].evidenceIndex]
-          .sections[this.questionForm[opqfId].sectionIndex].questions[opqfId]
-          .children[cI];
-        delete this.questionForm[opqfId].children[cI];
-
-        this.criteria.evidences[
-          this.questionForm[pqfId].evidenceIndex
-        ].sections[this.questionForm[pqfId].sectionIndex].questions[
-          pqId
-        ].children.push(question.externalId + "");
-        this.questionForm[pqfId].children.push(question.externalId + "");
-        console.log(pqfId, this.questionForm[pqfId]);
-      }
-
-      console.log(this.criteria);
-      console.log(this.questionForm);
-
-      localStorage.setItem("questions", JSON.stringify(this.questionForm));
-
-      delete question.evidenceIndex;
-      delete question.sectionIndex;
-      delete question.evidenceName;
-      delete question.sectionName;
-      delete question.sections;
-      delete question.oldParent;
-
-      // if(question.questionType =! 'matrix')
-
-      question.questions.forEach(obj => {
-        quesValues.push(obj.value);
-      });
-      question.question = quesValues;
-      delete question.questions;
-
-      if (qId > -1) {
-        this.criteria.evidences[values.evidenceIndex].sections[
-          values.sectionIndex
-        ].questions[qId] = question;
-      } else {
-        this.criteria.evidences[values.evidenceIndex].sections[
-          values.sectionIndex
-        ].questions.push(question);
-      }
-
-      localStorage.setItem("criteria", JSON.stringify(this.criteria));
-
-      window.location.reload();
-    }
+    this.questionForm.splice(i, 1);
+    localStorage.setItem("questions", JSON.stringify(this.questionForm));
+    window.location.reload();
   }
 
   addQuestion() {
     this.questionForm.push({
-      questions: [{ value: "" }],
+      questions: [],
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
       file: {
         required: false,
-        type: [],
+        type: ["image/jpeg"],
         minCount: 1,
         maxCount: 0,
         caption: false
@@ -316,7 +99,8 @@ export class AddQuestionComponent implements OnInit {
       modeOfCollection: "onfield",
       questionType: "auto",
       questionGroup: ["A1"],
-      accessibility: "local"
+      accessibility: "local",
+      payload: {}
     });
 
     this.openDialog(this.questionForm.length - 1);
@@ -332,6 +116,8 @@ export class AddQuestionComponent implements OnInit {
   templateUrl: "question-dialog.html"
 })
 export class DialogOverviewExampleDialog implements OnInit {
+  public evidences: any;
+  public sections: any;
   criteria: any;
   questions: any;
   isNumber: boolean;
@@ -341,7 +127,135 @@ export class DialogOverviewExampleDialog implements OnInit {
   // sections: any = [];
 
   ngOnInit(): void {
-    // console.log(this.question, this.criteria);
+    this.evidences = [
+      {
+        externalId: "BL",
+        tip: "Some tip at evidence level.",
+        name: "Book Look",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "LW",
+        tip: "Some tip at evidence level.",
+        name: "Learning Walk",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "IP",
+        tip: "Some tip at evidence level.",
+        name: "Interview Principal",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "CO",
+        tip: "Some tip at evidence level.",
+        name: "Classroom Observation",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "IT",
+        tip: "Some tip at evidence level.",
+        name: "Interview Teacher",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "IS",
+        tip: "Some tip at evidence level.",
+        name: "Interview Student",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC3",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 3",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC5",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 5",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC8",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 8",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "PI",
+        tip: "Some tip at evidence level.",
+        name: "Parent Information",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      }
+    ];
+
+    this.sections = [
+      { name: "Survey Questions", questions: [] },
+      { name: "Data to be Filled", questions: [] },
+      { name: "Group Interview", questions: [] },
+      { name: "Individual Interview", questions: [] }
+    ];
   }
 
   constructor(
@@ -354,9 +268,9 @@ export class DialogOverviewExampleDialog implements OnInit {
     // console.log("oldParent--->", this.oldParent);
   }
 
-  addQuestion() {
-    this.question.questions.push({ value: "" });
-  }
+  // addQuestion() {
+  //   this.question.questions.push({ value: "" });
+  // }
   removeQuestion(i) {
     if (i > -1) {
       this.question.questions.splice(i, 1);
@@ -411,6 +325,16 @@ export class DialogOverviewExampleDialog implements OnInit {
       delete this.question.noOfInstances;
       delete this.question.notApplicable;
       delete this.question.instanceQuestions;
+
+      if (["radio", "multiselect"].indexOf(type) < 0) {
+        delete this.question.options;
+      } else {
+        this.question.options = this.question.options || [
+          { value: "", label: "" }
+        ];
+      }
+    } else {
+      delete this.question.options;
     }
   }
 }

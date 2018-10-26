@@ -1,10 +1,34 @@
 <div class="question-dialog">
+
+  <div class="form-group ">
+    <mat-form-field class=" col-md-3">
+      <input matInput [(ngModel)]="question.payload.criteriaId" placeholder="criteria ID">
+    </mat-form-field>
+    <mat-form-field class=" col-md-3">
+      <mat-select placeholder="Select Evidence" [(ngModel)]="question.payload.evidenceId">
+        <mat-option *ngFor="let evidence of evidences;let i = index" [value]="evidence.externalId">{{evidence.name}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="col-md-6">
+      <mat-select placeholder="Select Sections" [(ngModel)]="question.payload.section">
+        <mat-option *ngFor="let section of sections; let j=index" [value]="section.name">{{section.name}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <hr>
+
+  <div class="form-group ">
+    <mat-form-field class=" col-md-6">
+      <input matInput [(ngModel)]="question.instanceParentId" placeholder="Enter Instance Parent External ID">
+
+    </mat-form-field>
+  </div>
   <div class="form-group ">
     <mat-form-field class=" col-md-6">
       <input matInput [(ngModel)]="question.parentId" placeholder="Enter Parent External ID">
       <!-- <mat-select placeholder="Select Parent" [(ngModel)]="question.parentId">
-        <mat-option *ngFor="let que of questions;let i = index" [value]="que.externalId" [disabled]="que.externalId==question.externalId">{{que.externalId}}</mat-option>
-      </mat-select> -->
+          <mat-option *ngFor="let que of questions;let i = index" [value]="que.externalId" [disabled]="que.externalId==question.externalId">{{que.externalId}}</mat-option>
+        </mat-select> -->
     </mat-form-field>
     <mat-form-field class=" col-md-3" *ngIf="question.parentId">
       <mat-select placeholder="Visible If" [(ngModel)]="question.visibleIf[0].operator">
@@ -17,83 +41,64 @@
       </mat-select>
     </mat-form-field>
     <mat-form-field class=" col-md-3" *ngIf="question.visibleIf[0].operator != '' && question.visibleIf[0].operator">
-      <input matInput [(ngModel)]="
-      question.visibleIf[0].value" placeholder="Value">
-    </mat-form-field>
-    <!-- <div class="col-md-2"> -->
-    <!-- <mat-input type="text" [(ngModel)]="question.visibleIfValue" placeholder="Value"> -->
-    <!-- <mat-input-container floatPlaceholder="auto">
-      <input matInput formControlName="formControlName" type="text" required placeholder="">
-    </mat-input-container> -->
-    <!-- </div> -->
-  </div>
-
-  <div class="form-group ">
-    <mat-form-field class=" col-md-3">
-      <mat-select placeholder="Select Evidence" [(ngModel)]="question.evidenceIndex" (selectionChange)="pushEvidence($event.value)">
-        <mat-option *ngFor="let evidence of criteria.evidences;let i = index" [value]="i">{{evidence.name}}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <!-- </div>
-
-  <div class="form-group col-md-6"> -->
-    <mat-form-field class="col-md-6">
-      <mat-select placeholder="Select Sections" [(ngModel)]="question.sectionIndex" (selectionChange)="pushEvidenceSections($event.value)">
-        <mat-option *ngFor="let section of question.sections; let j=index" [value]="j">{{section.name}}</mat-option>
-      </mat-select>
+      <input matInput [(ngModel)]="question.visibleIf[0].value" placeholder="Value">
     </mat-form-field>
   </div>
+  <hr>
 
   <div class="form-group">
+    <label for="responseType">External ID</label>
     <input type="text" class="form-control" [(ngModel)]="question.externalId" placeholder="External ID">
+  </div>
+  <div class="form-group">
+    <!-- <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addQuestion()">
+      Add Question Translation
+    </button> -->
+
+    <div class="form-group">
+      <label for="responseType">Question in english</label>
+      <input type="text" class="form-control" [(ngModel)]="question.questions[0]" placeholder="Question in english">
+    </div>
+    <div class="form-group">
+      <label for="responseType">Question in hindi</label>
+      <input type="text" class="form-control" [(ngModel)]="question.questions[1]" placeholder="Question in hindi">
+    </div>
   </div>
   <hr>
   <div class="form-group">
-    <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addQuestion()">
-      Add Question Translation
-    </button>
-
-    <div class="form-group mb-3" *ngFor="let option of question.questions ; let i = index">
-      <input type="text" class="form-control" [(ngModel)]="question.questions[i].value" placeholder="Question"
-        aria-label="Question" aria-describedby="questions">
-      <div class="form-group-append">
-        <span class="form-group-text question-remove-btn" id="questions" (click)="removeQuestion(i)">Remove</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="form-group">
+    <label for="responseType">Tip</label>
     <input type="text" class="form-control" [(ngModel)]="question.tip" placeholder="Question Tip">
   </div>
+  <hr>
 
   <div class="form-group">
     <div class="form-group">
       <label for="responseType">Question Type</label>
-      <select class="form-control" [(ngModel)]="question.responseType" id="responseType" (selectionChange)="questionType($event.value)">
-        <option value="radio">MCQ-Only one correct</option>
-        <option value="multiselect">MCQ-More than one correct</option>
-        <option value="text">Data entry-Text</option>
-        <option value="number">Data entry-Number</option>
-        <option value="date">Date</option>
-        <option value="matrix">Matrix</option>
-      </select>
+      <mat-select class="form-control" [(ngModel)]="question.responseType" id="responseType" (selectionChange)="questionType($event.value)">
+        <mat-option value="radio">MCQ-Only one correct</mat-option>
+        <mat-option value="multiselect">MCQ-More than one correct</mat-option>
+        <mat-option value="text">Data entry-Text</mat-option>
+        <mat-option value="number">Data entry-Number</mat-option>
+        <mat-option value="date">Date</mat-option>
+        <mat-option value="matrix">Matrix</mat-option>
+      </mat-select>
     </div>
   </div>
 
   <div class="form-group" *ngIf="question.responseType != 'matrix'">
-    <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addOption()" *ngIf="['multiSelect','radio'].indexOf(question.responseType)> -1 ">
+    <button type="button" class=" btn btn-outline-dark btn-sm" (click)="addOption()" *ngIf="['multiselect','radio'].indexOf(question.responseType)> -1 ">
       Add New Options
     </button>
     <div class="question-options-dev" *ngFor="let option of question.options ; let i = index">
       <div class="row">
         <div class="col">
-          <input type="text" class="form-control" [(ngModel)]="question.options[i].value" placeholder="Value">
+          <input type="text" class="form-control" [(ngModel)]="question.options[i].value" placeholder="Value" *ngIf="['multiselect','radio'].indexOf(question.responseType) > -1 ">
         </div>
         <div class="col">
-          <input type="text" class="form-control" [(ngModel)]="question.options[i].label" placeholder="Label">
+          <input type="text" class="form-control" [(ngModel)]="question.options[i].label" placeholder="Label" *ngIf="['multiselect','radio'].indexOf(question.responseType) > -1 ">
         </div>
 
-        <button type="button" class=" btn btn-outline-dark btn-sm" (click)="removeOption(i)" *ngIf="['multiSelect','radio'].indexOf(question.responseType)> -1 ">Remove</button>
+        <button type="button" class=" btn btn-outline-dark btn-sm" (click)="removeOption(i)" *ngIf="['multiselect','radio'].indexOf(question.responseType)> -1 ">Remove</button>
       </div>
     </div>
   </div>
@@ -121,24 +126,33 @@
 
   <hr>
   <div class="form-group">
-    <mat-checkbox [(ngModel)]="question.file.required">File Required</mat-checkbox>
+    <div class="row">
+      <div class="col">
+        <mat-checkbox [(ngModel)]="question.file.required">File Required</mat-checkbox>
+
+      </div>
+
+      <div class="col" *ngIf="question.file.required">
+        <mat-checkbox class="col-md-6" [(ngModel)]="question.file.caption">Caption</mat-checkbox>
+      </div>
+    </div>
   </div>
   <div class="form-group" *ngIf="question.file.required">
-    <mat-form-field class="col-md-6">
+    <!-- <mat-form-field class="col-md-6">
       <mat-select [(ngModel)]="question.file.type" placeholder="File Type" multiple>
         <mat-option *ngFor="let type of typeList" [value]="type">{{type}}</mat-option>
       </mat-select>
-    </mat-form-field>
+    </mat-form-field> -->
 
-    <mat-checkbox class="col-md-6" [(ngModel)]="question.file.caption">Caption</mat-checkbox>
     <div class="row">
       <div class="col">
-        <input type="number" class="form-control" [(ngModel)]="question.file.minCount" placeholder="Minimum number of files">
+        Minimum number of files <input type="number" class="form-control" [(ngModel)]="question.file.minCount"
+          placeholder="Minimum number of files">
       </div>
       <div class="col">
-        <input type="number" class="form-control" [(ngModel)]="question.file.maxCount" placeholder="Maximum number of files">
+        Maximum number of files <input type="number" class="form-control" [(ngModel)]="question.file.maxCount"
+          placeholder="Maximum number of files">
       </div>
-
     </div>
   </div>
 
@@ -147,7 +161,8 @@
     <label>Validation</label>
     <div class="form-group">
       <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.required">Answer Required</mat-checkbox>
-      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" (change)="question.validation.regex = question.validation.isNumber?'^[0-9\s]*$':''">Is
+      <mat-checkbox class="col-md-6" [(ngModel)]="question.validation.isNumber" *ngIf="['multiselect','radio'].indexOf(question.responseType) == -1 "
+        (change)="question.validation.regex = question.validation.isNumber?'^[0-9\s]*$':''">Is
         Number</mat-checkbox>
       <mat-checkbox [(ngModel)]="question.canBeNotApplicable">Can be not applicable ?</mat-checkbox>
     </div>
