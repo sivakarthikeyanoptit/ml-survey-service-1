@@ -248,7 +248,7 @@ module.exports = class Criterias extends Abstract {
       console.log(criterias);
       console.log(questions);
 
-      let result = {};
+      let result = {_id:13131313};
       let responseMessage = "Question added data successfully.";
 
       let response = { message: responseMessage, result: result };
