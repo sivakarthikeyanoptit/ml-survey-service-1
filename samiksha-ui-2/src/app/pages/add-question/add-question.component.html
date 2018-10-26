@@ -3,7 +3,7 @@
   <mat-card class="question-card col-md-12" *ngFor="let question of questionForm; let i = index">
     <!-- <mat-card-header> -->
 
-    <mat-card-title class="question-card-title">{{i+1}}.{{this.questionForm[i].questions[0].value}} </mat-card-title>
+    <mat-card-title class="question-card-title">{{i+1}}.{{this.questionForm[i].questions[0]}} </mat-card-title>
     <mat-card-subtitle>External ID: {{question.externalId || ""}}<br>Evidence: {{question.evidenceName || ""}}<br>Section:
       {{question.sectionName || ""}}<br>Parent:
       {{question.parentId}}<br>Child: {{question.children}}
