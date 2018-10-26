@@ -37,11 +37,11 @@ module.exports = class Criterias extends Abstract {
                       section.questions,
                       (question, i, cb3) => {
                         console.log(question, i);
-                        if (Object.keys(question.visibleIf[0]).length <= 0) {
-                          question.visibleIf = "";
+                        if(Object.keys(question.visibleIf[0]).length <= 0) {
+                          question.visibleIf = ""
                         }
-                        if (question.file.required === false) {
-                          question.file = "";
+                        if(question.file.required === false) {
+                          question.file = ""
                         }
                         question.owner = req.userDetails.id;
                         database.models.questions
@@ -202,59 +202,82 @@ module.exports = class Criterias extends Abstract {
     });
   }
 
+
   async getCriteriasParentQuesAndInstParentQues(req) {
     return new Promise(async function(resolve, reject) {
-      let criteriaQueryResult = await database.models.criterias.find(
-        {},
-        {
-          _id: 1,
-          externalId: 1,
-          name: 1
-        }
-      );
+
+      let criteriaQueryResult = await database.models.criterias.find({});
 
       const questionQueryObject = {
         //responseType: "matrix"
-      };
-      let questionQueryResult = await database.models["questions"].find(
-        questionQueryObject,
-        {
-          _id: 1,
-          externalId: 1,
-          name: 1
-        }
-      );
+      }
+      let questionQueryResult = await database.models[
+        "questions"
+      ].find(questionQueryObject);
 
       let result = {
-        criteria: criteriaQueryResult,
-        questions: questionQueryResult
-      };
+        criteria : new Array(),
+        questions : new Array(),
+        instanceParentQuestions : new Array()
+      }
 
-      let responseMessage = "Fetched requested data successfully.";
+      questionQueryResult.forEach(question => {
+        if (question.responseType == "matrix") { 
+          result.instanceParentQuestions.push({
+            _id: question._id,
+            externalId: question.externalId,
+            name: question.question[0]
+          })
+        } else {
+          result.questions.push({
+            _id: question._id,
+            externalId: question.externalId,
+            name: question.question[0]
+          })
+        }
+      })
+
+      criteriaQueryResult.forEach(criteria => {
+        result.criteria.push({
+          _id: criteria._id,
+          externalId: criteria.externalId,
+          name: criteria.name
+        })
+      })
+
+      let responseMessage = "Fetched requested data successfully."
 
       let response = { message: responseMessage, result: result };
       return resolve(response);
+
     }).catch(error => {
       reject(error);
     });
   }
+
 
   async addQuestion(req) {
     return new Promise(async function(resolve, reject) {
+
       let criterias = await database.models.criterias.find({});
 
-      let questions = await database.models["questions"].find();
+      let questions = await database.models[
+        "questions"
+      ].find();
 
-      console.log(criterias);
-      console.log(questions);
+      console.log(criterias)
+      console.log(questions)
 
-      let result = {_id:13131313};
-      let responseMessage = "Question added data successfully.";
+      let result = {}
+      let responseMessage = "Question added data successfully."
 
       let response = { message: responseMessage, result: result };
       return resolve(response);
+
     }).catch(error => {
       reject(error);
     });
   }
+
+
 };

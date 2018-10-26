@@ -27,7 +27,7 @@
       <input matInput [(ngModel)]="question.instanceParentId" placeholder="Enter Instance Parent External ID"
         [matAutocomplete]="instanceParentId">
       <mat-autocomplete #instanceParentId="matAutocomplete">
-        <mat-option *ngFor="let option of criteriaQuestions.result.questions " [value]="option.externalId">
+        <mat-option *ngFor="let option of criteriaQuestions.result.instanceParentQuestions " [value]="option.externalId">
           {{option.externalId}}
         </mat-option>
       </mat-autocomplete>
