@@ -7,6 +7,7 @@ module.exports = class Criterias extends Abstract {
     return "criterias";
   }
 
+
   insert(req) {
     let qError = {},
       created = [];
@@ -279,5 +280,132 @@ module.exports = class Criterias extends Abstract {
     });
   }
 
+
+  getEvidenceObjects () {
+    return  {
+
+      "BL": {
+        externalId: "BL",
+        tip: "Some tip at evidence level.",
+        name: "Book Look",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "LW": {
+        externalId: "LW",
+        tip: "Some tip at evidence level.",
+        name: "Learning Walk",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "IP": {
+        externalId: "IP",
+        tip: "Some tip at evidence level.",
+        name: "Interview Principal",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "CO": {
+        externalId: "CO",
+        tip: "Some tip at evidence level.",
+        name: "Classroom Observation",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "IT": {
+        externalId: "IT",
+        tip: "Some tip at evidence level.",
+        name: "Interview Teacher",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "IS": {
+        externalId: "IS",
+        tip: "Some tip at evidence level.",
+        name: "Interview Student",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "AC3" : {
+        externalId: "AC3",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 3",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "AC5": {
+        externalId: "AC5",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 5",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "AC8": {
+        externalId: "AC8",
+        tip: "Some tip at evidence level.",
+        name: "Assessment- Class 8",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      "PI": {
+        externalId: "PI",
+        tip: "Some tip at evidence level.",
+        name: "Parent Information",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      }
+    }
+  }
+  
 
 };

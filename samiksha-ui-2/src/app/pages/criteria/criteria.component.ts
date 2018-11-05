@@ -157,21 +157,7 @@ export class CriteriaComponent implements OnInit {
           compatibilityLevel: null
         }
       ],
-      flag: {
-        label: "I have a problem with :-",
-        remarks: "",
-        value: "",
-        options: [
-          {
-            value: "R1",
-            label: "Criteria rating of multiple questions"
-          },
-          {
-            value: "R2",
-            label: "Criteria rating of one question only"
-          }
-        ]
-      },
+      flag: "",
       createdFor: ["0125747659358699520", "0125748495625912324"],
       rubric: {
         levels: [
