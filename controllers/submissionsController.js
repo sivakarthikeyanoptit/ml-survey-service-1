@@ -115,20 +115,20 @@ module.exports = class Submission extends Abstract {
           queryOptions
         );
         
+        // Commented out the rating flow
+        // let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+        // let {ratingsEnabled} = canRatingsBeEnabled
 
-        let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-        let {ratingsEnabled} = canRatingsBeEnabled
-
-        if(ratingsEnabled) {
-          updateObject.$set = {
-            ratingOfManualCriteriaEnabled: true
-          }
-          updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-            queryObject,
-            updateObject,
-            queryOptions
-          );
-        }
+        // if(ratingsEnabled) {
+        //   updateObject.$set = {
+        //     ratingOfManualCriteriaEnabled: true
+        //   }
+        //   updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+        //     queryObject,
+        //     updateObject,
+        //     queryOptions
+        //   );
+        // }
 
         let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
 
@@ -154,227 +154,229 @@ module.exports = class Submission extends Abstract {
     });
   }
 
+  // Commented out the rating flow
+  // async fetchRatingQuestions(req) {
+  //   return new Promise(async (resolve, reject) => {
+  //     req.body = req.body || {};
 
-  async fetchRatingQuestions(req) {
-    return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-
-      let result = {}
-      let responseMessage
+  //     let result = {}
+  //     let responseMessage
       
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
+  //     let queryObject = {
+  //       _id: ObjectId(req.params._id)
+  //     }
 
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
+  //     let submissionDocument = await database.models.submissions.findOne(
+  //       queryObject
+  //     );
 
-      if(submissionDocument.ratingOfManualCriteriaEnabled === true) {
+  //     if(submissionDocument.ratingOfManualCriteriaEnabled === true) {
 
-        result._id = submissionDocument._id
-        result.status = submissionDocument.status
+  //       result._id = submissionDocument._id
+  //       result.status = submissionDocument.status
 
-        let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
-        result.isEditable = isEditable
-        result.criterias = criterias
-        result.allManualCriteriaRatingSubmitted = (submissionDocument.allManualCriteriaRatingSubmitted) ? submissionDocument.allManualCriteriaRatingSubmitted : false
-        responseMessage = "Rating questions fetched successfully."
+  //       let {isEditable, criterias} = await this.extractCriteriaQuestionsOfSubmission(submissionDocument, req.userDetails.allRoles)
+  //       result.isEditable = isEditable
+  //       result.criterias = criterias
+  //       result.allManualCriteriaRatingSubmitted = (submissionDocument.allManualCriteriaRatingSubmitted) ? submissionDocument.allManualCriteriaRatingSubmitted : false
+  //       responseMessage = "Rating questions fetched successfully."
         
-      } else {
-        responseMessage = "Rating questions not yet enabled for this submission."
-      }
+  //     } else {
+  //       responseMessage = "Rating questions not yet enabled for this submission."
+  //     }
 
-      let response = { message: responseMessage, result: result };
-      return resolve(response);
+  //     let response = { message: responseMessage, result: result };
+  //     return resolve(response);
 
-    }).catch(error => {
-      reject(error);
-    });
-  }
+  //   }).catch(error => {
+  //     reject(error);
+  //   });
+  // }
 
+  // Commented out the rating flow
+  // async submitRatingQuestions(req) {
+  //   return new Promise(async (resolve, reject) => {
+  //     req.body = req.body || {};
+  //     let responseMessage = "Rating questions submission completed successfully"
+  //     let runUpdateQuery = false
 
-  async submitRatingQuestions(req) {
-    return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-      let responseMessage = "Rating questions submission completed successfully"
-      let runUpdateQuery = false
+  //     let queryObject = {
+  //       _id: ObjectId(req.params._id)
+  //     }
 
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
+  //     let submissionDocument = await database.models.submissions.findOne(
+  //       queryObject
+  //     );
 
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
+  //     let updateObject = {}
+  //     let result = {}
 
-      let updateObject = {}
-      let result = {}
+  //     if(req.body.ratings) {
+  //       if(submissionDocument.ratingOfManualCriteriaEnabled === true && submissionDocument.allManualCriteriaRatingSubmitted != true) {
+  //         runUpdateQuery = true
+  //         Object.entries(req.body.ratings).forEach(rating => {
+  //           let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
+  //           criteriaElm.score = rating[1].score
+  //           criteriaElm.remarks = rating[1].remarks
+  //           criteriaElm.ratingSubmittedBy = req.userDetails.userId
+  //           criteriaElm.ratingSubmissionDate = new Date()
+  //           criteriaElm.ratingSubmissionGpsLocation = req.headers.gpslocation
+  //         });
+  //         updateObject.$set = { 
+  //           criterias : submissionDocument.criterias,
+  //           allManualCriteriaRatingSubmitted: true
+  //         }
+  //       } else {
+  //         responseMessage = "Cannot submit ratings for this submission."
+  //       }
+  //     } else {
+  //       responseMessage = "Invalid request"
+  //     }
 
-      if(req.body.ratings) {
-        if(submissionDocument.ratingOfManualCriteriaEnabled === true && submissionDocument.allManualCriteriaRatingSubmitted != true) {
-          runUpdateQuery = true
-          Object.entries(req.body.ratings).forEach(rating => {
-            let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
-            criteriaElm.score = rating[1].score
-            criteriaElm.remarks = rating[1].remarks
-            criteriaElm.ratingSubmittedBy = req.userDetails.userId
-            criteriaElm.ratingSubmissionDate = new Date()
-            criteriaElm.ratingSubmissionGpsLocation = req.headers.gpslocation
-          });
-          updateObject.$set = { 
-            criterias : submissionDocument.criterias,
-            allManualCriteriaRatingSubmitted: true
-          }
-        } else {
-          responseMessage = "Cannot submit ratings for this submission."
-        }
-      } else {
-        responseMessage = "Invalid request"
-      }
+  //     if(runUpdateQuery) {
 
-      if(runUpdateQuery) {
+  //       result = await database.models.submissions.findOneAndUpdate(
+  //         queryObject,
+  //         updateObject
+  //       );
 
-        result = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject
-        );
+  //       let response = {
+  //         message: responseMessage
+  //       };
 
-        let response = {
-          message: responseMessage
-        };
+  //       return resolve(response);
 
-        return resolve(response);
+  //     } else {
 
-      } else {
+  //       let response = {
+  //         message: responseMessage
+  //       };
 
-        let response = {
-          message: responseMessage
-        };
-
-        return resolve(response);
-      }
+  //       return resolve(response);
+  //     }
 
       
-    }).catch(error => {
-      reject(error);
-    });
-  }
+  //   }).catch(error => {
+  //     reject(error);
+  //   });
+  // }
 
 
+  // Commented out the rating flow
+  // async fetchCriteriaRatings(req) {
+  //   return new Promise(async (resolve, reject) => {
+  //     req.body = req.body || {};
+  //     let result = {}
+  //     let responseMessage = ""
 
-  async fetchCriteriaRatings(req) {
-    return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-      let result = {}
-      let responseMessage = ""
+  //     let queryObject = {
+  //       _id: ObjectId(req.params._id)
+  //     }
 
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
-
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
+  //     let submissionDocument = await database.models.submissions.findOne(
+  //       queryObject
+  //     );
       
-      if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
-        let criteriaResponses = {}
-        submissionDocument.criterias.forEach(criteria => {
-          if (criteria.criteriaType === 'manual') {
-            criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
+  //     if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
+  //       let criteriaResponses = {}
+  //       submissionDocument.criterias.forEach(criteria => {
+  //         if (criteria.criteriaType === 'manual') {
+  //           criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
             
-            if(criteria.flagRaised && criteria.flagRaised[req.userDetails.userId]) {
-              criteriaResponses[criteria._id].flagRaised = _.pick(criteria.flagRaised[req.userDetails.userId], ['value', 'remarks', 'submissionDate'])
-            }
+  //           if(criteria.flagRaised && criteria.flagRaised[req.userDetails.userId]) {
+  //             criteriaResponses[criteria._id].flagRaised = _.pick(criteria.flagRaised[req.userDetails.userId], ['value', 'remarks', 'submissionDate'])
+  //           }
             
-          }
-        })
+  //         }
+  //       })
 
-        result._id = submissionDocument._id
-        result.status = submissionDocument.status
-        result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? true : false
-        result.criterias = _.values(criteriaResponses)
-        responseMessage = "Criteria ratings fetched successfully."
-      } else {
-        responseMessage = "No Criteria ratings found for this assessment."
-      }
+  //       result._id = submissionDocument._id
+  //       result.status = submissionDocument.status
+  //       result.isEditable = (_.includes(req.userDetails.allRoles,"ASSESSOR")) ? true : false
+  //       result.criterias = _.values(criteriaResponses)
+  //       responseMessage = "Criteria ratings fetched successfully."
+  //     } else {
+  //       responseMessage = "No Criteria ratings found for this assessment."
+  //     }
 
-      let response = {
-        message: responseMessage,
-        result: result
-      };
-      return resolve(response);
-    }).catch(error => {
-      reject(error);
-    });
-  }
+  //     let response = {
+  //       message: responseMessage,
+  //       result: result
+  //     };
+  //     return resolve(response);
+  //   }).catch(error => {
+  //     reject(error);
+  //   });
+  // }
 
-  async flagCriteriaRatings(req) {
-    return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-      let responseMessage
-      let runUpdateQuery = false
 
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
+  // Commented out the rating flow
+  // async flagCriteriaRatings(req) {
+  //   return new Promise(async (resolve, reject) => {
+  //     req.body = req.body || {};
+  //     let responseMessage
+  //     let runUpdateQuery = false
 
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
+  //     let queryObject = {
+  //       _id: ObjectId(req.params._id)
+  //     }
 
-      let updateObject = {}
-      let result = {}
+  //     let submissionDocument = await database.models.submissions.findOne(
+  //       queryObject
+  //     );
 
-      if(req.body.flag) {
-        if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
-          Object.entries(req.body.flag).forEach(flag => {
-            let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
+  //     let updateObject = {}
+  //     let result = {}
 
-            flag[1].userId = req.userDetails.userId
-            flag[1].submissionDate = new Date()
-            flag[1].submissionGpsLocation = req.headers.gpslocation
+  //     if(req.body.flag) {
+  //       if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
+  //         Object.entries(req.body.flag).forEach(flag => {
+  //           let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(flag[1].criteriaId)});
 
-            if(criteriaElm.flagRaised && criteriaElm.flagRaised[req.userDetails.userId]) {
-              responseMessage = "You cannot update an already flagged criteria."
-            } else if(criteriaElm.flagRaised) {
-              runUpdateQuery = true
-              criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
-            } else {
-              runUpdateQuery = true
-              criteriaElm.flagRaised = {}
-              criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
-            }
+  //           flag[1].userId = req.userDetails.userId
+  //           flag[1].submissionDate = new Date()
+  //           flag[1].submissionGpsLocation = req.headers.gpslocation
 
-          });
-          updateObject.$set = { criterias : submissionDocument.criterias }
-        } else {
-          responseMessage = "Cannot flag ratings for this assessment."
-        }
-      } else {
-        responseMessage = "Invalid request"
-      }
+  //           if(criteriaElm.flagRaised && criteriaElm.flagRaised[req.userDetails.userId]) {
+  //             responseMessage = "You cannot update an already flagged criteria."
+  //           } else if(criteriaElm.flagRaised) {
+  //             runUpdateQuery = true
+  //             criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
+  //           } else {
+  //             runUpdateQuery = true
+  //             criteriaElm.flagRaised = {}
+  //             criteriaElm.flagRaised[req.userDetails.userId] = flag[1]
+  //           }
+
+  //         });
+  //         updateObject.$set = { criterias : submissionDocument.criterias }
+  //       } else {
+  //         responseMessage = "Cannot flag ratings for this assessment."
+  //       }
+  //     } else {
+  //       responseMessage = "Invalid request"
+  //     }
       
-      if(runUpdateQuery) {
-        result = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject
-        );
+  //     if(runUpdateQuery) {
+  //       result = await database.models.submissions.findOneAndUpdate(
+  //         queryObject,
+  //         updateObject
+  //       );
         
-        responseMessage = "Criterias flagged successfully."
+  //       responseMessage = "Criterias flagged successfully."
 
-      }
+  //     }
 
-      let response = {
-        message: responseMessage
-      };
+  //     let response = {
+  //       message: responseMessage
+  //     };
 
-      return resolve(response);
+  //     return resolve(response);
       
-    }).catch(error => {
-      reject(error);
-    });
-  }
+  //   }).catch(error => {
+  //     reject(error);
+  //   });
+  // }
 
 
   async status(req) {
@@ -413,60 +415,62 @@ module.exports = class Submission extends Abstract {
 
   }
 
-  extractCriteriaQuestionsOfSubmission(submissionDocument, requestingUserRoles) {
+  // Commented out the rating flow
+  // extractCriteriaQuestionsOfSubmission(submissionDocument, requestingUserRoles) {
 
-    let result = {}
-    let criteriaResponses = {}
-    submissionDocument.criterias.forEach(criteria => {
-      if (criteria.criteriaType === 'manual') {
-        criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
-        criteriaResponses[criteria._id].questions = []
-      }
-    })
+  //   let result = {}
+  //   let criteriaResponses = {}
+  //   submissionDocument.criterias.forEach(criteria => {
+  //     if (criteria.criteriaType === 'manual') {
+  //       criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
+  //       criteriaResponses[criteria._id].questions = []
+  //     }
+  //   })
 
-    if(submissionDocument.answers) {
-      Object.entries(submissionDocument.answers).forEach(answer => {
-        if(criteriaResponses[answer[1].criteriaId] != undefined) {
-          criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
-        }
-      });
-    }
+  //   if(submissionDocument.answers) {
+  //     Object.entries(submissionDocument.answers).forEach(answer => {
+  //       if(criteriaResponses[answer[1].criteriaId] != undefined) {
+  //         criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
+  //       }
+  //     });
+  //   }
 
-    result.isEditable = (_.includes(requestingUserRoles,"ASSESSOR")) ? false : true
-    result.criterias = _.values(criteriaResponses)
+  //   result.isEditable = (_.includes(requestingUserRoles,"ASSESSOR")) ? false : true
+  //   result.criterias = _.values(criteriaResponses)
 
-    return result;
+  //   return result;
 
-  }
+  // }
 
-  canEnableRatingQuestionsOfSubmission(submissionDocument) {
+  // Commented out the rating flow
+  // canEnableRatingQuestionsOfSubmission(submissionDocument) {
 
-    let result = {}
-    result.ratingsEnabled = true
-    result.responseMessage = ""
+  //   let result = {}
+  //   result.ratingsEnabled = true
+  //   result.responseMessage = ""
 
-    if(submissionDocument.evidences && submissionDocument.status !== "blocked") {
-      const evidencesArray = Object.entries(submissionDocument.evidences)
-      for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
-        if(
-          evidencesArray[iterator][1].modeOfCollection === "onfield" && 
-            (
-              !evidencesArray[iterator][1].isSubmitted || 
-              evidencesArray[iterator][1].hasConflicts === true
-            )
-          ) {
-          result.ratingsEnabled = false
-          result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
-          break
-        }
-      }
-    } else {
-      result.ratingsEnabled = false
-      result.responseMessage = "Sorry! This could be because the assessment has been blocked. Resolve conflicts to proceed further."
-    }
+  //   if(submissionDocument.evidences && submissionDocument.status !== "blocked") {
+  //     const evidencesArray = Object.entries(submissionDocument.evidences)
+  //     for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
+  //       if(
+  //         evidencesArray[iterator][1].modeOfCollection === "onfield" && 
+  //           (
+  //             !evidencesArray[iterator][1].isSubmitted || 
+  //             evidencesArray[iterator][1].hasConflicts === true
+  //           )
+  //         ) {
+  //         result.ratingsEnabled = false
+  //         result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
+  //         break
+  //       }
+  //     }
+  //   } else {
+  //     result.ratingsEnabled = false
+  //     result.responseMessage = "Sorry! This could be because the assessment has been blocked. Resolve conflicts to proceed further."
+  //   }
 
-    return result;
+  //   return result;
 
-  }
+  // }
 
 };
