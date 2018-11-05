@@ -60,7 +60,7 @@ export class AddQuestionComponent implements OnInit {
       visibleIf: [{}],
       file: {
         required: false,
-        type: [],
+        type: ["image/jpeg"],
         minCount: 1,
         maxCount: 0,
         caption: false
@@ -240,6 +240,7 @@ export class AddQuestionComponent implements OnInit {
   }
 
   save(): void {
+    this.question.file = this.question.file.required ? this.question.file : ""
     this.apiService
       .reqHandler("saveQuestion", this.question)
       .then(result => {
