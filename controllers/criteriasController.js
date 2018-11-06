@@ -257,8 +257,11 @@ module.exports = class Criterias extends Abstract {
   }
 
 
-  async addQuestion(req) {
-    return new Promise(async function(resolve, reject) {
+  addQuestion(req) {
+
+    req.evidenceObjects = this.getEvidenceObjects()
+
+    return new Promise(async (resolve, reject) => {
 
       try {
         
@@ -271,10 +274,16 @@ module.exports = class Criterias extends Abstract {
 
         delete question.payload
 
-
         let criterias = await database.models.criterias.find({
           externalId : questionCriteriaId
         });
+
+        let questionCriteria
+        if(criterias[0].externalId != "") {
+          questionCriteria = criterias[0]
+        } else {
+          throw "No criteria with ID " + questionCriteriaId + " found"
+        }
 
         let questionCollection = {}
         let toFetchQuestionIds = new Array
@@ -292,9 +301,6 @@ module.exports = class Criterias extends Abstract {
           })
         }
 
-        console.log(criterias[0])
-        console.log(questionCollection)
-
         if(questionCollection[question.externalId]) {
           throw "The question with the external ID " + question.externalId + " already exists"
         }
@@ -309,17 +315,77 @@ module.exports = class Criterias extends Abstract {
 
         if(Object.keys(question.visibleIf[0]).length <= 0) {
           question.visibleIf = ""
+        } else {
+          question.visibleIf[0]._id = questionCollection[question.parentId]._id
         }
 
-        // let generatedQuestionDocument = await database.models.questions.create(
-        //   question
-        // );
+        let generatedQuestionDocument = await database.models.questions.create(
+          question
+        );
 
-        // result._id = generatedQuestionDocument._id
+        result._id = generatedQuestionDocument._id
 
-        let responseMessage = "Question added data successfully."
+
+        if(question.parentId != "") {
+          let queryParentQuestionObject = {
+            _id: questionCollection[question.parentId]._id
+          }
+          let updateParentQuestionObject = {}
+          updateParentQuestionObject.$push = { 
+            ["children"]: generatedQuestionDocument._id
+          }
+          await database.models.questions.findOneAndUpdate(
+            queryParentQuestionObject,
+            updateParentQuestionObject
+          )
+        }
+
+        if(question.instanceParentId != "") {
+          let queryInstanceParentQuestionObject = {
+            _id: questionCollection[question.instanceParentId]._id
+          }
+          let updateInstanceParentQuestionObject = {}
+          updateInstanceParentQuestionObject.$push = { 
+            ["instanceQuestions"]: generatedQuestionDocument._id
+          }
+          await database.models.questions.findOneAndUpdate(
+            queryInstanceParentQuestionObject,
+            updateInstanceParentQuestionObject
+          )
+        }
+      
+        let criteriaEvidences = questionCriteria.evidences
+        let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex( evidence => evidence.externalId === questionEvidenceMethod );
+
+        if(indexOfEvidenceMethodInCriteria < 0) {
+          criteriaEvidences.push(req.evidenceObjects[questionEvidenceMethod])
+          indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+        }
+
+        let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+        if(indexOfSectionInEvidenceMethod < 0) {
+          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({name:questionSection, questions: new Array})
+          indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+        }
+
+        criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(generatedQuestionDocument._id)
+
+        let queryCriteriaObject = {
+          _id: questionCriteria._id
+        }
+        let updateCriteriaObject = {}
+        updateCriteriaObject.$set = { 
+          ["evidences"]: criteriaEvidences
+        }
+        await database.models.criterias.findOneAndUpdate(
+          queryCriteriaObject,
+          updateCriteriaObject
+        )
+
+        let responseMessage = "Question added successfully."
 
         let response = { message: responseMessage, result: result };
+
         return resolve(response);
       } catch (error) {
         return reject({message:error});
