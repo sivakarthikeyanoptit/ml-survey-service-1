@@ -39,9 +39,9 @@ module.exports = function(app) {
           res.status(error.status ? error.status : 400).json({
             message: error.message
           });
-          loggerObj.info({ resp: result});
+          loggerObj.info({ resp: error});
           console.log('-------------------Response log starts here-------------------');
-          console.log(result);
+          console.log(error);
           console.log('-------------------Response log ends here-------------------');
         });
     }

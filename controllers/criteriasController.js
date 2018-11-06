@@ -260,45 +260,72 @@ module.exports = class Criterias extends Abstract {
   async addQuestion(req) {
     return new Promise(async function(resolve, reject) {
 
-      let result = {}
+      try {
+        
+        let result = {}
 
-      let question = req.body
-      let questionCriteriaId = question.payload.criteriaId
-      let questionEvidenceMethod = question.payload.evidenceId
-      let questionSection = question.payload.section
+        let question = req.body
+        let questionCriteriaId = question.payload.criteriaId
+        let questionEvidenceMethod = question.payload.evidenceId
+        let questionSection = question.payload.section
 
-      delete question.payload
+        delete question.payload
 
 
-      let criterias = await database.models.criterias.find({
-        externalId : questionCriteriaId
-      });
+        let criterias = await database.models.criterias.find({
+          externalId : questionCriteriaId
+        });
 
-      // let questions = await database.models[
-      //   "questions"
-      // ].find();
+        let questionCollection = {}
+        let toFetchQuestionIds = new Array
+        toFetchQuestionIds.push(question.externalId)
+        if(question.parentId != "") {toFetchQuestionIds.push(question.parentId)}
+        if(question.instanceParentId != "") {toFetchQuestionIds.push(question.instanceParentId)}
 
-      console.log(criterias[0])
-      // console.log(questions)
+        let questionsFromDatabase = await database.models.questions.find({
+          externalId : { $in: toFetchQuestionIds }
+        });
 
-      if(Object.keys(question.visibleIf[0]).length <= 0) {
-        question.visibleIf = ""
+        if(questionsFromDatabase.length > 0) {
+          questionsFromDatabase.forEach(question => {
+            questionCollection[question.externalId] = question
+          })
+        }
+
+        console.log(criterias[0])
+        console.log(questionCollection)
+
+        if(questionCollection[question.externalId]) {
+          throw "The question with the external ID " + question.externalId + " already exists"
+        }
+
+        if(question.parentId != "" && !questionCollection[question.parentId]) {
+          throw "Parent question with external ID " + question.parentId + " not found"
+        }
+
+        if(question.instanceParentId != "" && !questionCollection[question.instanceParentId]) {
+          throw "Instance Parent question with external ID " + question.instanceParentId + " not found"
+        }
+
+        if(Object.keys(question.visibleIf[0]).length <= 0) {
+          question.visibleIf = ""
+        }
+
+        // let generatedQuestionDocument = await database.models.questions.create(
+        //   question
+        // );
+
+        // result._id = generatedQuestionDocument._id
+
+        let responseMessage = "Question added data successfully."
+
+        let response = { message: responseMessage, result: result };
+        return resolve(response);
+      } catch (error) {
+        return reject({message:error});
       }
 
-      let generatedQuestionDocument = await database.models.questions.create(
-        question
-      );
-
-      result._id = generatedQuestionDocument._id
-
-      let responseMessage = "Question added data successfully."
-
-      let response = { message: responseMessage, result: result };
-      return resolve(response);
-
-    }).catch(error => {
-      reject(error);
-    });
+    })
   }
 
 

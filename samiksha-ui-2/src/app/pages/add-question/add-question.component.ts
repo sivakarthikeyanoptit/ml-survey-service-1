@@ -250,6 +250,7 @@ export class AddQuestionComponent implements OnInit {
         this.openDialog(result);
       })
       .catch(error => {
+        alert(error.message)
         console.error(error);
       });
   }

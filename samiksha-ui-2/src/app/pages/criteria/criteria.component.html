@@ -32,8 +32,8 @@
     <label>Rubric </label>
     <!-- <hr> -->
 
-    <div class="row">
-      <div class="form-group col" *ngFor="let level of criteria.rubric.levels; let i=index">
+    <div class="form-group col" *ngFor="let level of criteria.rubric.levels; let i=index">
+      <div class="row">
         <label for="description">{{level.label}}: Description </label>
         <textarea class="form-control" [(ngModel)]="level.description" name="description" placeholder="Description"></textarea>
       </div>
