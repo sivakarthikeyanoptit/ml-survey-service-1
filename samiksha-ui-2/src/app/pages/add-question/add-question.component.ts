@@ -52,7 +52,8 @@ export class AddQuestionComponent implements OnInit {
         console.log(self.criteriaQuestions);
       });
     this.question = {
-      questions: ["", ""],
+      question: ["", ""],
+      tip: "",
       externalId:"",
       parentId:"",
       instanceParentId:"",

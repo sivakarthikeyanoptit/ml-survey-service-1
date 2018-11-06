@@ -260,16 +260,37 @@ module.exports = class Criterias extends Abstract {
   async addQuestion(req) {
     return new Promise(async function(resolve, reject) {
 
-      let criterias = await database.models.criterias.find({});
-
-      let questions = await database.models[
-        "questions"
-      ].find();
-
-      console.log(criterias)
-      console.log(questions)
-
       let result = {}
+
+      let question = req.body
+      let questionCriteriaId = question.payload.criteriaId
+      let questionEvidenceMethod = question.payload.evidenceId
+      let questionSection = question.payload.section
+
+      delete question.payload
+
+
+      let criterias = await database.models.criterias.find({
+        externalId : questionCriteriaId
+      });
+
+      // let questions = await database.models[
+      //   "questions"
+      // ].find();
+
+      console.log(criterias[0])
+      // console.log(questions)
+
+      if(Object.keys(question.visibleIf[0]).length <= 0) {
+        question.visibleIf = ""
+      }
+
+      let generatedQuestionDocument = await database.models.questions.create(
+        question
+      );
+
+      result._id = generatedQuestionDocument._id
+
       let responseMessage = "Question added data successfully."
 
       let response = { message: responseMessage, result: result };
@@ -406,6 +427,6 @@ module.exports = class Criterias extends Abstract {
       }
     }
   }
-  
+
 
 };
