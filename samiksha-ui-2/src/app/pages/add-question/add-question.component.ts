@@ -93,33 +93,45 @@ export class AddQuestionComponent implements OnInit {
 
     this.evidences = [
       {
+        externalId: "AC3",
+        tip: "Some tip at evidence level.",
+        name: "Assessment - Class 3",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC5",
+        tip: "Some tip at evidence level.",
+        name: "Assessment - Class 5",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "AC8",
+        tip: "Some tip at evidence level.",
+        name: "Assessment - Class 8",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
         externalId: "BL",
         tip: "Some tip at evidence level.",
         name: "Book Look",
-        description: "Some description about evidence",
-        startTime: "",
-        endTime: "",
-        isSubmitted: false,
-        sections: [],
-        modeOfCollection: "onfield",
-        canBeNotApplicable: true
-      },
-      {
-        externalId: "LW",
-        tip: "Some tip at evidence level.",
-        name: "Learning Walk",
-        description: "Some description about evidence",
-        startTime: "",
-        endTime: "",
-        isSubmitted: false,
-        sections: [],
-        modeOfCollection: "onfield",
-        canBeNotApplicable: true
-      },
-      {
-        externalId: "IP",
-        tip: "Some tip at evidence level.",
-        name: "Interview Principal",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -141,9 +153,9 @@ export class AddQuestionComponent implements OnInit {
         canBeNotApplicable: true
       },
       {
-        externalId: "IT",
+        externalId: "LW",
         tip: "Some tip at evidence level.",
-        name: "Interview Teacher",
+        name: "Learning Walk",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -153,45 +165,9 @@ export class AddQuestionComponent implements OnInit {
         canBeNotApplicable: true
       },
       {
-        externalId: "IS",
+        externalId: "PAI",
         tip: "Some tip at evidence level.",
-        name: "Interview Student",
-        description: "Some description about evidence",
-        startTime: "",
-        endTime: "",
-        isSubmitted: false,
-        sections: [],
-        modeOfCollection: "onfield",
-        canBeNotApplicable: true
-      },
-      {
-        externalId: "AC3",
-        tip: "Some tip at evidence level.",
-        name: "Assessment- Class 3",
-        description: "Some description about evidence",
-        startTime: "",
-        endTime: "",
-        isSubmitted: false,
-        sections: [],
-        modeOfCollection: "onfield",
-        canBeNotApplicable: true
-      },
-      {
-        externalId: "AC5",
-        tip: "Some tip at evidence level.",
-        name: "Assessment- Class 5",
-        description: "Some description about evidence",
-        startTime: "",
-        endTime: "",
-        isSubmitted: false,
-        sections: [],
-        modeOfCollection: "onfield",
-        canBeNotApplicable: true
-      },
-      {
-        externalId: "AC8",
-        tip: "Some tip at evidence level.",
-        name: "Assessment- Class 8",
+        name: "Parent Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -203,7 +179,31 @@ export class AddQuestionComponent implements OnInit {
       {
         externalId: "PI",
         tip: "Some tip at evidence level.",
-        name: "Parent Information",
+        name: "Principal Interview",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "SI",
+        tip: "Some tip at evidence level.",
+        name: "Student Interview",
+        description: "Some description about evidence",
+        startTime: "",
+        endTime: "",
+        isSubmitted: false,
+        sections: [],
+        modeOfCollection: "onfield",
+        canBeNotApplicable: true
+      },
+      {
+        externalId: "TI",
+        tip: "Some tip at evidence level.",
+        name: "Teacher Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",

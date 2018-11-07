@@ -8,7 +8,7 @@ module.exports = class ParentRegistry extends Abstract {
     return "parentRegistry";
   }
 
-  insert(req) {
+  add(req) {
     return super.insert(req);
   }
 

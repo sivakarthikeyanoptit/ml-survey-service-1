@@ -422,10 +422,10 @@ module.exports = class Criterias extends Abstract {
         modeOfCollection: "onfield",
         canBeNotApplicable: true
       },
-      "IP": {
-        externalId: "IP",
+      "PI": {
+        externalId: "PI",
         tip: "Some tip at evidence level.",
-        name: "Interview Principal",
+        name: "Principal Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -446,10 +446,10 @@ module.exports = class Criterias extends Abstract {
         modeOfCollection: "onfield",
         canBeNotApplicable: true
       },
-      "IT": {
-        externalId: "IT",
+      "TI": {
+        externalId: "TI",
         tip: "Some tip at evidence level.",
-        name: "Interview Teacher",
+        name: "Teacher Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -458,10 +458,10 @@ module.exports = class Criterias extends Abstract {
         modeOfCollection: "onfield",
         canBeNotApplicable: true
       },
-      "IS": {
-        externalId: "IS",
+      "SI": {
+        externalId: "SI",
         tip: "Some tip at evidence level.",
-        name: "Interview Student",
+        name: "Student Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
@@ -506,10 +506,10 @@ module.exports = class Criterias extends Abstract {
         modeOfCollection: "onfield",
         canBeNotApplicable: true
       },
-      "PI": {
-        externalId: "PI",
+      "PAI": {
+        externalId: "PAI",
         tip: "Some tip at evidence level.",
-        name: "Parent Information",
+        name: "Parent Interview",
         description: "Some description about evidence",
         startTime: "",
         endTime: "",
