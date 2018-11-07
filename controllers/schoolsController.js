@@ -218,13 +218,13 @@ module.exports = class Schools extends Abstract {
             ])
           );
           criteria.evidences.forEach(evidenceMethod => {
-            if (!evidenceMethodArray[evidenceMethod.externalId]) {
+            if (!evidenceMethodArray[evidenceMethod.externalId] && evidenceMethod.modeOfCollection === "onfield") {
               evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
               submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                 evidenceMethod,
                 ["sections"]
               );
-            } else {
+            } else if (evidenceMethod.modeOfCollection === "onfield") {
               // Evidence method already exists
               // Loop through all sections reading evidence method
               evidenceMethod.sections.forEach(evidenceMethodSection => {
