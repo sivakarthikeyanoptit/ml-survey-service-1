@@ -408,7 +408,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "LW": {
         externalId: "LW",
@@ -420,7 +420,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "PI": {
         externalId: "PI",
@@ -432,7 +432,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "CO": {
         externalId: "CO",
@@ -444,7 +444,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "TI": {
         externalId: "TI",
@@ -456,7 +456,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "SI": {
         externalId: "SI",
@@ -468,7 +468,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       },
       "AC3" : {
         externalId: "AC3",
@@ -516,7 +516,7 @@ module.exports = class Criterias extends Abstract {
         isSubmitted: false,
         sections: [],
         modeOfCollection: "onfield",
-        canBeNotApplicable: true
+        canBeNotApplicable: false
       }
     }
   }
