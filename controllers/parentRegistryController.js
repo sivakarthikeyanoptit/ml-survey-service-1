@@ -9,72 +9,36 @@ module.exports = class ParentRegistry extends Abstract {
   }
 
 
-  // async submitRatingQuestions(req) {
-  //   return new Promise(async (resolve, reject) => {
-  //     req.body = req.body || {};
-  //     let responseMessage = "Rating questions submission completed successfully"
-  //     let runUpdateQuery = false
+  add(req) {
 
-  //     let queryObject = {
-  //       _id: ObjectId(req.params._id)
-  //     }
+    return new Promise(async (resolve, reject) => {
 
-  //     let submissionDocument = await database.models.submissions.findOne(
-  //       queryObject
-  //     );
+      try {
+        
+        let result = {}
 
-  //     let updateObject = {}
-  //     let result = {}
+        if(req.body.parents) {
+          let addParentsQuery = await database.models["parent-registry"].insertMany(
+            req.body.parents
+          );
+          if(addParentsQuery.length != req.body.parents.length) {
+            throw "Something parent information was not inserted!"
+          }
+        } else {
+          throw "Bad Request"
+        }
 
-  //     if(req.body.ratings) {
-  //       if(submissionDocument.ratingOfManualCriteriaEnabled === true && submissionDocument.allManualCriteriaRatingSubmitted != true) {
-  //         runUpdateQuery = true
-  //         Object.entries(req.body.ratings).forEach(rating => {
-  //           let criteriaElm = _.find(submissionDocument.criterias, {_id:ObjectId(rating[1].criteriaId)});
-  //           criteriaElm.score = rating[1].score
-  //           criteriaElm.remarks = rating[1].remarks
-  //           criteriaElm.ratingSubmittedBy = req.userDetails.userId
-  //           criteriaElm.ratingSubmissionDate = new Date()
-  //           criteriaElm.ratingSubmissionGpsLocation = req.headers.gpslocation
-  //         });
-  //         updateObject.$set = { 
-  //           criterias : submissionDocument.criterias,
-  //           allManualCriteriaRatingSubmitted: true
-  //         }
-  //       } else {
-  //         responseMessage = "Cannot submit ratings for this submission."
-  //       }
-  //     } else {
-  //       responseMessage = "Invalid request"
-  //     }
+        let responseMessage = "Parents added successfully."
 
-  //     if(runUpdateQuery) {
+        let response = { message: responseMessage, result: result };
 
-  //       result = await database.models.submissions.findOneAndUpdate(
-  //         queryObject,
-  //         updateObject
-  //       );
+        return resolve(response);
+      } catch (error) {
+        return reject({message:error});
+      }
 
-  //       let response = {
-  //         message: responseMessage
-  //       };
-
-  //       return resolve(response);
-
-  //     } else {
-
-  //       let response = {
-  //         message: responseMessage
-  //       };
-
-  //       return resolve(response);
-  //     }
-
-      
-  //   }).catch(error => {
-  //     reject(error);
-  //   });
-  // }
+    })
+  }
 
 
 

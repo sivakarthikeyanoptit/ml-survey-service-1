@@ -515,7 +515,7 @@ module.exports = class Criterias extends Abstract {
         endTime: "",
         isSubmitted: false,
         sections: [],
-        modeOfCollection: "onfield",
+        modeOfCollection: "oncall",
         canBeNotApplicable: false
       }
     }
