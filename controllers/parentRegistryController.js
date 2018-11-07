@@ -28,7 +28,7 @@ module.exports = class ParentRegistry extends Abstract {
 
         let responseMessage = "Parent information added successfully."
 
-        let response = { message: responseMessage, result: result };
+        let response = { message: responseMessage};
 
         return resolve(response);
       } catch (error) {
