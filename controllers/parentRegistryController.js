@@ -14,21 +14,19 @@ module.exports = class ParentRegistry extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
-        let result = {}
 
         if(req.body.parents) {
           let addParentsQuery = await database.models["parent-registry"].insertMany(
             req.body.parents
           );
           if(addParentsQuery.length != req.body.parents.length) {
-            throw "Something parent information was not inserted!"
+            throw "Some parent information was not inserted!"
           }
         } else {
           throw "Bad Request"
         }
 
-        let responseMessage = "Parents added successfully."
+        let responseMessage = "Parent information added successfully."
 
         let response = { message: responseMessage, result: result };
 
@@ -221,7 +219,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: "",
           visible: true,
           editable: true,
-          input: "text",
+          input: "number",
           validation: {
             required: true,
             regex: "^[0-9]{10}+$"
@@ -233,7 +231,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: "",
           visible: true,
           editable: true,
-          input: "text",
+          input: "number",
           validation: {
             required: false,
             regex: "^[0-9]{10}+$"
