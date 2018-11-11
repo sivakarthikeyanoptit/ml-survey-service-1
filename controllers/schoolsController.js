@@ -328,14 +328,16 @@ module.exports = class Schools extends Abstract {
       if(questionArrayElm[1].responseType === "matrix") {
         let instanceQuestionArray = new Array()
         questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
-          let instanceQuestion = questionArray[instanceQuestionId.toString()]
-          instanceQuestionArray.push(instanceQuestion)
-          let sectionReferenceOfInstanceQuestion = sectionQuestionArray[instanceQuestionId.toString()]
-          sectionReferenceOfInstanceQuestion.forEach((questionInSection,index) => {
-            if(questionInSection._id.toString() === instanceQuestionId.toString()) {
-              sectionReferenceOfInstanceQuestion.splice(index,1)
-            }
-          })
+          if(sectionQuestionArray[instanceQuestionId.toString()]) {
+            let instanceQuestion = questionArray[instanceQuestionId.toString()]
+            instanceQuestionArray.push(instanceQuestion)
+            let sectionReferenceOfInstanceQuestion = sectionQuestionArray[instanceQuestionId.toString()]
+            sectionReferenceOfInstanceQuestion.forEach((questionInSection,index) => {
+              if(questionInSection._id.toString() === instanceQuestionId.toString()) {
+                sectionReferenceOfInstanceQuestion.splice(index,1)
+              }
+            })
+          }
         })
         questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray
       }
