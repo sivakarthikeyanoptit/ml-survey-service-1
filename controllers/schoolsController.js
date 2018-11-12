@@ -256,6 +256,11 @@ module.exports = class Schools extends Abstract {
                   );
                 }
               });
+            } else if (evidenceMethod.modeOfCollection === "oncall") {
+              submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
+                evidenceMethod,
+                ["sections"]
+              );
             }
           });
         });
@@ -266,7 +271,6 @@ module.exports = class Schools extends Abstract {
           submissionDocument
         );
         assessment.submissionId = submissionDoc.result._id;
-
 
         assessment.evidences = await this.parseQuestions(
           Object.values(evidenceMethodArray),
@@ -290,6 +294,8 @@ module.exports = class Schools extends Abstract {
     let schoolFilterQuestionArray = {}
     let sectionQuestionArray = {}
     let questionArray = {}
+
+    evidences.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
 
     evidences.forEach(evidence => {
 
