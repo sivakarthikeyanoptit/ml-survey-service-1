@@ -218,6 +218,7 @@ module.exports = class Schools extends Abstract {
             ])
           );
           criteria.evidences.forEach(evidenceMethod => {
+            evidenceMethod.notApplicable = false
             if (!evidenceMethodArray[evidenceMethod.externalId] && evidenceMethod.modeOfCollection === "onfield") {
               evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
               submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
