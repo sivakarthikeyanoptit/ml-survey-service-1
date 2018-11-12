@@ -86,6 +86,7 @@ module.exports = class Submission extends Abstract {
           updateObject.$set = { 
             answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
             ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
+            ["evidences."+req.body.evidence.externalId+".notApplicable"] : req.body.evidence.notApplicable,
             ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
             ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
             ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
