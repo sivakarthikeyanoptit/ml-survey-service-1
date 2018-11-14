@@ -45,114 +45,122 @@ module.exports = class Submission extends Abstract {
 
   async make(req) {
     return new Promise(async (resolve, reject) => {
-      req.body = req.body || {};
-      let message = "Submission completed successfully"
-      let runUpdateQuery = false
 
-      let queryObject = {
-        _id: ObjectId(req.params._id)
-      }
-      
-      let queryOptions = {
-        new: true
-      }
+      try {
+        
+        req.body = req.body || {};
+        let message = "Submission completed successfully"
+        let runUpdateQuery = false
 
-      let submissionDocument = await database.models.submissions.findOne(
-        queryObject
-      );
-
-      let updateObject = {}
-      let result = {}
-
-      if(req.body.schoolProfile) {
-        updateObject.$set = { schoolProfile : req.body.schoolProfile }
-        runUpdateQuery = true
-      }
-      
-      if(req.body.evidence) {
-        req.body.evidence.gpsLocation = req.headers.gpslocation
-        req.body.evidence.submittedBy = req.userDetails.userId
-        req.body.evidence.submissionDate = new Date()
-        if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
-          runUpdateQuery = true
-          req.body.evidence.isValid = true
-          let answerArray = new Array()
-          Object.entries(req.body.evidence.answers).forEach(answer => {
-            answerArray[answer[0]] = answer[1]
-          });
-          updateObject.$push = { 
-            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
-          }
-          updateObject.$set = { 
-            answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
-            ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
-            ["evidences."+req.body.evidence.externalId+".notApplicable"] : req.body.evidence.notApplicable,
-            ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
-            ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
-            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
-            status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
-          }
-        } else {
-          runUpdateQuery = true
-          req.body.evidence.isValid = false
-          updateObject.$push = { 
-            ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
-          }
-
-          updateObject.$set = {
-            ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
-            status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
-          }
-
-          message = "Duplicate evidence method submission detected."
+        let queryObject = {
+          _id: ObjectId(req.params._id)
         }
         
-      }
-      
-      if(runUpdateQuery) {
-        let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject,
-          queryOptions
+        let queryOptions = {
+          new: true
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
         );
-        
-        // Commented out the rating flow
-        // let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-        // let {ratingsEnabled} = canRatingsBeEnabled
 
-        // if(ratingsEnabled) {
-        //   updateObject.$set = {
-        //     ratingOfManualCriteriaEnabled: true
-        //   }
-        //   updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-        //     queryObject,
-        //     updateObject,
-        //     queryOptions
-        //   );
-        // }
+        let updateObject = {}
+        let result = {}
 
-        let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
-
-        let response = {
-          message: message,
-          result: status
-        };
-
-        return resolve(response);
-
-      } else {
-
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-      }
-
+        if(req.body.schoolProfile) {
+          updateObject.$set = { schoolProfile : req.body.schoolProfile }
+          runUpdateQuery = true
+        }
       
-    }).catch(error => {
-      reject(error);
-    });
+        if(req.body.evidence) {
+          req.body.evidence.gpsLocation = req.headers.gpslocation
+          req.body.evidence.submittedBy = req.userDetails.userId
+          req.body.evidence.submissionDate = new Date()
+          if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
+            runUpdateQuery = true
+            req.body.evidence.isValid = true
+            let answerArray = new Array()
+            Object.entries(req.body.evidence.answers).forEach(answer => {
+              answerArray[answer[0]] = answer[1]
+            });
+            updateObject.$push = { 
+              ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+            }
+            updateObject.$set = { 
+              answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
+              ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
+              ["evidences."+req.body.evidence.externalId+".notApplicable"] : req.body.evidence.notApplicable,
+              ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
+              ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
+              ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
+              status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
+            }
+          } else {
+            runUpdateQuery = true
+            req.body.evidence.isValid = false
+            updateObject.$push = { 
+              ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+            }
+
+            updateObject.$set = {
+              ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
+              status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
+            }
+
+            message = "Duplicate evidence method submission detected."
+          }
+          
+        }
+      
+        if(runUpdateQuery) {
+          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+            queryObject,
+            updateObject,
+            queryOptions
+          );
+          
+          // Commented out the rating flow
+          // let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+          // let {ratingsEnabled} = canRatingsBeEnabled
+
+          // if(ratingsEnabled) {
+          //   updateObject.$set = {
+          //     ratingOfManualCriteriaEnabled: true
+          //   }
+          //   updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+          //     queryObject,
+          //     updateObject,
+          //     queryOptions
+          //   );
+          // }
+
+          let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
+
+          let response = {
+            message: message,
+            result: status
+          };
+
+          return resolve(response);
+
+        } else {
+
+          let response = {
+            message: message
+          };
+
+          return resolve(response);
+        }
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:"Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+      
+    })
   }
 
   // Commented out the rating flow

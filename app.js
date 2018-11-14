@@ -137,7 +137,6 @@ app.all('*', (req, res, next) => {
 //add routing
 router(app);
 
-
 //listen to given port
 app.listen(config.port, () => {
   log.info(

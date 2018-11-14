@@ -14,13 +14,6 @@ module.exports = function(app) {
       new Promise((resolve, reject) => {
         try {
           resolve(controllers[req.params.controller][req.params.method](req));
-          process.on('unhandledRejection', (reason, p) => {
-            loggerExceptionObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body, errorMessage: reason.stack });
-            res.status(500).json({
-              status:500,
-              message: 'Something went wrong! Please try again!'
-            });
-          });
         } catch (ex) {
           reject(ex);
         }
@@ -45,8 +38,10 @@ module.exports = function(app) {
         })
         .catch(error => {
           res.status(error.status ? error.status : 400).json({
+            status: error.status ? error.status : 400,
             message: error.message
           });
+          loggerExceptionObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: error.errorObject.message, errorStack: error.errorObject.stack });
           loggerObj.info({ resp: error});
           console.log('-------------------Response log starts here-------------------');
           console.log(error);
