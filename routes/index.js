@@ -5,6 +5,7 @@ module.exports = function(app) {
   var router = function(req, res, next) {
     // console.log(req.params);
     //req.params.controller = (req.params.controller).toLowerCase();
+
     req.params.controller += "Controller";
     if (!controllers[req.params.controller]) next();
     else if (!controllers[req.params.controller][req.params.method]) next();
@@ -13,6 +14,13 @@ module.exports = function(app) {
       new Promise((resolve, reject) => {
         try {
           resolve(controllers[req.params.controller][req.params.method](req));
+          process.on('unhandledRejection', (reason, p) => {
+            loggerExceptionObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body, errorMessage: reason.stack });
+            res.status(500).json({
+              status:500,
+              message: 'Something went wrong! Please try again!'
+            });
+          });
         } catch (ex) {
           reject(ex);
         }
@@ -52,6 +60,7 @@ module.exports = function(app) {
   app.all("/assessment/api/v1/:controller/:_id/:method", router);
 
   app.all("/assessment/api/v1/:controller/:method/:_id", router);
+
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");

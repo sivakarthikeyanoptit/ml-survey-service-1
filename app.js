@@ -94,6 +94,15 @@ global.loggerObj = bunyan.createLogger({
       count: 3 // keep 3 back copies 
   }]
 });
+global.loggerExceptionObj = bunyan.createLogger({
+  name: 'exceptionLogs',
+  streams: [{
+      type: 'rotating-file',
+      path: path.join(__dirname + '/logs/exception.log'),
+      period: '1d', // daily rotation 
+      count: 3 // keep 3 back copies 
+  }]
+});
 app.all('*', (req, res, next) => {
   loggerObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body });
   console.log('-------Request log starts here------------------');
@@ -127,6 +136,7 @@ app.all('*', (req, res, next) => {
 
 //add routing
 router(app);
+
 
 //listen to given port
 app.listen(config.port, () => {

@@ -19,7 +19,7 @@ var cacheConfig = {
 
 var respUtil = function(resp) {
   return {
-    code: resp.errCode,
+    status: resp.errCode,
     message: resp.errMsg,
     currentDate: new Date().toISOString()
   };

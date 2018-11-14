@@ -6,7 +6,8 @@ module.exports = class Schools extends Abstract {
     this.roles = {
       ASSESSOR: "assessors",
       LEAD_ASSESSOR: "leadAssessors",
-      PROJECT_MANAGER: "projectManagers"
+      PROJECT_MANAGER: "projectManagers",
+      PROGRAM_MANAGER: "programManagers"
     };
   }
 
@@ -19,37 +20,125 @@ module.exports = class Schools extends Abstract {
     return "schools";
   }
 
-  async upload(req) {
-    // console.log(req.files.schools);
-    try {
-      req.body = await csv().fromString(req.files.schools.data.toString());
-      await req.body.forEach(async school => {
-        school.schoolTypes = await school.schoolType.split(",");
-        school.createdBy = school.updatedBy = await req.userDetails.id;
-        school.gpsLocation = "";
-        await database.models.schools.findOneAndUpdate(
-          { externalId: school.externalId },
-          school,
-          {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true
-          }
-        );
-      });
-      return {
-        message: "schools record created successfully"
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
+  async upload (req) {
 
-  insert(req) {
-    // console.log("reached here!");
-    // req.db = "cassandra";
-    return super.insert(req);
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let schoolsData = await csv().fromString(req.files.schools.data.toString());
+        const schoolsUploadCount = schoolsData.length
+
+        let programQueryList = {}
+        let evaluationFrameworkQueryList = {}
+
+        schoolsData.forEach(school => {
+          programQueryList[school.externalId] = school.programId
+          evaluationFrameworkQueryList[school.externalId] = school.frameworkId
+        });
+
+        let programsFromDatabase = await database.models.programs.find({
+          externalId : { $in: Object.values(programQueryList) }
+        });
+
+        let evaluationFrameworksFromDatabase = await database.models["evaluation-frameworks"].find({
+          externalId : { $in: Object.values(evaluationFrameworkQueryList) }
+        }, {
+          externalId: 1
+        });
+
+        const programsData = programsFromDatabase.reduce( 
+          (ac, program) => ({...ac, [program.externalId]: program }), {} )
+
+        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce( 
+            (ac, evaluationFramework) => ({...ac, [evaluationFramework.externalId]: evaluationFramework._id }), {} )
+
+        const schoolUploadedData = await Promise.all(schoolsData.map(async (school) => {
+          
+          school.schoolTypes = await school.schoolType.split(",");
+          school.createdBy = school.updatedBy = req.userDetails.id;
+          school.gpsLocation = "";
+          const schoolCreateObject = await database.models.schools.findOneAndUpdate(
+            { externalId: school.externalId },
+            school,
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument : true
+            }
+          );
+
+          return {
+            _id:schoolCreateObject._id,
+            externalId:school.externalId,
+            programId:school.programId,
+            frameworkId:school.frameworkId
+          }
+
+        }));
+
+        if(schoolsUploadCount === schoolUploadedData.length) {
+
+          let schoolElement = new Object;
+          let indexOfEvaluationFrameworkInProgram
+          let schoolProgramComponents = new Array
+          let programFrameworkSchools = new Array
+          let schoolCsvDataProgramId
+          let schoolCsvDataEvaluationFrameworkId
+
+          for (let schoolIndexInData = 0; schoolIndexInData < schoolUploadedData.length; schoolIndexInData++) {
+            schoolElement = schoolUploadedData[schoolIndexInData];
+            
+            schoolCsvDataProgramId = programQueryList[schoolElement.externalId] 
+            schoolCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[schoolElement.externalId] 
+            schoolProgramComponents = programsData[schoolCsvDataProgramId].components
+            indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex( component => component.id.toString() === evaluationFrameworksData[schoolCsvDataEvaluationFrameworkId].toString() );
+            
+            if(indexOfEvaluationFrameworkInProgram >= 0) {
+              programFrameworkSchools = schoolProgramComponents[indexOfEvaluationFrameworkInProgram].schools
+              if (programFrameworkSchools.findIndex( school => school.toString() == schoolElement._id.toString()) < 0) {
+                programFrameworkSchools.push(ObjectId(schoolElement._id.toString()))
+              }
+            }
+
+          }
+
+          await Promise.all(Object.values(programsData).map(async (program) => {
+
+            let queryObject = {
+              _id: ObjectId(program._id.toString())
+            }
+            let updateObject = {}
+
+            updateObject.$set = {
+              ["components"]: program.components
+            }
+
+            await database.models.programs.findOneAndUpdate(
+              queryObject,
+              updateObject
+            );
+
+            return
+          }));
+
+        } else {
+          throw "Something went wrong, not all records were inserted/updated."
+        }
+
+        let responseMessage = "School record created successfully."
+
+        let response = { message: responseMessage };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({message:error});
+      }
+
+    })
   }
+  
 
   find(req) {
     req.query.fields = ["name", "externalId"];
@@ -141,7 +230,7 @@ module.exports = class Schools extends Abstract {
             from: "school-assessors", // Use the school-assessors collection
             startWith: "$parentId", // Start looking at the document's `parentId` property
             connectFromField: "parentId", // A link in the graph is represented by the parentId property...
-            connectToField: "_id", // ... pointing to another assessor's _id property
+            connectToField: "userId", // ... pointing to another assessor's _id property
             maxDepth: 2, // Only recurse one level deep
             as: "connections" // Store this in the `connections` property
           }
