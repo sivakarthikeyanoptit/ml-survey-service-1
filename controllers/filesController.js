@@ -81,7 +81,8 @@ module.exports = class FileUpload {
                 const signedUrl = await gcpFile.getSignedUrl(config)
                 fileUrls.push({
                   file:req.body.files[counter],
-                  url:signedUrl[0]
+                  url:signedUrl[0],
+                  payload:{sourcePath:gcpFile.storage.baseUrl+"/"+gcpFile.name}
                 })
               }
               resolve(fileUrls)
