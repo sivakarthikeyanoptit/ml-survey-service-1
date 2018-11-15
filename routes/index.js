@@ -1,4 +1,6 @@
 let authenticator = require("../generics/middleware/authenticator");
+let slackClient = require("../generics/helpers/slackCommunications");
+
 module.exports = function(app) {
   app.use("/assessment/api", authenticator);
 
@@ -41,7 +43,9 @@ module.exports = function(app) {
             status: error.status ? error.status : 400,
             message: error.message
           });
-          loggerExceptionObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: error.errorObject.message, errorStack: error.errorObject.stack });
+          const toLogObject = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: error.errorObject.message, errorStack: error.errorObject.stack }
+          slackClient.sendExceptionLogMessage(toLogObject)
+          loggerExceptionObj.info(toLogObject);
           loggerObj.info({ resp: error});
           console.log('-------------------Response log starts here-------------------');
           console.log(error);

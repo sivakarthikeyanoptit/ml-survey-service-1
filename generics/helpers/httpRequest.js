@@ -1,93 +1,152 @@
-var http = require("http");
-var https = require("https");
-var URL = require('url');
-let options = {};
+/*
+    Usage :
 
-Number.prototype.padLeft = function(base,chr){
-    var  len = (String(base || 10).length - String(this).length)+1;
-    return len > 0? new Array(len).join(chr || '0')+this : this;
- }
-   
- 
- let Request = function() {
+    var Request = require('../Request'); // Path of the module
+    var request = new Request();
 
-    function get(url, params){
-      let urlOpt = URL.parse(url+params);
-      // log.debug(urlOpt);
-      
-      return new Promise((resolve,reject)=>{
-        options.port = urlOpt.protocol == "http:" ? 80 : 443;
-        options.host = urlOpt.host;
-        options.path = urlOpt.path;
-        options.method = "GET";
-        options.headers = {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(params)
-      }
-        // log.debug(options);
-        HttpRequest(options, params).then(result=>{
-          resolve(result);
-        }).catch(err=>{
-          // console.error(new Error(err));
-          reject(err);
-        });
-        
-      });
+    var url = 'http://www.something.com';
+    var options = {
+        method:'Post',
+        data:'send JSON data',
+        ......
     }
-  
-    function HttpRequest(options, body) {
-        var port = options.port == 443 ? https : http;
-        options.timeout = 1000; 
-        return new Promise((resolve, reject) => {
-            var req = port.request(options, function (res) {
-                var output = '';
-                // log.debug(options.host + ':' + res.statusCode);
+
+    request.get(url, options); //get Method
+    request.post(url, options); //post Method
+
+    We can move it to git wiki later.
+
+*/
+
+"use strict";
+
+var https = require('https');
+var http = require('http');
+var url = require('url');
+var formUrlencoded = require('form-urlencoded');
+var fs = require("fs");
+
+var Request = class Request {
+    constructor() {
+
+    }
+
+    _httpRequest(options, data) {
+        return new Promise(function (resolve, reject) {
+            var req;
+
+            var httpModule = (options.type == "http") ? http : https;
+            req = httpModule.request(options, function (res) {
                 res.setEncoding('utf8');
 
-                res.on('data', function (chunk) {
-                    output += chunk;
+                var responseData = '';
+
+                res.on('data', function (str) {
+                    responseData += str;
                 });
-                res.on('end', function () {
-                    // log.debug(res.headers['content-type']);
-                    var obj;
-                    if(res.headers['content-type']== 'application/json; charset=utf-8' || res.headers['content-type']== 'application/json') {
-                        obj = JSON.parse(output);
-                    }else{
-                       obj = output 
-                    }
-                    // log.debug('https response--------->',obj);
-                    if (req.statusCode == 200) {
-                        resolve({ status: res.statusCode, body: obj});
-                    } else {
-                        resolve({ status: res.statusCode, body: obj});
-                    }
 
-
+                res.on('end', function (content) {
+                    resolve({ data: responseData, message: 'Success', status: res.status, headers: res.headers });
                 });
             });
 
             req.on('error', function (err) {
-                reject(err)
+                resolve({ data: null, message: 'Failed' });
             });
 
-            req.end(body);
+            req.end(data);
         });
     }
 
-    function currentDateTime(){
-        var d = new Date,
-        dformat = [ (d.getDate()+1).padLeft(),
-                    d.getMonth().padLeft(),
-                    d.getFullYear()].join('/')+
-                    ' ' +
-                  [ d.getHours().padLeft(),
-                    (d.getMinutes()).padLeft()].join(':');
-        return dformat;
+    _httpFileRequest(options, data, path) {
+        return new Promise(function (resolve, reject) {
+            var req;
+
+            var httpModule = (options.type == "http") ? http : https;
+
+            req = httpModule.request(options, function (res) {
+                resolve(res);
+                // res.on('end', function (content) {
+                //     resolve({ data:path, message: 'Success', status: res.status, headers: res.headers });
+                // });
+            
+                // res.pipe(fs.createWriteStream(path));
+            });
+
+            req.on('error', function (err) {
+                resolve({ data: null, message: 'Failed' });
+            });
+
+            req.end(data);
+        });
     }
 
-    return {
-        get:get
+    _request(requestUrl, options, data, path) {
+        options = options || {};
+        var parsedUrl = url.parse(requestUrl);
+
+        if (parsedUrl.hostname) {
+            options.hostname = parsedUrl.hostname;
+        }
+
+        if (parsedUrl.port) {
+            options.port = parsedUrl.port;
+        }
+
+        if (parsedUrl.path) {
+            options.path = parsedUrl.path;
+        }
+        if(!path)
+            return this._httpRequest(options, data);
+        else
+            return this._httpFileRequest(options, data, path);
+    }
+
+    get(url, options, path) {
+        options = options || {};
+
+        // Set method to GET and call it
+        options.method = 'GET';
+        return this._request(url, options, null, path);
+    }
+
+    post(url, options) {
+        options = options || {};
+        var self = this;
+
+        // Try and extract data and set it's type
+        var data = null;
+        return new Promise(function (resolve, reject) {
+            try {
+                if (options.form) {
+                    data = formUrlencoded.encode(options.form);
+                    options.headers = {
+                        'content-type': 'application/x-www-form-urlencoded',
+                        'content-length': Buffer.byteLength(data)
+                    };
+                } else if (options.json) {
+                    data = JSON.stringify(options.json);
+                    if (!options.headers)
+                        options.headers = {
+                            'content-type': 'application/json',
+                            'content-length': Buffer.byteLength(data)
+                        };
+                    else
+                        options.headers['content-length'] = Buffer.byteLength(data)
+                }
+            } catch (error) {
+                return process.nextTick(function () {
+                    reject({ message: 'There is issue in the sent data' });
+                });
+            }
+
+            // Set method to POST and call it
+            options.method = 'POST';
+            return resolve(self._request(url, options, data))
+        });
     }
 }
 
-module.exports = Request ;
+
+module.exports = Request
+
