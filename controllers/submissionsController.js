@@ -1,3 +1,5 @@
+const math = require('mathjs')
+
 module.exports = class Submission extends Abstract {
   constructor(schema) {
     super(schema);
@@ -156,6 +158,93 @@ module.exports = class Submission extends Abstract {
         return reject({
           status:500,
           message:"Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+      
+    })
+  }
+
+
+  async rate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        req.body = req.body || {};
+        let message = "Crtieria rating completed successfully"
+
+        let queryObject = {
+          _id: ObjectId(req.params._id)
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
+        );
+
+        if(!submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        }
+
+        let result = {}
+      
+        if(req.body.expressionVariables && req.body.expression && req.body.criteriaId) {
+          const submissionAnswers = new Array
+          const questionValueExtractor = function (question) {
+            const questionArray = question.split('.')
+            submissionAnswers.push(submissionDocument.answers[questionArray[0]])
+            if(questionArray[1] === "value") {
+              if(submissionDocument.answers[questionArray[0]]) {
+                return submissionDocument.answers[questionArray[0]].value
+              } else {
+                return "NA"
+              }
+            } else if (questionArray[1] === "mode") {
+              if(submissionDocument.answers[questionArray[0]]) {
+                return submissionDocument.answers[questionArray[0]].value
+              } else {
+                return "NA"
+              }
+            }
+          }
+          const criteria = submissionDocument.criterias.find(criteria => criteria._id.toString() === req.body.criteriaId)
+          let expressionVariables = {}
+          let expressionResult = {}
+          Object.keys(req.body.expressionVariables).forEach(variable => {
+            expressionVariables[variable] = questionValueExtractor(req.body.expressionVariables[variable])
+          })
+          Object.keys(req.body.expression).forEach(level => {
+            //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
+            expressionResult[level] = {
+              expressionParsed : req.body.expression[level]//,
+              //result : math.eval(req.body.expression[level],expressionVariables)
+            }
+          })
+          // const parser = math.parser()
+          // create a string
+          // console.log(math.compareText("hello", "hello"))                      // String, "hello"
+
+          result.expressionVariables = expressionVariables
+          result.expressionResult = expressionResult
+          result.submissionAnswers = submissionAnswers
+          result.criteria = criteria
+          
+        } else {
+          throw "Missing post parameters"
+        }
+
+
+        let response = {
+          message: message,
+          result: result
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:error,
           errorObject: error
         });
       }

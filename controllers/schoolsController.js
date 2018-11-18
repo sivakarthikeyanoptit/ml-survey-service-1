@@ -365,12 +365,14 @@ module.exports = class Schools extends Abstract {
           );
           assessment.submissionId = submissionDoc.result._id;
 
-          assessment.evidences = await this.parseQuestions(
+          const parsedAssessment = await this.parseQuestions(
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
             submissionDoc.result.evidences
           );
 
+          assessment.evidences = parsedAssessment.evidences
+          assessment.submissions = parsedAssessment.submissions
           assessments.push(assessment);
         }
 
@@ -392,7 +394,7 @@ module.exports = class Schools extends Abstract {
     let schoolFilterQuestionArray = {}
     let sectionQuestionArray = {}
     let questionArray = {}
-
+    let submissionArray = new Array
     evidences.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
 
     evidences.forEach(evidence => {
@@ -400,8 +402,9 @@ module.exports = class Schools extends Abstract {
       evidence.startTime = submissionDocEvidences[evidence.externalId].startTime
       evidence.endTime = submissionDocEvidences[evidence.externalId].endTime
       evidence.isSubmitted = submissionDocEvidences[evidence.externalId].isSubmitted
-      evidence.submissions = (submissionDocEvidences[evidence.externalId].submissions) ? submissionDocEvidences[evidence.externalId].submissions : new Array
-
+      if(submissionDocEvidences[evidence.externalId].submissions) {
+        submissionDocEvidences[evidence.externalId].submissions.forEach(submission => {submissionArray.push(submission)}) 
+      }
       
       evidence.sections.forEach(section => {
         section.questions.forEach((question,index,section) => {
@@ -427,7 +430,8 @@ module.exports = class Schools extends Abstract {
     Object.entries(questionArray).forEach(questionArrayElm => {
 
       questionArrayElm[1]["payload"] = {
-        criteriaId:questionArrayElm[1]["criteriaId"]
+        criteriaId:questionArrayElm[1]["criteriaId"],
+        responseType:questionArrayElm[1]["responseType"]
       }
       delete questionArrayElm[1]["criteriaId"]
 
@@ -449,7 +453,10 @@ module.exports = class Schools extends Abstract {
       }
 
     });
-    return evidences;
+    return {
+      evidences: evidences,
+      submissions: submissionArray
+    };
   }
 
 };
