@@ -394,7 +394,7 @@ module.exports = class Schools extends Abstract {
     let schoolFilterQuestionArray = {}
     let sectionQuestionArray = {}
     let questionArray = {}
-    let submissionArray = new Array
+    let submissionsObjects = {}
     evidences.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
 
     evidences.forEach(evidence => {
@@ -403,7 +403,11 @@ module.exports = class Schools extends Abstract {
       evidence.endTime = submissionDocEvidences[evidence.externalId].endTime
       evidence.isSubmitted = submissionDocEvidences[evidence.externalId].isSubmitted
       if(submissionDocEvidences[evidence.externalId].submissions) {
-        submissionDocEvidences[evidence.externalId].submissions.forEach(submission => {submissionArray.push(submission)}) 
+        submissionDocEvidences[evidence.externalId].submissions.forEach(submission => {
+          if(submission.isValid) {
+            submissionsObjects[evidence.externalId] = submission
+          }
+        }) 
       }
       
       evidence.sections.forEach(section => {
@@ -455,7 +459,7 @@ module.exports = class Schools extends Abstract {
     });
     return {
       evidences: evidences,
-      submissions: submissionArray
+      submissions: submissionsObjects
     };
   }
 
