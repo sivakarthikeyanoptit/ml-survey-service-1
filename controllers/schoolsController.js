@@ -311,6 +311,8 @@ module.exports = class Schools extends Abstract {
             );
             criteria.evidences.forEach(evidenceMethod => {
               evidenceMethod.notApplicable = false
+              evidenceMethod.canBeNotAllowed = true
+              evidenceMethod.remarks = ""
               if (!evidenceMethodArray[evidenceMethod.externalId] && evidenceMethod.modeOfCollection === "onfield") {
                 evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
                 submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
@@ -437,6 +439,8 @@ module.exports = class Schools extends Abstract {
         criteriaId:questionArrayElm[1]["criteriaId"],
         responseType:questionArrayElm[1]["responseType"]
       }
+      questionArrayElm[1]["startTime"] = ""
+      questionArrayElm[1]["endTime"] = ""
       delete questionArrayElm[1]["criteriaId"]
 
       if(questionArrayElm[1].responseType === "matrix") {

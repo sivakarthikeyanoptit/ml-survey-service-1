@@ -11,6 +11,7 @@ module.exports = {
     schoolProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,
-    ratings: Object
+    ratings: Object,
+    feedback:Array
   }
 };

@@ -1,4 +1,65 @@
 const math = require('mathjs')
+math.import({
+  compareDates: function (dateString1, dateString2) {
+    let date1 = new Date(dateString1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+    let date2 = new Date(dateString2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+
+    date1.setHours(0)
+    date1.setMinutes(0)
+    date1.setSeconds(0)
+    date2.setHours(0)
+    date2.setMinutes(0)
+    date2.setSeconds(0)
+
+    if(date1 > date2) {
+      return 1
+    } else if (date1 < date2) {
+      return -1
+    } else {
+      return 0
+    }
+  },
+  checkIfPresent: function (needle, haystack) {
+    let searchUniverse = new Array
+    if(haystack._data) {searchUniverse = haystack._data} else {searchUniverse = haystack}
+    return searchUniverse.findIndex( arrayElement => arrayElement === needle)
+  },
+  checkIfModeIs: function (needle, haystack) {
+    let searchKey
+    let isMode
+    if(needle._data) {
+      searchKey = needle._data
+      searchKey.sort()
+      haystack.forEach(haystackElm => {
+        haystackElm.sort()
+      })
+    } else {
+      searchKey = needle
+    }
+    const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
+    
+    if(needle._data) {
+      isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && (countOfElements[0][1] > countOfElements[1][1])) ? 1 : -1
+    } else {
+      isMode = (countOfElements[0][0] === searchKey && (countOfElements[0][1] > countOfElements[1][1])) ? 1 : -1
+    }
+
+    return isMode
+  },
+  modeValue: function (haystack) {
+    const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
+    return countOfElements[0][1]
+  },
+  percentageOf: function (needle, haystack) {
+    const countOfElements = _.countBy(haystack)
+    return Math.round((countOfElements[needle]/haystack.length)*100)
+  },
+  averageOf: function (haystack) {
+    haystack = haystack.map(x => parseInt(x));
+    return Math.round(_.sum(haystack)/haystack.length)
+  }
+})
+
 
 module.exports = class Submission extends Abstract {
   constructor(schema) {
@@ -81,15 +142,44 @@ module.exports = class Submission extends Abstract {
           if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
-            let answerArray = new Array()
+            let answerArray = {}
             Object.entries(req.body.evidence.answers).forEach(answer => {
+              if(answer[1].responseType === "matrix") {
+                for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+                  
+                  _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+                    
+                    if(answerArray[question.qid]) {
+                      answerArray[question.qid].instanceResponses.push(question.value)
+                      answerArray[question.qid].instanceRemarks.push(question.remarks)
+                      answerArray[question.qid].instanceFileName.push(question.fileName)
+                    } else {
+                      let clonedQuestion = {...question}
+                      clonedQuestion.instanceResponses = new Array
+                      clonedQuestion.instanceRemarks = new Array
+                      clonedQuestion.instanceFileName = new Array
+                      clonedQuestion.instanceResponses.push(question.value)
+                      clonedQuestion.instanceRemarks.push(question.remarks)
+                      clonedQuestion.instanceFileName.push(question.fileName)
+                      delete clonedQuestion.value
+                      delete clonedQuestion.remarks
+                      delete clonedQuestion.fileName
+                      delete clonedQuestion.payload
+                      answerArray[question.qid] = clonedQuestion
+                    }
+
+                  })
+                }
+                answer[1].countOfInstances = answer[1].value.length
+              }
               answerArray[answer[0]] = answer[1]
             });
+            
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
             updateObject.$set = { 
-              answers : _.assignIn(submissionDocument.answers, req.body.evidence.answers),
+              answers : _.assignIn(submissionDocument.answers, answerArray),
               ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
               ["evidences."+req.body.evidence.externalId+".notApplicable"] : req.body.evidence.notApplicable,
               ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
@@ -113,7 +203,7 @@ module.exports = class Submission extends Abstract {
           }
           
         }
-      
+        
         if(runUpdateQuery) {
           let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
             queryObject,
@@ -205,6 +295,12 @@ module.exports = class Submission extends Abstract {
               } else {
                 return "NA"
               }
+            } else if (questionArray[1] === "instanceResponses") {
+              if(submissionDocument.answers[questionArray[0]]) {
+                return submissionDocument.answers[questionArray[0]].instanceResponses
+              } else {
+                return "NA"
+              }
             }
           }
           const criteria = submissionDocument.criterias.find(criteria => criteria._id.toString() === req.body.criteriaId)
@@ -216,8 +312,8 @@ module.exports = class Submission extends Abstract {
           Object.keys(req.body.expression).forEach(level => {
             //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
             expressionResult[level] = {
-              expressionParsed : req.body.expression[level]//,
-              //result : math.eval(req.body.expression[level],expressionVariables)
+              expressionParsed : req.body.expression[level],
+              result : math.eval(req.body.expression[level],expressionVariables)
             }
           })
           // const parser = math.parser()
@@ -475,6 +571,61 @@ module.exports = class Submission extends Abstract {
   //     reject(error);
   //   });
   // }
+
+
+  async feedback(req) {
+    return new Promise(async (resolve, reject) => {
+      req.body = req.body || {};
+      let responseMessage
+      let runUpdateQuery = false
+
+      let queryObject = {
+        _id: ObjectId(req.params._id)
+      }
+
+      let submissionDocument = await database.models.submissions.findOne(
+        queryObject
+      );
+
+      let updateObject = {}
+      let result = {}
+
+      if(req.body.feedback) {
+
+        req.body.feedback.userId = req.userDetails.userId
+        req.body.feedback.submissionDate = new Date()
+        req.body.feedback.submissionGpsLocation = req.headers.gpslocation
+
+        runUpdateQuery = true
+        
+        updateObject.$push = { 
+          ["feedback"]: req.body.feedback
+        }
+
+      } else {
+        responseMessage = "Invalid request"
+      }
+      
+      if(runUpdateQuery) {
+        result = await database.models.submissions.findOneAndUpdate(
+          queryObject,
+          updateObject
+        );
+        
+        responseMessage = "Feedback submitted successfully."
+
+      }
+
+      let response = {
+        message: responseMessage
+      };
+
+      return resolve(response);
+      
+    }).catch(error => {
+      reject(error);
+    });
+  }
 
 
   async status(req) {
