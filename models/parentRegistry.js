@@ -6,6 +6,7 @@ module.exports = {
     name: "String",
     gender: "String",
     type: "String",
+    typeLabel: "String",
     phone1: "String",
     phone2: "String",
     address: "String",
