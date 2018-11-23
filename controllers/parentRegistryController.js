@@ -38,6 +38,41 @@ module.exports = class ParentRegistry extends Abstract {
     })
   }
 
+  list(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let result = {}
+
+        if(req.params._id) {
+    
+          let queryObject = {
+            schoolId: req.params._id
+          }
+          
+          result = await database.models["parent-registry"].find(
+            queryObject
+          );
+
+        } else {
+          throw "Bad Request"
+        }
+
+        let responseMessage = "Parent information fetched successfully."
+
+        let response = { message: responseMessage,result: result};
+
+        return resolve(response);
+      } catch (error) {
+        return reject({message:error});
+      }
+
+    })
+  }
+
 
 
   async form(req) {

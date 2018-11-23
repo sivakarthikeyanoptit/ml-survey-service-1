@@ -588,9 +588,8 @@ module.exports = class Submission extends Abstract {
       );
 
       let updateObject = {}
-      let result = {}
 
-      if(req.body.feedback) {
+      if(req.body.feedback && submissionDocument.status != "started") {
 
         req.body.feedback.userId = req.userDetails.userId
         req.body.feedback.submissionDate = new Date()
