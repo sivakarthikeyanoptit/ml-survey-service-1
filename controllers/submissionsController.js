@@ -1,8 +1,8 @@
 const math = require('mathjs')
 math.import({
-  compareDates: function (dateString1, dateString2) {
-    let date1 = new Date(dateString1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
-    let date2 = new Date(dateString2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+  compareDates: function (dateArg1, dateArg2) {
+    let date1 = new Date(dateArg1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+    let date2 = new Date(dateArg2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
 
     date1.setHours(0)
     date1.setMinutes(0)
@@ -57,6 +57,32 @@ math.import({
   averageOf: function (haystack) {
     haystack = haystack.map(x => parseInt(x));
     return Math.round(_.sum(haystack)/haystack.length)
+  },
+  differenceInDays: function (dateArg1, dateArg2) { 
+
+    let date1
+    let date2
+    
+    if(typeof dateArg1 === "string") {
+      date1 = new Date(dateArg1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+    } else {
+      date1 = new Date(dateArg1)
+    }
+
+    if(typeof dateArg2 === "string") {
+      date2 = new Date(dateArg2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
+    } else {
+      date2 = new Date(dateArg2)
+    }
+
+    date1.setHours(0)
+    date1.setMinutes(0)
+    date1.setSeconds(0)
+    date2.setHours(0)
+    date2.setMinutes(0)
+    date2.setSeconds(0)
+
+    return Math.ceil((date1.getTime() - date2.getTime()) / (1000 * 3600 * 24))
   }
 })
 

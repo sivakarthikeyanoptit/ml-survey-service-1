@@ -14,7 +14,7 @@ module.exports = class Feedback extends Abstract {
       let result = [
         {
           field: "q1",
-          label: "How was your experience in the school?",
+          label: "How was your experience in the school on a scale of 1-10?",
           value: "",
           visible: true,
           editable: true,
@@ -25,24 +25,44 @@ module.exports = class Feedback extends Abstract {
           children : [],
           options: [
             {
-              value: "veryPoor",
-              label: "Very Poor"
+              value: "1",
+              label: "1"
             },
             {
-              value: "poor",
-              label: "Poor"
+              value: "2",
+              label: "2"
             },
             {
-              value: "average",
-              label: "Average"
+              value: "3",
+              label: "3"
             },
             {
-              value: "good",
-              label: "Good"
+              value: "4",
+              label: "4"
             },
             {
-              value: "excellent",
-              label: "Excellent"
+              value: "5",
+              label: "5"
+            },
+            {
+              value: "6",
+              label: "6"
+            },
+            {
+              value: "7",
+              label: "7"
+            },
+            {
+              value: "8",
+              label: "8"
+            },
+            {
+              value: "9",
+              label: "9"
+            },
+            {
+              value: "10",
+              label: "10"
             }
           ],
           validation: {
@@ -90,23 +110,31 @@ module.exports = class Feedback extends Abstract {
                 value : "no",
                 field : "q2"
             }
-          ],
+          ], 
           options: [
             {
               value: "principalNotCooperative",
-              label: "Principal was not cooperative"
+              label: "Principal did not allow to enter the school"
             },
             {
-              value: "teachersNotCooperative",
-              label: "Teachers were not cooperative"
+              value: "principalDidNotGiveInterview",
+              label: "Principal did not give interview"
             },
             {
-              value: "schoolManagementHadIssues",
-              label: "School management had issues"
+              value: "principalDidNotGiveSchoolRecords",
+              label: "Principal did not provide school records"
             },
             {
-              value: "studentsWereAway",
-              label: "Students were away for various reasons"
+              value: "teachersDidNotGiveInterview",
+              label: "Teachers did not give interviews"
+            },
+            {
+              value: "principalDidNotAllowStudentsToBeInterviewed",
+              label: "Principal did not allow students to be interviewed"
+            },
+            {
+              value: "principalDidNotAllowStudentsToBeAssessed",
+              label: "Principal did not allow students to be assessed"
             },
             {
               value: "others",
