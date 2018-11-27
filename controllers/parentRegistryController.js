@@ -1,3 +1,5 @@
+const csv = require("csvtojson");
+
 module.exports = class ParentRegistry extends Abstract {
 
   constructor(schema) {
@@ -73,6 +75,116 @@ module.exports = class ParentRegistry extends Abstract {
     })
   }
 
+
+  async upload(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let schoolWiseParentsData = await csv().fromString(req.files.parents.data.toString());
+
+        let schoolQueryList = {}
+        let programQueryList = {}
+
+        schoolWiseParentsData.forEach(schoolWiseParents => {
+          schoolQueryList[schoolWiseParents.schoolId] = schoolWiseParents.schoolId
+          programQueryList[schoolWiseParents.schoolId] = schoolWiseParents.programId
+        });
+
+        let schoolsFromDatabase = await database.models.schools.find({
+          externalId : { $in: Object.values(schoolQueryList) }
+        }, {
+          externalId: 1,
+          name:1
+        });
+
+        let programsFromDatabase = await database.models.programs.find({
+          externalId : { $in: Object.values(programQueryList) }
+        });
+
+        const schoolsData = schoolsFromDatabase.reduce( 
+          (ac, school) => ({...ac, [school.externalId]: {_id:school._id,name:school.name} }), {} )
+        
+        const programsData = programsFromDatabase.reduce( 
+          (ac, program) => ({...ac, [program.externalId]: program }), {} )
+
+        
+        schoolWiseParentsData = await Promise.all(schoolWiseParentsData.map(async (schoolWiseParents) => {
+          
+          let parentInformation = new Array
+          let nameOfParentTypeField
+          let nameOfParentTypeLabelField
+          let nameOfParentNameField
+          let nameOfParentAddressField
+          let nameOfParentPhoneField
+          let validParentCount = 0
+
+          for (let parentCounter = 1; parentCounter < 50; parentCounter++) {
+            nameOfParentTypeField = "parent"+parentCounter+"Type";
+            nameOfParentTypeLabelField = "parent"+parentCounter+"TypeLabel";
+            nameOfParentNameField = "parent"+parentCounter+"Name";
+            nameOfParentAddressField = "parent"+parentCounter+"Address";
+            nameOfParentPhoneField = "parent"+parentCounter+"Phone";
+
+            if(schoolWiseParents[nameOfParentNameField] && schoolWiseParents[nameOfParentPhoneField] && schoolsData[schoolWiseParents.schoolId]&& schoolWiseParents[nameOfParentNameField] != "" && schoolWiseParents[nameOfParentPhoneField].length > 5) {
+              parentInformation.push({
+                name: schoolWiseParents[nameOfParentNameField],
+                type: schoolWiseParents[nameOfParentTypeField],
+                typeLabel: schoolWiseParents[nameOfParentTypeLabelField],
+                phone1: schoolWiseParents[nameOfParentPhoneField],
+                address: schoolWiseParents[nameOfParentAddressField],
+                programId: programsData[schoolWiseParents.programId]._id.toString(),
+                schoolId: schoolsData[schoolWiseParents.schoolId]._id.toString(),
+                schoolName: schoolsData[schoolWiseParents.schoolId].name,
+              })
+              validParentCount += 1
+            }
+          }
+
+          parentInformation = await Promise.all(parentInformation.map(async (parent) => {
+          
+            parent = await database.models["parent-registry"].findOneAndUpdate(
+              { 
+                phone1: parent.phone1,
+                programId: parent.programId,
+                schoolId: parent.schoolId
+              },
+              parent,
+              {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true,
+                returnNewDocument : true
+              }
+            );
+            return parent
+
+          }));
+
+          if(validParentCount > 0 && validParentCount == parentInformation.length) {
+            return parentInformation
+          } else {
+            return;
+          }
+
+        }));
+
+        if (schoolWiseParentsData.findIndex( school => school === undefined) >= 0) {
+          throw "Something went wrong, not all records were inserted/updated."
+        }
+
+        let responseMessage = "Parents record created successfully."
+
+        let response = { message: responseMessage };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({message:error});
+      }
+
+    })
+  }
 
 
   async form(req) {
