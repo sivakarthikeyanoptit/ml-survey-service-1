@@ -1,7 +1,7 @@
 module.exports = {
   name: "schools",
   schema: {
-    id: "String",
+    // form: Object,
     externalId: "String",
     addressLine1: "String",
     addressLine2: "String",
@@ -9,10 +9,7 @@ module.exports = {
     country: "String",
     createdBy: "String",
     createdDate: "String",
-    gpsLocation: {
-      lat: "String",
-      long: "String"
-    },
+    gpsLocation: "String",
     isDeleted: false,
     name: "String",
     phone: "String",
@@ -21,7 +18,18 @@ module.exports = {
     status: "String",
     updatedBy: "String",
     updatedDate: "String",
-    pincode: "String"
-  },
-  key: ["id"]
+    pincode: "String",
+    districtId: "String",
+    districtName: "String",
+    zoneId: "String",
+    administration: "String",
+    gender: "String",
+    shift: "String",
+    schoolTypes: Array,
+    totalStudents: "String",
+    totalGirls: "String",
+    totalBoys: "String",
+    lowestGrade: "String",
+    highestGrade: "String"
+  }
 };

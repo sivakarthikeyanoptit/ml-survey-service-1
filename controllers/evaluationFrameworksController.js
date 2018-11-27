@@ -1,4 +1,4 @@
-module.exports = class EvaluationFrameworks extends AbstractController {
+module.exports = class EvaluationFrameworks extends Abstract {
   constructor(schema) {
     super(schema);
   }
@@ -9,5 +9,13 @@ module.exports = class EvaluationFrameworks extends AbstractController {
 
   find(req) {
     return super.find(req);
+  }
+  
+  findOne(req) {
+    return super.findOne(req);
+  }
+
+  findById(req) {
+    return super.findById(req);
   }
 };

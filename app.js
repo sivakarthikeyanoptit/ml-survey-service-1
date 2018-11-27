@@ -1,23 +1,24 @@
 require("dotenv").config();
+//config and routes
+global.config = require("./config");
+require("./config/globalVariable")();
 
-// Global variables
-global._ = require("lodash");
-global.async = require("async");
-
-let config = require("./config");
 let router = require("./routes");
 
-const requireAll = require("require-all");
-var compression = require("compression");
-const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
-const morgan = require("morgan");
-let express = require("express");
+//express
+const express = require("express");
+const fileUpload = require("express-fileupload");
 let app = express();
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+//required modules
+const requireAll = require("require-all");
+const bodyParser = require("body-parser");
+const cors = require("cors");
 
+//To enable cors
+app.use(cors());
+
+//check server connectivity
 app.get("/ping", (req, res) => {
   res.send("pong!");
 });
@@ -36,50 +37,111 @@ global.controllers = requireAll({
   dirname: __dirname + "/controllers",
   filter: /(.+Controller)\.js$/,
   resolve: function(Controller) {
-    return new Controller(models[Controller.name]);
+    if (Controller.name) return new Controller(models[Controller.name]);
+    else return new Controller();
   }
 });
 
-app.use(morgan("dev"));
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,PUT,POST,PATCH,DELETE,OPTIONS"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization," +
-      "cid, user-id, x-auth, Cache-Control, X-Requested-With, *"
-  );
+app.use(fileUpload());
+app.use(bodyParser.json({limit: '1mb'}));
+app.use(bodyParser.urlencoded({ limit: '1mb', extended: false }));
+app.use(express.static("public"));
 
-  if (req.method === "OPTIONS") {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
+//request logger
+var fs = require("fs");
+//var morgan = require("morgan");
+var path = require("path");
+
+fs.existsSync("logs") || fs.mkdirSync("logs");
+// var accessLogStream = fs.createWriteStream(
+//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/access.log"),
+//   { flags: "a" }
+// );
+// var errorLogStream = fs.createWriteStream(
+//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/error.log"),
+//   { flags: "a" }
+// );
+// app.use(morgan("combined", { stream: accessLogStream }));
+// app.use(
+//   morgan("combined", {
+//     stream: errorLogStream,
+//     skip: function(req, res) {
+//       return res.statusCode < 400;
+//     }
+//   })
+// );
+// app.use(morgan("dev"));
+
+//swagger docs
+const swagger = require("./swagger");
+const swaggerMW = new swagger();
+app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
+
+app.get("/assessment/web/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+});
+app.get("/assessment/web2/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "/public/assessment/web2/index.html"));
 });
 
-app.all("*", (req, res, next) => {
-  console.log(
-    "---------------------------------------------------------------------------"
-  );
-  console.log(
-    "%s %s on %s from ",
-    req.method,
-    req.url,
-    new Date(),
-    req.headers["user-agent"]
-  );
-  console.log("Request Headers: ", req.headers);
-  console.log("Request Body: ", req.body);
-  console.log("Request Files: ", req.files);
+var bunyan = require('bunyan');
+global.loggerObj = bunyan.createLogger({
+  name: 'foo',
+  streams: [{
+      type: 'rotating-file',
+      path: path.join(__dirname + '/logs/all.log'),
+      period: '1d', // daily rotation 
+      count: 3 // keep 3 back copies 
+  }]
+});
+global.loggerExceptionObj = bunyan.createLogger({
+  name: 'exceptionLogs',
+  streams: [{
+      type: 'rotating-file',
+      path: path.join(__dirname + '/logs/exception.log'),
+      period: '1d', // daily rotation 
+      count: 3 // keep 3 back copies 
+  }]
+});
+app.all('*', (req, res, next) => {
+  loggerObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body });
+  console.log('-------Request log starts here------------------');
+  console.log('%s %s on %s from ', req.method, req.url, new Date(), req.headers['user-agent']);
+  console.log('Request Headers: ', req.headers);
+  console.log('Request Body: ', req.body);
+  console.log('Request Files: ', req.files);
+  console.log('-------Request log ends here------------------');
   next();
 });
 
-app.use(express.static("public"));
+// Add headers
+/* app.use(function(req, res, next) {
+
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // Pass to next layer of middleware
+    next();
+}); */
+
+//add routing
 router(app);
 
+//listen to given port
 app.listen(config.port, () => {
-  console.log("Application is running on the port:" + config.port);
+  log.info(
+    "Environment: " +
+      (process.env.NODE_ENV ? process.env.NODE_ENV : "development")
+  );
+  log.info("Application is running on the port:" + config.port);
 });

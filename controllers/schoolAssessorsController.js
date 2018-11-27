@@ -1,4 +1,4 @@
-module.exports = class SchoolAssessors extends AbstractController {
+module.exports = class SchoolAssessors extends Abstract {
   constructor(schema) {
     super(schema);
   }
@@ -12,11 +12,16 @@ module.exports = class SchoolAssessors extends AbstractController {
     // req.db = "cassandra";
     return super.insert(req);
   }
+  
   find(req) {
     // req.db = "cassandra";
     req.query = { userId: req.userDetails.userId };
-    req.populate = "schools";
-    console.log(req.query, req.populate);
+    //req.populate = "schools";
+    
+    req.populate = {
+      path: 'schools',
+      select: ["name","externalId"]
+    };
 
     // return super.find(req);
     return super.populate(req);

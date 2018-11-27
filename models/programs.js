@@ -1,7 +1,6 @@
 module.exports = {
   name: "programs",
   schema: {
-    id: "String",
     externalId: "String",
     externalId: "String",
     name: "String",
@@ -15,8 +14,8 @@ module.exports = {
     keywords: ["String"],
     concepts: ["json"],
     createdFor: ["String"],
+    imageCompression: {},
     components: ["json"],
     components: ["json"]
-  },
-  key: ["id"]
+  }
 };

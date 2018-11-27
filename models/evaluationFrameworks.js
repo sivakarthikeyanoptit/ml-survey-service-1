@@ -2,7 +2,6 @@
 module.exports = {
   name: "evaluation-frameworks",
   schema: {
-    id: "String",
     externalId: "String",
     name: "String",
     description: "String",
@@ -14,6 +13,5 @@ module.exports = {
     concepts: ["json"],
     createdFor: ["String"],
     themes: ["json"]
-  },
-  key: ["id"]
+  }
 };

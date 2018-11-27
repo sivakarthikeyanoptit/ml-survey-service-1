@@ -1,151 +1,57 @@
 /**
- * Project          : Shikshalokam
+ * Project          : Shikshalokam-Assessment
  * Module           : Configuration
  * Source filename  : index.js
  * Description      : Environment related configuration variables
- * Author           : Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>
- * Copyright        : Copyright © 2017
+ * Copyright        : Copyright © 2018
  *                    Written under contract by Above Solutions Pvt. Ltd.
+ * Author           : Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>
  */
 
-var installModule = function(config) {
-  global.AbstractController = require("../generic/abstractController").init(
-    config
+let db_connect = function(configData) {
+  global.database = require("./dbConfig")(
+    configData.DB_Config.connection.mongodb
   );
+  global.ObjectId = database.ObjectId;
+  global.Abstract = require("../generics/abstract");
 };
 
 const configuration = {
-  development: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "shikshalokam-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 4201,
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "Shikshalokam-Development"
-        }
-      },
-      cassandraConnection: {
-        clientOptions: {
-          contactPoints: ["35.200.172.221"],
-          // protocolOptions: { port: 9042 },
-          keyspace: "shikshalokam",
-          user: "",
-          pass: ""
-        },
-        ormOptions: {
-          defaultReplicationStrategy: {
-            class: "SimpleStrategy",
-            replication_factor: 1
-          },
-          migration: "safe"
-        }
-      }
-    },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    security: {
-      tokenLife: 3600
-    },
-    email: {
-      senderEmail: "",
-      password: ""
-    },
-    LoginByPass: false
+  root: require("path").normalize(__dirname + "/.."),
+  app: {
+    name: "sl-assessment-api"
   },
-  staging: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "shikshalokam-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 8001,
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "Shikshalokam-Staging"
+  host: process.env.HOST || "http://localhost",
+  port: process.env.PORT || 4201,
+  log: process.env.LOG || "debug",
+  DB_Config: {
+    connection: {
+      mongodb: {
+        host: process.env.MONGODB_URL || "mongodb://localhost:27017",
+        user: "",
+        pass: "",
+        database: process.env.DB || "sl-assessment",
+        options: {
+          useNewUrlParser: true
         }
       }
     },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    security: {
-      tokenLife: 3600
-    },
-    facebook: {
-      clientID: "",
-      clientSecret: ""
-    },
-    google: {
-      clientID: "",
-      clientSecret: ""
-    },
-    email: {
-      senderEmail: "",
-      password: ""
-    },
-    LoginByPass: false
+    plugins: {
+      timestamps: true,
+      elasticSearch: false,
+      softDelete: true,
+      autoPopulate: false,
+      timestamps_fields: {
+        createdAt: "createdAt",
+        updatedAt: "updatedAt"
+      }
+    }
   },
-  testing: {
-    root: require("path").normalize(__dirname + "/.."),
-    app: {
-      name: "shikshalokam-api"
-    },
-    host: process.env.HOST || "http://localhost",
-    port: process.env.PORT || 8000,
-    DB_Config: {
-      connection: {
-        mongodb: {
-          host:
-            process.env.MONGODB_URL ||
-            process.env.MONGOLAB_URI ||
-            process.env.MONGOHQ_URL ||
-            "mongodb://localhost:27017",
-          user: "",
-          pass: "",
-          database: process.env.DB || "Shikshalokam-Testing"
-        }
-      }
-    },
-    version: "0.0.1",
-    URLPrefix: "/api/v1",
-    security: {
-      tokenLife: 3600
-    },
-    facebook: {
-      clientID: "",
-      clientSecret: ""
-    },
-    google: {
-      clientID: "",
-      clientSecret: ""
-    },
-    email: {
-      senderEmail: "",
-      password: ""
-    },
-    LoginByPass: false
-  }
+  version: "0.0.1",
+  URLPrefix: "/api/v1",
+  webUrl: "https://dev.shikshalokam.org"
 };
 
-let env = process.env.NODE_ENV || "development";
-installModule(configuration[env]);
+db_connect(configuration);
 
-module.exports = configuration[env];
+module.exports = configuration;

@@ -2,7 +2,7 @@ paths:
   /schools/find:
     get:
       description: Returns all schools from the system that the user has access to
-      operationId: findschoolss
+      operationId: find schools
       produces:
         - application/json
         - application/xml
@@ -10,7 +10,7 @@ paths:
         - text/html
       security:
         - ApiKeyAuth: []
-        - Bearer: []
+        # - Bearer: []
       tags:
         - Schools
       responses:
@@ -22,6 +22,66 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/schools"
+  /schools/assessments/{_id}:
+    get:
+      description: Returns schools assessment data from the system that the user has access to
+      operationId: schools assessment
+      produces:
+        - application/json
+      parameters:
+        - name: _id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: schools response
+          schema:
+            $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/schools"
+  /schools/upload:
+    post:
+      description: Returns all schools from the system that the user has access to
+      operationId: upload image
+      produces:
+        - application/json
+        - application/xml
+        - text/xml
+        - text/html
+      summary: Uploads Files.
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: formData
+          name: schools
+          type: file
+          description: The file to upload.
+      security:
+        - ApiKeyAuth: []
+        # - Bearer: []
+      tags:
+        - Schools
+      responses:
+        "200":
+          description: Files response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"
 
 definitions:
   schools:
