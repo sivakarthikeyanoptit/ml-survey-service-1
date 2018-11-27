@@ -52,7 +52,7 @@ module.exports = class ParentRegistry extends Abstract {
           let queryObject = {
             schoolId: req.params._id
           }
-          
+
           result = await database.models["parent-registry"].find(
             queryObject
           );
@@ -220,27 +220,27 @@ module.exports = class ParentRegistry extends Abstract {
           input: "radio",
           options: [
             {
-              value: "parentOnly",
+              value: "P1",
               label: "Parent only"
             },
             {
-              value: "smcParentMember",
+              value: "P2",
               label: "SMC Parent Member"
             },
             {
-              value: "safetyCommitteeMember",
+              value: "P3",
               label: "Safety Committee Member"
             },
             {
-              value: "ewsDGParent",
+              value: "P4",
               label: "EWS-DG Parent"
             },
             {
-              value: "socialWorker",
+              value: "P5",
               label: "Social Worker"
             },
             {
-              value: "electedRepresentativeNominee",
+              value: "P6",
               label: "Elected Representative Nominee"
             }
           ],

@@ -332,14 +332,22 @@ module.exports = class Submission extends Abstract {
           const criteria = submissionDocument.criterias.find(criteria => criteria._id.toString() === req.body.criteriaId)
           let expressionVariables = {}
           let expressionResult = {}
+          let allValuesAvailable = true
           Object.keys(req.body.expressionVariables).forEach(variable => {
-            expressionVariables[variable] = questionValueExtractor(req.body.expressionVariables[variable])
+            if(variable != "default") {
+              expressionVariables[variable] = questionValueExtractor(req.body.expressionVariables[variable])
+              expressionVariables[variable] = (expressionVariables[variable] === "NA" && req.body.expressionVariables.default[variable]) ? req.body.expressionVariables.default[variable] : "NA"
+              if(expressionVariables[variable] === "NA") {
+                allValuesAvailable = false
+              }
+            }
           })
+
           Object.keys(req.body.expression).forEach(level => {
             //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
             expressionResult[level] = {
               expressionParsed : req.body.expression[level],
-              result : math.eval(req.body.expression[level],expressionVariables)
+              result : (allValuesAvailable) ? math.eval(req.body.expression[level],expressionVariables) : false
             }
           })
           // const parser = math.parser()
