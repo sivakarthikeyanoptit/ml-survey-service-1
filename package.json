@@ -1,15 +1,44 @@
 {
-  "name": "application-name",
-  "version": "0.0.1",
-  "private": true,
+  "name": "shikshalokam",
+  "version": "1.0.0",
+  "description": "shikshalokam",
+  "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
+  "keywords": [
+    "shikshalokam",
+    "Learning Management System"
+  ],
+  "author": "Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>",
+  "license": "ISC",
   "dependencies": {
-    "ejs": "^1.0.0",
-    "express": "3.5.1",
-    "express-myconnection": "1.0.4",
-    "jade": "*",
-    "cassandra-driver": "*"
+    "@google-cloud/storage": "^2.0.3",
+    "body-parser": "^1.18.2",
+    "bunyan": "^1.8.12",
+    "cache-manager": "^2.9.0",
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
+    "csvtojson": "^2.0.8",
+    "dotenv": "^6.1.0",
+    "express": "^4.16.3",
+    "express-fileupload": "^0.4.0",
+    "extendify": "^1.0.0",
+    "form-urlencoded": "^3.0.0",
+    "glob": "^6.0.4",
+    "jsonwebtoken": "^8.3.0",
+    "keycloak-auth-utils": "^3.3.0",
+    "log": "^1.4.0",
+    "mathjs": "^5.2.3",
+    "mongoose": "^5.0.17",
+    "mongoose-autopopulate": "^0.6.1",
+    "mongoose-delete": "^0.4.0",
+    "mongoose-timestamp": "^0.6.0",
+    "mongoose-ttl": "0.0.3",
+    "morgan": "^1.9.0",
+    "require-all": "^2.2.0",
+    "yaml-js": "^0.1.3"
   }
 }

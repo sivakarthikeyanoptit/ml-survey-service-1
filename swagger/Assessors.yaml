@@ -1,0 +1,22 @@
+paths:
+  /assessors/schools:
+    get:
+      description: Returns all schools from the system that the user has access to
+      operationId: Find assessors schools
+      produces:
+        - application/json
+      security:
+        - ApiKeyAuth: []
+      tags:
+        - Assessors
+      responses:
+        "200":
+          description: schools response
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/schools"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errorModel"

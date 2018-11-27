@@ -1,48 +1,74 @@
-# Node-Express-Cassandra CRUD sample Application
+# Shikshalokam School Assessment APIs version: 0.0.1
 
-This is a simple Node-Express CRUD application using Cassandra.
+## Environment variables:
 
-### Configuration
+### Hostname
 
-Cassandra connection configuration requires `CASSANDRA_IP` environment variable or `cassandra` link alias:
+```
+HOST = localhost
+```
 
-	const client = new cassandra.Client({contactPoints: [process.env.CASSANDRA_IP || 'cassandra']});
+### Port number
 
-Express configuration requires `PORT` environment variable. The default port is 3000: 	
+```
+POST = 3000
+```
 
-	app.listen(process.env.PORT || 3000);
+### Mongo DB connecting string
 
-Wercker environment properties to push image to repository:
+```
+MONGODB_URL = mongodb://localhost:27017
+```
 
-+ DOCKER\_USERNAME = username for Docker account
-+ DOCKER\_PASSWORD = password for Docker account
-+ DOCKER\_TAG = tag of the docker image
-+ DOCKER\_REPOSITORY = name of the new repository (includes image name)
+### Database name
 
-### How to run
+```
+DB = dbname
+```
 
-In Docker environment use Docker link and define alias: **cassandra** for Cassandra service.
+### Log level
 
-Or set Cassandra IP address as environment variable:
+- 0 EMERGENCY system is unusable
+- 1 ALERT action must be taken immediately
+- 2 CRITICAL the system is in critical condition
+- 3 ERROR error condition
+- 4 WARNING warning condition
+- 5 NOTICE a normal but significant condition
+- 6 INFO a purely informational message
+- 7 DEBUG messages to debug an application
 
-	export CASSANDRA_IP=129.150.70.97
+```
+LOG = debug
+```
 
-To start the Node application:
+### port Define environment
 
-	npm install
-	node app.js
+```
+NODE_ENV = development
+```
 
-## History
+## Environment:
 
-### 1.0.0
+### production
 
-- Initial version
+```
+NODE_ENV=production node app.js
+```
 
-## License
+### stage
 
-The Universal Permissive License (UPL), Version 1.0
+```
+NODE_ENV=stage node app.js
+```
 
-## Credits
+### qa
 
-The user interface layout is based on
-[codetrash/nodecrud](https://github.com/codetrash/nodecrud).
+```
+NODE_ENV=qa node app.js
+```
+
+### development
+
+```
+NODE_ENV=development node app.js
+```
