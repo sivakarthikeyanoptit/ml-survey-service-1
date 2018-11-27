@@ -18,7 +18,7 @@ const sendExceptionLogMessage = function (errorObject) {
         short:false
       })
     })
-    Object.keys(_.pick(errorObject.headers, ["authorization","x-channel-id","gpslocation","x-authenticated-userid"])).forEach(objProperty => {
+    Object.keys(_.pick(errorObject.headers, ["x-channel-id","gpslocation","x-authenticated-userid"])).forEach(objProperty => {
       fieldsData.push({
         title:objProperty,
         value:errorObject.headers[objProperty],
