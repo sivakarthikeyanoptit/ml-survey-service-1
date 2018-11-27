@@ -2,7 +2,7 @@
 // var GoogleCloudStorage = Promise.promisifyAll(require("@google-cloud/storage"));
 // var GoogleCloudStorage = require("@google-cloud/storage");
 const { Storage } = require("@google-cloud/storage");
-const BUCKET_NAME = "sl-dev-storage";
+const BUCKET_NAME = process.env.GCP_BUCKET_NAME || "sl-dev-storage";
 const storage = new Storage({
   projectId: "shikshalokam",
   keyFilename:
