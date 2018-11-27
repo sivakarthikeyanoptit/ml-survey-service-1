@@ -82,7 +82,7 @@ module.exports = class FileUpload {
                 fileUrls.push({
                   file:req.body.files[counter],
                   url:signedUrl[0],
-                  payload:{sourcePath:gcpFile.storage.baseUrl+"/"+gcpFile.name}
+                  payload:{sourcePath:gcpFile.name}
                 })
               }
               resolve(fileUrls)
