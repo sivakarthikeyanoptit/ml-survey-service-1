@@ -640,7 +640,7 @@ module.exports = class Submission extends Abstract {
       }
       
       if(runUpdateQuery) {
-        result = await database.models.submissions.findOneAndUpdate(
+        let result = await database.models.submissions.findOneAndUpdate(
           queryObject,
           updateObject
         );
