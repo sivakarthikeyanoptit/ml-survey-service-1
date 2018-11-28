@@ -260,6 +260,7 @@ module.exports = class Schools extends Abstract {
 
         let submissionDocument = {
           schoolId: schoolDocument._id,
+          schoolInformation: schoolDocument,
           programId: programDocument._id,
           evidenceSubmissions: [],
           schoolProfile: {},

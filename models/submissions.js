@@ -8,6 +8,7 @@ module.exports = {
     evidences:Object,
     criterias:Array,
     answers: Object,
+    schoolInformation: Object,
     schoolProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,

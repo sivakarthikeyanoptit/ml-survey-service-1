@@ -1,3 +1,5 @@
+const csv = require("csvtojson");
+
 module.exports = class Criterias extends Abstract {
   constructor(schema) {
     super(schema);
@@ -122,12 +124,9 @@ module.exports = class Criterias extends Abstract {
   }
 
   find(req) {
-    // console.log("reached here!");
-    // req.db = "cassandra";
-    console.log();
-
     return super.find(req);
   }
+
   async getEvidence(req) {
     let criteria = await this.getCriterias(req);
     // log.debug(criteria);
@@ -519,6 +518,81 @@ module.exports = class Criterias extends Abstract {
         canBeNotApplicable: false
       }
     }
+  }
+
+
+  async upload(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
+
+        console.log(criteriaData)
+        let programQueryList = {}
+
+        criteriaData.forEach(criteria => {
+          programQueryList[criteria.programId] = criteria.programId
+        });
+
+        // let submissionsFromDatabase = await database.models.submissions.find({
+        //   programId : { $in: Object.values(programsFromDatabase) }
+        // }, {
+        //   externalId: 1,
+        //   name:1
+        // });
+
+        let programsFromDatabase = await database.models.programs.find({
+          externalId : { $in: Object.values(programQueryList) }
+        });
+        
+        const programsData = programsFromDatabase.reduce( 
+          (ac, program) => ({...ac, [program.externalId]: program }), {} )
+
+        console.log(programsData)
+        
+        criteriaData = await Promise.all(criteriaData.map(async (criteria) => {
+
+          let queryObject = {
+            name: criteria.name
+          }
+
+          let updateObject = {}
+
+          let queryOptions = {
+            queryOptions: true
+          }
+
+          updateObject.$set = { 
+            rubric : rubric
+          }
+
+          criteria = await database.models.criterias.findOneAndUpdate(
+            queryObject,
+            updateObject,
+            queryOptions
+          );
+          
+          return criteria
+
+        }));
+
+        console.log(programsData)
+        // if (schoolWiseParentsData.findIndex( school => school === undefined) >= 0) {
+        //   throw "Something went wrong, not all records were inserted/updated."
+        // }
+
+        let responseMessage = "Criteira updated successfully."
+
+        let response = { message: responseMessage };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({message:error});
+      }
+
+    })
   }
 
 
