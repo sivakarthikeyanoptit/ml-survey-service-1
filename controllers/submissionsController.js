@@ -636,7 +636,7 @@ module.exports = class Submission extends Abstract {
         }
 
       } else {
-        responseMessage = "Invalid request"
+        responseMessage = "Atleast one evidence method has to be completed before giving feedback."
       }
       
       if(runUpdateQuery) {
