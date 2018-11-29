@@ -5,22 +5,29 @@ module.exports = class Assessors {
   async schools(req) {
     return new Promise(async (resolve,reject) => {
 
-      req.query = { userId: req.userDetails.userId };
-      req.populate = {
-        path: 'schools',
-        select: ["name","externalId"]
-      };
-      const queryResult = await controllers.schoolAssessorsController.populate(req)
-      let schools = []
-      queryResult.result.forEach(assessor => {
-        assessor.schools.forEach(assessorSchool => {
-          schools.push(assessorSchool)
-        })
-      });
+      let schools = new Array
+      let responseMessage = "Not authorized to fetch schools for this user"
+
+      if (_.includes(req.userDetails.allRoles,"ASSESSOR") || _.includes(req.userDetails.allRoles,"LEAD_ASSESSOR")) {
+        req.query = { userId: req.userDetails.userId };
+        req.populate = {
+          path: 'schools',
+          select: ["name","externalId"]
+        };
+        const queryResult = await controllers.schoolAssessorsController.populate(req)
+        queryResult.result.forEach(assessor => {
+          assessor.schools.forEach(assessorSchool => {
+            schools.push(assessorSchool)
+          })
+        });
+        responseMessage = "School list fetched successfully"
+      }
+
       return resolve({
-        message: "School list fetched successfully",
+        message: responseMessage,
         result:schools
       });
+
     }).catch(error => {
       reject({
         error: true,
