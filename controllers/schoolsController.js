@@ -173,6 +173,11 @@ module.exports = class Schools extends Abstract {
               "components.roles.projectManagers.users": {
                 $in: [req.userDetails.id]
               }
+            },
+            {
+              "components.roles.programManagers.users": {
+                $in: [req.userDetails.id]
+              }
             }
           ]
         };
