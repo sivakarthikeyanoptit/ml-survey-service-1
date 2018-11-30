@@ -149,7 +149,7 @@ module.exports = class Schools extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let response = { message: "Assessment fetched successfully", result: {} };
 
@@ -267,6 +267,19 @@ module.exports = class Schools extends Abstract {
           schoolId: schoolDocument._id,
           schoolInformation: schoolDocument,
           programId: programDocument._id,
+          programInformation: {
+            name : programDocument.name,
+            description : programDocument.description,
+            owner : programDocument.owner,
+            createdBy : programDocument.createdBy,
+            updatedBy : programDocument.updatedBy,
+            resourceType : programDocument.resourceType,
+            language : programDocument.language,
+            keywords : programDocument.keywords,
+            concepts : programDocument.concepts,
+            createdFor : programDocument.createdFor,
+            imageCompression : programDocument.imageCompression,
+          },
           evidenceSubmissions: [],
           schoolProfile: {},
           status: "started"
@@ -369,7 +382,8 @@ module.exports = class Schools extends Abstract {
           submissionDocument.evidences = submissionDocumentEvidences;
           submissionDocument.criterias = submissionDocumentCriterias;
           let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
-            submissionDocument
+            submissionDocument,
+            req.userDetails
           );
           assessment.submissionId = submissionDoc.result._id;
 
