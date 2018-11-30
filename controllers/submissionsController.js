@@ -99,7 +99,7 @@ module.exports = class Submission extends Abstract {
     return super.insert(req);
   }
   
-  async findSubmissionBySchoolProgram(document,userDetails) {
+  async findSubmissionBySchoolProgram(document,requestObject) {
 
     let queryObject = {
       schoolId: document.schoolId,
@@ -122,18 +122,20 @@ module.exports = class Submission extends Abstract {
         ].aggregate(schoolAssessorsQueryObject);
 
 
-        let assessorElement = document.assessors.find(assessor => assessor.userId === userDetails.userId)
+        let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
         if(assessorElement && assessorElement.externalId != "") {
           assessorElement.assessmentStatus = "started"
+          assessorElement.userAgent = requestObject.headers['user-agent']
         }
 
         submissionDocument = await database.models.submissions.create(
           document
         );
     } else {
-      let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === userDetails.userId)
+      let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
       if(assessorElement && assessorElement.externalId != "") {
         assessorElement.assessmentStatus = "started"
+        assessorElement.userAgent = requestObject.headers['user-agent']
         let updateObject = {}
         updateObject.$set = { 
           assessors : submissionDocument.assessors

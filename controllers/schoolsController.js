@@ -149,7 +149,7 @@ module.exports = class Schools extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-
+        
         req.body = req.body || {};
         let response = { message: "Assessment fetched successfully", result: {} };
 
@@ -383,7 +383,7 @@ module.exports = class Schools extends Abstract {
           submissionDocument.criterias = submissionDocumentCriterias;
           let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
             submissionDocument,
-            req.userDetails
+            req
           );
           assessment.submissionId = submissionDoc.result._id;
 
