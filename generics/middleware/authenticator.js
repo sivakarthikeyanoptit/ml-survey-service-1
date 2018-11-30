@@ -32,7 +32,6 @@ var removedHeaders = [
   "accept",
   "referer",
   "content-length",
-  "user-agent",
   "accept-encoding",
   "accept-language",
   "accept-charset",
