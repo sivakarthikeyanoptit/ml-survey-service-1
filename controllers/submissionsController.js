@@ -121,11 +121,6 @@ module.exports = class Submission extends Abstract {
           "school-assessors"
         ].aggregate(schoolAssessorsQueryObject);
 
-        console.log("******************************************************************************")
-        console.log(requestObject.userDetails.userId)
-        console.log(requestObject.headers)
-        console.log(requestObject.headers['user-agent'])
-        console.log("******************************************************************************")
         let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
         if(assessorElement && assessorElement.externalId != "") {
           assessorElement.assessmentStatus = "started"
@@ -138,11 +133,6 @@ module.exports = class Submission extends Abstract {
     } else {
       let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
       if(assessorElement && assessorElement.externalId != "") {
-        console.log("------------------------------------------------------------------------------")
-        console.log(requestObject.userDetails.userId)
-        console.log(requestObject.headers)
-        console.log(requestObject.headers['user-agent'])
-        console.log("------------------------------------------------------------------------------")
         assessorElement.assessmentStatus = "started"
         assessorElement.userAgent = requestObject.headers['user-agent']
         let updateObject = {}
