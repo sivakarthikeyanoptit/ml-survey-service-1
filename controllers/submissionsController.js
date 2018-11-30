@@ -123,6 +123,7 @@ module.exports = class Submission extends Abstract {
 
         console.log("******************************************************************************")
         console.log(requestObject.userDetails.userId)
+        console.log(requestObject.headers)
         console.log(requestObject.headers['user-agent'])
         console.log("******************************************************************************")
         let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
@@ -139,6 +140,7 @@ module.exports = class Submission extends Abstract {
       if(assessorElement && assessorElement.externalId != "") {
         console.log("------------------------------------------------------------------------------")
         console.log(requestObject.userDetails.userId)
+        console.log(requestObject.headers)
         console.log(requestObject.headers['user-agent'])
         console.log("------------------------------------------------------------------------------")
         assessorElement.assessmentStatus = "started"
