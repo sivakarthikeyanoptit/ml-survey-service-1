@@ -1,109 +1,146 @@
 const Json2csvParser = require("json2csv").Parser;
 const _ = require("lodash");
-// const fs = require("fs");
-// var fields = ["schoolId", "programId", "status"];
 
 module.exports = class Reports {
   async school(req) {
-    return new Promise(async resolve => {
-      var resultArray = new Array();
-      // let result = {};
-      // let queryObjectId = {
-      //   schoolId: ObjectId(req.params._id)
-      // };
-      let reportsDocument = await database.models.submissions.find(
-        // queryObjectId
-        {}
-      );
-      reportsDocument.forEach(arrayOfElement => {
+    return new Promise(async (resolve, reject) => {
+      var currentResult = new Array();
+      let reportsDocument = await database.models.submissions.find({});
+      reportsDocument.forEach(objectOfreport => {
         let res = new Array();
         var result = {};
-        result.schoolId = arrayOfElement.schoolId;
-        result.status = arrayOfElement.status;
-        result.programId = arrayOfElement.programId;
-        var data = arrayOfElement.evidences;
-        // console.log(data);
-        // // result.isSubmitted = Object.entries(data).map(item => ({
-        //   [item[0]]: item[1].isSubmitted
-        // }));
-        var isSubmitted = Object.entries(data).map(item => ({
+        var evidenceData = objectOfreport.evidences;
+        var schoolProfile = objectOfreport.schoolProfile;
+        result.status = objectOfreport.status;
+        result.programId = objectOfreport.programId;
+        result.schoolId = schoolProfile.externalId;
+        result.schoolName = schoolProfile.name;
+        var isSubmitted = Object.entries(evidenceData).map(item => ({
           [item[0]]: item[1].isSubmitted
         }));
-        // isSubmitted.forEach(itemElement => {
-        //   result.isSubmitted = itemElement;
-        // });
-        res.push(result);
-        res.forEach(childItem => {
-          resultArray.push(childItem);
-        });
         isSubmitted.forEach(itemArray => {
-          resultArray.push(...itemArray);
+          _.merge(result, itemArray);
         });
+        var hasConflicts = Object.entries(evidenceData).map(item => ({
+          [item[1].name]: item[1].hasConflicts
+        }));
+        hasConflicts.forEach(hasConflictsObject => {
+          _.merge(result, hasConflictsObject);
+        });
+
+        res.push(result);
+        res.forEach(individualResult => {
+          currentResult.push(individualResult);
+        });
+
+        let finalResult = {
+          message: "Successfully set status based on schoolId",
+          currentResult: currentResult
+        };
+
+        resolve(finalResult);
       });
-      let finalResult = {
-        message: "Successfully set status based on schoolId",
-        resultArray: resultArray
-      };
-      resolve(finalResult);
-      // console.log(resultArray);
-      const fields = ["schoolId", "programId", "status", "BL", "LW", "SI"];
+      const fields = [
+        {
+          label: "Program Id",
+          value: "programId"
+        },
+        {
+          label: "School Id",
+          value: "schoolId"
+        },
+        {
+          label: "School Name",
+          value: "schoolName"
+        },
+        {
+          label: "School status",
+          value: "status"
+        },
+        {
+          label: "BL",
+          value: "BL"
+        },
+        {
+          label: "BL-dup",
+          value: "Book Look"
+        },
+        {
+          label: "LW",
+          value: "LW"
+        },
+        {
+          label: "LW-dup",
+          value: "Learning Walk"
+        },
+        {
+          label: "SI",
+          value: "SI"
+        },
+        {
+          label: "SI-dup",
+          value: "Student Interview"
+        },
+        {
+          label: "AC3",
+          value: "AC3"
+        },
+        {
+          label: "AC3-dup",
+          value: "Assessment- Class 3"
+        },
+        {
+          label: "AC5",
+          value: "AC5"
+        },
+        {
+          label: "AC5",
+          value: "Assessment- Class 5"
+        },
+        {
+          label: "AC8",
+          value: "AC8"
+        },
+        {
+          label: "AC8-dup",
+          value: "Assessment- Class 8"
+        },
+        {
+          label: "PI",
+          value: "PI"
+        },
+        {
+          label: "PI-dup",
+          value: "Principal Interview"
+        },
+        {
+          label: "PAI",
+          value: "PAI"
+        },
+        {
+          label: "PAI-dup",
+          value: "Parent Interview"
+        },
+        {
+          label: "CO",
+          value: "CO"
+        },
+        {
+          label: "CO-dup",
+          value: "Classroom Observation"
+        },
+        {
+          label: "TI",
+          value: "TI"
+        },
+        {
+          label: "TI-dup",
+          value: "Teacher Interview"
+        }
+      ];
       const json2csvParser = new Json2csvParser({ fields });
-      const csv = json2csvParser.parse(resultArray);
+      const csv = json2csvParser.parse(currentResult);
       console.log(csv);
-
-      // var results = { "1": [1, 2, 3], "2": [2, 4, 6] };
-      // var out = _.each(results, (value, key) => {
-      //   console.log(key, value);
-      // });
-
-      // console.log(res);
-
-      // resolve(res);
-      //   result.schoolId = reportsDocument.schoolId;
-      //   result.programId = reportsDocument.programId;
-      //   result.status = reportsDocument.status;
-      //   var data = reportsDocument.evidences;
-      //   result.isSubmitted = Object.entries(data).map(item => ({
-      //     [item[0]]: item[1].isSubmitted
-      //   }));
-      //   let res = {
-      //     message: "Successfully set status based on schoolId",
-      //     result: result
-      //   };
-      //   const resultArray = Object.entries(res.result).map(item => ({
-      //     [item[0]]: item[1]
-      //   }));
-      //   const resultObject = Object.assign({}, ...resultArray);
-
-      //   console.log(csv);
-      //   resolve(res);
-      // }).catch(error => {
-      //   console.log(error);
-      // });
     });
   }
 };
-const Json2csvParser1 = require("json2csv").Parser;
-const fields1 = ["car", "price", "color"];
-const myCars1 = [
-  {
-    car: "Audi",
-    price: 40000,
-    color: "blue"
-  },
-  {
-    car: "BMW",
-    price: 35000,
-    color: "black"
-  },
-  {
-    car: "Porsche",
-    price: 60000,
-    color: "green"
-  }
-];
-
-const json2csvParser2 = new Json2csvParser1({ fields1 });
-const csv1 = json2csvParser2.parse(myCars1);
-
-console.log(csv1);
