@@ -51,6 +51,7 @@ async function getAllRoles(obj) {
 }
 
 module.exports = function(req, res, next) {
+
   removedHeaders.forEach(function(e) {
     delete req.headers[e];
   });
@@ -59,6 +60,11 @@ module.exports = function(req, res, next) {
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
   // console.log(!token, authorization);
+  
+  if(req.path.includes("reports")) {
+    next();
+    return
+  }
 
   if (!token) {
     console.error("Token Not Found!!");
