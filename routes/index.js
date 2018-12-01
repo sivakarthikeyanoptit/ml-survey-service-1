@@ -5,7 +5,7 @@ module.exports = function(app) {
   app.use("/assessment/api", authenticator);
 
   var router = function(req, res, next) {
-    // console.log(req.params);
+
     //req.params.controller = (req.params.controller).toLowerCase();
 
     req.params.controller += "Controller";
@@ -21,18 +21,24 @@ module.exports = function(app) {
         }
       })
         .then(result => {
-          res.status(result.status ? result.status : 200).json({
-            message: result.message,
-            status: result.status ? result.status : 200,
-            result: result.data,
-            result: result.result,
-            additionalDetails: result.additionalDetails,
-            pagination: result.pagination,
-            totalCount: result.totalCount,
-            total: result.total,
-            count: result.count,
-            failed: result.failed
-          });
+          if(result.csvResponse && result.csvResponse == true) {
+            res.setHeader('Content-disposition', 'attachment; filename='+result.fileName);
+            res.set('Content-Type', 'text/csv');
+            res.status(result.status ? result.status : 200).send(result.data);
+          } else {
+            res.status(result.status ? result.status : 200).json({
+              message: result.message,
+              status: result.status ? result.status : 200,
+              result: result.data,
+              result: result.result,
+              additionalDetails: result.additionalDetails,
+              pagination: result.pagination,
+              totalCount: result.totalCount,
+              total: result.total,
+              count: result.count,
+              failed: result.failed
+            });
+          }
           loggerObj.info({ resp: result});
           console.log('-------------------Response log starts here-------------------');
           console.log(result);

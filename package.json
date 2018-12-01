@@ -28,6 +28,7 @@
     "extendify": "^1.0.0",
     "form-urlencoded": "^3.0.0",
     "glob": "^6.0.4",
+    "json2csv": "^4.3.1",
     "jsonwebtoken": "^8.3.0",
     "keycloak-auth-utils": "^3.3.0",
     "log": "^1.4.0",
