@@ -1,7 +1,6 @@
 const json2csv = require("json2csv").Parser;
 
 module.exports = class Reports extends Abstract {
-
   constructor(schema) {
     super(schema);
   }
@@ -9,29 +8,25 @@ module.exports = class Reports extends Abstract {
   static get name() {
     return "submissions";
   }
-  
+
   async status(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
-        
         let currentResult = new Array();
         let submissions = await database.models.submissions.find({});
-        
-        submissions.forEach(submission => {
 
+        submissions.forEach(submission => {
           let res = new Array();
           let result = {};
 
-          if(submission.schoolInformation) {
+          if (submission.schoolInformation) {
             result.schoolId = submission.schoolInformation.externalId;
             result.schoolName = submission.schoolInformation.name;
           } else {
             result.schoolId = submission.schoolId;
           }
 
-
-          if(submission.programInformation) {
+          if (submission.programInformation) {
             result.programId = submission.programId;
             result.programName = submission.programInformation.name;
           } else {
@@ -40,16 +35,20 @@ module.exports = class Reports extends Abstract {
 
           result.status = submission.status;
 
-          let evidenceMethodStatuses = Object.entries(submission.evidences).map(evidenceMethod => ({
-            [evidenceMethod[0]]: evidenceMethod[1].isSubmitted
-          }));
+          let evidenceMethodStatuses = Object.entries(submission.evidences).map(
+            evidenceMethod => ({
+              [evidenceMethod[0]]: evidenceMethod[1].isSubmitted
+            })
+          );
           evidenceMethodStatuses.forEach(evidenceMethodStatus => {
             _.merge(result, evidenceMethodStatus);
           });
 
-          let hasConflicts = Object.entries(submission.evidences).map(evidenceMethod => ({
-            [evidenceMethod[1].name]: evidenceMethod[1].hasConflicts
-          }));
+          let hasConflicts = Object.entries(submission.evidences).map(
+            evidenceMethod => ({
+              [evidenceMethod[1].name]: evidenceMethod[1].hasConflicts
+            })
+          );
           hasConflicts.forEach(hasConflictsObject => {
             _.merge(result, hasConflictsObject);
           });
@@ -58,9 +57,7 @@ module.exports = class Reports extends Abstract {
           res.forEach(individualResult => {
             currentResult.push(individualResult);
           });
-
         });
-
 
         const fields = [
           {
@@ -164,23 +161,192 @@ module.exports = class Reports extends Abstract {
             value: "Teacher Interview"
           }
         ];
-        
+
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(currentResult);
         return resolve({
-          data:csv,
-          csvResponse:true,
-          fileName:"schoolWiseSubmissionReport"+new Date().toDateString()+".csv"
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "schoolWiseSubmissionReport " + new Date().toDateString() + ".csv"
         });
-
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
     });
   }
 
+  async assessorSchools(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        req.query = {};
+        req.populate = {
+          path: "schools",
+          select: ["name", "externalId"]
+        };
+        const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
+          req
+        );
+
+        let assessorSchools = new Array();
+        assessorsWithSchoolDetails.result.forEach(assessor => {
+          assessor.schools.forEach(assessorSchool => {
+            assessorSchools.push({
+              id: assessor.externalId,
+              userId: assessor.userId,
+              parentId: assessor.parentId,
+              name: assessor.name,
+              email: assessor.email,
+              role: assessor.role,
+              programId: assessor.programId.toString(),
+              schoolId: assessorSchool.externalId,
+              schoolName: assessorSchool.name
+            });
+          });
+        });
+
+        const fields = [
+          {
+            label: "Id",
+            value: "id"
+          },
+          {
+            label: "User Id",
+            value: "userId"
+          },
+          {
+            label: "Parent Id",
+            value: "parentId"
+          },
+          {
+            label: "Name",
+            value: "name"
+          },
+          {
+            label: "Email",
+            value: "email"
+          },
+          {
+            label: "Role",
+            value: "role"
+          },
+          {
+            label: "Program Id",
+            value: "programId"
+          },
+          {
+            label: "School Id",
+            value: "schoolId"
+          },
+          {
+            label: "School Name",
+            value: "schoolName"
+          }
+        ];
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(assessorSchools);
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "assessorwiseSchoolReport " + new Date().toDateString() + ".csv"
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async schoolAssessors(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        req.query = {};
+        req.populate = {
+          path: "schools",
+          select: ["name", "externalId"]
+        };
+        const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
+          req
+        );
+
+        let schoolAssessors = new Array();
+        assessorsWithSchoolDetails.result.forEach(assessor => {
+          assessor.schools.forEach(assessorSchool => {
+            schoolAssessors.push({
+              id: assessorSchool.externalId,
+              name: assessorSchool.name,
+              assessorUserId: assessor.userId,
+              assessorId: assessor.externalId,
+              assessorName: assessor.name,
+              assessorEmail: assessor.email,
+              assessorParentId: assessor.parentId,
+              assessorRole: assessor.role,
+              programId: assessor.programId.toString()
+            });
+          });
+        });
+
+        const fields = [
+          {
+            label: "Id",
+            value: "id"
+          },
+          {
+            label: "Name",
+            value: "name"
+          },
+          {
+            label: "Assessor User Id",
+            value: "assessorUserId"
+          },
+          {
+            label: "Assessor Id",
+            value: "assessorId"
+          },
+          {
+            label: "Assessor Name",
+            value: "assessorName"
+          },
+          {
+            label: "Assessor Email",
+            value: "assessorEmail"
+          },
+          {
+            label: "Assessor Parent Id",
+            value: "assessorParentId"
+          },
+          {
+            label: "Assessor Role",
+            value: "assessorRole"
+          },
+          {
+            label: "Program Id",
+            value: "programId"
+          }
+        ];
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(schoolAssessors);
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "schoolwiseAssessorReport " + new Date().toDateString() + ".csv"
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
 };
