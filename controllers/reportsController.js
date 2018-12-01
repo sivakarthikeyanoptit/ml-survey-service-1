@@ -253,7 +253,7 @@ module.exports = class Reports extends Abstract {
           data: csv,
           csvResponse: true,
           fileName:
-            "assessorwiseSubmissionReport " + new Date().toDateString() + ".csv"
+            "assessorwiseSchoolReport " + new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
@@ -338,7 +338,7 @@ module.exports = class Reports extends Abstract {
           data: csv,
           csvResponse: true,
           fileName:
-            "schoolwiseSubmissionReport " + new Date().toDateString() + ".csv"
+            "schoolwiseAssessorReport " + new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
