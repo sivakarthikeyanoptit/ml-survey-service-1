@@ -25,11 +25,19 @@ const sendExceptionLogMessage = function (errorObject) {
         short:false
       })
     })
+    Object.keys(errorObject.customFields).forEach(customField => {
+      fieldsData.push({
+        title:customField,
+        value:errorObject.customFields[customField],
+        short:false
+      })
+    })
     fieldsData.push({
       title:"Environment",
       value:process.env.NODE_ENV,
       short:false
     })
+    
     let attachment = {
       color: "#36a64f",
       pretext: errorObject.errorMsg,
