@@ -440,4 +440,263 @@ module.exports = class ParentRegistry extends Abstract {
     });
   }
 
+
+  async interviewForm(req) {
+    return new Promise(async function(resolve, reject) {
+      
+      let result = [
+        {
+          field: "name",
+          label: "Parent Name",
+          value: "",
+          prefilledFrom: "name" ,
+          visible: true,
+          editable: true,
+          input: "text",
+          validation: {
+            required: true
+          }
+        },
+        {
+          field: "gender",
+          label: "Parent Gender",
+          value: "",
+          prefilledFrom: "gender" ,
+          visible: true,
+          editable: true,
+          input: "radio",
+          options: [
+            {
+              value: "M",
+              label: "Male"
+            },
+            {
+              value: "F",
+              label: "Female"
+            }
+          ],
+          validation: {
+            required: true
+          }
+        },
+        {
+          field: "phone1",
+          label: "Phone Number",
+          value: "",
+          prefilledFrom: "phone1" ,
+          visible: true,
+          editable: false,
+          input: "number",
+          validation: {
+            required: true,
+            regex: "^[0-9]{10}+$"
+          }
+        },
+        {
+          field: "phone2",
+          label: "Additional Phone Number",
+          value: "",
+          prefilledFrom: "phone2" ,
+          visible: true,
+          editable: true,
+          input: "number",
+          validation: {
+            required: false,
+            regex: "^[0-9]{10}+$"
+          }
+        },
+        {
+          field: "studentName",
+          label: "Student Name",
+          value: "",
+          prefilledFrom: "studentName" ,
+          visible: true,
+          editable: true,
+          input: "text",
+          validation: {
+            required: true
+          }
+        },
+        {
+          field: "grade",
+          label: "Grade",
+          value: "",
+          prefilledFrom: "grade" ,
+          visible: true,
+          editable: true,
+          input: "radio",
+          options: [
+            {
+              value: "nursery",
+              label: "Nursery"
+            },
+            {
+              value: "lowerKG",
+              label: "Lower KG"
+            },
+            {
+              value: "upperKG",
+              label: "Upper KG"
+            },
+            {
+              value: "kindergarten",
+              label: "Kindergarten"
+            },
+            {
+              value: 1,
+              label: 1
+            },
+            {
+              value: 2,
+              label: 2
+            },
+            {
+              value: 3,
+              label: 3
+            },
+            {
+              value: 4,
+              label: 4
+            },
+            {
+              value: 5,
+              label: 5
+            },
+            {
+              value: 6,
+              label: 6
+            },
+            {
+              value: 7,
+              label: 7
+            },
+            {
+              value: 8,
+              label: 8
+            },
+            {
+              value: 9,
+              label: 9
+            },
+            {
+              value: 10,
+              label: 10
+            },
+            {
+              value: 11,
+              label: 11
+            },
+            {
+              value: 12,
+              label: 12
+            }
+          ],
+          validation: {
+            required: true
+          }
+        },
+        {
+          field: "schoolName",
+          label: "School Name",
+          value: "",
+          prefilledFrom: "schoolName" ,
+          visible: true,
+          editable: false,
+          input: "text",
+          validation: {
+            required: true
+          }
+        },
+        {
+          field: "type",
+          label: "Parent Type",
+          value: "",
+          prefilledFrom: "type" ,
+          visible: true,
+          editable: true,
+          input: "radio",
+          options: [
+            {
+              value: "P1",
+              label: "Parent only"
+            },
+            {
+              value: "P2",
+              label: "SMC Parent Member"
+            },
+            {
+              value: "P3",
+              label: "Safety Committee Member"
+            },
+            {
+              value: "P4",
+              label: "EWS-DG Parent"
+            },
+            {
+              value: "P5",
+              label: "Social Worker"
+            },
+            {
+              value: "P6",
+              label: "Elected Representative Nominee"
+            }
+          ],
+          validation: {
+            required: false
+          }
+        },
+        {
+          field: "callResponse",
+          label: "Call Response",
+          value: "",
+          prefilledFrom: "" ,
+          visible: true,
+          editable: true,
+          input: "radio",
+          options: [
+            {
+              value: "R1",
+              label: "Call not initiated"
+            },
+            {
+              value: "R2",
+              label: "Did not pick up"
+            },
+            {
+              value: "R3",
+              label: "Not reachable"
+            },
+            {
+              value: "R4",
+              label: "Call back later"
+            },
+            {
+              value: "R5",
+              label: "Wrong number"
+            },
+            {
+              value: "R6",
+              label: "Call disconnected mid way"
+            },
+            {
+              value: "R7",
+              label: "Completed"
+            }
+          ],
+          validation: {
+            required: true
+          }
+        }
+      ]
+
+      let responseMessage = "Parent interview from fetched successfully."
+
+      let response = { message: responseMessage, result: result };
+      return resolve(response);
+
+    }).catch(error => {
+      reject(error);
+    });
+  }
+
 };
