@@ -441,15 +441,18 @@ module.exports = class ParentRegistry extends Abstract {
   }
 
 
-  async interviewForm(req) {
+  async fetch(req) {
     return new Promise(async function(resolve, reject) {
+      
+      let parentInformation = await database.models["parent-registry"].findOne(
+        {_id:ObjectId(req.params._id)}
+      );
       
       let result = [
         {
           field: "name",
           label: "Parent Name",
-          value: "",
-          prefilledFrom: "name" ,
+          value: (parentInformation.name) ? parentInformation.name: "",
           visible: true,
           editable: true,
           input: "text",
@@ -460,8 +463,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "gender",
           label: "Parent Gender",
-          value: "",
-          prefilledFrom: "gender" ,
+          value: (parentInformation.gender) ? parentInformation.gender: "",
           visible: true,
           editable: true,
           input: "radio",
@@ -482,8 +484,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "phone1",
           label: "Phone Number",
-          value: "",
-          prefilledFrom: "phone1" ,
+          value: (parentInformation.phone1) ? parentInformation.phone1: "",
           visible: true,
           editable: false,
           input: "number",
@@ -495,8 +496,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "phone2",
           label: "Additional Phone Number",
-          value: "",
-          prefilledFrom: "phone2" ,
+          value: (parentInformation.phone2) ? parentInformation.phone2: "",
           visible: true,
           editable: true,
           input: "number",
@@ -508,8 +508,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "studentName",
           label: "Student Name",
-          value: "",
-          prefilledFrom: "studentName" ,
+          value: (parentInformation.studentName) ? parentInformation.studentName: "",
           visible: true,
           editable: true,
           input: "text",
@@ -520,8 +519,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "grade",
           label: "Grade",
-          value: "",
-          prefilledFrom: "grade" ,
+          value: (parentInformation.grade) ? parentInformation.grade: "",
           visible: true,
           editable: true,
           input: "radio",
@@ -598,8 +596,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "schoolName",
           label: "School Name",
-          value: "",
-          prefilledFrom: "schoolName" ,
+          value: (parentInformation.schoolName) ? parentInformation.schoolName: "",
           visible: true,
           editable: false,
           input: "text",
@@ -610,8 +607,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "type",
           label: "Parent Type",
-          value: "",
-          prefilledFrom: "type" ,
+          value: (parentInformation.type) ? parentInformation.type: "",
           visible: true,
           editable: true,
           input: "radio",
@@ -648,8 +644,7 @@ module.exports = class ParentRegistry extends Abstract {
         {
           field: "callResponse",
           label: "Call Response",
-          value: "",
-          prefilledFrom: "" ,
+          value: (parentInformation.callResponse) ? parentInformation.callResponse: "",
           visible: true,
           editable: true,
           input: "radio",
@@ -696,6 +691,34 @@ module.exports = class ParentRegistry extends Abstract {
 
     }).catch(error => {
       reject(error);
+    });
+  }
+
+
+  async update(req) {
+    return new Promise(async function(resolve, reject) {
+      
+      try {
+        let parentInformation = await database.models["parent-registry"].findOneAndUpdate(
+          {_id:ObjectId(req.params._id)},
+          req.body,
+          { new: true }
+        );
+
+        let responseMessage = "Parent information updated successfully."
+
+        let response = { message: responseMessage, result: parentInformation };
+        
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:error,
+          errorObject: error
+        });
+      }
+
     });
   }
 
