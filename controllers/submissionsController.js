@@ -234,6 +234,8 @@ module.exports = class Submission extends Abstract {
               answerArray[answer[0]] = answer[1]
             });
             
+            if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
+            
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
