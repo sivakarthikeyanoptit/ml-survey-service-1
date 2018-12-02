@@ -193,6 +193,17 @@ module.exports = class Submission extends Abstract {
             let answerArray = {}
             Object.entries(req.body.evidence.answers).forEach(answer => {
               if(answer[1].responseType === "matrix") {
+                if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
+                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
+                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
+                      answer[1].value.push(generalQuestionInstanceValue)
+                    })
+                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
+                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
+                    })
+                  })
+                }
                 for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
                   
                   _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
@@ -238,6 +249,24 @@ module.exports = class Submission extends Abstract {
           } else {
             runUpdateQuery = true
             req.body.evidence.isValid = false
+
+            Object.entries(req.body.evidence.answers).forEach(answer => {
+              if(answer[1].responseType === "matrix") {
+                if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
+                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
+                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
+                      answer[1].value.push(generalQuestionInstanceValue)
+                    })
+                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
+                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
+                    })
+                  })
+                }
+                answer[1].countOfInstances = answer[1].value.length
+              }
+            });
+
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
@@ -351,6 +380,7 @@ module.exports = class Submission extends Abstract {
                 submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission,indexOfEvidenceMethodSubmission) => {
                   if(evidenceMethodSubmission.answers[answer[0]]) {
                     answer[1].value.forEach(incomingGeneralQuestionInstance => {
+                      incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
                       evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
                     })
                     answer[1].payload.labels[0].forEach(incomingGeneralQuestionInstancePayload => {
