@@ -12,7 +12,7 @@ module.exports = class Assessors {
         req.query = { userId: req.userDetails.userId };
         req.populate = {
           path: 'schools',
-          select: ["name","externalId"]
+          select: ["name","externalId","addressLine1","addressLine2","city","state"]
         };
         const queryResult = await controllers.schoolAssessorsController.populate(req)
         queryResult.result.forEach(assessor => {

@@ -156,6 +156,7 @@ module.exports = class Schools extends Abstract {
         
         req.body = req.body || {};
         let response = { message: "Assessment fetched successfully", result: {} };
+        const isRequestForOncallOrOnField = (req.query.oncall && req.query.oncall == 1) ? "oncall" : "onfield"
 
         let schoolQueryObject = { _id: ObjectId(req.params._id) };
         let schoolDocument = await database.models.schools.findOne(
@@ -197,12 +198,9 @@ module.exports = class Schools extends Abstract {
 
         let form = [];
         await _.forEach(Object.keys(schoolDocument), key => {
-          // log.debug(accessability.schoolProfile.editable.indexOf("all"));
-          // log.debug(accessability.schoolProfile);
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) == -1
           ) {
-            // log.debug(key);
             form.push({
               field: key,
               label: gen.utils.camelCaseToTitleCase(key),
@@ -336,49 +334,47 @@ module.exports = class Schools extends Abstract {
               evidenceMethod.notApplicable = false
               evidenceMethod.canBeNotAllowed = true
               evidenceMethod.remarks = ""
-              if (!evidenceMethodArray[evidenceMethod.externalId] && evidenceMethod.modeOfCollection === "onfield") {
-                evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
-                submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
-                  evidenceMethod,
-                  ["sections"]
-                );
-              } else if (evidenceMethod.modeOfCollection === "onfield") {
-                // Evidence method already exists
-                // Loop through all sections reading evidence method
-                evidenceMethod.sections.forEach(evidenceMethodSection => {
-                  let sectionExisitsInEvidenceMethod = 0;
-                  let existingSectionQuestionsArrayInEvidenceMethod = [];
-                  evidenceMethodArray[evidenceMethod.externalId].sections.forEach(
-                    exisitingSectionInEvidenceMethod => {
-                      if (
-                        exisitingSectionInEvidenceMethod.name ==
-                        evidenceMethodSection.name
-                      ) {
-                        sectionExisitsInEvidenceMethod = 1;
-                        existingSectionQuestionsArrayInEvidenceMethod =
-                          exisitingSectionInEvidenceMethod.questions;
+              submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
+                evidenceMethod,
+                ["sections"]
+              );
+              if(evidenceMethod.modeOfCollection === isRequestForOncallOrOnField) {
+
+                if (!evidenceMethodArray[evidenceMethod.externalId]) {
+                  evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
+                } else  {
+                  // Evidence method already exists
+                  // Loop through all sections reading evidence method
+                  evidenceMethod.sections.forEach(evidenceMethodSection => {
+                    let sectionExisitsInEvidenceMethod = 0;
+                    let existingSectionQuestionsArrayInEvidenceMethod = [];
+                    evidenceMethodArray[evidenceMethod.externalId].sections.forEach(
+                      exisitingSectionInEvidenceMethod => {
+                        if (
+                          exisitingSectionInEvidenceMethod.name ==
+                          evidenceMethodSection.name
+                        ) {
+                          sectionExisitsInEvidenceMethod = 1;
+                          existingSectionQuestionsArrayInEvidenceMethod =
+                            exisitingSectionInEvidenceMethod.questions;
+                        }
                       }
+                    );
+                    if (!sectionExisitsInEvidenceMethod) {
+                      evidenceMethodArray[evidenceMethod.externalId].sections.push(
+                        evidenceMethodSection
+                      );
+                    } else {
+                      evidenceMethodSection.questions.forEach(
+                        questionInEvidenceMethodSection => {
+                          existingSectionQuestionsArrayInEvidenceMethod.push(
+                            questionInEvidenceMethodSection
+                          );
+                        }
+                      );
                     }
-                  );
-                  if (!sectionExisitsInEvidenceMethod) {
-                    evidenceMethodArray[evidenceMethod.externalId].sections.push(
-                      evidenceMethodSection
-                    );
-                  } else {
-                    evidenceMethodSection.questions.forEach(
-                      questionInEvidenceMethodSection => {
-                        existingSectionQuestionsArrayInEvidenceMethod.push(
-                          questionInEvidenceMethodSection
-                        );
-                      }
-                    );
-                  }
-                });
-              } else if (evidenceMethod.modeOfCollection === "oncall") {
-                submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
-                  evidenceMethod,
-                  ["sections"]
-                );
+                  });
+                }
               }
             });
           });
@@ -391,6 +387,10 @@ module.exports = class Schools extends Abstract {
           );
           assessment.submissionId = submissionDoc.result._id;
 
+          if(submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {
+            assessment.parentInterviewResponses = submissionDoc.result.parentInterviewResponses;
+          } 
+
           const parsedAssessment = await this.parseQuestions(
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
@@ -399,6 +399,9 @@ module.exports = class Schools extends Abstract {
 
           assessment.evidences = parsedAssessment.evidences
           assessment.submissions = parsedAssessment.submissions
+          if(parsedAssessment.generalQuestions && parsedAssessment.generalQuestions.length > 0) {
+            assessment.generalQuestions = parsedAssessment.generalQuestions
+          }
           assessments.push(assessment);
         }
 
@@ -419,6 +422,7 @@ module.exports = class Schools extends Abstract {
 
     let schoolFilterQuestionArray = {}
     let sectionQuestionArray = {}
+    let generalQuestions = []
     let questionArray = {}
     let submissionsObjects = {}
     evidences.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
@@ -484,10 +488,16 @@ module.exports = class Schools extends Abstract {
         questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray
       }
 
+      if(questionArrayElm[1]["isAGeneralQuestion"] === true) {
+        questionArrayElm[1]["payload"].isAGeneralQuestion = true
+        generalQuestions.push(questionArrayElm[1])
+      }
+
     });
     return {
       evidences: evidences,
-      submissions: submissionsObjects
+      submissions: submissionsObjects,
+      generalQuestions: generalQuestions
     };
   }
 
