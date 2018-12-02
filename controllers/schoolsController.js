@@ -465,7 +465,8 @@ module.exports = class Schools extends Abstract {
 
       questionArrayElm[1]["payload"] = {
         criteriaId:questionArrayElm[1]["criteriaId"],
-        responseType:questionArrayElm[1]["responseType"]
+        responseType:questionArrayElm[1]["responseType"],
+        evidenceMethod:questionArrayElm[1]["evidence.externalId"]
       }
       questionArrayElm[1]["startTime"] = ""
       questionArrayElm[1]["endTime"] = ""

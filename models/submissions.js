@@ -15,7 +15,7 @@ module.exports = {
     allManualCriteriaRatingSubmitted: Boolean,
     ratings: Object,
     feedback:Array,
-    generalQuestions:Array,
-    parentInterviewResponses:Array
+    generalQuestions:Object,
+    parentInterviewResponses:Object
   }
 };
