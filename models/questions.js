@@ -33,6 +33,7 @@ module.exports = {
     notApplicable: "String",
     canBeNotApplicable: "String",
     instanceQuestionsString: "String",
-    instanceQuestions: Array
+    instanceQuestions: Array,
+    isAGeneralQuestion: Boolean
   }
 };

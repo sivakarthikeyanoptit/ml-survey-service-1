@@ -133,7 +133,11 @@ module.exports = class Schools extends Abstract {
         return resolve(response);
 
       } catch (error) {
-        return reject({message:error});
+        return reject({
+          status:500,
+          message:error,
+          errorObject: error
+        });
       }
 
     })
