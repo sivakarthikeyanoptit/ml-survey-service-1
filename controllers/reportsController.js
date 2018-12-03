@@ -378,31 +378,37 @@ module.exports = class Reports extends Abstract {
           programId: { $in: ObjectId(result.id) }
         };
         let submissionDocument = await database.models.submissions.find(
-          submissionQuery
+          submissionQuery,
+          { schoolId: 1,status:1,completedDate:1} 
         );
+        
+        let schoolSubmission = {}
+        submissionDocument.forEach(submission => {
+          schoolSubmission[submission.schoolId.toString()] = {
+            status: submission.status,
+            completedDate: submission.completedDate
+          }
+        })
 
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
-          submissionDocument.forEach(submission => {
-            console.log(school.externalId);
-            if (submission.schoolProfile.externalId !== school.externalId) {
-              final.push({
-                id,
-                schoolName: school.name,
-                schoolId: school.externalId,
-                status: "pending",
-                completedDate: "-"
-              });
-            } else {
-              final.push({
-                id,
-                schoolName: school.name,
-                schoolId: school.externalId,
-                status: submission.status,
-                completedDate: submission.completedDate
-              });
-            }
-          });
+          if(schoolSubmission[school._id.toString()]) {
+            final.push({
+              id,
+              schoolName: school.name,
+              schoolId: school.externalId,
+              status: schoolSubmission[school._id.toString()].status,
+              completedDate: schoolSubmission[school._id.toString()].completedDate
+            });
+          } else {
+            final.push({
+              id,
+              schoolName: school.name,
+              schoolId: school.externalId,
+              status: "pending",
+              completedDate: "-"
+            });
+          }
         });
 
         const fields = [
