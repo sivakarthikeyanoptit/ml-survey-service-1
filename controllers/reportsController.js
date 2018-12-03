@@ -349,4 +349,96 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
+
+  async schoolEcm(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let result = {};
+        let final = [];
+        req.body = req.body || {};
+        let programQueryObject = {
+          externalId: req.params._id
+        };
+        let programDocument = await database.models.programs.findOne(
+          programQueryObject
+        );
+        programDocument.components.forEach(document => {
+          result.schoolId = document.schools;
+          result.id = programDocument._id;
+        });
+
+        let schoolQueryObject = {
+          _id: { $in: Object.values(result.schoolId) }
+        };
+        let schoolDocument = await database.models.schools.find(
+          schoolQueryObject
+        );
+
+        let submissionQuery = {
+          programId: { $in: ObjectId(result.id) }
+        };
+        let submissionDocument = await database.models.submissions.find(
+          submissionQuery
+        );
+
+        schoolDocument.forEach(school => {
+          var id = programQueryObject.externalId;
+          submissionDocument.forEach(submission => {
+            console.log(school.externalId);
+            if (submission.schoolProfile.externalId !== school.externalId) {
+              final.push({
+                id,
+                schoolName: school.name,
+                schoolId: school.externalId,
+                status: "pending",
+                completedDate: "-"
+              });
+            } else {
+              final.push({
+                id,
+                schoolName: school.name,
+                schoolId: school.externalId,
+                status: submission.status,
+                completedDate: submission.completedDate
+              });
+            }
+          });
+        });
+
+        const fields = [
+          {
+            label: "Program Id",
+            value: "id"
+          },
+          {
+            label: "School Id",
+            value: "schoolId"
+          },
+          { label: "School Name", value: "schoolName" },
+          {
+            label: "Status",
+            value: "status"
+          },
+          {
+            label: "Completed Date",
+            value: "completedDate"
+          }
+        ];
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(final);
+        let response = {
+          data: csv,
+          csvResponse: true,
+          fileName: " schoolwiseEcmReport " + new Date().toDateString() + ".csv"
+        };
+        return resolve(response);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong",
+          errorObject: error
+        });
+      }
+    });
+  }
 };
