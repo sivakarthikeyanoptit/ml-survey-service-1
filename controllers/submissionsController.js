@@ -95,9 +95,6 @@ module.exports = class Submission extends Abstract {
   static get name() {
     return "submissions";
   }
-  insert(req) {
-    return super.insert(req);
-  }
   
   async findSubmissionBySchoolProgram(document,requestObject) {
 
@@ -235,7 +232,7 @@ module.exports = class Submission extends Abstract {
             });
             
             if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
-            
+
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
@@ -295,7 +292,8 @@ module.exports = class Submission extends Abstract {
 
           if(ratingsEnabled) {
             updateObject.$set = {
-              status: "pendingRating"
+              status: "completed",
+              completedDate: new Date()
             }
             updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
               queryObject,
@@ -333,6 +331,163 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+  async completeParentInterview(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        req.body = req.body || {};
+        let message = "Parent Interview completed successfully."
+        const parentInterviewEvidenceMethod = "PAI"
+        let runUpdateQuery = false
+
+        let queryObject = {
+          _id: ObjectId(req.params._id)
+        }
+        
+        let queryOptions = {
+          new: true
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
+        );
+
+        let updateObject = {}
+        updateObject.$set = {}
+      
+        if(submissionDocument && submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true) {
+          let evidenceSubmission = {}
+          evidenceSubmission.externalId = parentInterviewEvidenceMethod
+          evidenceSubmission.submittedBy = req.userDetails.userId
+          evidenceSubmission.submittedByName = req.userDetails.name
+          evidenceSubmission.submittedByEmail = req.userDetails.email
+          evidenceSubmission.submissionDate = new Date()
+          evidenceSubmission.gpsLocation = "web"
+          evidenceSubmission.isValid = true
+
+          let evidenceSubmissionAnswerArray = {}
+
+          Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
+            if(parentInterviewResponse[1].status === "completed") {
+              Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
+                if(evidenceSubmissionAnswerArray[answer[0]]) {
+                  answer[1].value.forEach(instanceResponse => {
+                    evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
+                  })
+                  answer[1].payload.labels[0].forEach(instanceResponsePayload => {
+                    evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
+                  })
+                  evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
+                } else {
+                  evidenceSubmissionAnswerArray[answer[0]] = answer[1]
+                }
+              })
+            }
+          });
+
+          evidenceSubmission.answers = evidenceSubmissionAnswerArray
+
+          if(Object.keys(evidenceSubmission.answers).length > 0) {
+            runUpdateQuery = true
+          }
+
+          let answerArray = {}
+          Object.entries(evidenceSubmission.answers).forEach(answer => {
+            if(answer[1].responseType === "matrix") {
+
+              for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+                
+                _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+                  
+                  if(answerArray[question.qid]) {
+                    answerArray[question.qid].instanceResponses.push(question.value)
+                    answerArray[question.qid].instanceRemarks.push(question.remarks)
+                    answerArray[question.qid].instanceFileName.push(question.fileName)
+                  } else {
+                    let clonedQuestion = {...question}
+                    clonedQuestion.instanceResponses = new Array
+                    clonedQuestion.instanceRemarks = new Array
+                    clonedQuestion.instanceFileName = new Array
+                    clonedQuestion.instanceResponses.push(question.value)
+                    clonedQuestion.instanceRemarks.push(question.remarks)
+                    clonedQuestion.instanceFileName.push(question.fileName)
+                    delete clonedQuestion.value
+                    delete clonedQuestion.remarks
+                    delete clonedQuestion.fileName
+                    delete clonedQuestion.payload
+                    answerArray[question.qid] = clonedQuestion
+                  }
+
+                })
+              }
+              answer[1].countOfInstances = answer[1].value.length
+            }
+            answerArray[answer[0]] = answer[1]
+          });
+
+          updateObject.$push = { 
+            ["evidences."+parentInterviewEvidenceMethod+".submissions"]: evidenceSubmission
+          }
+          updateObject.$set = { 
+            answers : _.assignIn(submissionDocument.answers, answerArray),
+            ["evidences."+parentInterviewEvidenceMethod+".isSubmitted"] : true,
+            ["evidences."+parentInterviewEvidenceMethod+".notApplicable"] :false,
+            ["evidences."+parentInterviewEvidenceMethod+".startTime"] : "",
+            ["evidences."+parentInterviewEvidenceMethod+".endTime"] : new Date,
+            ["evidences."+parentInterviewEvidenceMethod+".hasConflicts"]: false,
+            status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
+          }
+
+        }
+
+        if(runUpdateQuery) {
+          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+            queryObject,
+            updateObject,
+            queryOptions
+          );
+
+          let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+          let {ratingsEnabled} = canRatingsBeEnabled
+
+          if(ratingsEnabled) {
+            updateObject.$set = {
+              status: "completed",
+              completedDate: new Date()
+            }
+            updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+              queryObject,
+              updateObject,
+              queryOptions
+            );
+          }
+
+          let response = {
+            message: message
+          };
+
+          return resolve(response);
+
+        } else {
+
+          let response = {
+            message: "Failed to complete parent interview."
+          };
+
+          return resolve(response);
+        }
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:"Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+      
+    })
+  }
 
   async generalQuestions(req) {
     return new Promise(async (resolve, reject) => {
@@ -449,6 +604,141 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+  async parentInterview(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        req.body = req.body || {};
+        let message = "Parent interview submitted successfully."
+
+        let queryObject = {
+          _id: ObjectId(req.params._id)
+        }
+        
+        let queryOptions = {
+          new: true
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
+        );
+
+        if(req.body.parentId && req.body.status && submissionDocument) {
+
+          let parentInformation = await database.models["parent-registry"].findOne(
+            {_id:ObjectId(req.body.parentId)}
+          );
+
+          if(parentInformation) {
+            let parentInterview = {}
+            parentInterview.parentInformation = parentInformation
+            parentInterview.status = req.body.status
+            parentInterview.answers = req.body.answers
+            if(submissionDocument.parentInterviewResponses) {
+              submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
+            } else {
+              submissionDocument.parentInterviewResponses = {}
+              submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
+            }
+            let updateObject = {}
+            updateObject.$set = {}
+            updateObject.$set.parentInterviewResponses = {}
+            updateObject.$set.parentInterviewResponses = submissionDocument.parentInterviewResponses
+
+            let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+              {_id:ObjectId(submissionDocument._id)},
+              updateObject,
+              queryOptions
+            );
+
+          } else {
+            throw "No parent information found."
+          }
+
+        } else {
+          throw "No submission document found."
+        }
+
+
+        let response = {
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:"Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+      
+    })
+  }
+
+  async getParentInterviewResponse(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        req.body = req.body || {};
+        let message = "Parent interview response fetched successfully."
+        let result = {}
+
+        let queryObject = {
+          _id: ObjectId(req.params._id)
+        }
+        
+        let queryOptions = {
+          new: true
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
+        );
+
+        if(req.query.parentId && submissionDocument) {
+
+          let parentInformation = await database.models["parent-registry"].findOne(
+            {_id:ObjectId(req.query.parentId)}
+          );
+          
+          if(parentInformation) {
+            result.parentInformation = parentInformation
+            result.parentId = req.query.parentId
+          }
+
+          if(submissionDocument.parentInterviewResponses[req.query.parentId]) {
+            result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
+            result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
+          } else {
+            throw "No parent interview information found."
+          }
+
+        } else {
+          throw "No submission document found."
+        }
+
+
+        let response = {
+          result:result,
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:"Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+      
+    })
+  }
 
   async rate(req) {
     return new Promise(async (resolve, reject) => {

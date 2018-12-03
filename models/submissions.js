@@ -16,6 +16,7 @@ module.exports = {
     ratings: Object,
     feedback:Array,
     generalQuestions:Object,
-    parentInterviewResponses:Object
+    parentInterviewResponses:Object,
+    completedDate: Date
   }
 };
