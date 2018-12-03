@@ -452,4 +452,8 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
+<<<<<<< HEAD
+=======
+  
+>>>>>>> development
 };
