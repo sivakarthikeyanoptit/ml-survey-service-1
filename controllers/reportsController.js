@@ -350,13 +350,11 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-
   async programSchoolsStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
         let result = {};
-        let final = [];
+        let programSchoolStatusList = [];
         req.body = req.body || {};
 
         let programQueryObject = {
@@ -382,33 +380,36 @@ module.exports = class Reports extends Abstract {
         };
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
-          { schoolId: 1,status:1,completedDate:1} 
+          { schoolId: 1, status: 1, completedDate: 1, createdAt: 1 }
         );
-        
-        let schoolSubmission = {}
+
+        let schoolSubmission = {};
         submissionDocument.forEach(submission => {
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
-            completedDate: submission.completedDate
-          }
-        })
-
+            completedDate: submission.completedDate,
+            createdAt: submission.createdAt
+          };
+        });
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
-          if(schoolSubmission[school._id.toString()]) {
-            final.push({
+          if (schoolSubmission[school._id.toString()]) {
+            programSchoolStatusList.push({
               id,
               schoolName: school.name,
               schoolId: school.externalId,
               status: schoolSubmission[school._id.toString()].status,
-              completedDate: schoolSubmission[school._id.toString()].completedDate
+              createdAt: schoolSubmission[school._id.toString()].createdAt,
+              completedDate:
+                schoolSubmission[school._id.toString()].completedDate
             });
           } else {
-            final.push({
+            programSchoolStatusList.push({
               id,
               schoolName: school.name,
               schoolId: school.externalId,
               status: "pending",
+              createdAt: "-",
               completedDate: "-"
             });
           }
@@ -423,7 +424,7 @@ module.exports = class Reports extends Abstract {
             label: "School Id",
             value: "schoolId"
           },
-          { 
+          {
             label: "School Name",
             value: "schoolName"
           },
@@ -432,16 +433,22 @@ module.exports = class Reports extends Abstract {
             value: "status"
           },
           {
+            label: "Start Date",
+            value: "createdAt"
+          },
+          {
             label: "Completed Date",
             value: "completedDate"
           }
         ];
         const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(final);
+        const csv = json2csvParser.parse(programSchoolStatusList);
+        console.log(csv);
         let response = {
           data: csv,
           csvResponse: true,
-          fileName: " programSchoolsStatus " + new Date().toDateString() + ".csv"
+          fileName:
+            " programSchoolsStatus " + new Date().toDateString() + ".csv"
         };
         return resolve(response);
       } catch (error) {
@@ -453,5 +460,4 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
-  
 };
