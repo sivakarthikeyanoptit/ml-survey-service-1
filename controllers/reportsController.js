@@ -443,7 +443,7 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-        console.log(csv);
+
         let response = {
           data: csv,
           csvResponse: true,
