@@ -353,9 +353,8 @@ module.exports = class Reports extends Abstract {
   async programSchoolsStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
         let result = {};
-        let final = [];
+        let programSchoolStatusList = [];
         req.body = req.body || {};
 
         let programQueryObject = {
@@ -392,11 +391,10 @@ module.exports = class Reports extends Abstract {
             createdAt: submission.createdAt
           };
         });
-        console.log(schoolSubmission);
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
           if (schoolSubmission[school._id.toString()]) {
-            final.push({
+            programSchoolStatusList.push({
               id,
               schoolName: school.name,
               schoolId: school.externalId,
@@ -406,7 +404,7 @@ module.exports = class Reports extends Abstract {
                 schoolSubmission[school._id.toString()].completedDate
             });
           } else {
-            final.push({
+            programSchoolStatusList.push({
               id,
               schoolName: school.name,
               schoolId: school.externalId,
@@ -426,7 +424,7 @@ module.exports = class Reports extends Abstract {
             label: "School Id",
             value: "schoolId"
           },
-          { 
+          {
             label: "School Name",
             value: "schoolName"
           },
@@ -444,11 +442,13 @@ module.exports = class Reports extends Abstract {
           }
         ];
         const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(final);
+        const csv = json2csvParser.parse(programSchoolStatusList);
+        console.log(csv);
         let response = {
           data: csv,
           csvResponse: true,
-          fileName: " programSchoolsStatus " + new Date().toDateString() + ".csv"
+          fileName:
+            " programSchoolsStatus " + new Date().toDateString() + ".csv"
         };
         return resolve(response);
       } catch (error) {
@@ -460,8 +460,4 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
-<<<<<<< HEAD
-=======
-  
->>>>>>> development
 };
