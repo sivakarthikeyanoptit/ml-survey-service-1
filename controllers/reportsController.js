@@ -379,26 +379,29 @@ module.exports = class Reports extends Abstract {
         };
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
-          { schoolId: 1,status:1,completedDate:1} 
+          { schoolId: 1, status: 1, completedDate: 1, createdAt: 1 }
         );
-        
-        let schoolSubmission = {}
+
+        let schoolSubmission = {};
         submissionDocument.forEach(submission => {
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
-            completedDate: submission.completedDate
-          }
-        })
-
+            completedDate: submission.completedDate,
+            createdAt: submission.createdAt
+          };
+        });
+        console.log(schoolSubmission);
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
-          if(schoolSubmission[school._id.toString()]) {
+          if (schoolSubmission[school._id.toString()]) {
             final.push({
               id,
               schoolName: school.name,
               schoolId: school.externalId,
               status: schoolSubmission[school._id.toString()].status,
-              completedDate: schoolSubmission[school._id.toString()].completedDate
+              createdAt: schoolSubmission[school._id.toString()].createdAt,
+              completedDate:
+                schoolSubmission[school._id.toString()].completedDate
             });
           } else {
             final.push({
@@ -406,6 +409,7 @@ module.exports = class Reports extends Abstract {
               schoolName: school.name,
               schoolId: school.externalId,
               status: "pending",
+              createdAt: "-",
               completedDate: "-"
             });
           }
@@ -424,6 +428,10 @@ module.exports = class Reports extends Abstract {
           {
             label: "Status",
             value: "status"
+          },
+          {
+            label: "Start Date",
+            value: "createdAt"
           },
           {
             label: "Completed Date",
