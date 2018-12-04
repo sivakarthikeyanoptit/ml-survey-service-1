@@ -350,12 +350,14 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-  async schoolEcm(req) {
+  async programSchoolsStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         let result = {};
         let final = [];
         req.body = req.body || {};
+
         let programQueryObject = {
           externalId: req.params._id
         };
@@ -424,7 +426,10 @@ module.exports = class Reports extends Abstract {
             label: "School Id",
             value: "schoolId"
           },
-          { label: "School Name", value: "schoolName" },
+          { 
+            label: "School Name",
+            value: "schoolName"
+          },
           {
             label: "Status",
             value: "status"
@@ -443,7 +448,7 @@ module.exports = class Reports extends Abstract {
         let response = {
           data: csv,
           csvResponse: true,
-          fileName: " schoolwiseEcmReport " + new Date().toDateString() + ".csv"
+          fileName: " programSchoolsStatus " + new Date().toDateString() + ".csv"
         };
         return resolve(response);
       } catch (error) {
@@ -455,4 +460,8 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
+<<<<<<< HEAD
+=======
+  
+>>>>>>> development
 };
