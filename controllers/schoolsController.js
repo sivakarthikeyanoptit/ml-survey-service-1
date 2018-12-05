@@ -442,6 +442,7 @@ module.exports = class Schools extends Abstract {
       
       evidence.sections.forEach(section => {
         section.questions.forEach((question,index,section) => {
+          question.evidenceMethod = evidence.externalId
           if(_.difference(question.questionGroup, schoolTypes).length < question.questionGroup.length) {
             sectionQuestionArray[question._id] = section
             questionArray[question._id] = question
@@ -466,7 +467,7 @@ module.exports = class Schools extends Abstract {
       questionArrayElm[1]["payload"] = {
         criteriaId:questionArrayElm[1]["criteriaId"],
         responseType:questionArrayElm[1]["responseType"],
-        evidenceMethod:questionArrayElm[1]["evidence.externalId"]
+        evidenceMethod:questionArrayElm[1].evidenceMethod
       }
       questionArrayElm[1]["startTime"] = ""
       questionArrayElm[1]["endTime"] = ""
