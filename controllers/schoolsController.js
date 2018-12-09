@@ -20,129 +20,156 @@ module.exports = class Schools extends Abstract {
     return "schools";
   }
 
-  async upload (req) {
-
+  async upload(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
-        let schoolsData = await csv().fromString(req.files.schools.data.toString());
-        const schoolsUploadCount = schoolsData.length
+        let schoolsData = await csv().fromString(
+          req.files.schools.data.toString()
+        );
+        const schoolsUploadCount = schoolsData.length;
 
-        let programQueryList = {}
-        let evaluationFrameworkQueryList = {}
+        let programQueryList = {};
+        let evaluationFrameworkQueryList = {};
 
         schoolsData.forEach(school => {
-          programQueryList[school.externalId] = school.programId
-          evaluationFrameworkQueryList[school.externalId] = school.frameworkId
+          programQueryList[school.externalId] = school.programId;
+          evaluationFrameworkQueryList[school.externalId] = school.frameworkId;
         });
 
         let programsFromDatabase = await database.models.programs.find({
-          externalId : { $in: Object.values(programQueryList) }
+          externalId: { $in: Object.values(programQueryList) }
         });
 
-        let evaluationFrameworksFromDatabase = await database.models["evaluation-frameworks"].find({
-          externalId : { $in: Object.values(evaluationFrameworkQueryList) }
-        }, {
-          externalId: 1
-        });
-
-        const programsData = programsFromDatabase.reduce( 
-          (ac, program) => ({...ac, [program.externalId]: program }), {} )
-
-        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce( 
-            (ac, evaluationFramework) => ({...ac, [evaluationFramework.externalId]: evaluationFramework._id }), {} )
-
-        const schoolUploadedData = await Promise.all(schoolsData.map(async (school) => {
-          
-          school.schoolTypes = await school.schoolType.split(",");
-          school.createdBy = school.updatedBy = req.userDetails.id;
-          school.gpsLocation = "";
-          const schoolCreateObject = await database.models.schools.findOneAndUpdate(
-            { externalId: school.externalId },
-            school,
-            {
-              upsert: true,
-              new: true,
-              setDefaultsOnInsert: true,
-              returnNewDocument : true
-            }
-          );
-
-          return {
-            _id:schoolCreateObject._id,
-            externalId:school.externalId,
-            programId:school.programId,
-            frameworkId:school.frameworkId
+        let evaluationFrameworksFromDatabase = await database.models[
+          "evaluation-frameworks"
+        ].find(
+          {
+            externalId: { $in: Object.values(evaluationFrameworkQueryList) }
+          },
+          {
+            externalId: 1
           }
+        );
 
-        }));
+        const programsData = programsFromDatabase.reduce(
+          (ac, program) => ({ ...ac, [program.externalId]: program }),
+          {}
+        );
 
-        if(schoolsUploadCount === schoolUploadedData.length) {
+        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
+          (ac, evaluationFramework) => ({
+            ...ac,
+            [evaluationFramework.externalId]: evaluationFramework._id
+          }),
+          {}
+        );
 
-          let schoolElement = new Object;
-          let indexOfEvaluationFrameworkInProgram
-          let schoolProgramComponents = new Array
-          let programFrameworkSchools = new Array
-          let schoolCsvDataProgramId
-          let schoolCsvDataEvaluationFrameworkId
-
-          for (let schoolIndexInData = 0; schoolIndexInData < schoolUploadedData.length; schoolIndexInData++) {
-            schoolElement = schoolUploadedData[schoolIndexInData];
-            
-            schoolCsvDataProgramId = programQueryList[schoolElement.externalId] 
-            schoolCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[schoolElement.externalId] 
-            schoolProgramComponents = programsData[schoolCsvDataProgramId].components
-            indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex( component => component.id.toString() === evaluationFrameworksData[schoolCsvDataEvaluationFrameworkId].toString() );
-            
-            if(indexOfEvaluationFrameworkInProgram >= 0) {
-              programFrameworkSchools = schoolProgramComponents[indexOfEvaluationFrameworkInProgram].schools
-              if (programFrameworkSchools.findIndex( school => school.toString() == schoolElement._id.toString()) < 0) {
-                programFrameworkSchools.push(ObjectId(schoolElement._id.toString()))
+        const schoolUploadedData = await Promise.all(
+          schoolsData.map(async school => {
+            school.schoolTypes = await school.schoolType.split(",");
+            school.createdBy = school.updatedBy = req.userDetails.id;
+            school.gpsLocation = "";
+            const schoolCreateObject = await database.models.schools.findOneAndUpdate(
+              { externalId: school.externalId },
+              school,
+              {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true,
+                returnNewDocument: true
               }
-            }
-
-          }
-
-          await Promise.all(Object.values(programsData).map(async (program) => {
-
-            let queryObject = {
-              _id: ObjectId(program._id.toString())
-            }
-            let updateObject = {}
-
-            updateObject.$set = {
-              ["components"]: program.components
-            }
-
-            await database.models.programs.findOneAndUpdate(
-              queryObject,
-              updateObject
             );
 
-            return
-          }));
+            return {
+              _id: schoolCreateObject._id,
+              externalId: school.externalId,
+              programId: school.programId,
+              frameworkId: school.frameworkId
+            };
+          })
+        );
 
+        if (schoolsUploadCount === schoolUploadedData.length) {
+          let schoolElement = new Object();
+          let indexOfEvaluationFrameworkInProgram;
+          let schoolProgramComponents = new Array();
+          let programFrameworkSchools = new Array();
+          let schoolCsvDataProgramId;
+          let schoolCsvDataEvaluationFrameworkId;
+
+          for (
+            let schoolIndexInData = 0;
+            schoolIndexInData < schoolUploadedData.length;
+            schoolIndexInData++
+          ) {
+            schoolElement = schoolUploadedData[schoolIndexInData];
+
+            schoolCsvDataProgramId = programQueryList[schoolElement.externalId];
+            schoolCsvDataEvaluationFrameworkId =
+              evaluationFrameworkQueryList[schoolElement.externalId];
+            schoolProgramComponents =
+              programsData[schoolCsvDataProgramId].components;
+            indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
+              component =>
+                component.id.toString() ===
+                evaluationFrameworksData[
+                  schoolCsvDataEvaluationFrameworkId
+                ].toString()
+            );
+
+            if (indexOfEvaluationFrameworkInProgram >= 0) {
+              programFrameworkSchools =
+                schoolProgramComponents[indexOfEvaluationFrameworkInProgram]
+                  .schools;
+              if (
+                programFrameworkSchools.findIndex(
+                  school => school.toString() == schoolElement._id.toString()
+                ) < 0
+              ) {
+                programFrameworkSchools.push(
+                  ObjectId(schoolElement._id.toString())
+                );
+              }
+            }
+          }
+
+          await Promise.all(
+            Object.values(programsData).map(async program => {
+              let queryObject = {
+                _id: ObjectId(program._id.toString())
+              };
+              let updateObject = {};
+
+              updateObject.$set = {
+                ["components"]: program.components
+              };
+
+              await database.models.programs.findOneAndUpdate(
+                queryObject,
+                updateObject
+              );
+
+              return;
+            })
+          );
         } else {
-          throw "Something went wrong, not all records were inserted/updated."
+          throw "Something went wrong, not all records were inserted/updated.";
         }
 
-        let responseMessage = "School record created successfully."
+        let responseMessage = "School record created successfully.";
 
         let response = { message: responseMessage };
 
         return resolve(response);
-
       } catch (error) {
         return reject({
-          status:500,
-          message:error,
+          status: 500,
+          message: error,
           errorObject: error
         });
       }
-
-    })
+    });
   }
-
 
   find(req) {
     req.query.fields = ["name", "externalId"];
@@ -151,12 +178,14 @@ module.exports = class Schools extends Abstract {
 
   async assessments(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
-        
         req.body = req.body || {};
-        let response = { message: "Assessment fetched successfully", result: {} };
-        const isRequestForOncallOrOnField = (req.query.oncall && req.query.oncall == 1) ? "oncall" : "onfield"
+        let response = {
+          message: "Assessment fetched successfully",
+          result: {}
+        };
+        const isRequestForOncallOrOnField =
+          req.query.oncall && req.query.oncall == 1 ? "oncall" : "onfield";
 
         let schoolQueryObject = { _id: ObjectId(req.params._id) };
         let schoolDocument = await database.models.schools.findOne(
@@ -168,7 +197,9 @@ module.exports = class Schools extends Abstract {
           status: "active",
           "components.schools": { $in: [ObjectId(req.params._id)] },
           $or: [
-            { "components.roles.assessors.users": { $in: [req.userDetails.id] } },
+            {
+              "components.roles.assessors.users": { $in: [req.userDetails.id] }
+            },
             {
               "components.roles.leadAssessors.users": {
                 $in: [req.userDetails.id]
@@ -199,7 +230,8 @@ module.exports = class Schools extends Abstract {
         let form = [];
         await _.forEach(Object.keys(schoolDocument), key => {
           if (
-            ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) == -1
+            ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
+            -1
           ) {
             form.push({
               field: key,
@@ -233,7 +265,10 @@ module.exports = class Schools extends Abstract {
 
         let schoolAssessorHierarchyObject = [
           {
-            $match: { userId: req.userDetails.id, programId: programDocument._id }
+            $match: {
+              userId: req.userDetails.id,
+              programId: programDocument._id
+            }
           },
           {
             $graphLookup: {
@@ -270,17 +305,17 @@ module.exports = class Schools extends Abstract {
           schoolInformation: schoolDocument,
           programId: programDocument._id,
           programInformation: {
-            name : programDocument.name,
-            description : programDocument.description,
-            owner : programDocument.owner,
-            createdBy : programDocument.createdBy,
-            updatedBy : programDocument.updatedBy,
-            resourceType : programDocument.resourceType,
-            language : programDocument.language,
-            keywords : programDocument.keywords,
-            concepts : programDocument.concepts,
-            createdFor : programDocument.createdFor,
-            imageCompression : programDocument.imageCompression,
+            name: programDocument.name,
+            description: programDocument.description,
+            owner: programDocument.owner,
+            createdBy: programDocument.createdBy,
+            updatedBy: programDocument.updatedBy,
+            resourceType: programDocument.resourceType,
+            language: programDocument.language,
+            keywords: programDocument.keywords,
+            concepts: programDocument.concepts,
+            createdFor: programDocument.createdFor,
+            imageCompression: programDocument.imageCompression
           },
           evidenceSubmissions: [],
           schoolProfile: {},
@@ -331,39 +366,42 @@ module.exports = class Schools extends Abstract {
               ])
             );
             criteria.evidences.forEach(evidenceMethod => {
-              evidenceMethod.notApplicable = false
-              evidenceMethod.canBeNotAllowed = true
-              evidenceMethod.remarks = ""
+              evidenceMethod.notApplicable = false;
+              evidenceMethod.canBeNotAllowed = true;
+              evidenceMethod.remarks = "";
               submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                 evidenceMethod,
                 ["sections"]
               );
-              if(evidenceMethod.modeOfCollection === isRequestForOncallOrOnField) {
-
+              if (
+                evidenceMethod.modeOfCollection === isRequestForOncallOrOnField
+              ) {
                 if (!evidenceMethodArray[evidenceMethod.externalId]) {
-                  evidenceMethodArray[evidenceMethod.externalId] = evidenceMethod;
-                } else  {
+                  evidenceMethodArray[
+                    evidenceMethod.externalId
+                  ] = evidenceMethod;
+                } else {
                   // Evidence method already exists
                   // Loop through all sections reading evidence method
                   evidenceMethod.sections.forEach(evidenceMethodSection => {
                     let sectionExisitsInEvidenceMethod = 0;
                     let existingSectionQuestionsArrayInEvidenceMethod = [];
-                    evidenceMethodArray[evidenceMethod.externalId].sections.forEach(
-                      exisitingSectionInEvidenceMethod => {
-                        if (
-                          exisitingSectionInEvidenceMethod.name ==
-                          evidenceMethodSection.name
-                        ) {
-                          sectionExisitsInEvidenceMethod = 1;
-                          existingSectionQuestionsArrayInEvidenceMethod =
-                            exisitingSectionInEvidenceMethod.questions;
-                        }
+                    evidenceMethodArray[
+                      evidenceMethod.externalId
+                    ].sections.forEach(exisitingSectionInEvidenceMethod => {
+                      if (
+                        exisitingSectionInEvidenceMethod.name ==
+                        evidenceMethodSection.name
+                      ) {
+                        sectionExisitsInEvidenceMethod = 1;
+                        existingSectionQuestionsArrayInEvidenceMethod =
+                          exisitingSectionInEvidenceMethod.questions;
                       }
-                    );
+                    });
                     if (!sectionExisitsInEvidenceMethod) {
-                      evidenceMethodArray[evidenceMethod.externalId].sections.push(
-                        evidenceMethodSection
-                      );
+                      evidenceMethodArray[
+                        evidenceMethod.externalId
+                      ].sections.push(evidenceMethodSection);
                     } else {
                       evidenceMethodSection.questions.forEach(
                         questionInEvidenceMethodSection => {
@@ -387,9 +425,13 @@ module.exports = class Schools extends Abstract {
           );
           assessment.submissionId = submissionDoc.result._id;
 
-          if(submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {
-            assessment.parentInterviewResponses = submissionDoc.result.parentInterviewResponses;
-          } 
+          if (
+            submissionDoc.result.parentInterviewResponses &&
+            submissionDoc.result.parentInterviewResponses.length > 0
+          ) {
+            assessment.parentInterviewResponses =
+              submissionDoc.result.parentInterviewResponses;
+          }
 
           const parsedAssessment = await this.parseQuestions(
             Object.values(evidenceMethodArray),
@@ -397,10 +439,13 @@ module.exports = class Schools extends Abstract {
             submissionDoc.result.evidences
           );
 
-          assessment.evidences = parsedAssessment.evidences
-          assessment.submissions = parsedAssessment.submissions
-          if(parsedAssessment.generalQuestions && parsedAssessment.generalQuestions.length > 0) {
-            assessment.generalQuestions = parsedAssessment.generalQuestions
+          assessment.evidences = parsedAssessment.evidences;
+          assessment.submissions = parsedAssessment.submissions;
+          if (
+            parsedAssessment.generalQuestions &&
+            parsedAssessment.generalQuestions.length > 0
+          ) {
+            assessment.generalQuestions = parsedAssessment.generalQuestions;
           }
           assessments.push(assessment);
         }
@@ -410,90 +455,102 @@ module.exports = class Schools extends Abstract {
         return resolve(response);
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-    })
+    });
   }
 
   async parseQuestions(evidences, schoolTypes, submissionDocEvidences) {
-
-    let schoolFilterQuestionArray = {}
-    let sectionQuestionArray = {}
-    let generalQuestions = []
-    let questionArray = {}
-    let submissionsObjects = {}
-    evidences.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)); 
+    let schoolFilterQuestionArray = {};
+    let sectionQuestionArray = {};
+    let generalQuestions = [];
+    let questionArray = {};
+    let submissionsObjects = {};
+    evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
 
     evidences.forEach(evidence => {
-
-      evidence.startTime = submissionDocEvidences[evidence.externalId].startTime
-      evidence.endTime = submissionDocEvidences[evidence.externalId].endTime
-      evidence.isSubmitted = submissionDocEvidences[evidence.externalId].isSubmitted
-      if(submissionDocEvidences[evidence.externalId].submissions) {
-        submissionDocEvidences[evidence.externalId].submissions.forEach(submission => {
-          if(submission.isValid) {
-            submissionsObjects[evidence.externalId] = submission
+      evidence.startTime =
+        submissionDocEvidences[evidence.externalId].startTime;
+      evidence.endTime = submissionDocEvidences[evidence.externalId].endTime;
+      evidence.isSubmitted =
+        submissionDocEvidences[evidence.externalId].isSubmitted;
+      if (submissionDocEvidences[evidence.externalId].submissions) {
+        submissionDocEvidences[evidence.externalId].submissions.forEach(
+          submission => {
+            if (submission.isValid) {
+              submissionsObjects[evidence.externalId] = submission;
+            }
           }
-        }) 
+        );
       }
-      
-      evidence.sections.forEach(section => {
-        section.questions.forEach((question,index,section) => {
-          if(_.difference(question.questionGroup, schoolTypes).length < question.questionGroup.length) {
-            sectionQuestionArray[question._id] = section
-            questionArray[question._id] = question
-          } else {
-            schoolFilterQuestionArray[question._id] = section
-          }
-        })
-      })
-    })
-    
-    Object.entries(schoolFilterQuestionArray).forEach(schoolFilteredQuestion => {
-      schoolFilteredQuestion[1].forEach((questionElm,questionIndexInSection) => {
-        if(questionElm._id.toString() === schoolFilteredQuestion[0]) {
-          schoolFilteredQuestion[1].splice(questionIndexInSection,1)
-        }
-      })
-    })
 
+      evidence.sections.forEach(section => {
+        section.questions.forEach((question, index, section) => {
+          if (
+            _.difference(question.questionGroup, schoolTypes).length <
+            question.questionGroup.length
+          ) {
+            sectionQuestionArray[question._id] = section;
+            questionArray[question._id] = question;
+          } else {
+            schoolFilterQuestionArray[question._id] = section;
+          }
+        });
+      });
+    });
+
+    Object.entries(schoolFilterQuestionArray).forEach(
+      schoolFilteredQuestion => {
+        schoolFilteredQuestion[1].forEach(
+          (questionElm, questionIndexInSection) => {
+            if (questionElm._id.toString() === schoolFilteredQuestion[0]) {
+              schoolFilteredQuestion[1].splice(questionIndexInSection, 1);
+            }
+          }
+        );
+      }
+    );
 
     Object.entries(questionArray).forEach(questionArrayElm => {
-
       questionArrayElm[1]["payload"] = {
-        criteriaId:questionArrayElm[1]["criteriaId"],
-        responseType:questionArrayElm[1]["responseType"],
-        evidenceMethod:questionArrayElm[1]["evidence.externalId"]
-      }
-      questionArrayElm[1]["startTime"] = ""
-      questionArrayElm[1]["endTime"] = ""
-      delete questionArrayElm[1]["criteriaId"]
+        criteriaId: questionArrayElm[1]["criteriaId"],
+        responseType: questionArrayElm[1]["responseType"],
+        evidenceMethod: questionArrayElm[1]["evidence.externalId"]
+      };
+      questionArrayElm[1]["startTime"] = "";
+      questionArrayElm[1]["endTime"] = "";
+      delete questionArrayElm[1]["criteriaId"];
 
-      if(questionArrayElm[1].responseType === "matrix") {
-        let instanceQuestionArray = new Array()
+      if (questionArrayElm[1].responseType === "matrix") {
+        let instanceQuestionArray = new Array();
         questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
-          if(sectionQuestionArray[instanceQuestionId.toString()]) {
-            let instanceQuestion = questionArray[instanceQuestionId.toString()]
-            instanceQuestionArray.push(instanceQuestion)
-            let sectionReferenceOfInstanceQuestion = sectionQuestionArray[instanceQuestionId.toString()]
-            sectionReferenceOfInstanceQuestion.forEach((questionInSection,index) => {
-              if(questionInSection._id.toString() === instanceQuestionId.toString()) {
-                sectionReferenceOfInstanceQuestion.splice(index,1)
+          if (sectionQuestionArray[instanceQuestionId.toString()]) {
+            let instanceQuestion = questionArray[instanceQuestionId.toString()];
+            instanceQuestionArray.push(instanceQuestion);
+            let sectionReferenceOfInstanceQuestion =
+              sectionQuestionArray[instanceQuestionId.toString()];
+            sectionReferenceOfInstanceQuestion.forEach(
+              (questionInSection, index) => {
+                if (
+                  questionInSection._id.toString() ===
+                  instanceQuestionId.toString()
+                ) {
+                  sectionReferenceOfInstanceQuestion.splice(index, 1);
+                }
               }
-            })
+            );
           }
-        })
-        questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray
+        });
+        questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray;
       }
 
-      if(questionArrayElm[1]["isAGeneralQuestion"] === true) {
-        questionArrayElm[1]["payload"].isAGeneralQuestion = true
-        generalQuestions.push(questionArrayElm[1])
+      if (questionArrayElm[1]["isAGeneralQuestion"] === true) {
+        questionArrayElm[1]["payload"].isAGeneralQuestion = true;
+        generalQuestions.push(questionArrayElm[1]);
       }
-
     });
     return {
       evidences: evidences,
@@ -501,5 +558,4 @@ module.exports = class Schools extends Abstract {
       generalQuestions: generalQuestions
     };
   }
-
 };
