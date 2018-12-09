@@ -306,6 +306,7 @@ module.exports = class Schools extends Abstract {
           programId: programDocument._id,
           programInformation: {
             name: programDocument.name,
+            externalId: programDocument.externalId,
             description: programDocument.description,
             owner: programDocument.owner,
             createdBy: programDocument.createdBy,
