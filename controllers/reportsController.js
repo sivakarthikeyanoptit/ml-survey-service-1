@@ -1,4 +1,5 @@
 const json2csv = require("json2csv").Parser;
+const _ = require("lodash");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -385,10 +386,14 @@ module.exports = class Reports extends Abstract {
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
+          let gmtCreatedTime = new Date(submission.createdAt).toUTCString();
+          let myDate = new Date(gmtCreatedTime);
+          let istCreatedTime = myDate.toLocaleString();
+
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
             completedDate: submission.completedDate,
-            createdAt: submission.createdAt
+            createdAt: istCreatedTime
           };
         });
         schoolDocument.forEach(school => {
@@ -443,7 +448,6 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-        console.log(csv);
         let response = {
           data: csv,
           csvResponse: true,
@@ -455,6 +459,151 @@ module.exports = class Reports extends Abstract {
         return reject({
           status: 500,
           message: "Oops! Something went wrong",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async programsSubmissionStatus(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let results = {};
+
+        let programQueryObject = {
+          externalId: req.params._id
+        };
+
+        let programDocument = await database.models.programs.findOne(
+          programQueryObject
+        );
+
+        results.id = programDocument._id;
+        programDocument.components.forEach(component => {
+          results.schoolId = component.schools;
+        });
+
+        let schoolQueryObject = {
+          _id: { $in: Object.values(results.schoolId) }
+        };
+        let schoolDocument = await database.models.schools.find(
+          schoolQueryObject,
+          { name: 1, externalId: 1 }
+        );
+
+        schoolDocument.forEach(async schoolDoc => {
+          let currentResult1 = [];
+          let submissionQueryObject = {
+            schoolId: { $in: ObjectId(schoolDoc._id) }
+          };
+
+          let submissionDocument = await database.models.submissions.find(
+            submissionQueryObject,
+            { evidences: 1 }
+          );
+          if (
+            submissionDocument.length &&
+            submissionDocument[0]["evidences"][req.query.evidenceId].isSubmitted
+          ) {
+            let answer = [];
+            submissionDocument[0]["evidences"][
+              req.query.evidenceId
+            ].submissions.forEach(async submissionEvidence => {
+              let submittedBy = submissionEvidence.submittedBy;
+
+              Object.entries(submissionEvidence.answers).map(
+                submissionAnswer => {
+                  if (!(submissionAnswer[1].responseType == "matrix")) {
+                    return answer.push(submissionAnswer[1]);
+                  }
+                }
+              );
+
+              let schoolAssessorsDocument = await database.models[
+                "school-assessors"
+              ].find({
+                userId: { $in: submittedBy }
+              });
+
+              answer.forEach(QandA => {
+                const obj = {
+                  schoolName: schoolDoc.name,
+                  schoolId: schoolDoc.externalId
+                };
+
+                let gmtStartTime = new Date(
+                  submissionDocument[0]["evidences"][
+                    req.query.evidenceId
+                  ].startTime
+                ).toUTCString();
+                let gmtEndTime = new Date(
+                  submissionDocument[0]["evidences"][
+                    req.query.evidenceId
+                  ].endTime
+                ).toUTCString();
+
+                let myStartDate = new Date(gmtStartTime);
+                let myEndDate = new Date(gmtEndTime);
+
+                obj.startTime = myStartDate.toLocaleString();
+                obj.endTime = myEndDate.toLocaleString();
+                obj.question = QandA.payload["question"][0];
+                obj.answer = QandA.payload["labels"].toString();
+                obj.assessorId = JSON.parse(
+                  JSON.stringify(schoolAssessorsDocument[0]["externalId"])
+                );
+
+                return currentResult1.push(obj);
+              });
+              console.log(currentResult1);
+
+              let fields = [
+                {
+                  label: "School Id",
+                  value: "schoolId"
+                },
+                {
+                  label: "Assessor Id",
+                  value: "assessorId"
+                },
+
+                {
+                  label: "School Name",
+                  value: "schoolName"
+                },
+                {
+                  label: "Question",
+                  value: "question"
+                },
+                {
+                  label: "Answers",
+                  value: "answer"
+                },
+                {
+                  label: "Start Time",
+                  value: "startTime"
+                },
+                {
+                  label: "End Time",
+                  value: "endTime"
+                }
+              ];
+
+              const json2csvParser = new json2csv({ fields });
+              const csv = json2csvParser.parse(currentResult1);
+
+              return resolve({
+                data: csv,
+                csvResponse: true,
+                fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+              });
+            });
+          }
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
