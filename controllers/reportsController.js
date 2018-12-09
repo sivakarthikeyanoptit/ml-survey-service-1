@@ -448,10 +448,6 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-<<<<<<< HEAD
-=======
-
->>>>>>> 00b46bd7c345c10c9ccbed9671fc9e5d152c82a4
         let response = {
           data: csv,
           csvResponse: true,
