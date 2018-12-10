@@ -448,10 +448,6 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-<<<<<<< HEAD
-=======
-
->>>>>>> 00b46bd7c345c10c9ccbed9671fc9e5d152c82a4
         let response = {
           data: csv,
           csvResponse: true,
@@ -472,137 +468,118 @@ module.exports = class Reports extends Abstract {
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let results = {};
-
-        let programQueryObject = {
-          externalId: req.params._id
+        let submissionQuery = {
+          ["programInformation.name"]: req.params._id
         };
-
-        let programDocument = await database.models.programs.findOne(
-          programQueryObject
+        let submissionDocument = await database.models.submissions.find(
+          submissionQuery
         );
 
-        results.id = programDocument._id;
-        programDocument.components.forEach(component => {
-          results.schoolId = component.schools;
-        });
+        let assessorElement = {};
+        let ecmReports = [];
+        for (let i = 0; i < submissionDocument.length; i++) {
+          submissionDocument[i].assessors.forEach(assessor => {
+            assessorElement[assessor.userId] = assessor;
+          });
 
-        let schoolQueryObject = {
-          _id: { $in: Object.values(results.schoolId) }
-        };
-        let schoolDocument = await database.models.schools.find(
-          schoolQueryObject,
-          { name: 1, externalId: 1 }
-        );
-
-        schoolDocument.forEach(async schoolDoc => {
-          let currentResult1 = [];
-          let submissionQueryObject = {
-            schoolId: { $in: ObjectId(schoolDoc._id) }
-          };
-
-          let submissionDocument = await database.models.submissions.find(
-            submissionQueryObject,
-            { evidences: 1 }
-          );
           if (
-            submissionDocument.length &&
-            submissionDocument[0]["evidences"][req.query.evidenceId].isSubmitted
+            submissionDocument[i].evidences[req.query.evidenceId].isSubmitted
           ) {
-            let answer = [];
-            submissionDocument[0]["evidences"][
+            submissionDocument[i]["evidences"][
               req.query.evidenceId
-            ].submissions.forEach(async submissionEvidence => {
-              let submittedBy = submissionEvidence.submittedBy;
+            ].submissions.forEach(submissions => {
+              let answer = [];
 
-              Object.entries(submissionEvidence.answers).map(
-                submissionAnswer => {
+              if (assessorElement[submissions.submittedBy.toString()]) {
+                Object.entries(submissions.answers).map(submissionAnswer => {
                   if (!(submissionAnswer[1].responseType == "matrix")) {
                     return answer.push(submissionAnswer[1]);
                   }
-                }
-              );
+                });
 
-              let schoolAssessorsDocument = await database.models[
-                "school-assessors"
-              ].find({
-                userId: { $in: submittedBy }
-              });
+                answer.forEach(QAndA => {
+                  let ecmCurrentReport = [];
+                  let gmtStart = new Date(QAndA.startTime).toUTCString();
+                  let myStart = new Date(gmtStart);
+                  let gmtEnd = new Date(QAndA.endTime).toUTCString();
+                  let myEnd = new Date(gmtEnd);
+                  let istStart = myStart.toLocaleString();
+                  let istEnd = myEnd.toLocaleString();
 
-              answer.forEach(QandA => {
-                const obj = {
-                  schoolName: schoolDoc.name,
-                  schoolId: schoolDoc.externalId
-                };
-
-                let gmtStartTime = new Date(
-                  submissionDocument[0]["evidences"][
-                    req.query.evidenceId
-                  ].startTime
-                ).toUTCString();
-                let gmtEndTime = new Date(
-                  submissionDocument[0]["evidences"][
-                    req.query.evidenceId
-                  ].endTime
-                ).toUTCString();
-
-                let myStartDate = new Date(gmtStartTime);
-                let myEndDate = new Date(gmtEndTime);
-
-                obj.startTime = myStartDate.toLocaleString();
-                obj.endTime = myEndDate.toLocaleString();
-                obj.question = QandA.payload["question"][0];
-                obj.answer = QandA.payload["labels"].toString();
-                obj.assessorId = JSON.parse(
-                  JSON.stringify(schoolAssessorsDocument[0]["externalId"])
-                );
-
-                return currentResult1.push(obj);
-              });
-              console.log(currentResult1);
-
-              let fields = [
-                {
-                  label: "School Id",
-                  value: "schoolId"
-                },
-                {
-                  label: "Assessor Id",
-                  value: "assessorId"
-                },
-
-                {
-                  label: "School Name",
-                  value: "schoolName"
-                },
-                {
-                  label: "Question",
-                  value: "question"
-                },
-                {
-                  label: "Answers",
-                  value: "answer"
-                },
-                {
-                  label: "Start Time",
-                  value: "startTime"
-                },
-                {
-                  label: "End Time",
-                  value: "endTime"
-                }
-              ];
-
-              const json2csvParser = new json2csv({ fields });
-              const csv = json2csvParser.parse(currentResult1);
-
-              return resolve({
-                data: csv,
-                csvResponse: true,
-                fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
-              });
+                  if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
+                    ecmCurrentReport.push({
+                      schoolName: submissionDocument[i].schoolInformation.name,
+                      schoolId:
+                        submissionDocument[i].schoolInformation.externalId,
+                      question: QAndA.payload["question"][0],
+                      answer: QAndA.payload["labels"].toString(),
+                      assessorId:
+                        assessorElement[submissions.submittedBy.toString()]
+                          .externalId,
+                      startTime: "-",
+                      endTime: "-"
+                    });
+                  } else {
+                    ecmCurrentReport.push({
+                      schoolName: submissionDocument[i].schoolInformation.name,
+                      schoolId:
+                        submissionDocument[i].schoolInformation.externalId,
+                      question: QAndA.payload["question"][0],
+                      answer: QAndA.payload["labels"].toString(),
+                      assessorId:
+                        assessorElement[submissions.submittedBy.toString()]
+                          .externalId,
+                      startTime: istStart,
+                      endTime: istEnd
+                    });
+                  }
+                  ecmCurrentReport.forEach(currentEcm => {
+                    return ecmReports.push(currentEcm);
+                  });
+                });
+              }
             });
           }
+        }
+
+        let fields = [
+          {
+            label: "School Name",
+            value: "schoolName"
+          },
+          {
+            label: "School Id",
+            value: "schoolId"
+          },
+          {
+            label: "Assessor Id",
+            value: "assessorId"
+          },
+          {
+            label: "Question",
+            value: "question"
+          },
+          {
+            label: "Answers",
+            value: "answer"
+          },
+          {
+            label: "Start Time",
+            value: "startTime"
+          },
+          {
+            label: "End Time",
+            value: "endTime"
+          }
+        ];
+
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(ecmReports);
+
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
