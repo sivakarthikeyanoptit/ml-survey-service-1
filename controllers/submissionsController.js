@@ -710,7 +710,7 @@ module.exports = class Submission extends Abstract {
             result.parentId = req.query.parentId
           }
 
-          if(submissionDocument.parentInterviewResponses[req.query.parentId]) {
+          if(("parentInterviewResponses" in submissionDocument) && submissionDocument.parentInterviewResponses[req.query.parentId]) {
             result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
             result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
           } else {
