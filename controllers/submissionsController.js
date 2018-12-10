@@ -718,7 +718,13 @@ module.exports = class Submission extends Abstract {
           }
 
         } else {
-          throw "No submission document found."
+          
+          let noSubmissionResponse = {
+            result:[],
+            message: "No submissions found"
+          };
+
+          return resolve(noSubmissionResponse);
         }
 
 
