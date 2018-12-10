@@ -710,8 +710,9 @@ module.exports = class Submission extends Abstract {
             result.parentId = req.query.parentId
           }
 
-          if(("parentInterviewResponses" in submissionDocument)) {
-            if(req.query.parentId in submissionDocument.parentInterviewResponses)
+          console.log(submissionDocument);
+
+          if((submissionDocument.parentInterviewResponses) && submissionDocument.parentInterviewResponses[req.query.parentId])
             {
               result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
               result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
@@ -723,8 +724,8 @@ module.exports = class Submission extends Abstract {
             };
 
             return resolve(noSubmissionResponse);
-            }
-          } 
+        
+          }
 
         } else {
           
