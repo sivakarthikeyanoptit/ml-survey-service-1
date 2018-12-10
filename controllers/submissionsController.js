@@ -439,6 +439,8 @@ module.exports = class Submission extends Abstract {
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
+          runUpdateQuery = true;
+
         }
 
         if(runUpdateQuery) {
