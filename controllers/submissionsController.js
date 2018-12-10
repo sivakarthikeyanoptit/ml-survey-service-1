@@ -356,7 +356,22 @@ module.exports = class Submission extends Abstract {
         let updateObject = {}
         updateObject.$set = {}
 
-          
+
+        let schoolQueryObject = {
+          _id: ObjectId(submissionDocument.schoolId)
+        }
+
+        let schoolDocument = await database.models.schools.findOne(
+          schoolQueryObject
+        );
+
+        let schoolUpdatedDocument={};
+
+        let updateSchoolObject = {}
+
+        updateSchoolObject.$set = {}
+
+
         if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
           evidenceSubmission.externalId = parentInterviewEvidenceMethod
@@ -445,6 +460,22 @@ module.exports = class Submission extends Abstract {
 
 
         } else {
+
+
+          updateSchoolObject.$set = {
+              isParentInterviewCompleted: true
+            }
+
+          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
+            schoolQueryObject,
+            updateSchoolObject,
+            {}
+          );
+
+          
+
+          //isParentInterviewCompleted
+
           let response = {
             message: "Already completed."
           };
@@ -473,6 +504,17 @@ module.exports = class Submission extends Abstract {
               queryOptions
             );
           }
+
+          updateSchoolObject.$set = {
+              isParentInterviewCompleted: true
+            }
+
+          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
+            schoolQueryObject,
+            updateSchoolObject,
+            {}
+          );
+
 
           let response = {
             message: message

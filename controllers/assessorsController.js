@@ -12,13 +12,15 @@ module.exports = class Assessors {
         req.query = { userId: req.userDetails.userId };
         req.populate = {
           path: 'schools',
-          select: ["name","externalId","addressLine1","addressLine2","city","state","parentInterviewStatus"]
+          select: ["name","externalId","addressLine1","addressLine2","city","state","isParentInterviewCompleted"]
         };
         const queryResult = await controllers.schoolAssessorsController.populate(req)
         queryResult.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             let currentSchool = assessorSchool.toObject();
-            currentSchool.isParentInterviewCompleted = true;
+            if(!currentSchool.isParentInterviewCompleted){
+              currentSchool.isParentInterviewCompleted = false;
+            }
             schools.push(currentSchool)
           })
         });
