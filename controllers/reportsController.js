@@ -1,4 +1,5 @@
 const json2csv = require("json2csv").Parser;
+const _ = require("lodash");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -385,10 +386,14 @@ module.exports = class Reports extends Abstract {
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
+          let gmtCreatedTime = new Date(submission.createdAt).toUTCString();
+          let myDate = new Date(gmtCreatedTime);
+          let istCreatedTime = myDate.toLocaleString();
+
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
             completedDate: submission.completedDate,
-            createdAt: submission.createdAt
+            createdAt: istCreatedTime
           };
         });
         schoolDocument.forEach(school => {
@@ -443,7 +448,6 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-
         let response = {
           data: csv,
           csvResponse: true,
@@ -455,6 +459,132 @@ module.exports = class Reports extends Abstract {
         return reject({
           status: 500,
           message: "Oops! Something went wrong",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async programsSubmissionStatus(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let submissionQuery = {
+          ["programInformation.name"]: req.params._id
+        };
+        let submissionDocument = await database.models.submissions.find(
+          submissionQuery
+        );
+
+        let assessorElement = {};
+        let ecmReports = [];
+        for (let i = 0; i < submissionDocument.length; i++) {
+          submissionDocument[i].assessors.forEach(assessor => {
+            assessorElement[assessor.userId] = assessor;
+          });
+
+          if (
+            submissionDocument[i].evidences[req.query.evidenceId].isSubmitted
+          ) {
+            submissionDocument[i]["evidences"][
+              req.query.evidenceId
+            ].submissions.forEach(submissions => {
+              let answer = [];
+
+              if (assessorElement[submissions.submittedBy.toString()]) {
+                Object.entries(submissions.answers).map(submissionAnswer => {
+                  if (!(submissionAnswer[1].responseType == "matrix")) {
+                    return answer.push(submissionAnswer[1]);
+                  }
+                });
+
+                answer.forEach(QAndA => {
+                  let ecmCurrentReport = [];
+                  let gmtStart = new Date(QAndA.startTime).toUTCString();
+                  let myStart = new Date(gmtStart);
+                  let gmtEnd = new Date(QAndA.endTime).toUTCString();
+                  let myEnd = new Date(gmtEnd);
+                  let istStart = myStart.toLocaleString();
+                  let istEnd = myEnd.toLocaleString();
+
+                  if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
+                    ecmCurrentReport.push({
+                      schoolName: submissionDocument[i].schoolInformation.name,
+                      schoolId:
+                        submissionDocument[i].schoolInformation.externalId,
+                      question: QAndA.payload["question"][0],
+                      answer: QAndA.payload["labels"].toString(),
+                      assessorId:
+                        assessorElement[submissions.submittedBy.toString()]
+                          .externalId,
+                      startTime: "-",
+                      endTime: "-"
+                    });
+                  } else {
+                    ecmCurrentReport.push({
+                      schoolName: submissionDocument[i].schoolInformation.name,
+                      schoolId:
+                        submissionDocument[i].schoolInformation.externalId,
+                      question: QAndA.payload["question"][0],
+                      answer: QAndA.payload["labels"].toString(),
+                      assessorId:
+                        assessorElement[submissions.submittedBy.toString()]
+                          .externalId,
+                      startTime: istStart,
+                      endTime: istEnd
+                    });
+                  }
+                  ecmCurrentReport.forEach(currentEcm => {
+                    return ecmReports.push(currentEcm);
+                  });
+                });
+              }
+            });
+          }
+        }
+
+        let fields = [
+          {
+            label: "School Name",
+            value: "schoolName"
+          },
+          {
+            label: "School Id",
+            value: "schoolId"
+          },
+          {
+            label: "Assessor Id",
+            value: "assessorId"
+          },
+          {
+            label: "Question",
+            value: "question"
+          },
+          {
+            label: "Answers",
+            value: "answer"
+          },
+          {
+            label: "Start Time",
+            value: "startTime"
+          },
+          {
+            label: "End Time",
+            value: "endTime"
+          }
+        ];
+
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(ecmReports);
+
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
