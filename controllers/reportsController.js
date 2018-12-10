@@ -1,5 +1,6 @@
 const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
+const moment = require("moment-timezone");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -499,13 +500,9 @@ module.exports = class Reports extends Abstract {
 
                 answer.forEach(QAndA => {
                   let ecmCurrentReport = [];
-                  let gmtStart = new Date(QAndA.startTime).toUTCString();
-                  let myStart = new Date(gmtStart);
-                  let gmtEnd = new Date(QAndA.endTime).toUTCString();
-                  let myEnd = new Date(gmtEnd);
-
-                  let istStart = gmtStart.setHours(gmtStart.getHours()+5.5);
-                  let istEnd = gmtEnd.setHours(gmtEnd.getHours()+5.5);
+                  
+                  let istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                  let istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
 
                   if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
                     ecmCurrentReport.push({
@@ -576,6 +573,7 @@ module.exports = class Reports extends Abstract {
 
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(ecmReports);
+ 
 
         return resolve({
           data: csv,
