@@ -503,8 +503,9 @@ module.exports = class Reports extends Abstract {
                   let myStart = new Date(gmtStart);
                   let gmtEnd = new Date(QAndA.endTime).toUTCString();
                   let myEnd = new Date(gmtEnd);
-                  let istStart = myStart.toLocaleString();
-                  let istEnd = myEnd.toLocaleString();
+
+                  let istStart = gmtStart.setHours(gmtStart.getHours()+5.5);
+                  let istEnd = gmtEnd.setHours(gmtEnd.getHours()+5.5);
 
                   if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
                     ecmCurrentReport.push({
@@ -579,7 +580,7 @@ module.exports = class Reports extends Abstract {
         return resolve({
           data: csv,
           csvResponse: true,
-          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+          fileName: "ecmWiseReport"+"_"+req.query.evidenceId+ new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
