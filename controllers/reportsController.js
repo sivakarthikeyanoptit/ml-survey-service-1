@@ -574,8 +574,8 @@ module.exports = class Reports extends Abstract {
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(ecmReports);
  
-        let dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY")
-        
+        let dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+
         return resolve({
           data: csv,
           csvResponse: true,
