@@ -368,23 +368,26 @@ module.exports = class Submission extends Abstract {
 
           let evidenceSubmissionAnswerArray = {}
 
-          Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
-            if(parentInterviewResponse[1].status === "completed") {
-              Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
-                if(evidenceSubmissionAnswerArray[answer[0]]) {
-                  answer[1].value.forEach(instanceResponse => {
-                    evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
-                  })
-                  answer[1].payload.labels[0].forEach(instanceResponsePayload => {
-                    evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
-                  })
-                  evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
-                } else {
-                  evidenceSubmissionAnswerArray[answer[0]] = answer[1]
-                }
-              })
-            }
-          });
+          if(submissionDocument.parentInterviewResponses){
+              Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
+              if(parentInterviewResponse[1].status === "completed") {
+                Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
+                  if(evidenceSubmissionAnswerArray[answer[0]]) {
+                    answer[1].value.forEach(instanceResponse => {
+                      evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
+                    })
+                    answer[1].payload.labels[0].forEach(instanceResponsePayload => {
+                      evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
+                    })
+                    evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
+                  } else {
+                    evidenceSubmissionAnswerArray[answer[0]] = answer[1]
+                  }
+                })
+              }
+            });
+          }
+          
 
           evidenceSubmission.answers = evidenceSubmissionAnswerArray
 
