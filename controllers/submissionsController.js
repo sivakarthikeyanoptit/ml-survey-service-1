@@ -355,8 +355,9 @@ module.exports = class Submission extends Abstract {
 
         let updateObject = {}
         updateObject.$set = {}
-      
-        if(submissionDocument && submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true) {
+
+          
+        if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
           evidenceSubmission.externalId = parentInterviewEvidenceMethod
           evidenceSubmission.submittedBy = req.userDetails.userId
@@ -367,6 +368,9 @@ module.exports = class Submission extends Abstract {
           evidenceSubmission.isValid = true
 
           let evidenceSubmissionAnswerArray = {}
+
+
+
 
           Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
             if(parentInterviewResponse[1].status === "completed") {
@@ -439,8 +443,13 @@ module.exports = class Submission extends Abstract {
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
-          runUpdateQuery = true;
 
+        } else {
+          let response = {
+            message: "Already completed."
+          };
+
+          return resolve(response);
         }
 
         if(runUpdateQuery) {
