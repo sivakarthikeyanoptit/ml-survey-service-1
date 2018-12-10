@@ -489,13 +489,11 @@ module.exports = class Schools extends Abstract {
       }
 
       evidence.sections.forEach(section => {
-        section.questions.forEach((question, index, section) => {
-          if (
-            _.difference(question.questionGroup, schoolTypes).length <
-            question.questionGroup.length
-          ) {
-            sectionQuestionArray[question._id] = section;
-            questionArray[question._id] = question;
+        section.questions.forEach((question,index,section) => {
+          question.evidenceMethod = evidence.externalId
+          if(_.difference(question.questionGroup, schoolTypes).length < question.questionGroup.length) {
+            sectionQuestionArray[question._id] = section
+            questionArray[question._id] = question
           } else {
             schoolFilterQuestionArray[question._id] = section;
           }
@@ -517,16 +515,16 @@ module.exports = class Schools extends Abstract {
 
     Object.entries(questionArray).forEach(questionArrayElm => {
       questionArrayElm[1]["payload"] = {
-        criteriaId: questionArrayElm[1]["criteriaId"],
-        responseType: questionArrayElm[1]["responseType"],
-        evidenceMethod: questionArrayElm[1]["evidence.externalId"]
-      };
-      questionArrayElm[1]["startTime"] = "";
-      questionArrayElm[1]["endTime"] = "";
-      delete questionArrayElm[1]["criteriaId"];
+        criteriaId:questionArrayElm[1]["criteriaId"],
+        responseType:questionArrayElm[1]["responseType"],
+        evidenceMethod:questionArrayElm[1].evidenceMethod
+      }
+      questionArrayElm[1]["startTime"] = ""
+      questionArrayElm[1]["endTime"] = ""
+      delete questionArrayElm[1]["criteriaId"]
 
-      if (questionArrayElm[1].responseType === "matrix") {
-        let instanceQuestionArray = new Array();
+      if(questionArrayElm[1].responseType === "matrix") {
+        let instanceQuestionArray = new Array()
         questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
           if (sectionQuestionArray[instanceQuestionId.toString()]) {
             let instanceQuestion = questionArray[instanceQuestionId.toString()];
