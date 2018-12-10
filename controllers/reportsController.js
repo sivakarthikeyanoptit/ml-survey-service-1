@@ -500,7 +500,7 @@ module.exports = class Reports extends Abstract {
 
                 answer.forEach(QAndA => {
                   let ecmCurrentReport = [];
-                  
+
                   let istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
                   let istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
 
@@ -578,7 +578,7 @@ module.exports = class Reports extends Abstract {
         return resolve({
           data: csv,
           csvResponse: true,
-          fileName: "ecmWiseReport"+"_"+req.query.evidenceId+ new Date().toDateString() + ".csv"
+          fileName: "ecmWiseReport"+"_"+req.query.evidenceId+"_"+ new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
