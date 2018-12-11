@@ -604,9 +604,24 @@ module.exports = class Submission extends Abstract {
                       
                       _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
                         
-                          submissionDocument.answers[question.qid].instanceResponses.push(question.value)
-                          submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
-                          submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
+                          if(submissionDocument.answers[question.qid]) {
+                            submissionDocument.answers[question.qid].instanceResponses.push(question.value)
+                            submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
+                            submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
+                          } else {
+                            let clonedQuestion = {...question}
+                            clonedQuestion.instanceResponses = new Array
+                            clonedQuestion.instanceRemarks = new Array
+                            clonedQuestion.instanceFileName = new Array
+                            clonedQuestion.instanceResponses.push(question.value)
+                            clonedQuestion.instanceRemarks.push(question.remarks)
+                            clonedQuestion.instanceFileName.push(question.fileName)
+                            delete clonedQuestion.value
+                            delete clonedQuestion.remarks
+                            delete clonedQuestion.fileName
+                            delete clonedQuestion.payload
+                            submissionDocument.answers[question.qid] = clonedQuestion
+                          }
 
                       })
                     }
