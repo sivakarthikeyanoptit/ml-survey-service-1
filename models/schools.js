@@ -30,6 +30,7 @@ module.exports = {
     totalGirls: "String",
     totalBoys: "String",
     lowestGrade: "String",
-    highestGrade: "String"
+    highestGrade: "String",
+    isParentInterviewCompleted: false,
   }
 };

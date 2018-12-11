@@ -355,8 +355,24 @@ module.exports = class Submission extends Abstract {
 
         let updateObject = {}
         updateObject.$set = {}
-      
-        if(submissionDocument && submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true) {
+
+
+        let schoolQueryObject = {
+          _id: ObjectId(submissionDocument.schoolId)
+        }
+
+        let schoolDocument = await database.models.schools.findOne(
+          schoolQueryObject
+        );
+
+        let schoolUpdatedDocument={};
+
+        let updateSchoolObject = {}
+
+        updateSchoolObject.$set = {}
+
+
+        if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
           evidenceSubmission.externalId = parentInterviewEvidenceMethod
           evidenceSubmission.submittedBy = req.userDetails.userId
@@ -367,6 +383,9 @@ module.exports = class Submission extends Abstract {
           evidenceSubmission.isValid = true
 
           let evidenceSubmissionAnswerArray = {}
+
+
+
 
           Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
             if(parentInterviewResponse[1].status === "completed") {
@@ -439,6 +458,29 @@ module.exports = class Submission extends Abstract {
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
+
+        } else {
+
+
+          updateSchoolObject.$set = {
+              isParentInterviewCompleted: true
+            }
+
+          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
+            schoolQueryObject,
+            updateSchoolObject,
+            {}
+          );
+
+          
+
+          //isParentInterviewCompleted
+
+          let response = {
+            message: "Already completed."
+          };
+
+          return resolve(response);
         }
 
         if(runUpdateQuery) {
@@ -462,6 +504,17 @@ module.exports = class Submission extends Abstract {
               queryOptions
             );
           }
+
+          updateSchoolObject.$set = {
+              isParentInterviewCompleted: true
+            }
+
+          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
+            schoolQueryObject,
+            updateSchoolObject,
+            {}
+          );
+
 
           let response = {
             message: message
@@ -710,15 +763,31 @@ module.exports = class Submission extends Abstract {
             result.parentId = req.query.parentId
           }
 
-          if(submissionDocument.parentInterviewResponses[req.query.parentId]) {
-            result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
-            result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
-          } else {
-            throw "No parent interview information found."
+          console.log(submissionDocument);
+
+          if((submissionDocument.parentInterviewResponses) && submissionDocument.parentInterviewResponses[req.query.parentId])
+            {
+              result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
+              result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
+            }
+            else {
+              let noSubmissionResponse = {
+              result:[],
+              message: "No submissions for parent found"
+            };
+
+            return resolve(noSubmissionResponse);
+        
           }
 
         } else {
-          throw "No submission document found."
+          
+          let noSubmissionResponse = {
+            result:[],
+            message: "No submissions found"
+          };
+
+          return resolve(noSubmissionResponse);
         }
 
 

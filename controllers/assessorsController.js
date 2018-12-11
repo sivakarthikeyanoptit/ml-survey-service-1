@@ -12,12 +12,16 @@ module.exports = class Assessors {
         req.query = { userId: req.userDetails.userId };
         req.populate = {
           path: 'schools',
-          select: ["name","externalId","addressLine1","addressLine2","city","state"]
+          select: ["name","externalId","addressLine1","addressLine2","city","state","isParentInterviewCompleted"]
         };
         const queryResult = await controllers.schoolAssessorsController.populate(req)
         queryResult.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
-            schools.push(assessorSchool)
+            let currentSchool = assessorSchool.toObject();
+            if(!currentSchool.isParentInterviewCompleted){
+              currentSchool.isParentInterviewCompleted = false;
+            }
+            schools.push(currentSchool)
           })
         });
         responseMessage = "School list fetched successfully"
@@ -25,7 +29,7 @@ module.exports = class Assessors {
 
       return resolve({
         message: responseMessage,
-        result:schools
+        result: schools
       });
 
     }).catch(error => {
