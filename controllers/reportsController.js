@@ -661,6 +661,8 @@ module.exports = class Reports extends Abstract {
   }
 
   gmtToIst(gmtTime) {
+    return gmtTime;
+    /*
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
       .format("YYYY-MM-DD HH:mm:ss");
@@ -668,6 +670,6 @@ module.exports = class Reports extends Abstract {
     if (istStart == "Invalid date") {
       istStart = "-";
     }
-    return istStart;
+    return istStart; */
   }
 };
