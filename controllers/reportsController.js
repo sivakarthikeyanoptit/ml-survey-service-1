@@ -501,36 +501,29 @@ module.exports = class Reports extends Abstract {
                 answer.forEach(QAndA => {
                   let ecmCurrentReport = [];
 
-                  let istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
-                  let istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                  let istStart = '-';
+                  let istEnd = '-';
 
-                  if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
-                    ecmCurrentReport.push({
-                      schoolName: submissionDocument[i].schoolInformation.name,
-                      schoolId:
-                        submissionDocument[i].schoolInformation.externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: QAndA.payload["labels"].toString(),
-                      assessorId:
-                        assessorElement[submissions.submittedBy.toString()]
-                          .externalId,
-                      startTime: "-",
-                      endTime: "-"
-                    });
-                  } else {
-                    ecmCurrentReport.push({
-                      schoolName: submissionDocument[i].schoolInformation.name,
-                      schoolId:
-                        submissionDocument[i].schoolInformation.externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: QAndA.payload["labels"].toString(),
-                      assessorId:
-                        assessorElement[submissions.submittedBy.toString()]
-                          .externalId,
-                      startTime: istStart,
-                      endTime: istEnd
-                    });
+                  try {
+                     istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                     istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                  }catch (errorDate) {
+
                   }
+                  
+                  ecmCurrentReport.push({
+                    schoolName: submissionDocument[i].schoolInformation.name,
+                    schoolId:
+                      submissionDocument[i].schoolInformation.externalId,
+                    question: QAndA.payload["question"][0],
+                    answer: QAndA.payload["labels"].toString(),
+                    assessorId:
+                      assessorElement[submissions.submittedBy.toString()]
+                        .externalId,
+                    startTime: istStart,
+                    endTime: istEnd
+                  });
+
                   ecmCurrentReport.forEach(currentEcm => {
                     return ecmReports.push(currentEcm);
                   });
@@ -573,8 +566,17 @@ module.exports = class Reports extends Abstract {
 
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(ecmReports);
+
+
+        let dt = '';
+
+        try{
+            dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+          }catch (errorInFileDate) {
+
+          }
  
-        let dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+        
 
         return resolve({
           data: csv,
