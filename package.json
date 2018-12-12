@@ -33,6 +33,7 @@
     "keycloak-auth-utils": "^3.3.0",
     "log": "^1.4.0",
     "mathjs": "^5.2.3",
+    "moment-timezone": "^0.5.23",
     "mongoose": "^5.0.17",
     "mongoose-autopopulate": "^0.6.1",
     "mongoose-delete": "^0.4.0",
