@@ -507,6 +507,7 @@ module.exports = class Reports extends Abstract {
                   try {
                      istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
                      istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+
                   }catch (errorDate) {
 
                   }
@@ -572,6 +573,7 @@ module.exports = class Reports extends Abstract {
 
         try{
             dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+
           }catch (errorInFileDate) {
 
           }
