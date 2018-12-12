@@ -548,7 +548,8 @@ module.exports = class Reports extends Abstract {
                       startTime: this.gmtToIst(QAndA.startTime),
                       endTime: this.gmtToIst(QAndA.endTime)
                     });
-
+                    if(payload.labels[0])
+                    {
                     for (
                       let instance = 0;
                       instance < QAndA.payload.labels[0].length;
@@ -601,6 +602,7 @@ module.exports = class Reports extends Abstract {
                         }
                       );
                     }
+                  }
                   }
                   ecmCurrentReport.forEach(currentEcm => {
                     ecmReports.push(currentEcm);
