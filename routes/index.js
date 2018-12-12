@@ -49,10 +49,19 @@ module.exports = function(app) {
             status: error.status ? error.status : 400,
             message: error.message
           });
+
           let customFields = {
-            appDetails : req.headers["user-agent"],
-            userDetails: req.userDetails.firstName + " - " + req.userDetails.lastName + " - " + req.userDetails.email
+            appDetails : '',
+            userDetails: 'NON_LOGGED_IN_USER'
           }
+
+          if(req.userDetails){
+            customFields = {
+              appDetails : req.headers["user-agent"],
+              userDetails: req.userDetails.firstName + " - " + req.userDetails.lastName + " - " + req.userDetails.email
+            }
+          }
+
           const toLogObject = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: error.errorObject.message, errorStack: error.errorObject.stack, customFields: customFields }
           slackClient.sendExceptionLogMessage(toLogObject)
           loggerExceptionObj.info(toLogObject);
