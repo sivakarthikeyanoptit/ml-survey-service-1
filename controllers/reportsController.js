@@ -501,8 +501,18 @@ module.exports = class Reports extends Abstract {
                 answer.forEach(QAndA => {
                   let ecmCurrentReport = [];
 
-                  let istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
-                  let istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                  let istStart = '';
+                  let istEnd = '';
+
+                  try {
+                     istStart = moment(QAndA.startTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                     istEnd = moment(QAndA.endTime).tz("Asia/Kolkatta").format("YYYY-MM-DD HH:mm:ss");
+                  }catch (error) {
+
+                  }
+
+
+                  
 
                   if (istStart == "Invalid Date" && istEnd == "Invalid Date") {
                     ecmCurrentReport.push({
@@ -573,8 +583,17 @@ module.exports = class Reports extends Abstract {
 
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(ecmReports);
+
+
+        let dt = '';
+
+        try{
+            dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+          }catch (error) {
+
+          }
  
-        let dt = moment(new Date()).tz("Asia/Kolkatta").add(330, 'minutes').format("DD_MM_YYYY HH:MM")
+        
 
         return resolve({
           data: csv,
