@@ -647,10 +647,14 @@ module.exports = class Reports extends Abstract {
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(ecmReports);
 
+        let currentDate = new Date();
+
         return resolve({
           data: csv,
           csvResponse: true,
-          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+          fileName: "ecmWiseReport " + moment(currentDate)
+      .tz("Asia/Kolkata")
+      .format("YYYY_MM_DD HH_mm") + ".csv"
         });
       } catch (error) {
         return reject({
