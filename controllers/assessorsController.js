@@ -56,11 +56,13 @@ module.exports = class Assessors {
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
-            schoolQueryList[assessorSchool] = assessorSchool
+            schoolQueryList[assessorSchool.trim()] = assessorSchool.trim()
           })
+
           programQueryList[assessor.externalId] = assessor.programId
           evaluationFrameworkQueryList[assessor.externalId] = assessor.frameworkId
         });
+
 
         let schoolsFromDatabase = await database.models.schools.find({
           externalId : { $in: Object.values(schoolQueryList) }
@@ -93,7 +95,7 @@ module.exports = class Assessors {
           
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
-            assessorSchoolArray.push(schoolsData[assessorSchool])
+            assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
           assessor.schools = assessorSchoolArray
           assessor.programId = programsData[assessor.programId]._id
