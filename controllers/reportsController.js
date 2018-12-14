@@ -390,7 +390,9 @@ module.exports = class Reports extends Abstract {
         submissionDocument.forEach(submission => {
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
-            completedDate: this.gmtToIst(submission.completedDate),
+            completedDate: submission.completedDate
+              ? this.gmtToIst(submission.completedDate)
+              : "-",
             createdAt: this.gmtToIst(submission.createdAt)
           };
         });
@@ -403,8 +405,10 @@ module.exports = class Reports extends Abstract {
               schoolId: school.externalId,
               status: schoolSubmission[school._id.toString()].status,
               createdAt: schoolSubmission[school._id.toString()].createdAt,
-              completedDate:
-                schoolSubmission[school._id.toString()].completedDate
+              completedDate: schoolSubmission[school._id.toString()]
+                .completedDate
+                ? schoolSubmission[school._id.toString()].completedDate
+                : "-"
             });
           } else {
             programSchoolStatusList.push({
