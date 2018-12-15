@@ -40,6 +40,7 @@
     "mongoose-timestamp": "^0.6.0",
     "mongoose-ttl": "0.0.3",
     "morgan": "^1.9.0",
+    "node-schedule": "^1.3.1",
     "require-all": "^2.2.0",
     "yaml-js": "^0.1.3"
   }

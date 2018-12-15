@@ -1,6 +1,7 @@
 const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
+const schedule = require("node-schedule");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -389,7 +390,9 @@ module.exports = class Reports extends Abstract {
         submissionDocument.forEach(submission => {
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
-            completedDate: this.gmtToIst(submission.completedDate),
+            completedDate: submission.completedDate
+              ? this.gmtToIst(submission.completedDate)
+              : "-",
             createdAt: this.gmtToIst(submission.createdAt)
           };
         });
@@ -402,8 +405,10 @@ module.exports = class Reports extends Abstract {
               schoolId: school.externalId,
               status: schoolSubmission[school._id.toString()].status,
               createdAt: schoolSubmission[school._id.toString()].createdAt,
-              completedDate:
-                schoolSubmission[school._id.toString()].completedDate
+              completedDate: schoolSubmission[school._id.toString()]
+                .completedDate
+                ? schoolSubmission[school._id.toString()].completedDate
+                : "-"
             });
           } else {
             programSchoolStatusList.push({
@@ -548,61 +553,62 @@ module.exports = class Reports extends Abstract {
                       startTime: this.gmtToIst(QAndA.startTime),
                       endTime: this.gmtToIst(QAndA.endTime)
                     });
-                    if(QAndA.payload.labels[0])
-                    {
-                    for (
-                      let instance = 0;
-                      instance < QAndA.payload.labels[0].length;
-                      instance++
-                    ) {
-                      QAndA.payload.labels[0][instance].forEach(
-                        QAndAElement => {
-                          let radioResponse = {};
-                          let multiSelectResponse = {};
-                          let multiSelectResponseArray = [];
+                    if (QAndA.payload.labels[0]) {
+                      for (
+                        let instance = 0;
+                        instance < QAndA.payload.labels[0].length;
+                        instance++
+                      ) {
+                        QAndA.payload.labels[0][instance].forEach(
+                          QAndAElement => {
+                            let radioResponse = {};
+                            let multiSelectResponse = {};
+                            let multiSelectResponseArray = [];
 
-                          if (QAndAElement.responseType == "radio") {
-                            QAndAElement.options.forEach(option => {
-                              radioResponse[option.value] = option.label;
-                            });
-                            answer = radioResponse[QAndAElement.value];
-                          } else if (
-                            QAndAElement.responseType == "multiselect"
-                          ) {
-                            QAndAElement.options.forEach(option => {
-                              multiSelectResponse[option.value] = option.label;
-                            });
+                            if (QAndAElement.responseType == "radio") {
+                              QAndAElement.options.forEach(option => {
+                                radioResponse[option.value] = option.label;
+                              });
+                              answer = radioResponse[QAndAElement.value];
+                            } else if (
+                              QAndAElement.responseType == "multiselect"
+                            ) {
+                              QAndAElement.options.forEach(option => {
+                                multiSelectResponse[option.value] =
+                                  option.label;
+                              });
 
-                            QAndAElement.value.forEach(value => {
-                              multiSelectResponseArray.push(
-                                multiSelectResponse[value]
-                              );
-                            });
+                              QAndAElement.value.forEach(value => {
+                                multiSelectResponseArray.push(
+                                  multiSelectResponse[value]
+                                );
+                              });
 
-                            answer = multiSelectResponseArray.toString();
-                          } else {
-                            answer = QAndAElement.value;
+                              answer = multiSelectResponseArray.toString();
+                            } else {
+                              answer = QAndAElement.value;
+                            }
+
+                            ecmCurrentReport.push({
+                              schoolName:
+                                submissionDocument[submissionInstance]
+                                  .schoolInformation.name,
+                              schoolId:
+                                submissionDocument[submissionInstance]
+                                  .schoolInformation.externalId,
+                              question: QAndAElement.question[0],
+                              answer: answer,
+                              assessorId:
+                                assessorElement[
+                                  submission.submittedBy.toString()
+                                ].externalId,
+                              startTime: this.gmtToIst(QAndAElement.startTime),
+                              endTime: this.gmtToIst(QAndAElement.endTime)
+                            });
                           }
-
-                          ecmCurrentReport.push({
-                            schoolName:
-                              submissionDocument[submissionInstance]
-                                .schoolInformation.name,
-                            schoolId:
-                              submissionDocument[submissionInstance]
-                                .schoolInformation.externalId,
-                            question: QAndAElement.question[0],
-                            answer: answer,
-                            assessorId:
-                              assessorElement[submission.submittedBy.toString()]
-                                .externalId,
-                            startTime: this.gmtToIst(QAndAElement.startTime),
-                            endTime: this.gmtToIst(QAndAElement.endTime)
-                          });
-                        }
-                      );
+                        );
+                      }
                     }
-                  }
                   }
                   ecmCurrentReport.forEach(currentEcm => {
                     ecmReports.push(currentEcm);
@@ -649,13 +655,24 @@ module.exports = class Reports extends Abstract {
 
         let currentDate = new Date();
 
-        return resolve({
-          data: csv,
-          csvResponse: true,
-          fileName: "ecmWiseReport " + moment(currentDate)
-      .tz("Asia/Kolkata")
-      .format("YYYY_MM_DD HH_mm") + ".csv"
+        let j = schedule.scheduleJob("06 10 13 12 3", function() {
+          return resolve({
+            data: csv,
+            csvResponse: true,
+            fileName:
+              "ecmWiseReport " +
+              moment(currentDate)
+                .tz("Asia/Kolkata")
+                .format("YYYY_MM_DD HH_mm") +
+              ".csv"
+          });
         });
+
+        // return resolve({
+        //   data: csv,
+        //   csvResponse: true,
+        //   fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+        // });
       } catch (error) {
         return reject({
           status: 500,
@@ -667,7 +684,6 @@ module.exports = class Reports extends Abstract {
   }
 
   gmtToIst(gmtTime) {
-    
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
       .format("YYYY-MM-DD HH:mm:ss");
@@ -675,6 +691,6 @@ module.exports = class Reports extends Abstract {
     if (istStart == "Invalid date") {
       istStart = "-";
     }
-    return istStart; 
+    return istStart;
   }
 };
