@@ -1216,9 +1216,12 @@ module.exports = class Submission extends Abstract {
         queryObject
       );
 
-      result._id = submissionDocument._id
-      result.status = submissionDocument.status
-      result.evidences = submissionDocument.evidences
+      if(submissionDocument){
+        result._id = submissionDocument._id
+        result.status = submissionDocument.status
+        result.evidences = submissionDocument.evidences
+      }
+      
       let response = { message: "Submission status fetched successfully", result: result };
 
       return resolve(response);
