@@ -1,7 +1,7 @@
 const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
-const schedule = require("node-schedule");
+//const schedule = require("node-schedule");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -655,18 +655,19 @@ module.exports = class Reports extends Abstract {
 
         let currentDate = new Date();
 
-        let j = schedule.scheduleJob("06 10 13 12 3", function() {
+        //let j = schedule.scheduleJob("06 10 13 12 3", function() {
           return resolve({
             data: csv,
             csvResponse: true,
             fileName:
-              "ecmWiseReport " +
+              "ecmWiseReport" 
+              +"_"+req.query.evidenceId.toString()+"_"+
               moment(currentDate)
                 .tz("Asia/Kolkata")
                 .format("YYYY_MM_DD HH_mm") +
               ".csv"
           });
-        });
+        //});
 
         // return resolve({
         //   data: csv,
