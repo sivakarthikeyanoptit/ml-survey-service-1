@@ -175,7 +175,7 @@ app.listen(config.port, () => {
       var hour = date.getHours();
     }
 
-    if (hour % 2 == 0 && hour >= 8 && hour <= 20) {
+    if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
       let csvReports = require("./generics/helpers/csvReports");
       ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
         csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
