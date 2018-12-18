@@ -2,6 +2,11 @@ const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
 const schedule = require("node-schedule");
+const request = require("request");
+const fs = require("fs");
+let csvReports = require("../generics/helpers/csvReports");
+// const express = require("express");
+// const app = express();
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -467,212 +472,18 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
+
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let submissionQuery = {
-          ["programInformation.name"]: req.params._id
-        };
-
-        let queryObject = "evidences." + req.query.evidenceId + "";
-
-        let submissionDocument = await database.models.submissions.find(
-          submissionQuery,
-          {
-            assessors: 1,
-            schoolInformation: 1,
-            programInformation: 1,
-            status: 1,
-            [queryObject]: 1
-          }
+        let csvData = await csvReports.getCSVData(
+          req.params._id,
+          req.query.evidenceId
         );
 
-        let assessorElement = {};
-        let ecmReports = [];
-
-        for (
-          let submissionInstance = 0;
-          submissionInstance < submissionDocument.length;
-          submissionInstance++
-        ) {
-          submissionDocument[submissionInstance].assessors.forEach(assessor => {
-            assessorElement[assessor.userId] = {
-              externalId: assessor.externalId
-            };
-          });
-
-          if (
-            submissionDocument[submissionInstance].evidences[
-              req.query.evidenceId
-            ].isSubmitted &&
-            (submissionDocument[submissionInstance].status == "inprogress" ||
-              submissionDocument[submissionInstance].status == "blocked")
-          ) {
-            submissionDocument[submissionInstance]["evidences"][
-              req.query.evidenceId
-            ].submissions.forEach(submission => {
-              let answer = [];
-
-              if (assessorElement[submission.submittedBy.toString()]) {
-                Object.entries(submission.answers).map(submissionAnswer => {
-                  return answer.push(submissionAnswer[1]);
-                });
-
-                answer.forEach(QAndA => {
-                  let ecmCurrentReport = [];
-
-                  if (!(QAndA.responseType == "matrix")) {
-                    ecmCurrentReport.push({
-                      schoolName:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .name,
-                      schoolId:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: QAndA.payload["labels"].toString(),
-                      assessorId:
-                        assessorElement[submission.submittedBy.toString()]
-                          .externalId,
-                      startTime: this.gmtToIst(QAndA.startTime),
-                      endTime: this.gmtToIst(QAndA.endTime)
-                    });
-                  } else {
-                    ecmCurrentReport.push({
-                      schoolName:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .name,
-                      schoolId:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: "Instance Question",
-                      assessorId:
-                        assessorElement[submission.submittedBy.toString()]
-                          .externalId,
-                      startTime: this.gmtToIst(QAndA.startTime),
-                      endTime: this.gmtToIst(QAndA.endTime)
-                    });
-                    if (QAndA.payload.labels[0]) {
-                      for (
-                        let instance = 0;
-                        instance < QAndA.payload.labels[0].length;
-                        instance++
-                      ) {
-                        QAndA.payload.labels[0][instance].forEach(
-                          QAndAElement => {
-                            let radioResponse = {};
-                            let multiSelectResponse = {};
-                            let multiSelectResponseArray = [];
-
-                            if (QAndAElement.responseType == "radio") {
-                              QAndAElement.options.forEach(option => {
-                                radioResponse[option.value] = option.label;
-                              });
-                              answer = radioResponse[QAndAElement.value];
-                            } else if (
-                              QAndAElement.responseType == "multiselect"
-                            ) {
-                              QAndAElement.options.forEach(option => {
-                                multiSelectResponse[option.value] =
-                                  option.label;
-                              });
-
-                              QAndAElement.value.forEach(value => {
-                                multiSelectResponseArray.push(
-                                  multiSelectResponse[value]
-                                );
-                              });
-
-                              answer = multiSelectResponseArray.toString();
-                            } else {
-                              answer = QAndAElement.value;
-                            }
-
-                            ecmCurrentReport.push({
-                              schoolName:
-                                submissionDocument[submissionInstance]
-                                  .schoolInformation.name,
-                              schoolId:
-                                submissionDocument[submissionInstance]
-                                  .schoolInformation.externalId,
-                              question: QAndAElement.question[0],
-                              answer: answer,
-                              assessorId:
-                                assessorElement[
-                                  submission.submittedBy.toString()
-                                ].externalId,
-                              startTime: this.gmtToIst(QAndAElement.startTime),
-                              endTime: this.gmtToIst(QAndAElement.endTime)
-                            });
-                          }
-                        );
-                      }
-                    }
-                  }
-                  ecmCurrentReport.forEach(currentEcm => {
-                    ecmReports.push(currentEcm);
-                  });
-                });
-              }
-            });
-          }
-        }
-
-        let fields = [
-          {
-            label: "School Name",
-            value: "schoolName"
-          },
-          {
-            label: "School Id",
-            value: "schoolId"
-          },
-          {
-            label: "Assessor Id",
-            value: "assessorId"
-          },
-          {
-            label: "Question",
-            value: "question"
-          },
-          {
-            label: "Answers",
-            value: "answer"
-          },
-          {
-            label: "Start Time",
-            value: "startTime"
-          },
-          {
-            label: "End Time",
-            value: "endTime"
-          }
-        ];
-
-        const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(ecmReports);
-
-        let currentDate = new Date();
-
-        let j = schedule.scheduleJob("06 10 13 12 3", function() {
-          return resolve({
-            data: csv,
-            csvResponse: true,
-            fileName:
-              "ecmWiseReport " +
-              moment(currentDate)
-                .tz("Asia/Kolkata")
-                .format("YYYY_MM_DD HH_mm") +
-              ".csv"
-          });
+        return resolve({
+          data: csvData
         });
-
-        // return resolve({
-        //   data: csv,
-        //   csvResponse: true,
-        //   fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
-        // });
       } catch (error) {
         return reject({
           status: 500,

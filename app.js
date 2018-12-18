@@ -43,8 +43,8 @@ global.controllers = requireAll({
 });
 
 app.use(fileUpload());
-app.use(bodyParser.json({limit: '5mb'}));
-app.use(bodyParser.urlencoded({ limit: '5mb', extended: false }));
+app.use(bodyParser.json({ limit: "5mb" }));
+app.use(bodyParser.urlencoded({ limit: "5mb", extended: false }));
 app.use(express.static("public"));
 
 //request logger
@@ -84,33 +84,49 @@ app.get("/assessment/web2/*", function(req, res) {
   res.sendFile(path.join(__dirname, "/public/assessment/web2/index.html"));
 });
 
-var bunyan = require('bunyan');
+var bunyan = require("bunyan");
 global.loggerObj = bunyan.createLogger({
-  name: 'foo',
-  streams: [{
-      type: 'rotating-file',
-      path: path.join(__dirname + '/logs/all.log'),
-      period: '1d', // daily rotation 
-      count: 3 // keep 3 back copies 
-  }]
+  name: "foo",
+  streams: [
+    {
+      type: "rotating-file",
+      path: path.join(__dirname + "/logs/all.log"),
+      period: "1d", // daily rotation
+      count: 3 // keep 3 back copies
+    }
+  ]
 });
 global.loggerExceptionObj = bunyan.createLogger({
-  name: 'exceptionLogs',
-  streams: [{
-      type: 'rotating-file',
-      path: path.join(__dirname + '/logs/exception.log'),
-      period: '1d', // daily rotation 
-      count: 3 // keep 3 back copies 
-  }]
+  name: "exceptionLogs",
+  streams: [
+    {
+      type: "rotating-file",
+      path: path.join(__dirname + "/logs/exception.log"),
+      period: "1d", // daily rotation
+      count: 3 // keep 3 back copies
+    }
+  ]
 });
-app.all('*', (req, res, next) => {
-  loggerObj.info({ method: req.method, url: req.url, headers: req.headers, body: req.body });
-  console.log('-------Request log starts here------------------');
-  console.log('%s %s on %s from ', req.method, req.url, new Date(), req.headers['user-agent']);
-  console.log('Request Headers: ', req.headers);
-  console.log('Request Body: ', req.body);
-  console.log('Request Files: ', req.files);
-  console.log('-------Request log ends here------------------');
+
+app.all("*", (req, res, next) => {
+  loggerObj.info({
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    body: req.body
+  });
+  console.log("-------Request log starts here------------------");
+  console.log(
+    "%s %s on %s from ",
+    req.method,
+    req.url,
+    new Date(),
+    req.headers["user-agent"]
+  );
+  console.log("Request Headers: ", req.headers);
+  console.log("Request Body: ", req.body);
+  console.log("Request Files: ", req.files);
+  console.log("-------Request log ends here------------------");
   next();
 });
 
@@ -138,10 +154,32 @@ app.all('*', (req, res, next) => {
 router(app);
 
 //listen to given port
+
 app.listen(config.port, () => {
   log.info(
     "Environment: " +
       (process.env.NODE_ENV ? process.env.NODE_ENV : "development")
   );
   log.info("Application is running on the port:" + config.port);
+
+  const schedule = require("node-schedule");
+
+  var schedule_string =
+    process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
+
+  var csvData = schedule.scheduleJob(schedule_string, () => {
+    var date = new Date();
+    var hour = date.getMinutes();
+
+    if (process.env.NODE_ENV == "production") {
+      var hour = date.getHours();
+    }
+
+    if (hour % 2 == 0 && hour >= 8 && hour <= 20) {
+      let csvReports = require("./generics/helpers/csvReports");
+      ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
+        csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
+      );
+    }
+  });
 });
