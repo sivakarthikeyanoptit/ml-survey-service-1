@@ -1,12 +1,8 @@
 const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
-const schedule = require("node-schedule");
-const request = require("request");
-const fs = require("fs");
+
 let csvReports = require("../generics/helpers/csvReports");
-// const express = require("express");
-// const app = express();
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
