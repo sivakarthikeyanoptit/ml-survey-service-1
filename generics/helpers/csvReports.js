@@ -246,16 +246,17 @@ const getCSVData = async function(id, evidenceId) {
       .format("YYYY_MM_DD HH_mm") +
     ".csv";
 
+     
+
   let transporter = nodemailer.createTransport({
-    service: "gmail",
-    host: "smtp.gmail.com",
-    auth: {
-      user: process.env.REPORT_FROM_EMAIL,
-      pass: process.env.PASSWORD
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
+      port: 465,
+      host: 'email-smtp.us-east-1.amazonaws.com',
+      secure: true,
+      auth: {
+        user: process.env.AWS_ACCESS_KEY_ID,
+        pass: smtpPassword(process.env.AWS_SECRET_ACCESS_KEY),
+      },
+      debug: true
   });
 
   fs.writeFile(pathFile, csv, function(err, data) {
