@@ -254,7 +254,7 @@ const getCSVData = async function(id, evidenceId) {
       secure: true,
       auth: {
         user: process.env.AWS_ACCESS_KEY_ID,
-        pass: smtpPassword(process.env.AWS_SECRET_ACCESS_KEY),
+        pass: process.env.AWS_SECRET_ACCESS_KEY,
       },
       debug: true
   });
