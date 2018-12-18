@@ -1,8 +1,8 @@
 const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
-
 let csvReports = require("../generics/helpers/csvReports");
+ 
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -476,7 +476,6 @@ module.exports = class Reports extends Abstract {
           req.params._id,
           req.query.evidenceId
         );
-
         return resolve({
           data: csvData
         });

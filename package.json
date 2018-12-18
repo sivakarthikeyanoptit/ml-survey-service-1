@@ -12,7 +12,7 @@
     "shikshalokam",
     "Learning Management System"
   ],
-  "author": "Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>",
+  "author": "Akash Shah <akash@tunerlabs.com>",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/storage": "^2.0.3",
