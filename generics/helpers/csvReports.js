@@ -305,7 +305,6 @@ const getCSVData = async function(id, evidenceId) {
               content: new Buffer(data, "utf-8")
             });
 
-            console.log(mailOptions.attachments.length);
             if (mailOptions.attachments.length == 9) {
               transporter.sendMail(mailOptions, function(error, info) {
                 if (error) {
