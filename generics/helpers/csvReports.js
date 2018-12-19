@@ -92,6 +92,13 @@ const getCSVData = async function(id, evidenceId) {
                 imagePath = imageLink.toString();
               }
 
+              if (QAndA.payload.filesNotUploaded.length) {
+                QAndA.payload.filesNotUploaded.splice(
+                  0,
+                  QAndA.payload.filesNotUploaded.length
+                );
+              }
+
               ecmCurrentReport.push({
                 schoolName:
                   submissionDocument[submissionInstance].schoolInformation.name,
@@ -107,6 +114,13 @@ const getCSVData = async function(id, evidenceId) {
                 image: imagePath
               });
             } else {
+              if (QAndA.payload.filesNotUploaded.length) {
+                QAndA.payload.filesNotUploaded.splice(
+                  0,
+                  QAndA.payload.filesNotUploaded.length
+                );
+              }
+
               ecmCurrentReport.push({
                 schoolName:
                   submissionDocument[submissionInstance].schoolInformation.name,
@@ -120,6 +134,7 @@ const getCSVData = async function(id, evidenceId) {
                 startTime: gmtToIst(QAndA.startTime),
                 endTime: gmtToIst(QAndA.endTime)
               });
+
               if (QAndA.payload.labels[0]) {
                 for (
                   let instance = 0;
