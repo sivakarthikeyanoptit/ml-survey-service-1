@@ -5,7 +5,7 @@ const processData = async function(schoolId) {
     ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE
   };
 
-  if(schoolId!='all'){
+  if(schoolId != 'all'){
     console.log('specific');
     submissionQuery = {
       ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE,
