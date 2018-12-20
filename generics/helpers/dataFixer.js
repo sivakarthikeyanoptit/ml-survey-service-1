@@ -33,7 +33,7 @@ const processData = async function(schoolId) {
     return;
   }
  
-  let update = {};
+  var update = {};
 
   for(var key in submissionDocuments){
 
@@ -48,9 +48,7 @@ const processData = async function(schoolId) {
     console.log('Fixing for School Name'+submissionDocument.schoolInformation.name);
     console.log('Fixing for School External Id '+submissionDocument.schoolInformation.externalId);
 
-    if(update.answers == null){
-      update.answers = [];
-    }
+    update.answers = {};
 
     for(var evidence in submissionDocument.evidences){
 
@@ -65,12 +63,9 @@ const processData = async function(schoolId) {
         //console.log("EV length="+newEv.length);
       }
 
-      for(var answerKey in update.answers){
-        let answerInstance = update.answers[answerKey];
-        if(answerInstance.payload){
-          update.answers[answerKey].payload.filesNotUploaded = new Array();
-        }
-      }
+
+
+      
 
       // for(var answerKey in update.answers){
       //   let answerInstance = submissionDocument.answers[answerKey];
@@ -79,7 +74,7 @@ const processData = async function(schoolId) {
       //   }
       // }
 
-      //console.log(update._id);
+      console.log(update.answers);
 
       let updateObj={$set:{evidences:update.evidences,answers:update.answers,isDataFixDone:true}};
 
