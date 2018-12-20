@@ -97,12 +97,7 @@ const getCSVData = async function(id, evidenceId) {
                 imagePath = imageLink.toString();
               }
 
-              if (QAndA.payload.filesNotUploaded && QAndA.payload.filesNotUploaded.length) {
-                QAndA.payload.filesNotUploaded.splice(
-                  0,
-                  QAndA.payload.filesNotUploaded.length
-                );
-              }
+               
 
               ecmCurrentReport.push({
                 schoolName:
@@ -119,12 +114,7 @@ const getCSVData = async function(id, evidenceId) {
                 image: imagePath
               });
             } else {
-              if (QAndA.payload.filesNotUploaded && QAndA.payload.filesNotUploaded.length) {
-                QAndA.payload.filesNotUploaded.splice(
-                  0,
-                  QAndA.payload.filesNotUploaded.length
-                );
-              }
+              
 
               ecmCurrentReport.push({
                 schoolName:
