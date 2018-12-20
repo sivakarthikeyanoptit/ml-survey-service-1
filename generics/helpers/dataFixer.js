@@ -2,8 +2,7 @@
 const processData = async function(schoolId) {
 
   let submissionQuery = {
-    ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE,
-    isDataFixDone: { $ne: true }
+    ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE
   };
 
   if(schoolId!='all'){
@@ -59,6 +58,13 @@ const processData = async function(schoolId) {
             }
         }
         //console.log("EV length="+newEv.length);
+      }
+
+      for(var answerKey in submissionDocument.answers){
+        let answerInstance = submissionDocument.answers[answerKey];
+        if(answerInstance.payload){
+          update.answers[answerInstance].payload.filesNotUploaded = new Array();
+        }
       }
 
       //console.log(update._id);
