@@ -74,9 +74,13 @@ const getCSVData = async function(id, evidenceId) {
             if (!(QAndA.responseType == "matrix")) {
               let imageLink = new Array();
               QAndA.fileName.forEach(imageSource => {
+
+                let envVar = (process.env.NODE_ENV ? process.env.NODE_ENV : "development");
+                let envString = ((envVar=='production')? "prod" : "dev");
+
                 if (imageSource) {
                   imageLink.push(
-                    " https://storage.cloud.google.com/sl-dev-storage/" +
+                    " https://storage.cloud.google.com/sl-"+envString+"-storage/" +
                       imageSource.sourcePath +
                       " "
                   );
