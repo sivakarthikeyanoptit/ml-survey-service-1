@@ -504,12 +504,14 @@ module.exports = class Reports extends Abstract {
         ];
         const json2csvParser = new json2csv({ fields });
         const csv = json2csvParser.parse(programSchoolStatusList);
-
+        var currentDate = new Date();
         let response = {
           data: csv,
           csvResponse: true,
           fileName:
-            " programSchoolsStatus " + new Date().toDateString() + ".csv"
+            " programSchoolsStatus_" + moment(currentDate)
+      .tz("Asia/Kolkata")
+      .format("YYYY_MM_DD_HH_mm") + ".csv"
         };
         return resolve(response);
       } catch (error) {
