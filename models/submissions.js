@@ -17,6 +17,7 @@ module.exports = {
     feedback:Array,
     generalQuestions:Object,
     parentInterviewResponses:Object,
-    completedDate: Date
+    completedDate: Date,
+    isDataFixDone: false
   }
 };

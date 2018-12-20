@@ -12,6 +12,31 @@ module.exports = class Reports extends Abstract {
     return "submissions";
   }
 
+  async dataFix(req){
+     return new Promise(async (resolve, reject) => {
+        try {
+
+          let dataFixer = require("../generics/helpers/dataFixer");
+          dataFixer.processData(req.params._id);
+
+          return resolve({
+          status: 200,
+          message: "All good! for " + req.params._id
+          });
+
+        } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
+
+
+     });
+  }
+
   async status(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -504,11 +529,18 @@ module.exports = class Reports extends Abstract {
           req.params._id,
           req.query.evidenceId
         );
+        let currentDate = new Date();
         return resolve({
           data: csvData,
           csvResponse: true,
-          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
+          fileName:
+            "ecmWiseReport_" + req.query.evidenceId + "_" +
+            moment(currentDate)
+              .tz("Asia/Kolkata")
+              .format("YYYY_MM_DD_HH_mm") +
+            ".csv"
         });
+
       } catch (error) {
         return reject({
           status: 500,
