@@ -2,7 +2,8 @@
 const processData = async function(schoolId) {
 
   let submissionQuery = {
-    ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE
+    ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE,
+    isDataFixDone: { $ne: true }
   };
 
   if(schoolId != 'all'){
