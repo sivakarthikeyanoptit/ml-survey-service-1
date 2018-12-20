@@ -10,8 +10,7 @@ const processData = async function(schoolId) {
     console.log('specific');
     submissionQuery = {
       ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE,
-      ["schoolInformation.externalId"]: schoolId,
-      isDataFixDone: { $ne: true }
+      ["schoolInformation.externalId"]: schoolId
     };
   }
 
