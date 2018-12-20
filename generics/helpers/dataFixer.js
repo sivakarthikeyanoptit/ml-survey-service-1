@@ -26,7 +26,7 @@ const processData = async function(schoolId) {
       evidences: 1,
       answers: 1
     }
-  ).limit(500);
+  ).limit(200);
 
 
 
