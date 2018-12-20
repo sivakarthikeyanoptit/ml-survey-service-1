@@ -2,7 +2,6 @@ const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
 let csvReports = require("../generics/helpers/csvReports");
- 
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -11,6 +10,31 @@ module.exports = class Reports extends Abstract {
 
   static get name() {
     return "submissions";
+  }
+
+  async dataFix(req){
+     return new Promise(async (resolve, reject) => {
+        try {
+
+          let dataFixer = require("../generics/helpers/dataFixer");
+          dataFixer.processData(req.params._id);
+
+          return resolve({
+          status: 200,
+          message: "All good! for " + req.params._id
+          });
+
+        } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
+
+
+     });
   }
 
   async status(req) {
@@ -384,19 +408,38 @@ module.exports = class Reports extends Abstract {
         };
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
-          { schoolId: 1, status: 1, completedDate: 1, createdAt: 1 }
+          {
+            schoolId: 1,
+            status: 1,
+            completedDate: 1,
+            createdAt: 1,
+            evidences: 1
+          }
         );
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
+          let countSubmissions = 0;
+
+          Object.values(submission.evidences).map(evidence => {
+            if (evidence.submissions) {
+              countSubmissions += 1;
+            }
+          });
+          // console.log(countSubmissions);
+
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
             completedDate: submission.completedDate
               ? this.gmtToIst(submission.completedDate)
               : "-",
-            createdAt: this.gmtToIst(submission.createdAt)
+            createdAt: this.gmtToIst(submission.createdAt),
+            countNumberOfSubmission: countSubmissions
           };
         });
+
+        // console.log(schoolSubmission);
+
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
           if (schoolSubmission[school._id.toString()]) {
@@ -409,7 +452,12 @@ module.exports = class Reports extends Abstract {
               completedDate: schoolSubmission[school._id.toString()]
                 .completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
-                : "-"
+                : "-",
+              countingSubmission:
+                schoolSubmission[school._id.toString()].status == "started"
+                  ? 0
+                  : schoolSubmission[school._id.toString()]
+                      .countNumberOfSubmission
             });
           } else {
             programSchoolStatusList.push({
@@ -418,7 +466,8 @@ module.exports = class Reports extends Abstract {
               schoolId: school.externalId,
               status: "pending",
               createdAt: "-",
-              completedDate: "-"
+              completedDate: "-",
+              countingSubmission: 0
             });
           }
         });
@@ -447,6 +496,10 @@ module.exports = class Reports extends Abstract {
           {
             label: "Completed Date",
             value: "completedDate"
+          },
+          {
+            label: "Count Ecm Submission",
+            value: "countingSubmission"
           }
         ];
         const json2csvParser = new json2csv({ fields });
@@ -476,9 +529,18 @@ module.exports = class Reports extends Abstract {
           req.params._id,
           req.query.evidenceId
         );
+        let currentDate = new Date();
         return resolve({
-          data: csvData
+          data: csvData,
+          csvResponse: true,
+          fileName:
+            "ecmWiseReport_" + req.query.evidenceId + "_" +
+            moment(currentDate)
+              .tz("Asia/Kolkata")
+              .format("YYYY_MM_DD_HH_mm") +
+            ".csv"
         });
+
       } catch (error) {
         return reject({
           status: 500,
