@@ -22,7 +22,8 @@ const processData = async function(schoolId) {
       schoolInformation: 1,
       programInformation: 1,
       status: 1,
-      evidences:1,
+      evidences: 1,
+      answers: 1
     }
   );
 
