@@ -11,7 +11,7 @@ const processData = async function(schoolId) {
       ["programInformation.name"]: process.env.PROGRAM_NAME_FOR_SCHEDULE,
       ["schoolInformation.externalId"]: schoolId
     };
-  }
+  } 
 
   //let queryObject = "evidences." + evidenceId + "";
 
@@ -28,9 +28,13 @@ const processData = async function(schoolId) {
   );
 
 
+
+
   if(!submissionDocuments){
     console.log('All fixes done!')
     return;
+  } else {
+    console.log("Submission doc count " +submissionDocuments.length);
   }
  
   var update = {};
