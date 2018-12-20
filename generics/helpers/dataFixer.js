@@ -68,7 +68,7 @@ const processData = async function(schoolId) {
       for(var answerKey in update.answers){
         let answerInstance = update.answers[answerKey];
         if(answerInstance.payload){
-          update.answers[answerInstance].payload.filesNotUploaded = new Array();
+          update.answers[answerKey].payload.filesNotUploaded = new Array();
         }
       }
 
