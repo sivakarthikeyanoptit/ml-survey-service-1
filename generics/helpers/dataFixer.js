@@ -26,7 +26,7 @@ const processData = async function(schoolId) {
       evidences: 1,
       answers: 1
     }
-  ).limit(200);
+  ).limit((process.env.DATA_FIX_LIMIT ? process.env.DATA_FIX_LIMIT  : 100));
 
 
 
