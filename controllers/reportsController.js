@@ -2,7 +2,6 @@ const json2csv = require("json2csv").Parser;
 const _ = require("lodash");
 const moment = require("moment-timezone");
 let csvReports = require("../generics/helpers/csvReports");
- 
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -384,19 +383,38 @@ module.exports = class Reports extends Abstract {
         };
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
-          { schoolId: 1, status: 1, completedDate: 1, createdAt: 1 }
+          {
+            schoolId: 1,
+            status: 1,
+            completedDate: 1,
+            createdAt: 1,
+            evidences: 1
+          }
         );
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
+          let countSubmissions = 0;
+
+          Object.values(submission.evidences).map(evidence => {
+            if (evidence.submissions) {
+              countSubmissions += 1;
+            }
+          });
+          // console.log(countSubmissions);
+
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
             completedDate: submission.completedDate
               ? this.gmtToIst(submission.completedDate)
               : "-",
-            createdAt: this.gmtToIst(submission.createdAt)
+            createdAt: this.gmtToIst(submission.createdAt),
+            countNumberOfSubmission: countSubmissions
           };
         });
+
+        // console.log(schoolSubmission);
+
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
           if (schoolSubmission[school._id.toString()]) {
@@ -409,7 +427,12 @@ module.exports = class Reports extends Abstract {
               completedDate: schoolSubmission[school._id.toString()]
                 .completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
-                : "-"
+                : "-",
+              countingSubmission:
+                schoolSubmission[school._id.toString()].status == "started"
+                  ? 0
+                  : schoolSubmission[school._id.toString()]
+                      .countNumberOfSubmission
             });
           } else {
             programSchoolStatusList.push({
@@ -418,7 +441,8 @@ module.exports = class Reports extends Abstract {
               schoolId: school.externalId,
               status: "pending",
               createdAt: "-",
-              completedDate: "-"
+              completedDate: "-",
+              countingSubmission: 0
             });
           }
         });
@@ -447,6 +471,10 @@ module.exports = class Reports extends Abstract {
           {
             label: "Completed Date",
             value: "completedDate"
+          },
+          {
+            label: "Count Ecm Submission",
+            value: "countingSubmission"
           }
         ];
         const json2csvParser = new json2csv({ fields });
@@ -477,7 +505,9 @@ module.exports = class Reports extends Abstract {
           req.query.evidenceId
         );
         return resolve({
-          data: csvData
+          data: csvData,
+          csvResponse: true,
+          fileName: "ecmWiseReport " + new Date().toDateString() + ".csv"
         });
       } catch (error) {
         return reject({
