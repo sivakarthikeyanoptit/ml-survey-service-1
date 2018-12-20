@@ -69,7 +69,7 @@ const processData = async function(schoolId) {
 
       //console.log(update._id);
 
-      let updateObj={$set:{evidences:update.evidences,isDataFixDone:true}};
+      let updateObj={$set:{evidences:update.evidences,answers:update.answers,isDataFixDone:true}};
 
       await database.models.submissions.findOneAndUpdate(
              {_id: ObjectId(update._id)},
