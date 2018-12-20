@@ -139,7 +139,7 @@ const getCSVData = async function(id, evidenceId) {
                     QAndAElement.fileName.forEach(imageSource => {
                       imageLink.push(
                         " https://storage.cloud.google.com/sl-"+envString+"-storage/" +
-                          submission._id.toString()+"/"+
+                          submissionInstance+"/"+
                           submission.submittedBy.toString()+"/"+
                           imageSource +
                           " "
