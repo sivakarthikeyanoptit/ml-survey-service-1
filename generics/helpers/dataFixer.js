@@ -59,18 +59,25 @@ const processData = async function(schoolId) {
         for(var subIndex in submissionDocument.evidences[evidence].submissions){
             for(var answerKey in submissionDocument.evidences[evidence].submissions[subIndex].answers){
                 update.evidences[evidence].submissions[subIndex].answers[answerKey].payload.filesNotUploaded = new Array();
-                //update.answers[answerKey] = update.evidences[evidence].submissions[subIndex].answers[answerKey];
+                update.answers[answerKey] = update.evidences[evidence].submissions[subIndex].answers[answerKey];
             }
         }
         //console.log("EV length="+newEv.length);
       }
 
       for(var answerKey in update.answers){
-        let answerInstance = submissionDocument.answers[answerKey];
+        let answerInstance = update.answers[answerKey];
         if(answerInstance.payload){
           update.answers[answerInstance].payload.filesNotUploaded = new Array();
         }
       }
+
+      // for(var answerKey in update.answers){
+      //   let answerInstance = submissionDocument.answers[answerKey];
+      //   if(answerInstance.payload){
+      //     update.answers[answerInstance].payload.filesNotUploaded = new Array();
+      //   }
+      // }
 
       //console.log(update._id);
 
