@@ -133,10 +133,13 @@ const getCSVData = async function(id, evidenceId) {
                 ) {
                   QAndA.payload.labels[0][instance].forEach(QAndAElement => {
                     let imageLink = new Array();
+                    let envVar = (process.env.NODE_ENV ? process.env.NODE_ENV : "development");
+                    let envString = ((envVar=='production')? "prod" : "dev");
+
                     QAndAElement.fileName.forEach(imageSource => {
                       imageLink.push(
-                        " https://storage.cloud.google.com/sl-dev-storage/" +
-                          imageSource +
+                        " https://storage.cloud.google.com/sl-"+envString+"-storage/" +
+                          imageSource.sourcePath +
                           " "
                       );
                     });
