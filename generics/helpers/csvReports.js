@@ -119,7 +119,7 @@ const getCSVData = async function(id, evidenceId) {
                 image: imagePath
               });
             } else {
-              if (QAndA.payload.filesNotUploaded.length) {
+              if (QAndA.payload.filesNotUploaded && QAndA.payload.filesNotUploaded.length) {
                 QAndA.payload.filesNotUploaded.splice(
                   0,
                   QAndA.payload.filesNotUploaded.length
