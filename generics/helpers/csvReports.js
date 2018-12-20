@@ -52,6 +52,7 @@ const getCSVData = async function(id, evidenceId) {
     });
 
     if (
+      (submissionDocument[submissionInstance].evidences[evidenceId]) && 
       submissionDocument[submissionInstance].evidences[evidenceId]
         .isSubmitted &&
       (submissionDocument[submissionInstance].status == "inprogress" ||
@@ -313,13 +314,13 @@ const getCSVData = async function(id, evidenceId) {
             });
 
             if (mailOptions.attachments.length == 9) {
-              transporter.sendMail(mailOptions, function(error, info) {
-                if (error) {
-                  throw error;
-                } else {
-                  console.log(`Email Successfully sent `);
-                }
-              });
+              // transporter.sendMail(mailOptions, function(error, info) {
+              //   if (error) {
+              //     throw error;
+              //   } else {
+              //     console.log(`Email Successfully sent `);
+              //   }
+              // });
             }
           });
 
