@@ -162,6 +162,9 @@ app.listen(config.port, () => {
   );
   log.info("Application is running on the port:" + config.port);
 
+
+
+
   const schedule = require("node-schedule");
 
   var schedule_string =
@@ -174,6 +177,8 @@ app.listen(config.port, () => {
     if (process.env.NODE_ENV == "production") {
       var hour = date.getHours();
     }
+
+    let csvReports = require("./generics/helpers/csvReports");
 
     if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
       let csvReports = require("./generics/helpers/csvReports");

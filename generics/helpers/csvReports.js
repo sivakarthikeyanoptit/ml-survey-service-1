@@ -52,6 +52,7 @@ const getCSVData = async function(id, evidenceId) {
     });
 
     if (
+      (submissionDocument[submissionInstance].evidences[evidenceId]) && 
       submissionDocument[submissionInstance].evidences[evidenceId]
         .isSubmitted &&
       (submissionDocument[submissionInstance].status == "inprogress" ||
@@ -73,9 +74,13 @@ const getCSVData = async function(id, evidenceId) {
             if (!(QAndA.responseType == "matrix")) {
               let imageLink = new Array();
               QAndA.fileName.forEach(imageSource => {
+
+                let envVar = (process.env.NODE_ENV ? process.env.NODE_ENV : "development");
+                let envString = ((envVar=='production')? "prod" : "dev");
+
                 if (imageSource) {
                   imageLink.push(
-                    " https://storage.cloud.google.com/sl-dev-storage/" +
+                    " https://storage.cloud.google.com/sl-"+envString+"-storage/" +
                       imageSource.sourcePath +
                       " "
                   );
@@ -90,6 +95,13 @@ const getCSVData = async function(id, evidenceId) {
 
               if (imageLink.length) {
                 imagePath = imageLink.toString();
+              }
+
+              if (QAndA.payload.filesNotUploaded && QAndA.payload.filesNotUploaded.length) {
+                QAndA.payload.filesNotUploaded.splice(
+                  0,
+                  QAndA.payload.filesNotUploaded.length
+                );
               }
 
               ecmCurrentReport.push({
@@ -107,6 +119,13 @@ const getCSVData = async function(id, evidenceId) {
                 image: imagePath
               });
             } else {
+              if (QAndA.payload.filesNotUploaded.length) {
+                QAndA.payload.filesNotUploaded.splice(
+                  0,
+                  QAndA.payload.filesNotUploaded.length
+                );
+              }
+
               ecmCurrentReport.push({
                 schoolName:
                   submissionDocument[submissionInstance].schoolInformation.name,
@@ -120,6 +139,7 @@ const getCSVData = async function(id, evidenceId) {
                 startTime: gmtToIst(QAndA.startTime),
                 endTime: gmtToIst(QAndA.endTime)
               });
+
               if (QAndA.payload.labels[0]) {
                 for (
                   let instance = 0;
@@ -128,9 +148,14 @@ const getCSVData = async function(id, evidenceId) {
                 ) {
                   QAndA.payload.labels[0][instance].forEach(QAndAElement => {
                     let imageLink = new Array();
+                    let envVar = (process.env.NODE_ENV ? process.env.NODE_ENV : "development");
+                    let envString = ((envVar=='production')? "prod" : "dev");
+
                     QAndAElement.fileName.forEach(imageSource => {
                       imageLink.push(
-                        " https://storage.cloud.google.com/sl-dev-storage/" +
+                        " https://storage.cloud.google.com/sl-"+envString+"-storage/" +
+                          submissionDocument[submissionInstance]._id+"/"+
+                          submission.submittedBy.toString()+"/"+
                           imageSource +
                           " "
                       );
@@ -238,21 +263,21 @@ const getCSVData = async function(id, evidenceId) {
 
   var pathFile =
     "./public/csv/" +
-    "ecmWiseReport_Of_evidenceId_" +
+    "ecmWiseReport_evidenceId_" +
     evidenceId +
     "_" +
     moment(currentDate)
       .tz("Asia/Kolkata")
-      .format("YYYY_MM_DD HH_mm") +
+      .format("YYYY_MM_DD_HH_mm") +
     ".csv";
 
-  let transporter = nodemailer.createTransport({
-    port: 465,
-    host: "email-smtp.us-east-1.amazonaws.com",
-    secure: true,
+  let transporter = nodemailer.createTransport({  
+    port: (process.env.SMTP_PORT ? process.env.SMTP_PORT : 465),
+    host: (process.env.SMTP_HOST ? process.env.SMTP_HOST : 'smtp.gmail.com'),
+    secure: (process.env.SMTP_SECURE ? process.env.SMTP_SECURE : true),
     auth: {
-      user: process.env.AWS_ACCESS_KEY_ID,
-      pass: process.env.AWS_SECRET_ACCESS_KEY
+      user: (process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : ''),
+      pass: (process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_ACCESS_KEY_ID : '')
     },
     debug: true
   });
@@ -287,12 +312,7 @@ const getCSVData = async function(id, evidenceId) {
       subject: "csv file",
       from: process.env.REPORT_FROM_EMAIL,
       text: "",
-      attachments: [
-        {
-          filename: "",
-          content: ""
-        }
-      ]
+      attachments: new Array()
     };
 
     if (files.length == 9) {
@@ -311,13 +331,13 @@ const getCSVData = async function(id, evidenceId) {
             });
 
             if (mailOptions.attachments.length == 9) {
-              transporter.sendMail(mailOptions, function(error, info) {
-                if (error) {
-                  throw error;
-                } else {
-                  console.log(`Email Successfully sent `);
-                }
-              });
+              // transporter.sendMail(mailOptions, function(error, info) {
+              //   if (error) {
+              //     throw error;
+              //   } else {
+              //     console.log(`Email Successfully sent `);
+              //   }
+              // });
             }
           });
 
