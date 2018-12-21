@@ -401,7 +401,6 @@ module.exports = class Reports extends Abstract {
               countSubmissions += 1;
             }
           });
-          // console.log(countSubmissions);
 
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
@@ -412,8 +411,6 @@ module.exports = class Reports extends Abstract {
             countNumberOfSubmission: countSubmissions
           };
         });
-
-        // console.log(schoolSubmission);
 
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
