@@ -422,11 +422,10 @@ module.exports = class Reports extends Abstract {
           let countSubmissions = 0;
 
           Object.values(submission.evidences).map(evidence => {
-            if (evidence.submissions) {
+            if (evidence.isSubmitted === true) {
               countSubmissions += 1;
             }
           });
-          // console.log(countSubmissions);
 
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
