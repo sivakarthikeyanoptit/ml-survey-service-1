@@ -189,7 +189,7 @@ module.exports = class Submission extends Abstract {
             req.body.evidence.isValid = true
             let answerArray = {}
             Object.entries(req.body.evidence.answers).forEach(answer => {
-              if(answer[1].responseType === "matrix") {
+              if(answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
                 if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
                   submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
                     generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
@@ -250,7 +250,7 @@ module.exports = class Submission extends Abstract {
             req.body.evidence.isValid = false
 
             Object.entries(req.body.evidence.answers).forEach(answer => {
-              if(answer[1].responseType === "matrix") {
+              if(answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
                 if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
                   submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
                     generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
@@ -588,7 +588,7 @@ module.exports = class Submission extends Abstract {
               }
               if(submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
                 submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission,indexOfEvidenceMethodSubmission) => {
-                  if(evidenceMethodSubmission.answers[answer[0]]) {
+                  if(evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
                     answer[1].value.forEach(incomingGeneralQuestionInstance => {
                       incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
                       evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
