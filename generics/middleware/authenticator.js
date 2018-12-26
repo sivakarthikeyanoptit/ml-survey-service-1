@@ -61,7 +61,7 @@ module.exports = function(req, res, next) {
   var rspObj = req.rspObj;
   // console.log(!token, authorization);
   
-  if(req.path.includes("reports")) {
+  if(req.path.includes("reports") && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
     next();
     return
   }
