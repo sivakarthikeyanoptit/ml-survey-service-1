@@ -29,7 +29,13 @@ function checkIfStringIsUrl(str) {
   return pattern.test(str);
 }
 
+function isTypeNumber(key){
+  let numberKeys = ['lowestGrade','highestGrade','phone','pincode'];
+  return key.includes("total") || numberKeys.includes(key);
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
-  checkIfStringIsUrl: checkIfStringIsUrl
+  checkIfStringIsUrl: checkIfStringIsUrl,
+  isTypeNumber: isTypeNumber,
 };

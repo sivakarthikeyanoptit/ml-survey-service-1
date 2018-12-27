@@ -228,12 +228,14 @@ module.exports = class Schools extends Abstract {
           ].acl;
 
         let form = [];
+        let schoolTypes = schoolDocument.schoolTypes;
+        let schoolProfileFieldsPerSchoolTypes = programDocument.components[0]['schoolProfileFieldsPerSchoolTypes'];
         await _.forEach(Object.keys(schoolDocument), key => {
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
             -1
           ) {
-            form.push({
+            filterFieldsBySchoolType(schoolTypes,key) && form.push({
               field: key,
               label: gen.utils.camelCaseToTitleCase(key),
               value: Array.isArray(schoolDocument[key])
@@ -245,10 +247,27 @@ module.exports = class Schools extends Abstract {
               editable:
                 accessability.schoolProfile.editable.indexOf("all") > -1 ||
                 accessability.schoolProfile.editable.indexOf(key) > -1,
-              input: "text"
+              input: gen.utils.isTypeNumber(key) ? "number" : "text"
             });
           }
         });
+
+        function filterFieldsBySchoolType(schoolTypes,key){
+          let result = false;
+          if (schoolTypes.length){
+            if(schoolTypes.indexOf('A1')>-1){
+              result = true;
+            }else{
+              schoolTypes.forEach(schoolType=>{
+                if (schoolProfileFieldsPerSchoolTypes[schoolType].includes(key)) result = true;
+              })
+            }
+          }else if(schoolTypes){
+            if (schoolProfileFieldsPerSchoolTypes[schoolTypes]==key) result = true;
+          }
+          return result;
+        }
+
         response.result.schoolProfile = {
           _id: schoolDocument._id,
           // isEditable: accessability.schoolProfile.editable.length > 0,
