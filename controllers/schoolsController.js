@@ -236,7 +236,7 @@ module.exports = class Schools extends Abstract {
             filteredFieldsToBeShown.push(...schoolProfileFieldsPerSchoolTypes[schoolType])
           }
         })
-        await _.forEach(Object.keys(schoolDocument), key => {
+        await _.forEach(Object.keys(database.models.schools.schema.paths), key => {
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
             -1
