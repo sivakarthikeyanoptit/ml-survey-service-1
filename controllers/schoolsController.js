@@ -230,12 +230,18 @@ module.exports = class Schools extends Abstract {
         let form = [];
         let schoolTypes = schoolDocument.schoolTypes;
         let schoolProfileFieldsPerSchoolTypes = programDocument.components[0]['schoolProfileFieldsPerSchoolTypes'];
+        let filteredFieldsToBeShown = [];
+        schoolTypes.forEach(schoolType=>{
+          if(schoolProfileFieldsPerSchoolTypes[schoolType]){
+            filteredFieldsToBeShown.push(...schoolProfileFieldsPerSchoolTypes[schoolType])
+          }
+        })
         await _.forEach(Object.keys(schoolDocument), key => {
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
             -1
           ) {
-            filterFieldsBySchoolType(schoolTypes,key) && form.push({
+            filteredFieldsToBeShown.includes(key) && form.push({
               field: key,
               label: gen.utils.camelCaseToTitleCase(key),
               value: Array.isArray(schoolDocument[key])
@@ -247,26 +253,10 @@ module.exports = class Schools extends Abstract {
               editable:
                 accessability.schoolProfile.editable.indexOf("all") > -1 ||
                 accessability.schoolProfile.editable.indexOf(key) > -1,
-              input: gen.utils.isTypeNumber(key) ? "number" : "text"
+              input: "text"
             });
           }
         });
-
-        function filterFieldsBySchoolType(schoolTypes,key){
-          let result = false;
-          if (schoolTypes.length){
-            if(schoolTypes.indexOf('A1')>-1){
-              result = true;
-            }else{
-              schoolTypes.forEach(schoolType=>{
-                if (schoolProfileFieldsPerSchoolTypes[schoolType].includes(key)) result = true;
-              })
-            }
-          }else if(schoolTypes){
-            if (schoolProfileFieldsPerSchoolTypes[schoolTypes]==key) result = true;
-          }
-          return result;
-        }
 
         response.result.schoolProfile = {
           _id: schoolDocument._id,
