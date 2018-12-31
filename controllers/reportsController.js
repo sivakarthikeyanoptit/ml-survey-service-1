@@ -1043,6 +1043,23 @@ module.exports = class Reports extends Abstract {
           });
         });
 
+        let allQuestionWithOptions = await database.models.questions.find(
+          {responseType : { $in: ["radio","multiselect"] }},
+          { options: 1}
+        );
+        
+        let questionOptionObject = {}
+        allQuestionWithOptions.forEach(question => {
+          if(question.options.length > 0) {
+            let optionString = ""
+            question.options.forEach(option => {
+              optionString += option.label + ","
+            })
+            optionString = optionString.replace(/,\s*$/, "")
+            questionOptionObject[question._id.toString()] = optionString
+          }
+        })
+
         let schoolSubmissionQuery = {
           ["schoolInformation.externalId"]: req.params._id
         };
@@ -1076,6 +1093,7 @@ module.exports = class Reports extends Abstract {
               let singleAnswerRecord = {
                 criteriaName: (criteriaQuestionDetailsObject[singleAnswer.qid] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
                 question: singleAnswer.payload.question[0],
+                options: (questionOptionObject[singleAnswer.qid] == undefined) ? " No Options" : questionOptionObject[singleAnswer.qid],
                 answer: (singleAnswer.notApplicable) ? "Not Applicable": "",
                 files: "",
                 score: criteriaScoreObject[singleAnswer.criteriaId].score
@@ -1107,6 +1125,7 @@ module.exports = class Reports extends Abstract {
                           let eachInstanceChildRecord = {
                             criteriaName: (criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion._id].criteriaName,
                             question: eachInstanceChildQuestion.question[0],
+                            options: (questionOptionObject[eachInstanceChildQuestion._id] == undefined) ? " No Options" : questionOptionObject[eachInstanceChildQuestion._id],
                             answer: eachInstanceChildQuestion.value,
                             files: "",
                             score: criteriaScoreObject[eachInstanceChildQuestion.payload.criteriaId].score
@@ -1169,6 +1188,10 @@ module.exports = class Reports extends Abstract {
           {
             label: "Question",
             value: "question"
+          },
+          {
+            label: "Options",
+            value: "options"
           },
           {
             label: "Responses",
