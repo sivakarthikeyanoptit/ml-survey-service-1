@@ -545,12 +545,8 @@ module.exports = class Criterias extends Abstract {
         
         criteriaData = await Promise.all(criteriaData.map(async (criteria) => {
 
-          let criteriaNameSearchText = new RegExp([criteria.name].join(""), "i");
-
           let criteriaQueryObject = {
-            name: {
-              $regex: criteriaNameSearchText
-            }
+            externalId: criteria.externalId
           }
 
           const existingCriteria = await database.models.criterias.findOne(
