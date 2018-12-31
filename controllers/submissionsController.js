@@ -184,6 +184,9 @@ module.exports = class Submission extends Abstract {
           req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
           req.body.evidence.submittedByEmail = req.userDetails.email
           req.body.evidence.submissionDate = new Date()
+
+          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
+
           if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
@@ -233,7 +236,6 @@ module.exports = class Submission extends Abstract {
             
             if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
             
-            let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
 
             evidencesStatusToBeChanged['isSubmitted'] = true;
             evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
@@ -279,7 +281,10 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
 
+            evidencesStatusToBeChanged['hasConflicts']=true;
+            
             updateObject.$set = {
+              evidencesStatus:submissionDocument.evidencesStatus,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
               status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
             }
