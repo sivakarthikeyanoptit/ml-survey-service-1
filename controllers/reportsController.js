@@ -407,10 +407,34 @@ module.exports = class Reports extends Abstract {
             schoolId: 1,
             status: 1,
             completedDate: 1,
-            createdAt: 1,
-            evidences: 1
+            createdAt: 1
+            // evidences: 1
           }
         );
+        // let submissionCountWithSchoolId = await database.models.submissions.aggregate(
+        //   [
+        //     { $match: submissionQuery },
+        //     {
+        //       $project: {
+        //         schoolId: 1,
+        //         submissionCount: {
+        //           $reduce: {
+        //             input: "$evidencesStatus",
+        //             initialValue: 0,
+        //             in: {
+        //               $sum: [
+        //                 "$$value",
+        //                 { $cond: [{ $eq: ["$$this.isSubmitted", true] }, 1, 0] }
+        //               ]
+        //             }
+        //           }
+        //         }
+        //       }
+        //     }
+        //   ]
+        // );
+
+        // console.log(submissionCountWithSchoolId);
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
@@ -586,7 +610,7 @@ module.exports = class Reports extends Abstract {
 
         let criteriaReports = [];
         submissionDocument[0].criterias.forEach(submissionCriterias => {
-          let levels = submissionCriterias.rubric.levels;
+          let levels = Object.values(submissionCriterias.rubric.levels);
 
           if (submissionCriterias._id) {
             let nameObject = nameData.find(
@@ -616,7 +640,7 @@ module.exports = class Reports extends Abstract {
             value: "themeName"
           },
           {
-            label: "Aoi Name",
+            label: "AOI Name",
             value: "aoiName"
           },
           {
@@ -977,6 +1001,196 @@ module.exports = class Reports extends Abstract {
           csvResponse: true,
           fileName:
             "submissionReportByProgramId" +
+            req.query.evidenceId +
+            "_" +
+            moment(currentDate)
+              .tz("Asia/Kolkata")
+              .format("YYYY_MM_DD_HH_mm") +
+            ".csv"
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async generateSubmissionReportsBySchoolId(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let criteriaQuestionDocument = await database.models.criterias.find(
+          {},
+          { evidences: 1, name: 1, score: 1 }
+        );
+
+        let criteriaQuestionDetails = [];
+
+        criteriaQuestionDocument.forEach(singleCriteriaQuestion => {
+          // console.log(singleCriteriaQuestion.score);
+          singleCriteriaQuestion.evidences.forEach(singleEvidence => {
+            singleEvidence.sections.forEach(singleSection => {
+              singleSection.questions.forEach(singleQuestion => {
+                criteriaQuestionDetails.push({
+                  // score: singleCriteriaQuestion.score,
+                  id: singleCriteriaQuestion._id,
+                  criteriaName: singleCriteriaQuestion.name,
+                  questionId: singleQuestion
+                });
+              });
+            });
+          });
+        });
+
+        // console.log(criteriaQuestionDetails);
+
+        let schoolSubmissionQuery = {
+          ["schoolInformation.externalId"]: req.params._id
+        };
+
+        let schoolSubmissionDocument = await database.models.submissions.find(
+          schoolSubmissionQuery,
+          {
+            answers: 1,
+            criterias: 1
+          }
+        );
+        let answer = [];
+
+        schoolSubmissionDocument.forEach(singleDocument => {
+          Object.entries(singleDocument.answers).map(singleAnswer => {
+            return answer.push(singleAnswer[1]);
+          });
+        });
+
+        let criteriaScore = [];
+        schoolSubmissionDocument.forEach(singleSchoolSubmission => {
+          singleSchoolSubmission.criterias.forEach(singleCriteria => {
+            criteriaScore.push({
+              id: singleCriteria._id,
+              score: singleCriteria.score
+            });
+          });
+        });
+
+        // console.log(criteriaScore);
+        // criteriaQuestionDetails.forEach(singleCriteriaQuestionDetail => {
+        //   let anscriteriaScore.find(
+        //     singleCriteriaScore =>
+        //       singleCriteriaScore.id.toString() ==
+        //       singleCriteriaQuestionDetail.id.toString()
+        //   );
+        // });
+
+        let schoolCurrentReports = [];
+
+        answer.forEach(singleAnswer => {
+          let criteriaQuestionObject = criteriaQuestionDetails.find(
+            singleCriteriaQuestion =>
+              singleAnswer.qid.toString() ==
+              singleCriteriaQuestion.questionId.toString()
+          );
+
+          if (!(singleAnswer.responseType == "matrix")) {
+            if (singleAnswer.payload) {
+              schoolCurrentReports.push({
+                criteriaName: criteriaQuestionObject.criteriaName,
+                question: singleAnswer.payload["question"][0],
+                answer: singleAnswer.payload["labels"].toString(),
+                score: criteriaQuestionObject.score
+                  ? criteriaQuestionObject.score
+                  : "NA"
+              });
+            }
+          } else {
+            schoolCurrentReports.push({
+              criteriaName: "",
+              question: singleAnswer.payload["question"][0],
+              answer: "Instance Question",
+              score: "NA"
+            });
+
+            if (singleAnswer.payload.labels[0]) {
+              for (
+                let instance = 0;
+                instance < singleAnswer.payload.labels[0].length;
+                instance++
+              ) {
+                singleAnswer.payload.labels[0][instance].forEach(
+                  singleLabel => {
+                    let radioResponse = {};
+                    let multiSelectResponse = {};
+                    let multiSelectResponseArray = [];
+
+                    if (singleLabel.responseType == "radio") {
+                      singleLabel.options.forEach(option => {
+                        radioResponse[option.value] = option.label;
+                      });
+                      answer = radioResponse[singleLabel.value];
+                    } else if (singleLabel.responseType == "multiselect") {
+                      singleLabel.options.forEach(option => {
+                        multiSelectResponse[option.value] = option.label;
+                      });
+
+                      singleLabel.value.forEach(value => {
+                        multiSelectResponseArray.push(
+                          multiSelectResponse[value]
+                        );
+                      });
+
+                      answer = multiSelectResponseArray.toString();
+                    } else {
+                      answer = singleLabel.value;
+                    }
+
+                    let criteriaQuestionObject = criteriaQuestionDetails.find(
+                      singleCriteriaQuestion =>
+                        singleCriteriaQuestion.questionId.toString() ==
+                        singleLabel._id.toString()
+                    );
+
+                    schoolCurrentReports.push({
+                      criteriaName: criteriaQuestionObject.criteriaName,
+                      question: singleLabel.question[0],
+                      answer: answer
+                      // score:submissionCriterias.score
+                      // ? submissionCriterias.score
+                      // : "NA"
+                    });
+                  }
+                );
+              }
+            }
+          }
+        });
+
+        // console.log(schoolCurrentReports);
+
+        let fields = [
+          {
+            label: "Criteria Name",
+            value: "criteriaName"
+          },
+
+          {
+            label: "Question",
+            value: "question"
+          },
+          {
+            label: "Answers",
+            value: "answer"
+          }
+        ];
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(schoolCurrentReports);
+        let currentDate = new Date();
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "submissionReportByschoolId" +
             req.query.evidenceId +
             "_" +
             moment(currentDate)
