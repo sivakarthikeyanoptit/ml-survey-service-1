@@ -1074,7 +1074,7 @@ module.exports = class Reports extends Abstract {
 
             if(singleAnswer.payload) {
               let singleAnswerRecord = {
-                criteriaName: criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
+                criteriaName: (criteriaQuestionDetailsObject[singleAnswer.qid] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
                 question: singleAnswer.payload.question[0],
                 answer: (singleAnswer.notApplicable) ? "Not Applicable": "",
                 files: "",
@@ -1105,7 +1105,7 @@ module.exports = class Reports extends Abstract {
                         eachInstanceChildQuestion => {
 
                           let eachInstanceChildRecord = {
-                            criteriaName: criteriaQuestionDetailsObject[eachInstanceChildQuestion._id].criteriaName,
+                            criteriaName: (criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion._id].criteriaName,
                             question: eachInstanceChildQuestion.question[0],
                             answer: eachInstanceChildQuestion.value,
                             files: "",
