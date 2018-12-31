@@ -590,18 +590,18 @@ module.exports = class Reports extends Abstract {
           "evaluation-frameworks"
         ].find({});
 
-        let nameData = [];
+        let evaluationNameObject = {};
+
         evaluationFrameworksDocuments.forEach(singleDocument => {
           singleDocument.themes.forEach(singleTheme => {
             singleTheme.aoi.forEach(singleAoi => {
               singleAoi.indicators.forEach(singleIndicator => {
                 singleIndicator.criteria.forEach(singleCriteria => {
-                  nameData.push({
+                  evaluationNameObject[singleCriteria.toString()] = {
                     themeName: singleTheme.name,
                     aoiName: singleAoi.name,
-                    indicatorName: singleIndicator.name,
-                    criteriaId: singleCriteria
-                  });
+                    indicatorName: singleIndicator.name
+                  };
                 });
               });
             });
@@ -613,16 +613,13 @@ module.exports = class Reports extends Abstract {
           let levels = Object.values(submissionCriterias.rubric.levels);
 
           if (submissionCriterias._id) {
-            let nameObject = nameData.find(
-              singleData =>
-                singleData.criteriaId.toString() ==
-                submissionCriterias._id.toString()
-            );
-            criteriaReports.push({
-              themeName: nameObject ? nameObject.themeName : "",
-              aoiName: nameObject ? nameObject.aoiName : "",
-              indicatorName: nameObject ? nameObject.indicatorName : "",
-              criteriaName: submissionCriterias.name,
+            let criteriaReportObject = {
+              themeName: evaluationNameObject[submissionCriterias._id]
+                ? evaluationNameObject[submissionCriterias._id].themeName
+                : "",
+              aoiName: evaluationNameObject[submissionCriterias._id]
+                ? evaluationNameObject[submissionCriterias._id].aoiName
+                : "",
               "Level 1": levels.find(level => level.level == "L1").description,
               "Level 2": levels.find(level => level.level == "L2").description,
               "Level 3": levels.find(level => level.level == "L3").description,
@@ -630,7 +627,8 @@ module.exports = class Reports extends Abstract {
               score: submissionCriterias.score
                 ? submissionCriterias.score
                 : "NA"
-            });
+            };
+            criteriaReports.push(criteriaReportObject);
           }
         });
 
@@ -691,340 +689,12 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-  async generateSubmissionReportsByProgramId(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let criteriaQuestionDocument = await database.models.criterias.find(
-          {},
-          { evidences: 1, name: 1 }
-        );
-
-        let criteriaQuestionDetails = [];
-
-        criteriaQuestionDocument.forEach(singleCriteriaQuestion => {
-          singleCriteriaQuestion.evidences.forEach(singleEvidence => {
-            singleEvidence.sections.forEach(singleSection => {
-              singleSection.questions.forEach(singleQuestion => {
-                criteriaQuestionDetails.push({
-                  criteriaName: singleCriteriaQuestion.name,
-                  questionId: singleQuestion
-                });
-              });
-            });
-          });
-        });
-
-        let submissionQuery = {
-          ["programInformation.name"]: req.params._id
-        };
-
-        let queryObject = "evidences." + req.query.evidenceId + "";
-
-        let submissionDocument = await database.models.submissions.find(
-          submissionQuery,
-          {
-            assessors: 1,
-            schoolInformation: 1,
-            programInformation: 1,
-            status: 1,
-            [queryObject]: 1
-          }
-        );
-
-        let assessorElement = {};
-        let ecmReports = [];
-
-        for (
-          let submissionInstance = 0;
-          submissionInstance < submissionDocument.length;
-          submissionInstance++
-        ) {
-          submissionDocument[submissionInstance].assessors.forEach(assessor => {
-            assessorElement[assessor.userId] = {
-              externalId: assessor.externalId
-            };
-          });
-
-          if (
-            submissionDocument[submissionInstance].evidences[
-              req.query.evidenceId
-            ] &&
-            submissionDocument[submissionInstance].evidences[
-              req.query.evidenceId
-            ].isSubmitted &&
-            (submissionDocument[submissionInstance].status == "inprogress" ||
-              submissionDocument[submissionInstance].status == "blocked")
-          ) {
-            submissionDocument[submissionInstance]["evidences"][
-              req.query.evidenceId
-            ].submissions.forEach(submission => {
-              let answer = [];
-
-              if (assessorElement[submission.submittedBy.toString()]) {
-                Object.entries(submission.answers).map(submissionAnswer => {
-                  return answer.push(submissionAnswer[1]);
-                });
-
-                answer.forEach(QAndA => {
-                  let criteriaQuestionObject = criteriaQuestionDetails.find(
-                    singleCriteriaQuestion =>
-                      singleCriteriaQuestion.questionId.toString() ==
-                      QAndA.qid.toString()
-                  );
-
-                  let ecmCurrentReport = [];
-
-                  if (!(QAndA.responseType == "matrix")) {
-                    let imageLink = new Array();
-                    QAndA.fileName.forEach(imageSource => {
-                      let envVar = process.env.NODE_ENV
-                        ? process.env.NODE_ENV
-                        : "development";
-                      let envString = envVar == "production" ? "prod" : "dev";
-
-                      if (imageSource) {
-                        imageLink.push(
-                          " https://storage.cloud.google.com/sl-" +
-                            envString +
-                            "-storage/" +
-                            imageSource.sourcePath +
-                            " "
-                        );
-                      } else {
-                        if (process.env.NODE_ENV == "development") {
-                          console.log("No image link is there");
-                        }
-                      }
-                    });
-
-                    let imagePath;
-
-                    if (imageLink.length) {
-                      imagePath = imageLink.toString();
-                    }
-
-                    QAndA.payload.filesNotUploaded = [];
-
-                    ecmCurrentReport.push({
-                      criteriaName: criteriaQuestionObject.criteriaName,
-                      schoolName:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .name,
-                      schoolId:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: QAndA.payload["labels"].toString(),
-                      assessorId:
-                        assessorElement[submission.submittedBy.toString()]
-                          .externalId,
-                      startTime: this.gmtToIst(QAndA.startTime),
-                      endTime: this.gmtToIst(QAndA.endTime),
-                      image: imagePath
-                    });
-                  } else {
-                    let criteriaQuestionObject = criteriaQuestionDetails.find(
-                      singleCriteriaQuestion =>
-                        singleCriteriaQuestion.questionId.toString() ==
-                        QAndA.qid.toString()
-                    );
-
-                    if (QAndA.payload.filesNotUploaded.length) {
-                      QAndA.payload.filesNotUploaded.splice(
-                        0,
-                        QAndA.payload.filesNotUploaded.length
-                      );
-                    }
-
-                    ecmCurrentReport.push({
-                      criteriaName: criteriaQuestionObject.criteriaName,
-                      schoolName:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .name,
-                      schoolId:
-                        submissionDocument[submissionInstance].schoolInformation
-                          .externalId,
-                      question: QAndA.payload["question"][0],
-                      answer: "Instance Question",
-                      assessorId:
-                        assessorElement[submission.submittedBy.toString()]
-                          .externalId,
-                      startTime: this.gmtToIst(QAndA.startTime),
-                      endTime: this.gmtToIst(QAndA.endTime)
-                    });
-
-                    if (QAndA.payload.labels[0]) {
-                      for (
-                        let instance = 0;
-                        instance < QAndA.payload.labels[0].length;
-                        instance++
-                      ) {
-                        QAndA.payload.labels[0][instance].forEach(
-                          QAndAElement => {
-                            let criteriaQuestionObject = criteriaQuestionDetails.find(
-                              singleCriteriaQuestion =>
-                                singleCriteriaQuestion.questionId.toString() ==
-                                QAndAElement._id.toString()
-                            );
-
-                            let imageLink = new Array();
-                            let envVar = process.env.NODE_ENV
-                              ? process.env.NODE_ENV
-                              : "development";
-                            let envString =
-                              envVar == "production" ? "prod" : "dev";
-
-                            QAndAElement.fileName.forEach(imageSource => {
-                              imageLink.push(
-                                " https://storage.cloud.google.com/sl-" +
-                                  envString +
-                                  "-storage/" +
-                                  submissionDocument[submissionInstance]._id +
-                                  "/" +
-                                  submission.submittedBy.toString() +
-                                  "/" +
-                                  imageSource +
-                                  " "
-                              );
-                            });
-
-                            let imagePath;
-
-                            if (imageLink.length) {
-                              imagePath = imageLink.toString();
-                            }
-
-                            let radioResponse = {};
-                            let multiSelectResponse = {};
-                            let multiSelectResponseArray = [];
-
-                            if (QAndAElement.responseType == "radio") {
-                              QAndAElement.options.forEach(option => {
-                                radioResponse[option.value] = option.label;
-                              });
-                              answer = radioResponse[QAndAElement.value];
-                            } else if (
-                              QAndAElement.responseType == "multiselect"
-                            ) {
-                              QAndAElement.options.forEach(option => {
-                                multiSelectResponse[option.value] =
-                                  option.label;
-                              });
-
-                              QAndAElement.value.forEach(value => {
-                                multiSelectResponseArray.push(
-                                  multiSelectResponse[value]
-                                );
-                              });
-
-                              answer = multiSelectResponseArray.toString();
-                            } else {
-                              answer = QAndAElement.value;
-                            }
-
-                            ecmCurrentReport.push({
-                              criteriaName: criteriaQuestionObject.criteriaName,
-                              schoolName:
-                                submissionDocument[submissionInstance]
-                                  .schoolInformation.name,
-                              schoolId:
-                                submissionDocument[submissionInstance]
-                                  .schoolInformation.externalId,
-                              question: QAndAElement.question[0],
-                              answer: answer,
-                              assessorId:
-                                assessorElement[
-                                  submission.submittedBy.toString()
-                                ].externalId,
-                              startTime: this.gmtToIst(QAndAElement.startTime),
-                              endTime: this.gmtToIst(QAndAElement.endTime),
-                              image: imagePath
-                            });
-                          }
-                        );
-                      }
-                    }
-                  }
-                  ecmCurrentReport.forEach(currentEcm => {
-                    ecmReports.push(currentEcm);
-                  });
-                });
-              }
-            });
-          }
-        }
-
-        let fields = [
-          {
-            label: "Criteria Name",
-            value: "criteriaName"
-          },
-          {
-            label: "School Name",
-            value: "schoolName"
-          },
-          {
-            label: "School Id",
-            value: "schoolId"
-          },
-          {
-            label: "Assessor Id",
-            value: "assessorId"
-          },
-          {
-            label: "Question",
-            value: "question"
-          },
-          {
-            label: "Answers",
-            value: "answer"
-          },
-          {
-            label: "Start Time",
-            value: "startTime"
-          },
-          {
-            label: "End Time",
-            value: "endTime"
-          },
-          {
-            label: "Image",
-            value: "image"
-          }
-        ];
-
-        const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(ecmReports);
-        let currentDate = new Date();
-        return resolve({
-          data: csv,
-          csvResponse: true,
-          fileName:
-            "submissionReportByProgramId" +
-            req.query.evidenceId +
-            "_" +
-            moment(currentDate)
-              .tz("Asia/Kolkata")
-              .format("YYYY_MM_DD_HH_mm") +
-            ".csv"
-        });
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
-
   async generateSubmissionReportsBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
         let allCriterias = await database.models.criterias.find(
           {},
-          { evidences: 1, name: 1}
+          { evidences: 1, name: 1 }
         );
 
         let criteriaQuestionDetailsObject = {};
@@ -1044,21 +714,21 @@ module.exports = class Reports extends Abstract {
         });
 
         let allQuestionWithOptions = await database.models.questions.find(
-          {responseType : { $in: ["radio","multiselect"] }},
-          { options: 1}
+          { responseType: { $in: ["radio", "multiselect"] } },
+          { options: 1 }
         );
-        
-        let questionOptionObject = {}
+
+        let questionOptionObject = {};
         allQuestionWithOptions.forEach(question => {
-          if(question.options.length > 0) {
-            let optionString = ""
+          if (question.options.length > 0) {
+            let optionString = "";
             question.options.forEach(option => {
-              optionString += option.label + ","
-            })
-            optionString = optionString.replace(/,\s*$/, "")
-            questionOptionObject[question._id.toString()] = optionString
+              optionString += option.label + ",";
+            });
+            optionString = optionString.replace(/,\s*$/, "");
+            questionOptionObject[question._id.toString()] = optionString;
           }
-        })
+        });
 
         let schoolSubmissionQuery = {
           ["schoolInformation.externalId"]: req.params._id
@@ -1089,17 +759,24 @@ module.exports = class Reports extends Abstract {
             };
           });
 
-          Object.values(singleSchoolSubmission.answers).forEach(singleAnswer => {
-
-            if(singleAnswer.payload) {
-              let singleAnswerRecord = {
-                criteriaName: (criteriaQuestionDetailsObject[singleAnswer.qid] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
-                question: singleAnswer.payload.question[0],
-                options: (questionOptionObject[singleAnswer.qid] == undefined) ? " No Options" : questionOptionObject[singleAnswer.qid],
-                answer: (singleAnswer.notApplicable) ? "Not Applicable": "",
-                files: "",
-                score: criteriaScoreObject[singleAnswer.criteriaId].score
-              }
+          Object.values(singleSchoolSubmission.answers).forEach(
+            singleAnswer => {
+              if (singleAnswer.payload) {
+                let singleAnswerRecord = {
+                  criteriaName:
+                    criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
+                      ? " Question Deleted Post Submission"
+                      : criteriaQuestionDetailsObject[singleAnswer.qid]
+                          .criteriaName,
+                  question: singleAnswer.payload.question[0],
+                  options:
+                    questionOptionObject[singleAnswer.qid] == undefined
+                      ? " No Options"
+                      : questionOptionObject[singleAnswer.qid],
+                  answer: singleAnswer.notApplicable ? "Not Applicable" : "",
+                  files: "",
+                  score: criteriaScoreObject[singleAnswer.criteriaId].score
+                };
 
                 if (singleAnswer.fileName.length > 0) {
                   singleAnswer.fileName.forEach(file => {
