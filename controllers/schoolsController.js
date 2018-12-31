@@ -427,7 +427,9 @@ module.exports = class Schools extends Abstract {
             });
           });
 
+          
           submissionDocument.evidences = submissionDocumentEvidences;
+          submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
           submissionDocument.criterias = submissionDocumentCriterias;
           let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
             submissionDocument,

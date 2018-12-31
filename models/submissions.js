@@ -5,6 +5,7 @@ module.exports = {
     programId: "ObjectId",
     assessors:Array,
     status: "String",
+    evidencesStatus:Array,
     evidences:Object,
     criterias:Array,
     answers: Object,

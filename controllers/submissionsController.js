@@ -232,6 +232,14 @@ module.exports = class Submission extends Abstract {
             });
             
             if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
+            
+            let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
+
+            evidencesStatusToBeChanged['isSubmitted'] = true;
+            evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
+            evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
+            evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
+            evidencesStatusToBeChanged['hasConflicts'] = false;
 
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
@@ -243,6 +251,7 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
               ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
+              evidencesStatus:submissionDocument.evidencesStatus,
               status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
             }
           } else {
