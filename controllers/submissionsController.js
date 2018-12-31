@@ -476,6 +476,7 @@ module.exports = class Submission extends Abstract {
             ["evidences."+parentInterviewEvidenceMethod+".startTime"] : "",
             ["evidences."+parentInterviewEvidenceMethod+".endTime"] : new Date,
             ["evidences."+parentInterviewEvidenceMethod+".hasConflicts"]: false,
+            evidencesStatus:submissionDocument.evidencesStatus,
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
