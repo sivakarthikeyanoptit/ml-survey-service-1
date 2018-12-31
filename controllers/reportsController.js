@@ -1083,9 +1083,9 @@ module.exports = class Reports extends Abstract {
 
               if(singleAnswer.fileName.length > 0 ) {
                 singleAnswer.fileName.forEach(file => {
-                  singleAnswer.files += imageBaseUrl+file.sourcePath+","
+                  singleAnswerRecord.files += imageBaseUrl+file.sourcePath+","
                 })
-                singleAnswer.files = singleAnswer.files.replace(/,\s*$/, "")
+                singleAnswerRecord.files = singleAnswerRecord.files.replace(/,\s*$/, "")
               }
 
               if(!singleAnswer.notApplicable) {
@@ -1114,9 +1114,9 @@ module.exports = class Reports extends Abstract {
 
                           if(eachInstanceChildQuestion.fileName.length > 0 ) {
                             eachInstanceChildQuestion.fileName.forEach(file => {
-                              eachInstanceChildQuestion.files += imageBaseUrl+file.sourcePath+","
+                              eachInstanceChildRecord.files += imageBaseUrl+file.sourcePath+","
                             })
-                            eachInstanceChildQuestion.files = eachInstanceChildQuestion.files.replace(/,\s*$/, "")
+                            eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(/,\s*$/, "")
                           }
 
                           let radioResponse = {};
