@@ -228,20 +228,12 @@ module.exports = class Schools extends Abstract {
           ].acl;
 
         let form = [];
-        let schoolTypes = schoolDocument.schoolTypes;
-        let schoolProfileFieldsPerSchoolTypes = programDocument.components[0]['schoolProfileFieldsPerSchoolTypes'];
-        let filteredFieldsToBeShown = [];
-        schoolTypes.forEach(schoolType=>{
-          if(schoolProfileFieldsPerSchoolTypes[schoolType]){
-            filteredFieldsToBeShown.push(...schoolProfileFieldsPerSchoolTypes[schoolType])
-          }
-        })
-        await _.forEach(Object.keys(database.models.schools.schema.paths), key => {
+        await _.forEach(Object.keys(schoolDocument), key => {
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
             -1
           ) {
-            filteredFieldsToBeShown.includes(key) && form.push({
+            form.push({
               field: key,
               label: gen.utils.camelCaseToTitleCase(key),
               value: Array.isArray(schoolDocument[key])
@@ -257,7 +249,6 @@ module.exports = class Schools extends Abstract {
             });
           }
         });
-
         response.result.schoolProfile = {
           _id: schoolDocument._id,
           // isEditable: accessability.schoolProfile.editable.length > 0,
@@ -427,9 +418,7 @@ module.exports = class Schools extends Abstract {
             });
           });
 
-          
           submissionDocument.evidences = submissionDocumentEvidences;
-          submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
           submissionDocument.criterias = submissionDocumentCriterias;
           let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
             submissionDocument,
