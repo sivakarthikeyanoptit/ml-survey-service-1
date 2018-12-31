@@ -1034,7 +1034,6 @@ module.exports = class Reports extends Abstract {
             singleEvidence.sections.forEach(singleSection => {
               singleSection.questions.forEach(singleQuestion => {
                 criteriaQuestionDetails.push({
-                  // score: singleCriteriaQuestion.score,
                   id: singleCriteriaQuestion._id,
                   criteriaName: singleCriteriaQuestion.name,
                   questionId: singleQuestion
@@ -1043,8 +1042,6 @@ module.exports = class Reports extends Abstract {
             });
           });
         });
-
-        // console.log(criteriaQuestionDetails);
 
         let schoolSubmissionQuery = {
           ["schoolInformation.externalId"]: req.params._id
@@ -1075,15 +1072,6 @@ module.exports = class Reports extends Abstract {
           });
         });
 
-        // console.log(criteriaScore);
-        // criteriaQuestionDetails.forEach(singleCriteriaQuestionDetail => {
-        //   let anscriteriaScore.find(
-        //     singleCriteriaScore =>
-        //       singleCriteriaScore.id.toString() ==
-        //       singleCriteriaQuestionDetail.id.toString()
-        //   );
-        // });
-
         let schoolCurrentReports = [];
 
         answer.forEach(singleAnswer => {
@@ -1092,6 +1080,11 @@ module.exports = class Reports extends Abstract {
               singleAnswer.qid.toString() ==
               singleCriteriaQuestion.questionId.toString()
           );
+          let criteriaScoreObject = criteriaScore.find(
+            singleCriteriaScore =>
+              singleCriteriaScore.id.toString() ==
+              singleAnswer.criteriaId.toString()
+          );
 
           if (!(singleAnswer.responseType == "matrix")) {
             if (singleAnswer.payload) {
@@ -1099,17 +1092,25 @@ module.exports = class Reports extends Abstract {
                 criteriaName: criteriaQuestionObject.criteriaName,
                 question: singleAnswer.payload["question"][0],
                 answer: singleAnswer.payload["labels"].toString(),
-                score: criteriaQuestionObject.score
-                  ? criteriaQuestionObject.score
+                score: criteriaScoreObject.score
+                  ? criteriaScoreObject.score
                   : "NA"
               });
             }
           } else {
+            let criteriaScoreObject = criteriaScore.find(
+              singleCriteriaScore =>
+                singleCriteriaScore.id.toString() ==
+                singleAnswer.criteriaId.toString()
+            );
+
             schoolCurrentReports.push({
               criteriaName: "",
               question: singleAnswer.payload["question"][0],
               answer: "Instance Question",
-              score: "NA"
+              score: criteriaScoreObject.score
+                ? criteriaScoreObject.score
+                : "NA"
             });
 
             if (singleAnswer.payload.labels[0]) {
@@ -1120,6 +1121,11 @@ module.exports = class Reports extends Abstract {
               ) {
                 singleAnswer.payload.labels[0][instance].forEach(
                   singleLabel => {
+                    let criteriaScoreObject = criteriaScore.find(
+                      singleCriteriaScore =>
+                        singleCriteriaScore.id.toString() ==
+                        singleLabel.payload.criteriaId.toString()
+                    );
                     let radioResponse = {};
                     let multiSelectResponse = {};
                     let multiSelectResponseArray = [];
@@ -1154,10 +1160,10 @@ module.exports = class Reports extends Abstract {
                     schoolCurrentReports.push({
                       criteriaName: criteriaQuestionObject.criteriaName,
                       question: singleLabel.question[0],
-                      answer: answer
-                      // score:submissionCriterias.score
-                      // ? submissionCriterias.score
-                      // : "NA"
+                      answer: answer,
+                      score: criteriaScoreObject.score
+                        ? criteriaScoreObject.score
+                        : "NA"
                     });
                   }
                 );
@@ -1165,8 +1171,6 @@ module.exports = class Reports extends Abstract {
             }
           }
         });
-
-        // console.log(schoolCurrentReports);
 
         let fields = [
           {
@@ -1181,6 +1185,10 @@ module.exports = class Reports extends Abstract {
           {
             label: "Answers",
             value: "answer"
+          },
+          {
+            label: "Score",
+            value: "score"
           }
         ];
         const json2csvParser = new json2csv({ fields });
