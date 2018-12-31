@@ -1021,23 +1021,23 @@ module.exports = class Reports extends Abstract {
   async generateSubmissionReportsBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let criteriaQuestionDocument = await database.models.criterias.find(
+
+        let allCriterias = await database.models.criterias.find(
           {},
-          { evidences: 1, name: 1, score: 1 }
+          { evidences: 1, name: 1}
         );
 
-        let criteriaQuestionDetails = [];
+        let criteriaQuestionDetailsObject = {};
 
-        criteriaQuestionDocument.forEach(singleCriteriaQuestion => {
-          // console.log(singleCriteriaQuestion.score);
-          singleCriteriaQuestion.evidences.forEach(singleEvidence => {
-            singleEvidence.sections.forEach(singleSection => {
-              singleSection.questions.forEach(singleQuestion => {
-                criteriaQuestionDetails.push({
-                  id: singleCriteriaQuestion._id,
-                  criteriaName: singleCriteriaQuestion.name,
-                  questionId: singleQuestion
-                });
+        allCriterias.forEach(eachCriteria => {
+          eachCriteria.evidences.forEach(eachEvidence => {
+            eachEvidence.sections.forEach(eachSection => {
+              eachSection.questions.forEach(eachquestion => {
+                criteriaQuestionDetailsObject[eachquestion.toString()] = {
+                  criteriaId: eachCriteria._id,
+                  criteriaName: eachCriteria.name,
+                  questionId: eachquestion.toString()
+                };
               });
             });
           });
@@ -1054,137 +1054,129 @@ module.exports = class Reports extends Abstract {
             criterias: 1
           }
         );
-        let answer = [];
 
-        schoolSubmissionDocument.forEach(singleDocument => {
-          Object.entries(singleDocument.answers).map(singleAnswer => {
-            return answer.push(singleAnswer[1]);
-          });
-        });
+        let criteriaScoreObject = {};
 
-        let criteriaScore = [];
+        let csvReportOutput = [];
+
+        const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production") ? "prod" : "dev" +"-storage/"
+
         schoolSubmissionDocument.forEach(singleSchoolSubmission => {
+          
           singleSchoolSubmission.criterias.forEach(singleCriteria => {
-            criteriaScore.push({
+            criteriaScoreObject[singleCriteria._id.toString()] = {
               id: singleCriteria._id,
               score: singleCriteria.score
-            });
+            };
           });
-        });
 
-        let schoolCurrentReports = [];
+          Object.values(singleSchoolSubmission.answers).forEach(singleAnswer => {
 
-        answer.forEach(singleAnswer => {
-          let criteriaQuestionObject = criteriaQuestionDetails.find(
-            singleCriteriaQuestion =>
-              singleAnswer.qid.toString() ==
-              singleCriteriaQuestion.questionId.toString()
-          );
-          let criteriaScoreObject = criteriaScore.find(
-            singleCriteriaScore =>
-              singleCriteriaScore.id.toString() ==
-              singleAnswer.criteriaId.toString()
-          );
-
-          if (!(singleAnswer.responseType == "matrix")) {
-            if (singleAnswer.payload) {
-              schoolCurrentReports.push({
-                criteriaName: criteriaQuestionObject.criteriaName,
-                question: singleAnswer.payload["question"][0],
-                answer: singleAnswer.payload["labels"].toString(),
-                score: criteriaScoreObject.score
-                  ? criteriaScoreObject.score
-                  : "NA"
-              });
-            }
-          } else {
-            let criteriaScoreObject = criteriaScore.find(
-              singleCriteriaScore =>
-                singleCriteriaScore.id.toString() ==
-                singleAnswer.criteriaId.toString()
-            );
-
-            schoolCurrentReports.push({
-              criteriaName: "",
-              question: singleAnswer.payload["question"][0],
-              answer: "Instance Question",
-              score: criteriaScoreObject.score
-                ? criteriaScoreObject.score
-                : "NA"
-            });
-
-            if (singleAnswer.payload.labels[0]) {
-              for (
-                let instance = 0;
-                instance < singleAnswer.payload.labels[0].length;
-                instance++
-              ) {
-                singleAnswer.payload.labels[0][instance].forEach(
-                  singleLabel => {
-                    let criteriaScoreObject = criteriaScore.find(
-                      singleCriteriaScore =>
-                        singleCriteriaScore.id.toString() ==
-                        singleLabel.payload.criteriaId.toString()
-                    );
-                    let radioResponse = {};
-                    let multiSelectResponse = {};
-                    let multiSelectResponseArray = [];
-
-                    if (singleLabel.responseType == "radio") {
-                      singleLabel.options.forEach(option => {
-                        radioResponse[option.value] = option.label;
-                      });
-                      answer = radioResponse[singleLabel.value];
-                    } else if (singleLabel.responseType == "multiselect") {
-                      singleLabel.options.forEach(option => {
-                        multiSelectResponse[option.value] = option.label;
-                      });
-
-                      singleLabel.value.forEach(value => {
-                        multiSelectResponseArray.push(
-                          multiSelectResponse[value]
-                        );
-                      });
-
-                      answer = multiSelectResponseArray.toString();
-                    } else {
-                      answer = singleLabel.value;
-                    }
-
-                    let criteriaQuestionObject = criteriaQuestionDetails.find(
-                      singleCriteriaQuestion =>
-                        singleCriteriaQuestion.questionId.toString() ==
-                        singleLabel._id.toString()
-                    );
-
-                    schoolCurrentReports.push({
-                      criteriaName: criteriaQuestionObject.criteriaName,
-                      question: singleLabel.question[0],
-                      answer: answer,
-                      score: criteriaScoreObject.score
-                        ? criteriaScoreObject.score
-                        : "NA"
-                    });
-                  }
-                );
+            if(singleAnswer.payload) {
+              let singleAnswerRecord = {
+                criteriaName: criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
+                question: singleAnswer.payload.question[0],
+                answer: (singleAnswer.notApplicable) ? "Not Applicable": "",
+                files: "",
+                score: criteriaScoreObject[singleAnswer.criteriaId].score
               }
+
+              if(singleAnswer.fileName.length > 0 ) {
+                singleAnswer.fileName.forEach(file => {
+                  singleAnswer.files += imageBaseUrl+file.sourcePath+","
+                })
+                singleAnswer.files = singleAnswer.files.replace(/,\s*$/, "")
+              }
+
+              if(!singleAnswer.notApplicable) {
+                
+                if(singleAnswer.responseType != "matrix") {
+                  singleAnswerRecord.answer = singleAnswer.payload["labels"].toString()
+                } else {
+                  singleAnswerRecord.answer = "Instance Question"
+
+                  if (singleAnswer.payload.labels[0]) {
+                    for (
+                      let instance = 0;
+                      instance < singleAnswer.payload.labels[0].length;
+                      instance++
+                    ) {
+                      singleAnswer.payload.labels[0][instance].forEach(
+                        eachInstanceChildQuestion => {
+
+                          let eachInstanceChildRecord = {
+                            criteriaName: criteriaQuestionDetailsObject[eachInstanceChildQuestion._id].criteriaName,
+                            question: eachInstanceChildQuestion.question[0],
+                            answer: eachInstanceChildQuestion.value,
+                            files: "",
+                            score: criteriaScoreObject[eachInstanceChildQuestion.payload.criteriaId].score
+                          }
+
+                          if(eachInstanceChildQuestion.fileName.length > 0 ) {
+                            eachInstanceChildQuestion.fileName.forEach(file => {
+                              eachInstanceChildQuestion.files += imageBaseUrl+file.sourcePath+","
+                            })
+                            eachInstanceChildQuestion.files = eachInstanceChildQuestion.files.replace(/,\s*$/, "")
+                          }
+
+                          let radioResponse = {};
+                          let multiSelectResponse = {};
+                          let multiSelectResponseArray = [];
+
+                          if (eachInstanceChildQuestion.responseType == "radio") {
+                            eachInstanceChildQuestion.options.forEach(option => {
+                              radioResponse[option.value] = option.label;
+                            });
+                            eachInstanceChildRecord.answer = radioResponse[eachInstanceChildQuestion.value];
+                          } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                            eachInstanceChildQuestion.options.forEach(option => {
+                              multiSelectResponse[option.value] = option.label;
+                            });
+
+                            eachInstanceChildQuestion.value.forEach(value => {
+                              multiSelectResponseArray.push(
+                                multiSelectResponse[value]
+                              );
+                            });
+
+                            eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                          }
+
+
+                          csvReportOutput.push(eachInstanceChildRecord)
+                        }
+                      );
+                    }
+                  }
+
+                }
+              }
+
+              csvReportOutput.push(singleAnswerRecord)
             }
-          }
+
+          });
+
         });
+
+        
 
         let fields = [
           {
             label: "Criteria Name",
             value: "criteriaName"
           },
-
           {
             label: "Question",
             value: "question"
           },
           {
-            label: "Answers",
+            label: "Responses",
             value: "answer"
+          },
+          {
+            label: "Files",
+            value: "files"
           },
           {
             label: "Score",
@@ -1192,7 +1184,7 @@ module.exports = class Reports extends Abstract {
           }
         ];
         const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(schoolCurrentReports);
+        const csv = json2csvParser.parse(csvReportOutput);
         let currentDate = new Date();
         return resolve({
           data: csv,
