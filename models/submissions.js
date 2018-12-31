@@ -9,6 +9,7 @@ module.exports = {
     criterias:Array,
     answers: Object,
     schoolInformation: Object,
+    programExternalId: "String",
     programInformation: Object,
     schoolProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
