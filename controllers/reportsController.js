@@ -1076,10 +1076,12 @@ module.exports = class Reports extends Abstract {
 
         let csvReportOutput = [];
 
-        const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production") ? "prod" : "dev" +"-storage/"
+        const imageBaseUrl =
+          "https://storage.cloud.google.com/sl-" +
+          (process.env.NODE_ENV == "production" ? "prod" : "dev") +
+          "-storage/";
 
         schoolSubmissionDocument.forEach(singleSchoolSubmission => {
-          
           singleSchoolSubmission.criterias.forEach(singleCriteria => {
             criteriaScoreObject[singleCriteria._id.toString()] = {
               id: singleCriteria._id,
@@ -1099,86 +1101,119 @@ module.exports = class Reports extends Abstract {
                 score: criteriaScoreObject[singleAnswer.criteriaId].score
               }
 
-              if(singleAnswer.fileName.length > 0 ) {
-                singleAnswer.fileName.forEach(file => {
-                  singleAnswerRecord.files += imageBaseUrl+file.sourcePath+","
-                })
-                singleAnswerRecord.files = singleAnswerRecord.files.replace(/,\s*$/, "")
-              }
+                if (singleAnswer.fileName.length > 0) {
+                  singleAnswer.fileName.forEach(file => {
+                    singleAnswerRecord.files +=
+                      imageBaseUrl + file.sourcePath + ",";
+                  });
+                  singleAnswerRecord.files = singleAnswerRecord.files.replace(
+                    /,\s*$/,
+                    ""
+                  );
+                }
 
-              if(!singleAnswer.notApplicable) {
-                
-                if(singleAnswer.responseType != "matrix") {
-                  singleAnswerRecord.answer = singleAnswer.payload["labels"].toString()
-                } else {
-                  singleAnswerRecord.answer = "Instance Question"
+                if (!singleAnswer.notApplicable) {
+                  if (singleAnswer.responseType != "matrix") {
+                    singleAnswerRecord.answer = singleAnswer.payload[
+                      "labels"
+                    ].toString();
+                  } else {
+                    singleAnswerRecord.answer = "Instance Question";
 
-                  if (singleAnswer.payload.labels[0]) {
-                    for (
-                      let instance = 0;
-                      instance < singleAnswer.payload.labels[0].length;
-                      instance++
-                    ) {
-                      singleAnswer.payload.labels[0][instance].forEach(
-                        eachInstanceChildQuestion => {
+                    if (singleAnswer.payload.labels[0]) {
+                      for (
+                        let instance = 0;
+                        instance < singleAnswer.payload.labels[0].length;
+                        instance++
+                      ) {
+                        singleAnswer.payload.labels[0][instance].forEach(
+                          eachInstanceChildQuestion => {
+                            let eachInstanceChildRecord = {
+                              criteriaName:
+                                criteriaQuestionDetailsObject[
+                                  eachInstanceChildQuestion._id
+                                ] == undefined
+                                  ? " Question Deleted Post Submission"
+                                  : criteriaQuestionDetailsObject[
+                                      eachInstanceChildQuestion._id
+                                    ].criteriaName,
+                              question: eachInstanceChildQuestion.question[0],
+                              options:
+                                questionOptionObject[
+                                  eachInstanceChildQuestion._id
+                                ] == undefined
+                                  ? " No Options"
+                                  : questionOptionObject[
+                                      eachInstanceChildQuestion._id
+                                    ],
+                              answer: eachInstanceChildQuestion.value,
+                              files: "",
+                              score:
+                                criteriaScoreObject[
+                                  eachInstanceChildQuestion.payload.criteriaId
+                                ].score
+                            };
 
-                          let eachInstanceChildRecord = {
-                            criteriaName: (criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined) ? " Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion._id].criteriaName,
-                            question: eachInstanceChildQuestion.question[0],
-                            options: (questionOptionObject[eachInstanceChildQuestion._id] == undefined) ? " No Options" : questionOptionObject[eachInstanceChildQuestion._id],
-                            answer: eachInstanceChildQuestion.value,
-                            files: "",
-                            score: criteriaScoreObject[eachInstanceChildQuestion.payload.criteriaId].score
-                          }
-
-                          if(eachInstanceChildQuestion.fileName.length > 0 ) {
-                            eachInstanceChildQuestion.fileName.forEach(file => {
-                              eachInstanceChildRecord.files += imageBaseUrl+file.sourcePath+","
-                            })
-                            eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(/,\s*$/, "")
-                          }
-
-                          let radioResponse = {};
-                          let multiSelectResponse = {};
-                          let multiSelectResponseArray = [];
-
-                          if (eachInstanceChildQuestion.responseType == "radio") {
-                            eachInstanceChildQuestion.options.forEach(option => {
-                              radioResponse[option.value] = option.label;
-                            });
-                            eachInstanceChildRecord.answer = radioResponse[eachInstanceChildQuestion.value];
-                          } else if (eachInstanceChildQuestion.responseType == "multiselect") {
-                            eachInstanceChildQuestion.options.forEach(option => {
-                              multiSelectResponse[option.value] = option.label;
-                            });
-
-                            eachInstanceChildQuestion.value.forEach(value => {
-                              multiSelectResponseArray.push(
-                                multiSelectResponse[value]
+                            if (eachInstanceChildQuestion.fileName.length > 0) {
+                              eachInstanceChildQuestion.fileName.forEach(
+                                file => {
+                                  eachInstanceChildRecord.files +=
+                                    imageBaseUrl + file + ",";
+                                }
                               );
-                            });
+                              eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(
+                                /,\s*$/,
+                                ""
+                              );
+                            }
 
-                            eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                            let radioResponse = {};
+                            let multiSelectResponse = {};
+                            let multiSelectResponseArray = [];
+
+                            if (
+                              eachInstanceChildQuestion.responseType == "radio"
+                            ) {
+                              eachInstanceChildQuestion.options.forEach(
+                                option => {
+                                  radioResponse[option.value] = option.label;
+                                }
+                              );
+                              eachInstanceChildRecord.answer =
+                                radioResponse[eachInstanceChildQuestion.value];
+                            } else if (
+                              eachInstanceChildQuestion.responseType ==
+                              "multiselect"
+                            ) {
+                              eachInstanceChildQuestion.options.forEach(
+                                option => {
+                                  multiSelectResponse[option.value] =
+                                    option.label;
+                                }
+                              );
+
+                              eachInstanceChildQuestion.value.forEach(value => {
+                                multiSelectResponseArray.push(
+                                  multiSelectResponse[value]
+                                );
+                              });
+
+                              eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                            }
+
+                            csvReportOutput.push(eachInstanceChildRecord);
                           }
-
-
-                          csvReportOutput.push(eachInstanceChildRecord)
-                        }
-                      );
+                        );
+                      }
                     }
                   }
-
                 }
+
+                csvReportOutput.push(singleAnswerRecord);
               }
-
-              csvReportOutput.push(singleAnswerRecord)
             }
-
-          });
-
+          );
         });
-
-        
 
         let fields = [
           {
