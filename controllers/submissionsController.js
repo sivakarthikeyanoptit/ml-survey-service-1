@@ -282,7 +282,7 @@ module.exports = class Submission extends Abstract {
             }
 
             evidencesStatusToBeChanged['hasConflicts']=true;
-            
+
             updateObject.$set = {
               evidencesStatus:submissionDocument.evidencesStatus,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
@@ -385,6 +385,7 @@ module.exports = class Submission extends Abstract {
 
         updateSchoolObject.$set = {}
 
+        let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==parentInterviewEvidenceMethod);
 
         if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
@@ -459,6 +460,12 @@ module.exports = class Submission extends Abstract {
             answerArray[answer[0]] = answer[1]
           });
 
+          evidencesStatusToBeChanged['isSubmitted'] = true;
+          evidencesStatusToBeChanged['notApplicable'] = false;
+          evidencesStatusToBeChanged['startTime'] = "";
+          evidencesStatusToBeChanged['endTime'] = new Date;
+          evidencesStatusToBeChanged['hasConflicts'] = false;
+
           updateObject.$push = { 
             ["evidences."+parentInterviewEvidenceMethod+".submissions"]: evidenceSubmission
           }
@@ -469,6 +476,7 @@ module.exports = class Submission extends Abstract {
             ["evidences."+parentInterviewEvidenceMethod+".startTime"] : "",
             ["evidences."+parentInterviewEvidenceMethod+".endTime"] : new Date,
             ["evidences."+parentInterviewEvidenceMethod+".hasConflicts"]: false,
+            evidencesStatus:submissionDocument.evidencesStatus,
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
