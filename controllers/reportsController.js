@@ -455,12 +455,13 @@ module.exports = class Reports extends Abstract {
 
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
-              id = programQueryObject.externalId,
+              programId: programQueryObject.externalId,
               schoolName: school.name,
               schoolId: school.externalId
             }
 
             if (schoolSubmission[school._id.toString()]) {
+              programSchoolStatusObject.status = schoolSubmission[school._id.toString()].status;
               programSchoolStatusObject.createdAt = schoolSubmission[school._id.toString()].createdAt;
               programSchoolStatusObject.completedDate = schoolSubmission[school._id.toString()].completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
@@ -471,6 +472,7 @@ module.exports = class Reports extends Abstract {
                   : schoolSubmission[school._id.toString()].submissionCount
             }
             else {
+              programSchoolStatusObject.status = "pending";
               programSchoolStatusObject.createdAt = "-";
               programSchoolStatusObject.completedDate = "-";
               programSchoolStatusObject.submissionCount = 0;
@@ -482,7 +484,7 @@ module.exports = class Reports extends Abstract {
           const fields = [
             {
               label: "Program Id",
-              value: "id"
+              value: "programId"
             },
             {
               label: "School Id",
