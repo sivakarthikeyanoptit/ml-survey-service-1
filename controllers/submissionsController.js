@@ -185,7 +185,7 @@ module.exports = class Submission extends Abstract {
           req.body.evidence.submittedByEmail = req.userDetails.email
           req.body.evidence.submissionDate = new Date()
 
-          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
+          // let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
 
           if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
@@ -237,11 +237,11 @@ module.exports = class Submission extends Abstract {
             if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
             
 
-            evidencesStatusToBeChanged['isSubmitted'] = true;
-            evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
-            evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
-            evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
-            evidencesStatusToBeChanged['hasConflicts'] = false;
+            // evidencesStatusToBeChanged['isSubmitted'] = true;
+            // evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
+            // evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
+            // evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
+            // evidencesStatusToBeChanged['hasConflicts'] = false;
 
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
@@ -253,7 +253,7 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
               ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
-              evidencesStatus:submissionDocument.evidencesStatus,
+              //evidencesStatus:submissionDocument.evidencesStatus,
               status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
             }
           } else {
@@ -281,10 +281,10 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
 
-            evidencesStatusToBeChanged['hasConflicts']=true;
+            //evidencesStatusToBeChanged['hasConflicts']=true;
 
             updateObject.$set = {
-              evidencesStatus:submissionDocument.evidencesStatus,
+              //evidencesStatus:submissionDocument.evidencesStatus,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
               status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
             }
