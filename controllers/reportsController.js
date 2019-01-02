@@ -408,6 +408,7 @@ module.exports = class Reports extends Abstract {
             schoolId: 1,
             status: 1,
             completedDate: 1,
+
             createdAt: 1,
             evidencesStatus: 1
           }
