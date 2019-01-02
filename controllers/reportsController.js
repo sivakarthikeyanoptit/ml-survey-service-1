@@ -12,29 +12,24 @@ module.exports = class Reports extends Abstract {
     return "submissions";
   }
 
-  async dataFix(req){
-     return new Promise(async (resolve, reject) => {
-        try {
+  async dataFix(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let dataFixer = require("../generics/helpers/dataFixer");
+        dataFixer.processData(req.params._id);
 
-          let dataFixer = require("../generics/helpers/dataFixer");
-          dataFixer.processData(req.params._id);
-
-          return resolve({
+        return resolve({
           status: 200,
           message: "All good! for " + req.params._id
-          });
-
-        } catch (error) {
+        });
+      } catch (error) {
         return reject({
           status: 500,
           message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-
-
-
-     });
+    });
   }
 
   async status(req) {
@@ -406,6 +401,7 @@ module.exports = class Reports extends Abstract {
         let submissionQuery = {
           programId: { $in: ObjectId(result.id) }
         };
+
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
           {
@@ -413,19 +409,15 @@ module.exports = class Reports extends Abstract {
             status: 1,
             completedDate: 1,
             createdAt: 1,
-            evidences: 1
+            evidencesStatus: 1
           }
         );
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
-          let countSubmissions = 0;
-
-          Object.values(submission.evidences).map(evidence => {
-            if (evidence.isSubmitted === true) {
-              countSubmissions += 1;
-            }
-          });
+          let evidencesStatusCount = submission.evidencesStatus.filter(
+            singleEvidenceStatus => singleEvidenceStatus.isSubmitted
+          ).length;
 
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
@@ -433,11 +425,9 @@ module.exports = class Reports extends Abstract {
               ? this.gmtToIst(submission.completedDate)
               : "-",
             createdAt: this.gmtToIst(submission.createdAt),
-            countNumberOfSubmission: countSubmissions
+            submissionCount: evidencesStatusCount
           };
         });
-
-        // console.log(schoolSubmission);
 
         schoolDocument.forEach(school => {
           var id = programQueryObject.externalId;
@@ -452,11 +442,10 @@ module.exports = class Reports extends Abstract {
                 .completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
                 : "-",
-              countingSubmission:
+              submissionCount:
                 schoolSubmission[school._id.toString()].status == "started"
                   ? 0
-                  : schoolSubmission[school._id.toString()]
-                      .countNumberOfSubmission
+                  : schoolSubmission[school._id.toString()].submissionCount
             });
           } else {
             programSchoolStatusList.push({
@@ -466,7 +455,7 @@ module.exports = class Reports extends Abstract {
               status: "pending",
               createdAt: "-",
               completedDate: "-",
-              countingSubmission: 0
+              submissionCount: 0
             });
           }
         });
@@ -497,8 +486,8 @@ module.exports = class Reports extends Abstract {
             value: "completedDate"
           },
           {
-            label: "Count Ecm Submission",
-            value: "countingSubmission"
+            label: "Submission Count",
+            value: "submissionCount"
           }
         ];
         const json2csvParser = new json2csv({ fields });
@@ -508,9 +497,11 @@ module.exports = class Reports extends Abstract {
           data: csv,
           csvResponse: true,
           fileName:
-            " programSchoolsStatus_" + moment(currentDate)
-      .tz("Asia/Kolkata")
-      .format("YYYY_MM_DD_HH_mm") + ".csv"
+            " programSchoolsStatus_" +
+            moment(currentDate)
+              .tz("Asia/Kolkata")
+              .format("YYYY_MM_DD_HH_mm") +
+            ".csv"
         };
         return resolve(response);
       } catch (error) {
@@ -535,13 +526,385 @@ module.exports = class Reports extends Abstract {
           data: csvData,
           csvResponse: true,
           fileName:
-            "ecmWiseReport_" + req.query.evidenceId + "_" +
+            "ecmWiseReport_" +
+            req.query.evidenceId +
+            "_" +
             moment(currentDate)
               .tz("Asia/Kolkata")
               .format("YYYY_MM_DD_HH_mm") +
             ".csv"
         });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
 
+  async generateCriteriasBySchoolId(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let schoolId = {
+          ["schoolInformation.externalId"]: req.params._id
+        };
+
+        let submissionDocument = await database.models.submissions.find(
+          schoolId,
+          {
+            criterias: 1
+          }
+        );
+
+        let evaluationFrameworksDocuments = await database.models[
+          "evaluation-frameworks"
+        ].find({});
+
+        let evaluationNameObject = {};
+
+        evaluationFrameworksDocuments.forEach(singleDocument => {
+          singleDocument.themes.forEach(singleTheme => {
+            singleTheme.aoi.forEach(singleAoi => {
+              singleAoi.indicators.forEach(singleIndicator => {
+                singleIndicator.criteria.forEach(singleCriteria => {
+                  evaluationNameObject[singleCriteria.toString()] = {
+                    themeName: singleTheme.name,
+                    aoiName: singleAoi.name,
+                    indicatorName: singleIndicator.name
+                  };
+                });
+              });
+            });
+          });
+        });
+
+        let criteriaReports = [];
+        submissionDocument[0].criterias.forEach(submissionCriterias => {
+          let levels = Object.values(submissionCriterias.rubric.levels);
+
+          if (submissionCriterias._id) {
+            let criteriaReportObject = {
+              themeName: evaluationNameObject[submissionCriterias._id]
+                ? evaluationNameObject[submissionCriterias._id].themeName
+                : "",
+              aoiName: evaluationNameObject[submissionCriterias._id]
+                ? evaluationNameObject[submissionCriterias._id].aoiName
+                : "",
+              "Level 1": levels.find(level => level.level == "L1").description,
+              "Level 2": levels.find(level => level.level == "L2").description,
+              "Level 3": levels.find(level => level.level == "L3").description,
+              "Level 4": levels.find(level => level.level == "L4").description,
+              score: submissionCriterias.score
+                ? submissionCriterias.score
+                : "NA"
+            };
+            criteriaReports.push(criteriaReportObject);
+          }
+        });
+
+        const fields = [
+          {
+            label: "Theme Name",
+            value: "themeName"
+          },
+          {
+            label: "AOI Name",
+            value: "aoiName"
+          },
+          {
+            label: "Indicator Name",
+            value: "indicatorName"
+          },
+          {
+            label: "Criteria Name",
+            value: "criteriaName"
+          },
+          {
+            label: "Level 1",
+            value: "Level 1"
+          },
+          {
+            label: "Level 2",
+            value: "Level 2"
+          },
+          {
+            label: "Level 3",
+            value: "Level 3"
+          },
+          {
+            label: "Level 4",
+            value: "Level 4"
+          },
+          {
+            label: "Score",
+            value: "score"
+          }
+        ];
+
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(criteriaReports);
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "criteriaswiseSchoolReport " + new Date().toDateString() + ".csv"
+        });
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async generateSubmissionReportsBySchoolId(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let allCriterias = await database.models.criterias.find(
+          {},
+          { evidences: 1, name: 1 }
+        );
+
+        let criteriaQuestionDetailsObject = {};
+
+        allCriterias.forEach(eachCriteria => {
+          eachCriteria.evidences.forEach(eachEvidence => {
+            eachEvidence.sections.forEach(eachSection => {
+              eachSection.questions.forEach(eachquestion => {
+                criteriaQuestionDetailsObject[eachquestion.toString()] = {
+                  criteriaId: eachCriteria._id,
+                  criteriaName: eachCriteria.name,
+                  questionId: eachquestion.toString()
+                };
+              });
+            });
+          });
+        });
+
+        let allQuestionWithOptions = await database.models.questions.find(
+          { responseType: { $in: ["radio", "multiselect"] } },
+          { options: 1 }
+        );
+
+        let questionOptionObject = {};
+        allQuestionWithOptions.forEach(question => {
+          if (question.options.length > 0) {
+            let optionString = "";
+            question.options.forEach(option => {
+              optionString += option.label + ",";
+            });
+            optionString = optionString.replace(/,\s*$/, "");
+            questionOptionObject[question._id.toString()] = optionString;
+          }
+        });
+
+        let schoolSubmissionQuery = {
+          ["schoolInformation.externalId"]: req.params._id
+        };
+
+        let schoolSubmissionDocument = await database.models.submissions.find(
+          schoolSubmissionQuery,
+          {
+            answers: 1,
+            criterias: 1
+          }
+        );
+
+        let criteriaScoreObject = {};
+
+        let csvReportOutput = [];
+
+        const imageBaseUrl =
+          "https://storage.cloud.google.com/sl-" +
+          (process.env.NODE_ENV == "production" ? "prod" : "dev") +
+          "-storage/";
+
+        schoolSubmissionDocument.forEach(singleSchoolSubmission => {
+          singleSchoolSubmission.criterias.forEach(singleCriteria => {
+            criteriaScoreObject[singleCriteria._id.toString()] = {
+              id: singleCriteria._id,
+              score: singleCriteria.score
+            };
+          });
+
+          Object.values(singleSchoolSubmission.answers).forEach(
+            singleAnswer => {
+              if (singleAnswer.payload) {
+                let singleAnswerRecord = {
+                  criteriaName:
+                    criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
+                      ? " Question Deleted Post Submission"
+                      : criteriaQuestionDetailsObject[singleAnswer.qid]
+                          .criteriaName,
+                  question: singleAnswer.payload.question[0],
+                  options:
+                    questionOptionObject[singleAnswer.qid] == undefined
+                      ? " No Options"
+                      : questionOptionObject[singleAnswer.qid],
+                  answer: singleAnswer.notApplicable ? "Not Applicable" : "",
+                  files: "",
+                  score: criteriaScoreObject[singleAnswer.criteriaId].score
+                };
+
+                if (singleAnswer.fileName.length > 0) {
+                  singleAnswer.fileName.forEach(file => {
+                    singleAnswerRecord.files +=
+                      imageBaseUrl + file.sourcePath + ",";
+                  });
+                  singleAnswerRecord.files = singleAnswerRecord.files.replace(
+                    /,\s*$/,
+                    ""
+                  );
+                }
+
+                if (!singleAnswer.notApplicable) {
+                  if (singleAnswer.responseType != "matrix") {
+                    singleAnswerRecord.answer = singleAnswer.payload[
+                      "labels"
+                    ].toString();
+                  } else {
+                    singleAnswerRecord.answer = "Instance Question";
+
+                    if (singleAnswer.payload.labels[0]) {
+                      for (
+                        let instance = 0;
+                        instance < singleAnswer.payload.labels[0].length;
+                        instance++
+                      ) {
+                        singleAnswer.payload.labels[0][instance].forEach(
+                          eachInstanceChildQuestion => {
+                            let eachInstanceChildRecord = {
+                              criteriaName:
+                                criteriaQuestionDetailsObject[
+                                  eachInstanceChildQuestion._id
+                                ] == undefined
+                                  ? " Question Deleted Post Submission"
+                                  : criteriaQuestionDetailsObject[
+                                      eachInstanceChildQuestion._id
+                                    ].criteriaName,
+                              question: eachInstanceChildQuestion.question[0],
+                              options:
+                                questionOptionObject[
+                                  eachInstanceChildQuestion._id
+                                ] == undefined
+                                  ? " No Options"
+                                  : questionOptionObject[
+                                      eachInstanceChildQuestion._id
+                                    ],
+                              answer: eachInstanceChildQuestion.value,
+                              files: "",
+                              score:
+                                criteriaScoreObject[
+                                  eachInstanceChildQuestion.payload.criteriaId
+                                ].score
+                            };
+
+                            if (eachInstanceChildQuestion.fileName.length > 0) {
+                              eachInstanceChildQuestion.fileName.forEach(
+                                file => {
+                                  eachInstanceChildRecord.files +=
+                                    imageBaseUrl + file + ",";
+                                }
+                              );
+                              eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(
+                                /,\s*$/,
+                                ""
+                              );
+                            }
+
+                            let radioResponse = {};
+                            let multiSelectResponse = {};
+                            let multiSelectResponseArray = [];
+
+                            if (
+                              eachInstanceChildQuestion.responseType == "radio"
+                            ) {
+                              eachInstanceChildQuestion.options.forEach(
+                                option => {
+                                  radioResponse[option.value] = option.label;
+                                }
+                              );
+                              eachInstanceChildRecord.answer =
+                                radioResponse[eachInstanceChildQuestion.value];
+                            } else if (
+                              eachInstanceChildQuestion.responseType ==
+                              "multiselect"
+                            ) {
+                              eachInstanceChildQuestion.options.forEach(
+                                option => {
+                                  multiSelectResponse[option.value] =
+                                    option.label;
+                                }
+                              );
+
+                              eachInstanceChildQuestion.value.forEach(value => {
+                                multiSelectResponseArray.push(
+                                  multiSelectResponse[value]
+                                );
+                              });
+
+                              eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                            }
+
+                            csvReportOutput.push(eachInstanceChildRecord);
+                          }
+                        );
+                      }
+                    }
+                  }
+                }
+
+                csvReportOutput.push(singleAnswerRecord);
+              }
+            }
+          );
+        });
+
+        let fields = [
+          {
+            label: "Criteria Name",
+            value: "criteriaName"
+          },
+          {
+            label: "Question",
+            value: "question"
+          },
+          {
+            label: "Options",
+            value: "options"
+          },
+          {
+            label: "Responses",
+            value: "answer"
+          },
+          {
+            label: "Files",
+            value: "files"
+          },
+          {
+            label: "Score",
+            value: "score"
+          }
+        ];
+        const json2csvParser = new json2csv({ fields });
+        const csv = json2csvParser.parse(csvReportOutput);
+        let currentDate = new Date();
+        return resolve({
+          data: csv,
+          csvResponse: true,
+          fileName:
+            "submissionReportByschoolId" +
+            req.query.evidenceId +
+            "_" +
+            moment(currentDate)
+              .tz("Asia/Kolkata")
+              .format("YYYY_MM_DD_HH_mm") +
+            ".csv"
+        });
       } catch (error) {
         return reject({
           status: 500,
