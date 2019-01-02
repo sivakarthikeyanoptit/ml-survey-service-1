@@ -304,7 +304,6 @@ module.exports = class Schools extends Abstract {
           schoolId: schoolDocument._id,
           schoolInformation: schoolDocument,
           programId: programDocument._id,
-          programExternalId: programDocument.externalId,
           programInformation: {
             name: programDocument.name,
             externalId: programDocument.externalId,
