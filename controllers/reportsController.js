@@ -401,50 +401,24 @@ module.exports = class Reports extends Abstract {
         let submissionQuery = {
           programId: { $in: ObjectId(result.id) }
         };
+
         let submissionDocument = await database.models.submissions.find(
           submissionQuery,
           {
             schoolId: 1,
             status: 1,
             completedDate: 1,
-            createdAt: 1
-            // evidences: 1
+
+            createdAt: 1,
+            evidencesStatus: 1
           }
         );
-        // let submissionCountWithSchoolId = await database.models.submissions.aggregate(
-        //   [
-        //     { $match: submissionQuery },
-        //     {
-        //       $project: {
-        //         schoolId: 1,
-        //         submissionCount: {
-        //           $reduce: {
-        //             input: "$evidencesStatus",
-        //             initialValue: 0,
-        //             in: {
-        //               $sum: [
-        //                 "$$value",
-        //                 { $cond: [{ $eq: ["$$this.isSubmitted", true] }, 1, 0] }
-        //               ]
-        //             }
-        //           }
-        //         }
-        //       }
-        //     }
-        //   ]
-        // );
-
-        // console.log(submissionCountWithSchoolId);
 
         let schoolSubmission = {};
         submissionDocument.forEach(submission => {
-          let countSubmissions = 0;
-
-          Object.values(submission.evidences).map(evidence => {
-            if (evidence.isSubmitted === true) {
-              countSubmissions += 1;
-            }
-          });
+          let evidencesStatusCount = submission.evidencesStatus.filter(
+            singleEvidenceStatus => singleEvidenceStatus.isSubmitted
+          ).length;
 
           schoolSubmission[submission.schoolId.toString()] = {
             status: submission.status,
@@ -452,7 +426,7 @@ module.exports = class Reports extends Abstract {
               ? this.gmtToIst(submission.completedDate)
               : "-",
             createdAt: this.gmtToIst(submission.createdAt),
-            countNumberOfSubmission: countSubmissions
+            submissionCount: evidencesStatusCount
           };
         });
 
@@ -469,11 +443,10 @@ module.exports = class Reports extends Abstract {
                 .completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
                 : "-",
-              countingSubmission:
+              submissionCount:
                 schoolSubmission[school._id.toString()].status == "started"
                   ? 0
-                  : schoolSubmission[school._id.toString()]
-                      .countNumberOfSubmission
+                  : schoolSubmission[school._id.toString()].submissionCount
             });
           } else {
             programSchoolStatusList.push({
@@ -483,7 +456,7 @@ module.exports = class Reports extends Abstract {
               status: "pending",
               createdAt: "-",
               completedDate: "-",
-              countingSubmission: 0
+              submissionCount: 0
             });
           }
         });
@@ -514,8 +487,8 @@ module.exports = class Reports extends Abstract {
             value: "completedDate"
           },
           {
-            label: "Count Ecm Submission",
-            value: "countingSubmission"
+            label: "Submission Count",
+            value: "submissionCount"
           }
         ];
         const json2csvParser = new json2csv({ fields });
