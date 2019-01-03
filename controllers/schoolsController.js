@@ -304,6 +304,7 @@ module.exports = class Schools extends Abstract {
           schoolId: schoolDocument._id,
           schoolInformation: schoolDocument,
           programId: programDocument._id,
+          programExternalId: programDocument.externalId,
           programInformation: {
             name: programDocument.name,
             externalId: programDocument.externalId,
@@ -419,6 +420,7 @@ module.exports = class Schools extends Abstract {
           });
 
           submissionDocument.evidences = submissionDocumentEvidences;
+          submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
           submissionDocument.criterias = submissionDocumentCriterias;
           let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
             submissionDocument,
