@@ -402,109 +402,131 @@ module.exports = class Reports extends Abstract {
           programId: { $in: ObjectId(result.id) }
         };
 
-        let submissionDocument = await database.models.submissions.find(
+        let submissionDocument = database.models.submissions.find(
           submissionQuery,
           {
             schoolId: 1,
             status: 1,
             completedDate: 1,
-
-            createdAt: 1,
-            evidencesStatus: 1
+            createdAt: 1
           }
-        );
+        ).exec();
 
-        let schoolSubmission = {};
-        submissionDocument.forEach(submission => {
-          let evidencesStatusCount = submission.evidencesStatus.filter(
-            singleEvidenceStatus => singleEvidenceStatus.isSubmitted
-          ).length;
+        let submissionEvidencesCount = database.models.submissions.aggregate(
+          [
+            {
+              $project: {
+                schoolId: 1,
+                submissionCount: {
+                  $reduce: {
+                    input: "$evidencesStatus",
+                    initialValue: 0,
+                    in: {
+                      $sum: [
+                        "$$value",
+                        { $cond: [{ $eq: ["$$this.isSubmitted", true] }, 1, 0] }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        ).exec();
 
-          schoolSubmission[submission.schoolId.toString()] = {
-            status: submission.status,
-            completedDate: submission.completedDate
-              ? this.gmtToIst(submission.completedDate)
-              : "-",
-            createdAt: this.gmtToIst(submission.createdAt),
-            submissionCount: evidencesStatusCount
-          };
-        });
+        Promise.all([submissionDocument, submissionEvidencesCount]).then(data => {
+          let submissionDocument = data[0];
+          let submissionEvidencesCount = data[1];
+          let schoolSubmission = {};
+          submissionDocument.forEach(submission => {
 
-        schoolDocument.forEach(school => {
-          var id = programQueryObject.externalId;
-          if (schoolSubmission[school._id.toString()]) {
-            programSchoolStatusList.push({
-              id,
-              schoolName: school.name,
-              schoolId: school.externalId,
-              status: schoolSubmission[school._id.toString()].status,
-              createdAt: schoolSubmission[school._id.toString()].createdAt,
-              completedDate: schoolSubmission[school._id.toString()]
-                .completedDate
-                ? schoolSubmission[school._id.toString()].completedDate
+            let evidencesStatus = submissionEvidencesCount.find(singleEvidenceCount => {
+              return singleEvidenceCount.schoolId.toString() == submission.schoolId.toString()
+            })
+            schoolSubmission[submission.schoolId.toString()] = {
+              status: submission.status,
+              completedDate: submission.completedDate
+                ? this.gmtToIst(submission.completedDate)
                 : "-",
-              submissionCount:
+              createdAt: this.gmtToIst(submission.createdAt),
+              submissionCount: evidencesStatus.submissionCount
+            };
+          });
+
+          schoolDocument.forEach(school => {
+            let programSchoolStatusObject = {
+              programId: programQueryObject.externalId,
+              schoolName: school.name,
+              schoolId: school.externalId
+            }
+
+            if (schoolSubmission[school._id.toString()]) {
+              programSchoolStatusObject.status = schoolSubmission[school._id.toString()].status;
+              programSchoolStatusObject.createdAt = schoolSubmission[school._id.toString()].createdAt;
+              programSchoolStatusObject.completedDate = schoolSubmission[school._id.toString()].completedDate
+                ? schoolSubmission[school._id.toString()].completedDate
+                : "-";
+              programSchoolStatusObject.submissionCount =
                 schoolSubmission[school._id.toString()].status == "started"
                   ? 0
                   : schoolSubmission[school._id.toString()].submissionCount
-            });
-          } else {
-            programSchoolStatusList.push({
-              id,
-              schoolName: school.name,
-              schoolId: school.externalId,
-              status: "pending",
-              createdAt: "-",
-              completedDate: "-",
-              submissionCount: 0
-            });
-          }
-        });
+            }
+            else {
+              programSchoolStatusObject.status = "pending";
+              programSchoolStatusObject.createdAt = "-";
+              programSchoolStatusObject.completedDate = "-";
+              programSchoolStatusObject.submissionCount = 0;
 
-        const fields = [
-          {
-            label: "Program Id",
-            value: "id"
-          },
-          {
-            label: "School Id",
-            value: "schoolId"
-          },
-          {
-            label: "School Name",
-            value: "schoolName"
-          },
-          {
-            label: "Status",
-            value: "status"
-          },
-          {
-            label: "Start Date",
-            value: "createdAt"
-          },
-          {
-            label: "Completed Date",
-            value: "completedDate"
-          },
-          {
-            label: "Submission Count",
-            value: "submissionCount"
-          }
-        ];
-        const json2csvParser = new json2csv({ fields });
-        const csv = json2csvParser.parse(programSchoolStatusList);
-        var currentDate = new Date();
-        let response = {
-          data: csv,
-          csvResponse: true,
-          fileName:
-            " programSchoolsStatus_" +
-            moment(currentDate)
-              .tz("Asia/Kolkata")
-              .format("YYYY_MM_DD_HH_mm") +
-            ".csv"
-        };
-        return resolve(response);
+            }
+            programSchoolStatusList.push(programSchoolStatusObject)
+          });
+
+          const fields = [
+            {
+              label: "Program Id",
+              value: "programId"
+            },
+            {
+              label: "School Id",
+              value: "schoolId"
+            },
+            {
+              label: "School Name",
+              value: "schoolName"
+            },
+            {
+              label: "Status",
+              value: "status"
+            },
+            {
+              label: "Start Date",
+              value: "createdAt"
+            },
+            {
+              label: "Completed Date",
+              value: "completedDate"
+            },
+            {
+              label: "Submission Count",
+              value: "submissionCount"
+            }
+          ];
+          const json2csvParser = new json2csv({ fields });
+          const csv = json2csvParser.parse(programSchoolStatusList);
+          var currentDate = new Date();
+          let response = {
+            data: csv,
+            csvResponse: true,
+            fileName:
+              " programSchoolsStatus_" +
+              moment(currentDate)
+                .tz("Asia/Kolkata")
+                .format("YYYY_MM_DD_HH_mm") +
+              ".csv"
+          };
+          return resolve(response);
+        })
+
       } catch (error) {
         return reject({
           status: 500,
@@ -740,7 +762,7 @@ module.exports = class Reports extends Abstract {
                     criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
                       ? " Question Deleted Post Submission"
                       : criteriaQuestionDetailsObject[singleAnswer.qid]
-                          .criteriaName,
+                        .criteriaName,
                   question: singleAnswer.payload.question[0],
                   options:
                     questionOptionObject[singleAnswer.qid] == undefined
@@ -785,8 +807,8 @@ module.exports = class Reports extends Abstract {
                                 ] == undefined
                                   ? " Question Deleted Post Submission"
                                   : criteriaQuestionDetailsObject[
-                                      eachInstanceChildQuestion._id
-                                    ].criteriaName,
+                                    eachInstanceChildQuestion._id
+                                  ].criteriaName,
                               question: eachInstanceChildQuestion.question[0],
                               options:
                                 questionOptionObject[
@@ -794,8 +816,8 @@ module.exports = class Reports extends Abstract {
                                 ] == undefined
                                   ? " No Options"
                                   : questionOptionObject[
-                                      eachInstanceChildQuestion._id
-                                    ],
+                                  eachInstanceChildQuestion._id
+                                  ],
                               answer: eachInstanceChildQuestion.value,
                               files: "",
                               score:
