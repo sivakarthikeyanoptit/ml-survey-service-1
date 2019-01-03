@@ -50,9 +50,9 @@ math.import({
     const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
     return countOfElements[0][1]
   },
-  percentageOf: function (needle, haystack) {
+  percentageOf: function (needle, haystack,log = false) {
     const countOfElements = _.countBy(haystack)
-    return Math.round((countOfElements[needle]/haystack.length)*100)
+    return (countOfElements[needle]) ? Math.round((countOfElements[needle]/haystack.length)*100) : 0
   },
   averageOf: function (haystack) {
     haystack = haystack.map(x => parseInt(x));
