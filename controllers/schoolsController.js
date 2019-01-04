@@ -228,12 +228,20 @@ module.exports = class Schools extends Abstract {
           ].acl;
 
         let form = [];
-        await _.forEach(Object.keys(schoolDocument), key => {
+        let schoolTypes = schoolDocument.schoolTypes;
+        let schoolProfileFieldsPerSchoolTypes = programDocument.components[0]['schoolProfileFieldsPerSchoolTypes'];
+        let filteredFieldsToBeShown = [];
+        schoolTypes.forEach(schoolType=>{
+          if(schoolProfileFieldsPerSchoolTypes[schoolType]){
+            filteredFieldsToBeShown.push(...schoolProfileFieldsPerSchoolTypes[schoolType])
+          }
+        })
+        await _.forEach(Object.keys(database.models.schools.schema.paths), key => {
           if (
             ["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(key) ==
             -1
           ) {
-            form.push({
+            filteredFieldsToBeShown.includes(key) && form.push({
               field: key,
               label: gen.utils.camelCaseToTitleCase(key),
               value: Array.isArray(schoolDocument[key])
