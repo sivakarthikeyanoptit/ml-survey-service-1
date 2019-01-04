@@ -246,7 +246,7 @@ module.exports = class Schools extends Abstract {
               label: gen.utils.camelCaseToTitleCase(key),
               value: Array.isArray(schoolDocument[key])
                 ? schoolDocument[key].join(", ")
-                : schoolDocument[key],
+                : schoolDocument[key] || '',
               visible:
                 accessability.schoolProfile.visible.indexOf("all") > -1 ||
                 accessability.schoolProfile.visible.indexOf(key) > -1,
