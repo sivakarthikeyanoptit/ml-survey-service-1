@@ -59,6 +59,35 @@ module.exports = class ParentRegistry extends Abstract {
             queryObject
           );
 
+          result = result.map(function(parent) {
+            if(parent.typeLabel == "") {
+              switch (parent.type) {
+                case "P1":
+                  parent.typeLabel = "Parent only"
+                  break;
+                case "P2":
+                  parent.typeLabel = "SMC Parent Member"
+                  break;
+                case "P3":
+                  parent.typeLabel = "Safety Committee Member"
+                  break;
+                case "P4":
+                  parent.typeLabel = "EWS-DG Parent"
+                  break;
+                case "P5":
+                  parent.typeLabel = "Social Worker"
+                  break;
+                case "P6":
+                  parent.typeLabel = "Elected Representative Nominee"
+                  break;
+                default:
+                  break;
+              }
+
+            }
+            return parent;
+          })
+
         } else {
           throw "Bad Request"
         }
