@@ -1,8 +1,9 @@
 let authenticator = require("../generics/middleware/authenticator");
 let slackClient = require("../generics/helpers/slackCommunications");
+const fs = require("fs");
 
 module.exports = function(app) {
-  app.use("/assessment/api", authenticator);
+  if(process.env.NODE_ENV != 'testing') app.use("/assessment/api", authenticator);
 
   var router = function(req, res, next) {
 
@@ -21,7 +22,24 @@ module.exports = function(app) {
         }
       })
         .then(result => {
-          if(result.csvResponse && result.csvResponse == true) {
+          if(result.csvResponse && result.csvResponse == true && result.isResponseAStream == true) {
+              // Check if file specified by the filePath exists 
+            fs.exists(result.fileNameWithPath, function(exists){
+              if (exists) {     
+
+                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath);
+                res.set('Content-Type', 'application/octet-stream');
+                fs.createReadStream(result.fileNameWithPath).pipe(res);
+
+              } else {
+                res.status(500).send({
+                  status: 500,
+                  message: "Oops! Something went wrong!"
+                });
+              }
+            });
+
+          } else if(result.csvResponse && result.csvResponse == true) {
             res.setHeader('Content-disposition', 'attachment; filename='+result.fileName);
             res.set('Content-Type', 'text/csv');
             res.status(result.status ? result.status : 200).send(result.data);
