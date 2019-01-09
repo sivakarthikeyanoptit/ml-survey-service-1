@@ -60,7 +60,7 @@ module.exports = class ParentRegistry extends Abstract {
           );
 
           result = result.map(function(parent) {
-            if(parent.typeLabel == "") {
+            if((parent.typeLabel == "" || !parent.typeLabel) && parent.type != "") {
               switch (parent.type) {
                 case "P1":
                   parent.typeLabel = "Parent only"
