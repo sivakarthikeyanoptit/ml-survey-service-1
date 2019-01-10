@@ -27,7 +27,7 @@ module.exports = function(app) {
             fs.exists(result.fileNameWithPath, function(exists){
               if (exists) {     
 
-                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.replace("./public/csvFileBackup/",""));
+                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.split('/')[3]);
                 res.set('Content-Type', 'application/octet-stream');
                 fs.createReadStream(result.fileNameWithPath).pipe(res);
 
