@@ -27,7 +27,7 @@ module.exports = function(app) {
             fs.exists(result.fileNameWithPath, function(exists){
               if (exists) {     
 
-                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.split('/')[3]);
+                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.split('/').pop());
                 res.set('Content-Type', 'application/octet-stream');
                 fs.createReadStream(result.fileNameWithPath).pipe(res);
 

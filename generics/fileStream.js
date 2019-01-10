@@ -11,7 +11,7 @@ let FileStream = class FileStream {
     const filePath = `${process.env.CSV_REPORTS_PATH}/${moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD")}/`;
     if (!fs.existsSync(filePath)) fs.mkdirSync(filePath);
     this.input = new stream.Readable({ objectMode: true });
-    this.fileName = filePath + fileName + "_" + fileExtensionWithTime || null;
+    this.fileName = filePath + fileName + "_" + fileExtensionWithTime;
     this.output = fs.createWriteStream(this.fileName, { encoding: 'utf8' });
     this.processor = null;
   }

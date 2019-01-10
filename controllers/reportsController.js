@@ -1,6 +1,7 @@
 const _ = require("lodash");
 const moment = require("moment-timezone");
 const FileStream = require("../generics/fileStream");
+const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -338,9 +339,6 @@ module.exports = class Reports extends Abstract {
 
         const evidenceIdFromRequestParam = req.query.evidenceId;
         const evidenceQueryObject = "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
-
-        const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
-
         const fetchRequiredSubmissionDocumentIdQueryObj = {
           ["programInformation.externalId"]: req.params._id,
           [evidenceQueryObject]: true,
@@ -717,11 +715,6 @@ module.exports = class Reports extends Abstract {
               questionOptionObject[question._id.toString()] = optionString;
             }
           });
-          
-          const imageBaseUrl =
-            "https://storage.cloud.google.com/sl-" +
-            (process.env.NODE_ENV == "production" ? "prod" : "dev") +
-            "-storage/";
 
           schoolSubmissionDocument.forEach(singleSchoolSubmission => {
             singleSchoolSubmission.criterias.forEach(singleCriteria => {
