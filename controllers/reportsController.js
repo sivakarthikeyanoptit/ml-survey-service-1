@@ -1,4 +1,3 @@
-const _ = require("lodash");
 const moment = require("moment-timezone");
 const FileStream = require("../generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
