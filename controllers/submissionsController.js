@@ -39,9 +39,9 @@ math.import({
     const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
     
     if(needle._data) {
-      isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && (countOfElements[0][1] > countOfElements[1][1])) ? 1 : -1
+      isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
     } else {
-      isMode = (countOfElements[0][0] === searchKey && (countOfElements[0][1] > countOfElements[1][1])) ? 1 : -1
+      isMode = (countOfElements[0][0] === searchKey && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
     }
 
     return isMode
@@ -184,6 +184,9 @@ module.exports = class Submission extends Abstract {
           req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
           req.body.evidence.submittedByEmail = req.userDetails.email
           req.body.evidence.submissionDate = new Date()
+
+          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
+
           if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
@@ -232,6 +235,13 @@ module.exports = class Submission extends Abstract {
             });
             
             if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
+            
+
+            evidencesStatusToBeChanged['isSubmitted'] = true;
+            evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
+            evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
+            evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
+            evidencesStatusToBeChanged['hasConflicts'] = false;
 
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
@@ -243,6 +253,7 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
               ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
+              evidencesStatus:submissionDocument.evidencesStatus,
               status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
             }
           } else {
@@ -270,7 +281,10 @@ module.exports = class Submission extends Abstract {
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
             }
 
+            evidencesStatusToBeChanged['hasConflicts']=true;
+
             updateObject.$set = {
+              evidencesStatus:submissionDocument.evidencesStatus,
               ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
               status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
             }
@@ -371,6 +385,7 @@ module.exports = class Submission extends Abstract {
 
         updateSchoolObject.$set = {}
 
+        let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==parentInterviewEvidenceMethod);
 
         if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
@@ -445,6 +460,12 @@ module.exports = class Submission extends Abstract {
             answerArray[answer[0]] = answer[1]
           });
 
+          evidencesStatusToBeChanged['isSubmitted'] = true;
+          evidencesStatusToBeChanged['notApplicable'] = false;
+          evidencesStatusToBeChanged['startTime'] = "";
+          evidencesStatusToBeChanged['endTime'] = new Date;
+          evidencesStatusToBeChanged['hasConflicts'] = false;
+
           updateObject.$push = { 
             ["evidences."+parentInterviewEvidenceMethod+".submissions"]: evidenceSubmission
           }
@@ -455,6 +476,7 @@ module.exports = class Submission extends Abstract {
             ["evidences."+parentInterviewEvidenceMethod+".startTime"] : "",
             ["evidences."+parentInterviewEvidenceMethod+".endTime"] : new Date,
             ["evidences."+parentInterviewEvidenceMethod+".hasConflicts"]: false,
+            evidencesStatus:submissionDocument.evidencesStatus,
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
@@ -833,11 +855,12 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let queryObject = {
-          _id: ObjectId(req.params._id)
+          "schoolInformation.externalId": req.params._id
         }
 
         let submissionDocument = await database.models.submissions.findOne(
-          queryObject
+          queryObject,
+          {answers : 1, criterias: 1}
         );
 
         if(!submissionDocument._id) {
@@ -845,67 +868,159 @@ module.exports = class Submission extends Abstract {
         }
 
         let result = {}
-      
-        if(req.body.expressionVariables && req.body.expression && req.body.criteriaId) {
-          const submissionAnswers = new Array
-          const questionValueExtractor = function (question) {
-            const questionArray = question.split('.')
-            submissionAnswers.push(submissionDocument.answers[questionArray[0]])
-            if(questionArray[1] === "value") {
-              if(submissionDocument.answers[questionArray[0]]) {
-                return submissionDocument.answers[questionArray[0]].value
-              } else {
-                return "NA"
-              }
-            } else if (questionArray[1] === "mode") {
-              if(submissionDocument.answers[questionArray[0]]) {
-                return submissionDocument.answers[questionArray[0]].value
-              } else {
-                return "NA"
-              }
-            } else if (questionArray[1] === "instanceResponses") {
-              if(submissionDocument.answers[questionArray[0]]) {
-                return submissionDocument.answers[questionArray[0]].instanceResponses
-              } else {
-                return "NA"
+        result.runUpdateQuery = true
+
+        let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+
+          result[criteria.externalId] = {}
+          result[criteria.externalId].criteriaName = criteria.name
+          result[criteria.externalId].criteriaExternalId = criteria.externalId
+
+          if(criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+            let submissionAnswers = new Array
+            const questionValueExtractor = function (question) {
+              const questionArray = question.split('.')
+              submissionAnswers.push(submissionDocument.answers[questionArray[0]])
+              // if(question == "5be6d08c9a14ba4b5038dd7e.value" || question == "5be6d0c59a14ba4b5038dd7f.value") {
+              //   console.log(question)
+              //   console.log(questionArray[0])
+              //   console.log(questionArray[1])
+              //   console.log(submissionDocument.answers[questionArray[0]])
+              //   console.log(submissionDocument.answers[questionArray[0]].value)
+              // }
+              if(questionArray[1] === "value") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
+                  return submissionDocument.answers[questionArray[0]].value
+                } else {
+                  return "NA"
+                }
+              } else if (questionArray[1] === "mode") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
+                  return submissionDocument.answers[questionArray[0]].value
+                } else {
+                  return "NA"
+                }
+              } else if (questionArray[1] === "instanceResponses") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].instanceResponses) {
+                  return submissionDocument.answers[questionArray[0]].instanceResponses
+                } else {
+                  return "NA"
+                }
+              }  else if (questionArray[1] === "endTime") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].endTime) {
+                  return submissionDocument.answers[questionArray[0]].endTime
+                } else {
+                  return "NA"
+                }
+              }  else if (questionArray[1] === "startTime") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].startTime) {
+                  return submissionDocument.answers[questionArray[0]].startTime
+                } else {
+                  return "NA"
+                }
               }
             }
+            let expressionVariables = {}
+            let expressionResult = {}
+            let allValuesAvailable = true
+            Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
+              if(variable != "default") {
+                expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable])
+                expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
+                if(expressionVariables[variable] === "NA") {
+                  allValuesAvailable = false
+                }
+              }
+            })
+
+            if(allValuesAvailable) {
+              Object.keys(criteria.rubric.levels).forEach(level => {
+                //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
+                if(criteria.rubric.levels[level].expression != "") {
+                  try {
+                    expressionResult[level] = {
+                      expressionParsed : criteria.rubric.levels[level].expression,
+                      result : math.eval(criteria.rubric.levels[level].expression,expressionVariables)
+                    }
+                  } catch (error) {
+                    console.log("---------------Some exception caught begins---------------")
+                    console.log(error)
+                    console.log(criteria.name)
+                    console.log(criteria.rubric.levels[level].expression)
+                    console.log(expressionVariables)
+                    console.log(criteria.rubric.expressionVariables)
+                    console.log("---------------Some exception caught ends---------------")
+                  }
+                } else {
+                  expressionResult[level] = {
+                    expressionParsed : criteria.rubric.levels[level].expression,
+                    result : false
+                  }
+                }
+              })
+            }
+            
+            let score = "NA"
+            if(allValuesAvailable) {
+              if(expressionResult.L4.result) {
+                score = "L4"
+              } else if (expressionResult.L3.result) {
+                score = "L3"
+              } else if (expressionResult.L2.result) {
+                score = "L2"
+              } else if (expressionResult.L1.result) {
+                score = "L1"
+              } else {
+                score = "No Level Matched"
+              }
+            }
+
+            // const parser = math.parser()
+            // create a string
+            // console.log(math.compareText("hello", "hello"))                      // String, "hello"
+
+            result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
+            result[criteria.externalId].expressionVariables = expressionVariables
+            
+            if(score == "NA") {
+              result[criteria.externalId].valuesNotFound = true
+              result[criteria.externalId].score = score
+              criteria.score = score
+            } else if (score == "No Level Matched"){
+              result[criteria.externalId].noExpressionMatched = true
+              result[criteria.externalId].score = score
+              criteria.score = score
+            } else {
+              result[criteria.externalId].score = score
+              criteria.score = score
+            }
+
+            result[criteria.externalId].expressionResult = expressionResult
+            result[criteria.externalId].submissionAnswers = submissionAnswers
+            
           }
-          const criteria = submissionDocument.criterias.find(criteria => criteria._id.toString() === req.body.criteriaId)
-          let expressionVariables = {}
-          let expressionResult = {}
-          let allValuesAvailable = true
-          Object.keys(req.body.expressionVariables).forEach(variable => {
-            if(variable != "default") {
-              expressionVariables[variable] = questionValueExtractor(req.body.expressionVariables[variable])
-              expressionVariables[variable] = (expressionVariables[variable] === "NA" && req.body.expressionVariables.default[variable]) ? req.body.expressionVariables.default[variable] : "NA"
-              if(expressionVariables[variable] === "NA") {
-                allValuesAvailable = false
-              }
-            }
-          })
-
-          Object.keys(req.body.expression).forEach(level => {
-            //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
-            expressionResult[level] = {
-              expressionParsed : req.body.expression[level],
-              result : (allValuesAvailable) ? math.eval(req.body.expression[level],expressionVariables) : false
-            }
-          })
-          // const parser = math.parser()
-          // create a string
-          // console.log(math.compareText("hello", "hello"))                      // String, "hello"
-
-          result.expressionVariables = expressionVariables
-          result.expressionResult = expressionResult
-          result.submissionAnswers = submissionAnswers
-          result.criteria = criteria
           
-        } else {
-          throw "Missing post parameters"
+          return criteria
+
+        }));
+
+        if (criteriaData.findIndex( criteria => criteria === undefined) >= 0) {
+          result.runUpdateQuery = false
         }
 
+        if(result.runUpdateQuery) {
+          let updateObject = {}
 
+          updateObject.$set = { 
+            criterias : criteriaData
+          }
+
+          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+            queryObject,
+            updateObject
+          );
+        }
+        
         let response = {
           message: message,
           result: result

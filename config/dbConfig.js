@@ -7,6 +7,11 @@ const mongoose_ttl = require("mongoose-ttl");
 let ObjectId = mongoose.Types.ObjectId;
 
 var DB = function(config) {
+  
+  // Added to remove depreciation warnings from logs.
+  mongoose.set('useCreateIndex', true)
+  mongoose.set('useFindAndModify', false)
+
   var db = mongoose.createConnection(
     config.host + "/" + config.database,
     config.options
