@@ -39,10 +39,6 @@ module.exports = function(app) {
               }
             });
 
-          } else if(result.csvResponse && result.csvResponse == true) {
-            res.setHeader('Content-disposition', 'attachment; filename='+result.fileName);
-            res.set('Content-Type', 'text/csv');
-            res.status(result.status ? result.status : 200).send(result.data);
           } else {
             res.status(result.status ? result.status : 200).json({
               message: result.message,

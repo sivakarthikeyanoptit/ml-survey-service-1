@@ -1,10 +1,6 @@
 const _ = require("lodash");
 const moment = require("moment-timezone");
-const FileStream = require("../generics/fileStream")
-const NOT_FOUND = {
-  statusCode:404,
-  message:"no records found"
-};
+const FileStream = require("../generics/fileStream");
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -49,8 +45,8 @@ module.exports = class Reports extends Abstract {
           "evidencesStatus":1
         });
 
-        const fileNameWithPath = `status_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `status`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -61,9 +57,7 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!submissions.length) return resolve(NOT_FOUND);
         submissions.forEach(submission => {
-          let res = new Array();
           let result = {};
 
           if (submission.schoolInformation) {
@@ -89,11 +83,7 @@ module.exports = class Reports extends Abstract {
           evidenceMethodStatuses.forEach(evidenceMethodStatus => {
             _.merge(result, evidenceMethodStatus);
           });
-
-          res.push(result);
-          res.forEach(individualResult => {
-          input.push(individualResult);
-          });
+          input.push(result);
         });
         input.push(null);
 
@@ -119,8 +109,8 @@ module.exports = class Reports extends Abstract {
           req
         );
 
-        const fileNameWithPath = `assessorSchools_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `assessorSchools`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -131,7 +121,6 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!assessorsWithSchoolDetails.length) return resolve(NOT_FOUND);
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
@@ -170,8 +159,8 @@ module.exports = class Reports extends Abstract {
           req
         );
         
-        const fileNameWithPath = `schoolAssessors_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `schoolAssessors`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -182,7 +171,6 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!assessorsWithSchoolDetails.length) return resolve(NOT_FOUND);
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
@@ -271,9 +259,9 @@ module.exports = class Reports extends Abstract {
 
         
 
-        const fileNameWithPath = `programSchoolsStatusByProgramId_${req.params._id}_`;
+        const fileName = `programSchoolsStatusByProgramId_${req.params._id}`;
 
-        let fileStream = new FileStream(fileNameWithPath);
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -284,9 +272,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        Promise.all([submissionDocument, submissionEvidencesCount]).then(data => {
-          let submissionDocument = data[0];
-          let submissionEvidencesCount = data[1];
+        Promise.all([submissionDocument, submissionEvidencesCount]).then(submissionDocumentWithCount => {
+          let submissionDocument = submissionDocumentWithCount[0];
+          let submissionEvidencesCount = submissionDocumentWithCount[1];
           let schoolSubmission = {};
           submissionDocument.forEach(submission => {
 
@@ -302,8 +290,6 @@ module.exports = class Reports extends Abstract {
               submissionCount: evidencesStatus.submissionCount
             };
           });
-
-          if(!schoolDocument.length) return resolve(NOT_FOUND);
 
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
@@ -369,8 +355,8 @@ module.exports = class Reports extends Abstract {
           { _id: 1 }
         )
 
-        const fileNameWithPath = `programsSubmissionStatus_${evidenceIdFromRequestParam}_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `programsSubmissionStatus_${evidenceIdFromRequestParam}`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -392,12 +378,6 @@ module.exports = class Reports extends Abstract {
 
           let submissionIds
           let submissionDocuments
-          let submissionData
-          let totalRecordCountInCurrentChunk
-          let totalSubmissionCountInCurrentChunk
-
-          let totalRecordCount = 0
-          let totalSubmissionCount = 0
 
           for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
 
@@ -424,7 +404,7 @@ module.exports = class Reports extends Abstract {
             )
 
 
-            submissionData = await Promise.all(submissionDocuments.map(async (submission) => {
+            await Promise.all(submissionDocuments.map(async (submission) => {
 
               let assessors = {}
 
@@ -434,10 +414,6 @@ module.exports = class Reports extends Abstract {
                 };
               });
 
-
-              let totalRecordInSubmission = 0;
-
-              if(!submission.evidences[evidenceIdFromRequestParam].submissions.length) return resolve(NOT_FOUND);
               submission.evidences[evidenceIdFromRequestParam].submissions.forEach(evidenceSubmission => {
 
                 if (assessors[evidenceSubmission.submittedBy.toString()] && evidenceSubmission.isValid === true) {
@@ -554,44 +530,19 @@ module.exports = class Reports extends Abstract {
                                   }
 
                                   input.push(eachInstanceChildRecord)
-                                  totalRecordInSubmission += 1;
                                 }
                               );
                             }
                           }
                         }
                         input.push(singleAnswerRecord)
-                        totalRecordInSubmission += 1;
                       }
                     }
                   })
                 }
               });
-
-              return {
-                // submissionId: submission._id.toString(),
-                recordCount: totalRecordInSubmission
-              }
-
             }));
-
-
-            totalRecordCountInCurrentChunk = 0
-            totalSubmissionCountInCurrentChunk = 0
-
-            submissionData.forEach((submission) => {
-              totalSubmissionCountInCurrentChunk += 1
-              totalRecordCountInCurrentChunk += submission.recordCount
-            })
-
-            totalSubmissionCount += totalSubmissionCountInCurrentChunk
-            totalRecordCount += totalRecordCountInCurrentChunk
-
           }
-
-
-          console.log("Total Submissions Processed - " + totalSubmissionCount)
-          console.log("Total Records Processed - " + totalRecordCount)
           input.push(null)
 
         }
@@ -626,8 +577,8 @@ module.exports = class Reports extends Abstract {
           "evaluation-frameworks"
         ].find({},{themes:1}).exec();
 
-        const fileNameWithPath = `generateCriteriasBySchoolId_schoolId_${req.params._id}_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -638,9 +589,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        Promise.all([submissionDocument,evaluationFrameworksDocuments]).then(data=>{
-          let submissionDocument = data[0];
-          let evaluationFrameworksDocuments = data[1];
+        Promise.all([submissionDocument,evaluationFrameworksDocuments]).then(submissionAndEvaluationFrameworksDocuments=>{
+          let submissionDocument = submissionAndEvaluationFrameworksDocuments[0];
+          let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
           let evaluationNameObject = {};
 
@@ -659,7 +610,6 @@ module.exports = class Reports extends Abstract {
               });
             });
           });
-          if(!submissionDocument.length) return resolve(NOT_FOUND);
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
   
@@ -722,8 +672,8 @@ module.exports = class Reports extends Abstract {
           }
         ).exec();
 
-        const fileNameWithPath = `generateSubmissionReportsBySchoolId_${req.params._id}_`;
-        let fileStream = new FileStream(fileNameWithPath);
+        const fileName = `generateSubmissionReportsBySchoolId_${req.params._id}`;
+        let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
         (async function () {
@@ -734,11 +684,11 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        Promise.all([allCriterias,allQuestionWithOptions,schoolSubmissionDocument]).then(data=>{
+        Promise.all([allCriterias,allQuestionWithOptions,schoolSubmissionDocument]).then(documents=>{
 
-          let allCriterias = data[0];
-          let allQuestionWithOptions = data[1];
-          let schoolSubmissionDocument = data[2];
+          let allCriterias = documents[0];
+          let allQuestionWithOptions = documents[1];
+          let schoolSubmissionDocument = documents[2];
           let criteriaQuestionDetailsObject = {};
           let criteriaScoreObject = {};
           let questionOptionObject = {};
@@ -780,7 +730,6 @@ module.exports = class Reports extends Abstract {
                 score: singleCriteria.score
               };
             });
-            if(!Object.values(singleSchoolSubmission.answers).length) return resolve(NOT_FOUND);
             Object.values(singleSchoolSubmission.answers).forEach(
              singleAnswer => {
                 if (singleAnswer.payload) {

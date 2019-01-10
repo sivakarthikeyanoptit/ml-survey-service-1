@@ -2,7 +2,7 @@ const json2csvTransform = require('json2csv').Transform;
 const stream = require("stream");
 const fs = require("fs");
 const moment = require("moment-timezone");
-const filePathName = "./public/csvFileBackup/";
+const filePath = "./public/csvFileBackup/";
 const currentDate = new Date();
 const timeWithFileExtension = moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
 
@@ -10,7 +10,7 @@ let FileStream = class FileStream {
 
   constructor(fileName) {
     this.input = new stream.Readable({ objectMode: true });
-    this.fileName = filePathName + fileName + timeWithFileExtension || null;
+    this.fileName = filePath + fileName + "_" + timeWithFileExtension || null;
     this.output = fs.createWriteStream(this.fileName, { encoding: 'utf8' });
     this.processor = null;
   }
