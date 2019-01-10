@@ -876,7 +876,7 @@ module.exports = class Submission extends Abstract {
           result[criteria.externalId].criteriaName = criteria.name
           result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-          if(criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+          if(criteria.externalId == "SS/I/c3" && criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
             let submissionAnswers = new Array
             const questionValueExtractor = function (question) {
               const questionArray = question.split('.')
@@ -935,7 +935,11 @@ module.exports = class Submission extends Abstract {
 
             if(allValuesAvailable) {
               Object.keys(criteria.rubric.levels).forEach(level => {
-                //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
+                console.log("Debugging new functions starts")
+                console.log(expressionVariables)
+                console.log(math.eval("(compareText(PR1, 'R2') == 0) or (checkIfPresent('R1',PR2) >= 0)",expressionVariables))
+                console.log("Debugging new functions ends")
+                
                 if(criteria.rubric.levels[level].expression != "") {
                   try {
                     expressionResult[level] = {
