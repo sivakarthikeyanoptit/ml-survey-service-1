@@ -18,6 +18,7 @@ module.exports = {
     generalQuestions:Object,
     parentInterviewResponses:Object,
     completedDate: Date,
-    isDataFixDone: false
+    isDataFixDone: false,
+    evidencesStatus: Array
   }
 };

@@ -22,12 +22,12 @@ module.exports = function(app) {
         }
       })
         .then(result => {
-          if(result.csvResponse && result.csvResponse == true && result.isResponseAStream == true) {
+          if( result.isResponseAStream == true) {
               // Check if file specified by the filePath exists 
             fs.exists(result.fileNameWithPath, function(exists){
               if (exists) {     
 
-                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath);
+                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.replace("./public/csvFileBackup/",""));
                 res.set('Content-Type', 'application/octet-stream');
                 fs.createReadStream(result.fileNameWithPath).pipe(res);
 

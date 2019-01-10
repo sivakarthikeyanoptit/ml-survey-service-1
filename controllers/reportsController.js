@@ -1,10 +1,10 @@
-const json2csv = require("json2csv").Parser;
-const json2csvTransform = require('json2csv').Transform;
-const stream = require("stream");
-const fs = require("fs");
 const _ = require("lodash");
 const moment = require("moment-timezone");
-// let csvReports = require("../generics/helpers/csvReports");
+const FileStream = require("../generics/fileStream")
+const NOT_FOUND = {
+  statusCode:404,
+  message:"no records found"
+};
 
 module.exports = class Reports extends Abstract {
   constructor(schema) {
@@ -46,59 +46,41 @@ module.exports = class Reports extends Abstract {
           "schoolId":1,
           "programId":1,
           "status":1,
-          "evidencesStatus.name":1,
-          "evidencesStatus.externalId":1,
-          "evidencesStatus.isSubmitted":1,
-          "evidencesStatus.hasConflicts":1
+          "evidencesStatus":1
         });
 
-        const currentDate = new Date();
-        const fileNameWithPath = "./public/csvFileBackup/" + "status" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        const fileNameWithPath = `status_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
+        if(!submissions.length) return resolve(NOT_FOUND);
         submissions.forEach(submission => {
           let res = new Array();
           let result = {};
 
           if (submission.schoolInformation) {
-            result.schoolId = submission.schoolInformation.externalId;
-            result.schoolName = submission.schoolInformation.name;
+            result["School Id"] = submission.schoolInformation.externalId;
+            result["School Name"] = submission.schoolInformation.name;
           } else {
-            result.schoolId = submission.schoolId;
+            result["School Id"] = submission.schoolId;
           }
 
           if (submission.programInformation) {
-            result.programId = submission.programId;
-            result.programName = submission.programInformation.name;
+            result["Program Id"] = submission.programId;
+            result["Program Name"] = submission.programInformation.name;
           } else {
-            result.programId = submission.programId;
+            result["Program Id"] = submission.programId;
           }
 
-          result.status = submission.status;
+          result["Status"] = submission.status;
 
           let evidenceMethodStatuses = submission.evidencesStatus.map(evidenceMethod=>
             ({[evidenceMethod.externalId]: evidenceMethod.isSubmitted})
@@ -106,14 +88,6 @@ module.exports = class Reports extends Abstract {
 
           evidenceMethodStatuses.forEach(evidenceMethodStatus => {
             _.merge(result, evidenceMethodStatus);
-          });
-
-          let hasConflicts = submission.evidencesStatus.map(evidenceMethod=>
-            ({[evidenceMethod.name]: evidenceMethod.hasConflicts})
-          )
-
-          hasConflicts.forEach(hasConflictsObject => {
-            _.merge(result, hasConflictsObject);
           });
 
           res.push(result);
@@ -144,50 +118,36 @@ module.exports = class Reports extends Abstract {
         const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
           req
         );
-        const currentDate = new Date();
 
-        const fileNameWithPath = "./public/csvFileBackup/" + "assessorSchools" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        const fileNameWithPath = `assessorSchools_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
+        if(!assessorsWithSchoolDetails.length) return resolve(NOT_FOUND);
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
-              id: assessor.externalId,
-              userId: assessor.userId,
-              parentId: assessor.parentId,
-              name: assessor.name,
-              email: assessor.email,
-              role: assessor.role,
-              programId: assessor.programId.toString(),
-              schoolId: assessorSchool.externalId,
-              schoolName: assessorSchool.name
+              "Assessor Id": assessor.externalId,
+              "Assessor UserId": assessor.userId,
+              "Parent Id": assessor.parentId,
+              "Assessor Name": assessor.name,
+              "Assessor Email": assessor.email,
+              "Assessor Role": assessor.role,
+              "Program Id": assessor.programId.toString(),
+              "School Id": assessorSchool.externalId,
+              "School Name": assessorSchool.name
             });
           });
         });
+        input.push(null);
       } catch (error) {
         return reject({
           status: 500,
@@ -209,47 +169,32 @@ module.exports = class Reports extends Abstract {
         const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
           req
         );
-        const currentDate = new Date();
-
-        const fileNameWithPath = "./public/csvFileBackup/" + "schoolAssessors" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        
+        const fileNameWithPath = `schoolAssessors_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
+        if(!assessorsWithSchoolDetails.length) return resolve(NOT_FOUND);
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
-              id: assessorSchool.externalId,
-              name: assessorSchool.name,
-              assessorUserId: assessor.userId,
-              assessorId: assessor.externalId,
-              assessorName: assessor.name,
-              assessorEmail: assessor.email,
-              assessorParentId: assessor.parentId,
-              assessorRole: assessor.role,
-              programId: assessor.programId.toString()
+              "Assessor School Id": assessorSchool.externalId,
+              "Assessor School Name": assessorSchool.name,
+              "Assessor User Id": assessor.userId,
+              "Assessor Id": assessor.externalId,
+              "Assessor Name": assessor.name,
+              "Assessor Email": assessor.email,
+              "Parent Id": assessor.parentId,
+              "Assessor Role": assessor.role,
+              "Program Id": assessor.programId.toString()
             });
           });
         });
@@ -324,32 +269,18 @@ module.exports = class Reports extends Abstract {
           ]
         ).exec();
 
-        const currentDate = new Date();
+        
 
-        const fileNameWithPath = "./public/csvFileBackup/" + "programSchoolsStatusByProgramId_" + req.params._id + "_" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
+        const fileNameWithPath = `programSchoolsStatusByProgramId_${req.params._id}_`;
 
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
@@ -372,29 +303,31 @@ module.exports = class Reports extends Abstract {
             };
           });
 
+          if(!schoolDocument.length) return resolve(NOT_FOUND);
+
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
-              programId: programQueryObject.externalId,
-              schoolName: school.name,
-              schoolId: school.externalId
+              "Program Id": programQueryObject.externalId,
+              "School Name": school.name,
+              "School Id": school.externalId
             }
 
             if (schoolSubmission[school._id.toString()]) {
-              programSchoolStatusObject.status = schoolSubmission[school._id.toString()].status;
-              programSchoolStatusObject.createdAt = schoolSubmission[school._id.toString()].createdAt;
-              programSchoolStatusObject.completedDate = schoolSubmission[school._id.toString()].completedDate
+              programSchoolStatusObject["Status"] = schoolSubmission[school._id.toString()].status;
+              programSchoolStatusObject["Created At"] = schoolSubmission[school._id.toString()].createdAt;
+              programSchoolStatusObject["Completed Date"] = schoolSubmission[school._id.toString()].completedDate
                 ? schoolSubmission[school._id.toString()].completedDate
                 : "-";
-              programSchoolStatusObject.submissionCount =
+              programSchoolStatusObject["Submission Count"] =
                 schoolSubmission[school._id.toString()].status == "started"
                   ? 0
                   : schoolSubmission[school._id.toString()].submissionCount
             }
             else {
-              programSchoolStatusObject.status = "pending";
-              programSchoolStatusObject.createdAt = "-";
-              programSchoolStatusObject.completedDate = "-";
-              programSchoolStatusObject.submissionCount = 0;
+              programSchoolStatusObject["Status"] = "pending";
+              programSchoolStatusObject["Created At"] = "-";
+              programSchoolStatusObject["Completed Date"] = "-";
+              programSchoolStatusObject["Submission Count"]= 0;
 
             }
             input.push(programSchoolStatusObject)
@@ -415,15 +348,12 @@ module.exports = class Reports extends Abstract {
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
 
-      try {
+      try { 
 
-        const currentDate = new Date();
         const evidenceIdFromRequestParam = req.query.evidenceId;
         const evidenceQueryObject = "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
 
         const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
-
-        const fileNameWithPath = "./public/csvFileBackup/" + "programsSubmissionStatus_evidenceId_" + evidenceIdFromRequestParam + "_" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
 
         const fetchRequiredSubmissionDocumentIdQueryObj = {
           ["programInformation.externalId"]: req.params._id,
@@ -434,34 +364,20 @@ module.exports = class Reports extends Abstract {
           }
         };
 
-
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
           { _id: 1 }
         )
 
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        const fileNameWithPath = `programsSubmissionStatus_${evidenceIdFromRequestParam}_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
@@ -521,6 +437,7 @@ module.exports = class Reports extends Abstract {
 
               let totalRecordInSubmission = 0;
 
+              if(!submission.evidences[evidenceIdFromRequestParam].submissions.length) return resolve(NOT_FOUND);
               submission.evidences[evidenceIdFromRequestParam].submissions.forEach(evidenceSubmission => {
 
                 if (assessors[evidenceSubmission.submittedBy.toString()] && evidenceSubmission.isValid === true) {
@@ -530,23 +447,23 @@ module.exports = class Reports extends Abstract {
                     if (singleAnswer.payload) {
 
                       let singleAnswerRecord = {
-                        schoolName: submission.schoolInformation.name,
-                        schoolId: submission.schoolInformation.externalId,
-                        question: singleAnswer.payload.question[0],
-                        answer: singleAnswer.notApplicable ? "Not Applicable" : "",
-                        assessorId: assessors[evidenceSubmission.submittedBy.toString()].externalId,
-                        files: "",
-                        remarks: singleAnswer.remarks || "",
-                        startTime: this.gmtToIst(singleAnswer.startTime),
-                        endTime: this.gmtToIst(singleAnswer.endTime)
+                        "School Name": submission.schoolInformation.name,
+                        "School Id": submission.schoolInformation.externalId,
+                        "Question": singleAnswer.payload.question[0],
+                        "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                        "Remarks": singleAnswer.remarks || "",
+                        "Start Time": this.gmtToIst(singleAnswer.startTime),
+                        "End Time": this.gmtToIst(singleAnswer.endTime),
+                        "Files": "",
                       }
 
                       if (singleAnswer.fileName.length > 0) {
                         singleAnswer.fileName.forEach(file => {
-                          singleAnswerRecord.files +=
+                          singleAnswerRecord.Files +=
                             imageBaseUrl + file.sourcePath + ",";
                         });
-                        singleAnswerRecord.files = singleAnswerRecord.files.replace(
+                        singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
                           /,\s*$/,
                           ""
                         );
@@ -557,13 +474,13 @@ module.exports = class Reports extends Abstract {
 
                         if (singleAnswer.responseType != "matrix") {
 
-                          singleAnswerRecord.answer = singleAnswer.payload[
+                          singleAnswerRecord.Answer = singleAnswer.payload[
                             "labels"
                           ].toString();
 
                         } else {
 
-                          singleAnswerRecord.answer = "Instance Question";
+                          singleAnswerRecord.Answer = "Instance Question";
 
                           if (singleAnswer.payload.labels[0]) {
                             for (
@@ -575,24 +492,25 @@ module.exports = class Reports extends Abstract {
                               singleAnswer.payload.labels[0][instance].forEach(
                                 eachInstanceChildQuestion => {
                                   let eachInstanceChildRecord = {
-                                    schoolName: submission.schoolInformation.name,
-                                    schoolId: submission.schoolInformation.externalId,
-                                    question: eachInstanceChildQuestion.question[0],
-                                    answer: "",
-                                    remarks: eachInstanceChildQuestion.remarks || "",
-                                    assessorId: assessors[evidenceSubmission.submittedBy.toString()].externalId,
-                                    startTime: this.gmtToIst(eachInstanceChildQuestion.startTime),
-                                    endTime: this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                    "School Name": submission.schoolInformation.name,
+                                    "School Id": submission.schoolInformation.externalId,
+                                    "Question": eachInstanceChildQuestion.question[0],
+                                    "Answer": "",
+                                    "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                    "Remarks": eachInstanceChildQuestion.remarks || "",
+                                    "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
+                                    "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                    "Files": "",
                                   };
 
                                   if (eachInstanceChildQuestion.fileName.length > 0) {
                                     eachInstanceChildQuestion.fileName.forEach(
                                       file => {
-                                        eachInstanceChildRecord.files +=
+                                        eachInstanceChildRecord.Files +=
                                           imageBaseUrl + file + ",";
                                       }
                                     );
-                                    eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(
+                                    eachInstanceChildRecord.Files = eachInstanceChildRecord.Files.replace(
                                       /,\s*$/,
                                       ""
                                     );
@@ -610,7 +528,7 @@ module.exports = class Reports extends Abstract {
                                         radioResponse[option.value] = option.label;
                                       }
                                     );
-                                    eachInstanceChildRecord.answer =
+                                    eachInstanceChildRecord.Answer =
                                       radioResponse[eachInstanceChildQuestion.value];
                                   } else if (
                                     eachInstanceChildQuestion.responseType ==
@@ -629,10 +547,10 @@ module.exports = class Reports extends Abstract {
                                       );
                                     });
 
-                                    eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                                    eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
                                   }
                                   else {
-                                    eachInstanceChildRecord.answer = eachInstanceChildQuestion.value;
+                                    eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;
                                   }
 
                                   input.push(eachInstanceChildRecord)
@@ -708,30 +626,15 @@ module.exports = class Reports extends Abstract {
           "evaluation-frameworks"
         ].find({},{themes:1}).exec();
 
-        const currentDate = new Date();
-        const fileNameWithPath = "./public/csvFileBackup/" + "generateCriteriasBySchoolId_schoolId_" + req.params._id + "_" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        let checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        const fileNameWithPath = `generateCriteriasBySchoolId_schoolId_${req.params._id}_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
@@ -756,23 +659,23 @@ module.exports = class Reports extends Abstract {
               });
             });
           });
-  
+          if(!submissionDocument.length) return resolve(NOT_FOUND);
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
   
             if (submissionCriterias._id) {
               let criteriaReportObject = {
-                themeName: evaluationNameObject[submissionCriterias._id]
+                "Theme Name": evaluationNameObject[submissionCriterias._id]
                   ? evaluationNameObject[submissionCriterias._id].themeName
                   : "",
-                aoiName: evaluationNameObject[submissionCriterias._id]
+                "AoI Name": evaluationNameObject[submissionCriterias._id]
                   ? evaluationNameObject[submissionCriterias._id].aoiName
                   : "",
                 "Level 1": levels.find(level => level.level == "L1").description,
                 "Level 2": levels.find(level => level.level == "L2").description,
                 "Level 3": levels.find(level => level.level == "L3").description,
                 "Level 4": levels.find(level => level.level == "L4").description,
-                score: submissionCriterias.score
+                "Score": submissionCriterias.score
                   ? submissionCriterias.score
                   : "NA"
               };
@@ -818,33 +721,16 @@ module.exports = class Reports extends Abstract {
             criterias: 1
           }
         ).exec();
-        
-        const currentDate = new Date();
 
-        const fileNameWithPath = "./public/csvFileBackup/" + "generateSubmissionReportsBySchoolId_" + req.params._id + "_" + moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-
-        const input = new stream.Readable({ objectMode: true });
-        input._read = () => { };
-        const output = fs.createWriteStream(fileNameWithPath, { encoding: 'utf8' });
-
-        const opts = {};
-        const transformOpts = { objectMode: true };
-
-        const json2csv = new json2csvTransform(opts, transformOpts);
-        const processor = input.pipe(json2csv).pipe(output);
-
-        var checkProcessor = new Promise(function (resolve, reject) {
-          processor.on('finish', resolve);
-        });
+        const fileNameWithPath = `generateSubmissionReportsBySchoolId_${req.params._id}_`;
+        let fileStream = new FileStream(fileNameWithPath);
+        let input = fileStream.initStream();
 
         (async function () {
-          console.log("---stream start---")
-          await checkProcessor;
-          console.log("---stream end---")
+          await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
-            csvResponse: true,
-            fileNameWithPath: fileNameWithPath
+            fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
 
@@ -894,33 +780,33 @@ module.exports = class Reports extends Abstract {
                 score: singleCriteria.score
               };
             });
-  
+            if(!Object.values(singleSchoolSubmission.answers).length) return resolve(NOT_FOUND);
             Object.values(singleSchoolSubmission.answers).forEach(
              singleAnswer => {
                 if (singleAnswer.payload) {
                   let singleAnswerRecord = {
-                    criteriaName:
+                    "Criteria Name":
                       criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
                         ? " Question Deleted Post Submission"
                         : criteriaQuestionDetailsObject[singleAnswer.qid]
                           .criteriaName,
-                    question: singleAnswer.payload.question[0],
-                    options:
+                    "Question": singleAnswer.payload.question[0],
+                    "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                    "Options":
                       questionOptionObject[singleAnswer.qid] == undefined
                         ? " No Options"
                         : questionOptionObject[singleAnswer.qid],
-                    answer: singleAnswer.notApplicable ? "Not Applicable" : "",
-                    files: "",
-                    score: criteriaScoreObject[singleAnswer.criteriaId].score,
-                    remarks: singleAnswer.remarks || "",
+                    "Score": criteriaScoreObject[singleAnswer.criteriaId].score,
+                    "Remarks": singleAnswer.remarks || "",
+                    "Files": "",
                   };
   
                   if (singleAnswer.fileName.length > 0) {
                     singleAnswer.fileName.forEach(file => {
-                      singleAnswerRecord.files +=
+                      singleAnswerRecord.Files +=
                         imageBaseUrl + file.sourcePath + ",";
                     });
-                    singleAnswerRecord.files = singleAnswerRecord.files.replace(
+                    singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
                       /,\s*$/,
                       ""
                     );
@@ -928,11 +814,11 @@ module.exports = class Reports extends Abstract {
   
                   if (!singleAnswer.notApplicable) {
                     if (singleAnswer.responseType != "matrix") {
-                      singleAnswerRecord.answer = singleAnswer.payload[
+                      singleAnswerRecord["Answer"] = singleAnswer.payload[
                         "labels"
                       ].toString();
                     } else {
-                      singleAnswerRecord.answer = "Instance Question";
+                      singleAnswerRecord["Answer"] = "Instance Question";
   
                       if (singleAnswer.payload.labels[0]) {
                         for (
@@ -943,7 +829,7 @@ module.exports = class Reports extends Abstract {
                           singleAnswer.payload.labels[0][instance].forEach(
                             eachInstanceChildQuestion => {
                               let eachInstanceChildRecord = {
-                                criteriaName:
+                                "Criteria Name":
                                   criteriaQuestionDetailsObject[
                                     eachInstanceChildQuestion._id
                                   ] == undefined
@@ -951,32 +837,32 @@ module.exports = class Reports extends Abstract {
                                     : criteriaQuestionDetailsObject[
                                       eachInstanceChildQuestion._id
                                     ].criteriaName,
-                                question: eachInstanceChildQuestion.question[0],
-                                options:
-                                  questionOptionObject[
-                                    eachInstanceChildQuestion._id
-                                  ] == undefined
-                                    ? " No Options"
-                                    : questionOptionObject[
-                                    eachInstanceChildQuestion._id
-                                    ],
-                                answer: eachInstanceChildQuestion.value,
-                                files: "",
-                                score:
+                                "Question": eachInstanceChildQuestion.question[0],
+                                "Answer": eachInstanceChildQuestion.value,
+                                "Options":
+                                questionOptionObject[
+                                  eachInstanceChildQuestion._id
+                                ] == undefined
+                                  ? " No Options"
+                                  : questionOptionObject[
+                                  eachInstanceChildQuestion._id
+                                  ],
+                                "Score":
                                   criteriaScoreObject[
                                     eachInstanceChildQuestion.payload.criteriaId
                                   ].score,
-                                  remarks: eachInstanceChildQuestion.remarks || "",
+                                "Remarks": eachInstanceChildQuestion.remarks || "",
+                                "Files": "",
                               };
   
                               if (eachInstanceChildQuestion.fileName.length > 0) {
                                 eachInstanceChildQuestion.fileName.forEach(
                                   file => {
-                                    eachInstanceChildRecord.files +=
+                                    eachInstanceChildRecord["Files"] +=
                                       imageBaseUrl + file + ",";
                                   }
                                 );
-                                eachInstanceChildRecord.files = eachInstanceChildRecord.files.replace(
+                                eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
                                   /,\s*$/,
                                   ""
                                 );
@@ -994,7 +880,7 @@ module.exports = class Reports extends Abstract {
                                     radioResponse[option.value] = option.label;
                                   }
                                 );
-                                eachInstanceChildRecord.answer =
+                                eachInstanceChildRecord["Answer"] =
                                   radioResponse[eachInstanceChildQuestion.value];
                               } else if (
                                 eachInstanceChildQuestion.responseType ==
@@ -1013,7 +899,7 @@ module.exports = class Reports extends Abstract {
                                   );
                                 });
   
-                                eachInstanceChildRecord.answer = multiSelectResponseArray.toString();
+                                eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
                               }
   
                               input.push(eachInstanceChildRecord);
@@ -1023,7 +909,6 @@ module.exports = class Reports extends Abstract {
                       }
                     }
                   }
-  
                   input.push(singleAnswerRecord);
                 }
               }
