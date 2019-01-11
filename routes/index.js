@@ -3,7 +3,8 @@ let slackClient = require("../generics/helpers/slackCommunications");
 const fs = require("fs");
 
 module.exports = function(app) {
-  if(process.env.NODE_ENV != 'testing') app.use("/assessment/api", authenticator);
+  
+  app.use("/assessment/api", authenticator);
 
   var router = function(req, res, next) {
 
