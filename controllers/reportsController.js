@@ -57,6 +57,16 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
+        if(!submissions.length){
+          input.push({
+            "School Id":null,
+            "School Name":null,
+            "School Id":null,
+            "Program Id":null,
+            "Program Name":null,
+            "Status":null
+          });
+        }
         submissions.forEach(submission => {
           let result = {};
 
@@ -120,7 +130,19 @@ module.exports = class Reports extends Abstract {
             fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
-
+        if(!assessorsWithSchoolDetails.result.length){
+          input.push({
+            "Assessor Id": null,
+            "Assessor UserId": null,
+            "Parent Id": null,
+            "Assessor Name": null,
+            "Assessor Email": null,
+            "Assessor Role": null,
+            "Program Id": null,
+            "School Id": null,
+            "School Name": null
+          });
+        }
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
@@ -170,7 +192,19 @@ module.exports = class Reports extends Abstract {
             fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
-
+        if(!assessorsWithSchoolDetails.result.length){
+          input.push({
+            "Assessor School Id": null,
+            "Assessor School Name": null,
+            "Assessor User Id": null,
+            "Assessor Id": null,
+            "Assessor Name": null,
+            "Assessor Email": null,
+            "Parent Id": null,
+            "Assessor Role": null,
+            "Program Id": null
+          });
+        }
         assessorsWithSchoolDetails.result.forEach(assessor => {
           assessor.schools.forEach(assessorSchool => {
             input.push({
@@ -290,7 +324,22 @@ module.exports = class Reports extends Abstract {
               submissionCount: evidencesStatus.submissionCount
             };
           });
-
+          if(!schoolDocument.length){
+            input.push({
+              "Program Id": null,
+              "School Name": null,
+              "School Id": null,
+              "Status":null,
+              "Created At":null,
+              "Completed Date":null,
+              "Submission Count":null,
+              "Status":null,
+              "Created At":null,
+              "Created At":null,  
+              "Completed Date":null, 
+              "Submission Count":null
+            })
+          }
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
               "Program Id": programQueryObject.externalId,
@@ -364,7 +413,19 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if (submissionDocumentIdsToProcess.length > 0) {
+        if(!submissionDocumentIdsToProcess.length){
+          input.push({
+            "School Name": null,
+            "School Id": null,
+            "Question": null,
+            "Answer": null,
+            "Assessor Id": null,
+            "Remarks": null,
+            "Start Time": null,
+            "End Time": null,
+            "Files": null
+          })
+        }else{
 
           const chunkSize = 10
           const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, chunkSize)
@@ -410,7 +471,7 @@ module.exports = class Reports extends Abstract {
                   externalId: assessor.externalId
                 };
               });
-
+              
               submission.evidences[evidenceIdFromRequestParam].submissions.forEach(evidenceSubmission => {
 
                 if (assessors[evidenceSubmission.submittedBy.toString()] && evidenceSubmission.isValid === true) {
@@ -540,9 +601,9 @@ module.exports = class Reports extends Abstract {
               });
             }));
           }
-          input.push(null)
-
+          
         }
+        input.push(null)
 
 
       } catch (error) {
@@ -591,7 +652,6 @@ module.exports = class Reports extends Abstract {
           let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
           let evaluationNameObject = {};
-
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
               singleTheme.aoi.forEach(singleAoi => {
@@ -607,6 +667,18 @@ module.exports = class Reports extends Abstract {
               });
             });
           });
+
+          if(!submissionDocument[0].criterias.length){
+            input.push({
+              "Theme Name": null,
+              "AoI Name": null,
+              "Level 1": null,
+              "Level 2": null,
+              "Level 3": null,
+              "Level 4": null,
+              "Score": null
+            })
+          }
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
   
@@ -722,6 +794,17 @@ module.exports = class Reports extends Abstract {
                 score: singleCriteria.score
               };
             });
+            if(!Object.values(singleSchoolSubmission.answers).length){
+              input.push({
+                "Criteria Name":"",
+                "Question":"",
+                "Answer":"",
+                "Options":"",
+                "Score":"",
+                "Remarks":"",
+                "Files": ""
+              })
+            }
             Object.values(singleSchoolSubmission.answers).forEach(
              singleAnswer => {
                 if (singleAnswer.payload) {
@@ -869,7 +952,7 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-  async parentRegistry(req) {
+    async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
         const programQueryParams = {
@@ -902,6 +985,23 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
+        if(!parentRegistryDocuments.length){
+          input.push({
+            "School Id" : null,
+            "Program Id" : null,
+            "Student Name" : null,
+            "Grade" : null,
+            "Parent Name" : null,
+            "Gender" : null,
+            "Type" : null,
+            "Type Label" : null,
+            "Phone 1" : null,
+            "Phone 2" : null,
+            "Address" : null,
+            "School Name" : null,
+            "Call Response" : null
+          });
+        }
         parentRegistryDocuments.forEach(parentRegistry => {
           input.push({
             "School Id" : parentRegistry.schoolId,
@@ -955,6 +1055,37 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
+        if(!schoolProfileSubmissionDocuments.length){
+          input.push({
+            "Submission Id": null,
+            "School External Id": null,
+            "program External Id": null,
+            "School Types": null,
+            "Address Line 1": null,
+            "Address Line 2": null,
+            "Administration": null,
+            "City": null,
+            "Country": null,
+            "Created By": null,
+            "District Id": null,
+            "District Name": null,
+            "Gender": null,
+            "GpsLocation": null,
+            "Highest Grade": null,
+            "Lowest Grade": null,
+            "Name": null,
+            "Phone": null,
+            "Pincode": null,
+            "Principal Name": null,
+            "Shift": null,
+            "State": null,
+            "Total Boys": null,
+            "Total Girls": null,
+            "Total Students": null,
+            "Update dBy": null,
+            "Zone Id": null
+          });
+        }
         schoolProfileSubmissionDocuments.forEach(submissionDocument => {
           let schoolProfile = submissionDocument.schoolProfile;
           input.push({
