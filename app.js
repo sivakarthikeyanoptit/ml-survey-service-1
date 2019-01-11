@@ -165,26 +165,26 @@ app.listen(config.port, () => {
 
 
 
-  const schedule = require("node-schedule");
+  // const schedule = require("node-schedule");
 
-  var schedule_string =
-    process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
+  // var schedule_string =
+  //   process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
 
-  var csvData = schedule.scheduleJob(schedule_string, () => {
-    var date = new Date();
-    var hour = date.getMinutes();
+  // var csvData = schedule.scheduleJob(schedule_string, () => {
+  //   var date = new Date();
+  //   var hour = date.getMinutes();
 
-    if (process.env.NODE_ENV == "production") {
-      var hour = date.getHours();
-    }
+  //   if (process.env.NODE_ENV == "production") {
+  //     var hour = date.getHours();
+  //   }
 
-    let csvReports = require("./generics/helpers/csvReports");
+  //   let csvReports = require("./generics/helpers/csvReports");
 
-    if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
-      let csvReports = require("./generics/helpers/csvReports");
-      ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
-        csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
-      );
-    }
-  });
+  //   if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
+  //     let csvReports = require("./generics/helpers/csvReports");
+  //     ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
+  //       csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
+  //     );
+  //   }
+  // });
 });

@@ -9,6 +9,7 @@ module.exports = {
     evidences:Object,
     criterias:Array,
     answers: Object,
+    schoolExternalId: "String",
     schoolInformation: Object,
     programExternalId: "String",
     programInformation: Object,
