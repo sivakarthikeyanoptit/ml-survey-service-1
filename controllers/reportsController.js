@@ -332,11 +332,6 @@ module.exports = class Reports extends Abstract {
               "Status":null,
               "Created At":null,
               "Completed Date":null,
-              "Submission Count":null,
-              "Status":null,
-              "Created At":null,
-              "Created At":null,  
-              "Completed Date":null, 
               "Submission Count":null
             })
           }
@@ -951,32 +946,31 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
-
-    async parentRegistry(req) {
+  async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
         const programQueryParams = {
           externalId: req.params._id
         };
-        const programsDocument = await database.models.programs.findOne(programQueryParams,{ _id:1})
-        
+        const programsDocument = await database.models.programs.findOne(programQueryParams, { _id: 1 })
+
         let parentRegistryDocuments = [];
-        if(programsDocument) {
-          const parentRegistryQueryParams = {programId:programsDocument._id};
+        if (programsDocument) {
+          const parentRegistryQueryParams = { programId: programsDocument._id };
           parentRegistryDocuments = await database.models['parent-registry'].find(parentRegistryQueryParams,
             {
-              _id:0,
-              createdAt:0,
-              updatedAt:0,
-              __v:0,
-              deleted:0
+              _id: 0,
+              createdAt: 0,
+              updatedAt: 0,
+              __v: 0,
+              deleted: 0
             })
         };
 
         const fileName = `parentRegistry`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
-        
+
         (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
@@ -985,40 +979,48 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!parentRegistryDocuments.length){
+        if (!parentRegistryDocuments.length) {
           input.push({
-            "School Id" : null,
-            "Program Id" : null,
-            "Student Name" : null,
-            "Grade" : null,
-            "Parent Name" : null,
-            "Gender" : null,
-            "Type" : null,
-            "Type Label" : null,
-            "Phone 1" : null,
-            "Phone 2" : null,
-            "Address" : null,
-            "School Name" : null,
-            "Call Response" : null
+            "School Id": null,
+            "Program Id": null,
+            "Student Name": null,
+            "Grade": null,
+            "Parent Name": null,
+            "Gender": null,
+            "Type": null,
+            "Type Label": null,
+            "Phone 1": null,
+            "Phone 2": null,
+            "Address": null,
+            "School Name": null,
+            "Call Response": null
           });
         }
-        parentRegistryDocuments.forEach(parentRegistry => {
-          input.push({
-            "School Id" : parentRegistry.schoolId,
-            "Program Id" : parentRegistry.programId,
-            "Student Name" : parentRegistry.studentName,
-            "Grade" : parentRegistry.grade,
-            "Parent Name" : parentRegistry.name,
-            "Gender" : parentRegistry.gender,
-            "Type" : parentRegistry.type,
-            "Type Label" : parentRegistry.typeLabel,
-            "Phone 1" : parentRegistry.phone1,
-            "Phone 2" : parentRegistry.phone2,
-            "Address" : parentRegistry.address,
-            "School Name" : parentRegistry.schoolName,
-            "Call Response" : parentRegistry.callResponse,
-          });
-        });
+
+        const chunkSize = 10;
+        let chunkOfParentRegistryDocument = _.chunk(parentRegistryDocuments, chunkSize)
+
+        for (let pointerToParentRegistryArray = 0; pointerToParentRegistryArray < chunkOfParentRegistryDocument.length; pointerToParentRegistryArray++) {
+          await Promise.all(chunkOfParentRegistryDocument[pointerToParentRegistryArray].map(async (parentRegistry) => {
+
+            input.push({
+              "School Id": parentRegistry.schoolId,
+              "Program Id": parentRegistry.programId,
+              "Student Name": parentRegistry.studentName,
+              "Grade": parentRegistry.grade,
+              "Parent Name": parentRegistry.name,
+              "Gender": parentRegistry.gender,
+              "Type": parentRegistry.type,
+              "Type Label": parentRegistry.typeLabel,
+              "Phone 1": parentRegistry.phone1,
+              "Phone 2": parentRegistry.phone2,
+              "Address": parentRegistry.address,
+              "School Name": parentRegistry.schoolName,
+              "Call Response": parentRegistry.callResponse,
+            });
+          }))
+        }
+        
         input.push(null);
       } catch (error) {
         return reject({
@@ -1029,18 +1031,18 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
- 
+
   async schoolProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let queryParams = {
           programExternalId: req.params._id
         };
-        const schoolProfileSubmissionDocuments = await database.models.submissions.find(queryParams, { 
-          "schoolProfile": 1 ,
+        const schoolProfileSubmissionDocuments = await database.models.submissions.find(queryParams, {
+          "schoolProfile": 1,
           "_id": 1,
           "programExternalId": 1,
-          "schoolExternalId":1
+          "schoolExternalId": 1
         });
 
         const fileName = `schoolProfileInformation`;
@@ -1055,7 +1057,8 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!schoolProfileSubmissionDocuments.length){
+
+        if (!schoolProfileSubmissionDocuments.length) {
           input.push({
             "Submission Id": null,
             "School External Id": null,
@@ -1086,38 +1089,46 @@ module.exports = class Reports extends Abstract {
             "Zone Id": null
           });
         }
-        schoolProfileSubmissionDocuments.forEach(submissionDocument => {
-          let schoolProfile = submissionDocument.schoolProfile;
-          input.push({
-            "Submission Id": submissionDocument._id,
-            "School External Id": submissionDocument.schoolExternalId,
-            "program External Id": submissionDocument.programExternalId,
-            "School Types": schoolProfile ? schoolProfile.schoolTypes : "",
-            "Address Line 1": schoolProfile ? schoolProfile.addressLine1 : "",
-            "Address Line 2": schoolProfile ? schoolProfile.addressLine2 : "",
-            "Administration": schoolProfile ? schoolProfile.administration : "",
-            "City": schoolProfile ? schoolProfile.city : "",
-            "Country": schoolProfile ? schoolProfile.country : "",
-            "Created By": schoolProfile ? schoolProfile.createdBy : "",
-            "District Id": schoolProfile ? schoolProfile.districtId : "",
-            "District Name": schoolProfile ? schoolProfile.districtName : "",
-            "Gender": schoolProfile ? schoolProfile.gender : "",
-            "GpsLocation": schoolProfile ? schoolProfile.gpsLocation : "",
-            "Highest Grade": schoolProfile ? schoolProfile.highestGrade : "",
-            "Lowest Grade": schoolProfile ? schoolProfile.lowestGrade : "",
-            "Name": schoolProfile ? schoolProfile.name : "",
-            "Phone": schoolProfile ? schoolProfile.phone : "",
-            "Pincode": schoolProfile ? schoolProfile.pincode : "",
-            "Principal Name": schoolProfile ? schoolProfile.principalName : "",
-            "Shift": schoolProfile ? schoolProfile.shift : "",
-            "State": schoolProfile ? schoolProfile.state : "",
-            "Total Boys": schoolProfile ? schoolProfile.totalBoys : "",
-            "Total Girls": schoolProfile ? schoolProfile.totalGirls : "",
-            "Total Students": schoolProfile ? schoolProfile.totalStudents : "",
-            "Update dBy": schoolProfile ? schoolProfile.updatedBy : "",
-            "Zone Id": schoolProfile ? schoolProfile.zoneId : ""
-          });
-        });
+
+        const chunkSize = 10;
+        let chunkOfSchoolProfileSubmissionDocument = _.chunk(schoolProfileSubmissionDocuments, chunkSize)
+
+        for (let pointerToSchoolProfileSubmissionArray = 0; pointerToSchoolProfileSubmissionArray < chunkOfSchoolProfileSubmissionDocument.length; pointerToSchoolProfileSubmissionArray++) {
+
+          await Promise.all(chunkOfSchoolProfileSubmissionDocument[pointerToSchoolProfileSubmissionArray].map(async (eachSchoolProfileSubmissionDocument) => {
+            let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
+
+            input.push({
+              "Submission Id": eachSchoolProfileSubmissionDocument._id,
+              "School External Id": eachSchoolProfileSubmissionDocument.schoolExternalId,
+              "program External Id": eachSchoolProfileSubmissionDocument.programExternalId,
+              "School Types": schoolProfile ? schoolProfile.schoolTypes : "",
+              "Address Line 1": schoolProfile ? schoolProfile.addressLine1 : "",
+              "Address Line 2": schoolProfile ? schoolProfile.addressLine2 : "",
+              "Administration": schoolProfile ? schoolProfile.administration : "",
+              "City": schoolProfile ? schoolProfile.city : "",
+              "Country": schoolProfile ? schoolProfile.country : "",
+              "Created By": schoolProfile ? schoolProfile.createdBy : "",
+              "District Id": schoolProfile ? schoolProfile.districtId : "",
+              "District Name": schoolProfile ? schoolProfile.districtName : "",
+              "Gender": schoolProfile ? schoolProfile.gender : "",
+              "GpsLocation": schoolProfile ? schoolProfile.gpsLocation : "",
+              "Highest Grade": schoolProfile ? schoolProfile.highestGrade : "",
+              "Lowest Grade": schoolProfile ? schoolProfile.lowestGrade : "",
+              "Name": schoolProfile ? schoolProfile.name : "",
+              "Phone": schoolProfile ? schoolProfile.phone : "",
+              "Pincode": schoolProfile ? schoolProfile.pincode : "",
+              "Principal Name": schoolProfile ? schoolProfile.principalName : "",
+              "Shift": schoolProfile ? schoolProfile.shift : "",
+              "State": schoolProfile ? schoolProfile.state : "",
+              "Total Boys": schoolProfile ? schoolProfile.totalBoys : "",
+              "Total Girls": schoolProfile ? schoolProfile.totalGirls : "",
+              "Total Students": schoolProfile ? schoolProfile.totalStudents : "",
+              "Update dBy": schoolProfile ? schoolProfile.updatedBy : "",
+              "Zone Id": schoolProfile ? schoolProfile.zoneId : ""
+            });
+          }))
+        }
         input.push(null);
       } catch (error) {
         return reject({
