@@ -4,7 +4,9 @@ const fs = require("fs");
 
 module.exports = function(app) {
   
-  app.use("/assessment/api", authenticator);
+  const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/api/"
+
+  app.use(applicationBaseUrl, authenticator);
 
   var router = function(req, res, next) {
 
@@ -88,14 +90,15 @@ module.exports = function(app) {
     }
   };
 
-  app.all("/assessment/api/v1/:controller/:method", router);
+  app.all(applicationBaseUrl+"v1/:controller/:method", router);
 
-  app.all("/assessment/api/v1/:controller/:_id/:method", router);
+  app.all(applicationBaseUrl+"v1/:controller/:_id/:method", router);
 
-  app.all("/assessment/api/v1/:controller/:method/:_id", router);
+  app.all(applicationBaseUrl+"v1/:controller/:method/:_id", router);
 
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");
   });
 };
+
