@@ -946,26 +946,19 @@ module.exports = class Reports extends Abstract {
       }
     });
   }
+
+
   async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         const programQueryParams = {
           externalId: req.params._id
         };
-        const programsDocument = await database.models.programs.findOne(programQueryParams, { _id: 1 })
+        
+        const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
-        let parentRegistryDocuments = [];
-        if (programsDocument) {
-          const parentRegistryQueryParams = { programId: programsDocument._id };
-          parentRegistryDocuments = await database.models['parent-registry'].find(parentRegistryQueryParams,
-            {
-              _id: 0,
-              createdAt: 0,
-              updatedAt: 0,
-              __v: 0,
-              deleted: 0
-            })
-        };
+        const parentRegistryIdsArray = await database.models['parent-registry'].find({ "programId": programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `parentRegistry`;
         let fileStream = new FileStream(fileName);
@@ -979,10 +972,11 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if (!parentRegistryDocuments.length) {
+        if (!parentRegistryIdsArray.length) {
           input.push({
-            "School Id": null,
             "Program Id": null,
+            "School Id": null,
+            "School Name": null,
             "Student Name": null,
             "Grade": null,
             "Parent Name": null,
@@ -992,20 +986,67 @@ module.exports = class Reports extends Abstract {
             "Phone 1": null,
             "Phone 2": null,
             "Address": null,
-            "School Name": null,
             "Call Response": null
           });
         }
 
         const chunkSize = 10;
-        let chunkOfParentRegistryDocument = _.chunk(parentRegistryDocuments, chunkSize)
+        let chunkOfParentRegistryDocument = _.chunk(parentRegistryIdsArray, chunkSize)
+        let parentRegistryId
+        let parentRegistryDocuments
 
-        for (let pointerToParentRegistryArray = 0; pointerToParentRegistryArray < chunkOfParentRegistryDocument.length; pointerToParentRegistryArray++) {
-          await Promise.all(chunkOfParentRegistryDocument[pointerToParentRegistryArray].map(async (parentRegistry) => {
+
+        for (let pointerToParentRegistryIdArray = 0; pointerToParentRegistryIdArray < chunkOfParentRegistryDocument.length; pointerToParentRegistryIdArray++) {
+          parentRegistryId = chunkOfParentRegistryDocument[pointerToParentRegistryIdArray].map(parentRegistryModel => {
+            return parentRegistryModel._id
+          });
+
+          let parentRegistryQueryObject = [
+            {
+              $match: {
+                _id: {
+                  $in: parentRegistryId
+                }
+              }
+            },
+            { "$addFields": { "schoolIdInObjectIdForm": { "$toObjectId": "$schoolId" } } },
+            {
+              $lookup: {
+                from: "schools",
+                localField: "schoolIdInObjectIdForm",
+                foreignField: "_id",
+                as: "schoolDocument"
+
+              }
+            }
+            , {
+              $project: {
+                "studentName": 1,
+                "grade": 1,
+                "name": 1,
+                "gender": 1,
+                "type": 1,
+                "typeLabel": 1,
+                "phone1": 1,
+                "phone2": 1,
+                "address": 1,
+                "schoolName": 1,
+                "callResponse": 1,
+                "schoolDocument.externalId": 1,
+                "schoolId": 1,
+                "programId": 1
+              }
+            }
+          ];
+
+          parentRegistryDocuments = await database.models['parent-registry'].aggregate(parentRegistryQueryObject)
+
+          await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
 
             input.push({
-              "School Id": parentRegistry.schoolId,
-              "Program Id": parentRegistry.programId,
+              "Program Id": req.params._id,
+              "School Id": parentRegistry.schoolDocument[0].externalId,
+              "School Name": parentRegistry.schoolName,
               "Student Name": parentRegistry.studentName,
               "Grade": parentRegistry.grade,
               "Parent Name": parentRegistry.name,
@@ -1015,12 +1056,12 @@ module.exports = class Reports extends Abstract {
               "Phone 1": parentRegistry.phone1,
               "Phone 2": parentRegistry.phone2,
               "Address": parentRegistry.address,
-              "School Name": parentRegistry.schoolName,
-              "Call Response": parentRegistry.callResponse,
+              "Call Response": parentRegistry.callResponse
             });
           }))
+
         }
-        
+
         input.push(null);
       } catch (error) {
         return reject({
@@ -1038,12 +1079,10 @@ module.exports = class Reports extends Abstract {
         let queryParams = {
           programExternalId: req.params._id
         };
-        const schoolProfileSubmissionDocuments = await database.models.submissions.find(queryParams, {
-          "schoolProfile": 1,
-          "_id": 1,
-          "programExternalId": 1,
-          "schoolExternalId": 1
-        });
+
+        const submissionIds = await database.models.submissions.find(queryParams, {
+          _id: 1
+        })
 
         const fileName = `schoolProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -1058,9 +1097,9 @@ module.exports = class Reports extends Abstract {
         }());
 
 
-        if (!schoolProfileSubmissionDocuments.length) {
+        if (!submissionIds.length) {
           input.push({
-            "Submission Id": null,
+            // "Submission Id": null,
             "School External Id": null,
             "program External Id": null,
             "School Types": null,
@@ -1069,7 +1108,6 @@ module.exports = class Reports extends Abstract {
             "Administration": null,
             "City": null,
             "Country": null,
-            "Created By": null,
             "District Id": null,
             "District Name": null,
             "Gender": null,
@@ -1085,30 +1123,45 @@ module.exports = class Reports extends Abstract {
             "Total Boys": null,
             "Total Girls": null,
             "Total Students": null,
-            "Update dBy": null,
             "Zone Id": null
           });
         }
 
         const chunkSize = 10;
-        let chunkOfSchoolProfileSubmissionDocument = _.chunk(schoolProfileSubmissionDocuments, chunkSize)
+        let chunkOfSubmissionIds = _.chunk(submissionIds, chunkSize)
+        let submissionIdArray
+        let schoolProfileSubmissionDocuments
 
-        for (let pointerToSchoolProfileSubmissionArray = 0; pointerToSchoolProfileSubmissionArray < chunkOfSchoolProfileSubmissionDocument.length; pointerToSchoolProfileSubmissionArray++) {
+        for (let pointerToSchoolProfileSubmissionArray = 0; pointerToSchoolProfileSubmissionArray < chunkOfSubmissionIds.length; pointerToSchoolProfileSubmissionArray++) {
+          submissionIdArray = chunkOfSubmissionIds[pointerToSchoolProfileSubmissionArray].map(eachSubmissionId => {
+            return eachSubmissionId._id
+          })
 
-          await Promise.all(chunkOfSchoolProfileSubmissionDocument[pointerToSchoolProfileSubmissionArray].map(async (eachSchoolProfileSubmissionDocument) => {
+          schoolProfileSubmissionDocuments = await database.models.submissions.find(
+            {
+              _id: {
+                $in: submissionIdArray
+              }
+            }, {
+              "schoolProfile": 1,
+              "_id": 1,
+              "programExternalId": 1,
+              "schoolExternalId": 1
+            })
+
+          await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
             let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
 
             input.push({
-              "Submission Id": eachSchoolProfileSubmissionDocument._id,
+              // "Submission Id": eachSchoolProfileSubmissionDocument._id,
               "School External Id": eachSchoolProfileSubmissionDocument.schoolExternalId,
-              "program External Id": eachSchoolProfileSubmissionDocument.programExternalId,
+              "Program External Id": eachSchoolProfileSubmissionDocument.programExternalId,
               "School Types": schoolProfile ? schoolProfile.schoolTypes : "",
               "Address Line 1": schoolProfile ? schoolProfile.addressLine1 : "",
               "Address Line 2": schoolProfile ? schoolProfile.addressLine2 : "",
               "Administration": schoolProfile ? schoolProfile.administration : "",
               "City": schoolProfile ? schoolProfile.city : "",
               "Country": schoolProfile ? schoolProfile.country : "",
-              "Created By": schoolProfile ? schoolProfile.createdBy : "",
               "District Id": schoolProfile ? schoolProfile.districtId : "",
               "District Name": schoolProfile ? schoolProfile.districtName : "",
               "Gender": schoolProfile ? schoolProfile.gender : "",
@@ -1124,7 +1177,6 @@ module.exports = class Reports extends Abstract {
               "Total Boys": schoolProfile ? schoolProfile.totalBoys : "",
               "Total Girls": schoolProfile ? schoolProfile.totalGirls : "",
               "Total Students": schoolProfile ? schoolProfile.totalStudents : "",
-              "Update dBy": schoolProfile ? schoolProfile.updatedBy : "",
               "Zone Id": schoolProfile ? schoolProfile.zoneId : ""
             });
           }))
