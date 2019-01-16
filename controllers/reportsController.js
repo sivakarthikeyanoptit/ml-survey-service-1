@@ -34,16 +34,15 @@ module.exports = class Reports extends Abstract {
   async status(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let submissions = await database.models.submissions.find(
-          {},
-          {"schoolInformation.externalId":1,
-          "schoolInformation.name":1,
-          "programInformation.name":1,
-          "schoolId":1,
-          "programId":1,
-          "status":1,
-          "evidencesStatus":1
-        });
+        let submissionQueryObject = {
+          ["programInformation.externalId"]: req.params._id
+        }
+        let submissionsIds = await database.models.submissions.find(
+          submissionQueryObject,
+          {
+            _id: 1
+          }
+        );
 
         const fileName = `status`;
         let fileStream = new FileStream(fileName);
@@ -57,44 +56,76 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!submissions.length){
+        if (!submissionsIds.length) {
           input.push({
-            "School Id":null,
-            "School Name":null,
-            "School Id":null,
-            "Program Id":null,
-            "Program Name":null,
-            "Status":null
+            "School Id": null,
+            "School Name": null,
+            "Program Id": null,
+            "Program Name": null,
+            "Status": null
           });
         }
-        submissions.forEach(submission => {
-          let result = {};
 
-          if (submission.schoolInformation) {
-            result["School Id"] = submission.schoolInformation.externalId;
-            result["School Name"] = submission.schoolInformation.name;
-          } else {
-            result["School Id"] = submission.schoolId;
-          }
+        const chunkSize = 10;
+        let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, chunkSize)
+        let submissionId
+        let submissionDocumentsArray
 
-          if (submission.programInformation) {
-            result["Program Id"] = submission.programId;
-            result["Program Name"] = submission.programInformation.name;
-          } else {
-            result["Program Id"] = submission.programId;
-          }
 
-          result["Status"] = submission.status;
-
-          let evidenceMethodStatuses = submission.evidencesStatus.map(evidenceMethod=>
-            ({[evidenceMethod.externalId]: evidenceMethod.isSubmitted})
-          )
-
-          evidenceMethodStatuses.forEach(evidenceMethodStatus => {
-            _.merge(result, evidenceMethodStatus);
+        for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
+          submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
+            return submissionModel._id
           });
-          input.push(result);
-        });
+
+
+          submissionDocumentsArray = await database.models.submissions.find(
+            {
+              _id: {
+                $in: submissionId
+              }
+            },
+            {
+              "schoolInformation.externalId": 1,
+              "schoolInformation.name": 1,
+              "programInformation.name": 1,
+              "programInformation.externalId": 1,
+              "schoolId": 1,
+              "programId": 1,
+              "status": 1,
+              "evidencesStatus": 1
+            }
+          )
+          await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
+            let result = {};
+
+            if (eachSubmissionDocument.schoolInformation) {
+              result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
+              result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+            } else {
+              result["School Id"] = eachSubmissionDocument.schoolId;
+            }
+
+            if (eachSubmissionDocument.programInformation) {
+              result["Program Id"] = eachSubmissionDocument.programId;
+              result["Program Name"] = eachSubmissionDocument.programInformation.name;
+            } else {
+              result["Program Id"] = eachSubmissionDocument.programId;
+            }
+
+            result["Status"] = eachSubmissionDocument.status;
+
+            let evidenceMethodStatuses = eachSubmissionDocument.evidencesStatus.map(evidenceMethod =>
+              ({ [evidenceMethod.externalId]: evidenceMethod.isSubmitted })
+            )
+
+            evidenceMethodStatuses.forEach(evidenceMethodStatus => {
+              _.merge(result, evidenceMethodStatus);
+            });
+            input.push(result);
+          }))
+
+        }
+
         input.push(null);
 
       } catch (error) {
@@ -110,16 +141,14 @@ module.exports = class Reports extends Abstract {
   async assessorSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        req.query = {};
-        req.populate = {
-          path: "schools",
-          select: ["name", "externalId"]
+        const programQueryParams = {
+          externalId: req.params._id
         };
-        const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
-          req
-        );
+        const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
-        const fileName = `assessorSchools`;
+        const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+          ;
+        const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -130,7 +159,7 @@ module.exports = class Reports extends Abstract {
             fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
-        if(!assessorsWithSchoolDetails.result.length){
+        if (!assessorDocument.length) {
           input.push({
             "Assessor Id": null,
             "Assessor UserId": null,
@@ -143,21 +172,56 @@ module.exports = class Reports extends Abstract {
             "School Name": null
           });
         }
-        assessorsWithSchoolDetails.result.forEach(assessor => {
-          assessor.schools.forEach(assessorSchool => {
-            input.push({
-              "Assessor Id": assessor.externalId,
-              "Assessor UserId": assessor.userId,
-              "Parent Id": assessor.parentId,
-              "Assessor Name": assessor.name,
-              "Assessor Email": assessor.email,
-              "Assessor Role": assessor.role,
-              "Program Id": assessor.programId.toString(),
-              "School Id": assessorSchool.externalId,
-              "School Name": assessorSchool.name
-            });
+
+        const chunkSize = 10;
+        let chunkOfAssessorDocument = _.chunk(assessorDocument, chunkSize)
+        let assessorId
+        let assessorsDocuments
+
+
+        for (let pointerToAssessorIdDocument = 0; pointerToAssessorIdDocument < chunkOfAssessorDocument.length; pointerToAssessorIdDocument++) {
+          assessorId = chunkOfAssessorDocument[pointerToAssessorIdDocument].map(assessorModel => {
+            return assessorModel._id
           });
-        });
+
+
+          let assessorQueryObject = [
+            {
+              $match: {
+                _id: {
+                  $in: assessorId
+                }
+              }
+            }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+            {
+              $lookup: {
+                from: "schools",
+                localField: "schoolIdInObjectIdForm",
+                foreignField: "_id",
+                as: "schoolDocument"
+
+              }
+            }
+          ];
+
+          assessorsDocuments = await database.models["school-assessors"].aggregate(assessorQueryObject)
+
+          await Promise.all(assessorsDocuments.map(async (assessor) => {
+            assessor.schoolDocument.forEach(eachAssessorSchool => {
+              input.push({
+                "Assessor Id": assessor.externalId,
+                "Assessor UserId": assessor.userId,
+                "Parent Id": assessor.parentId,
+                "Assessor Name": assessor.name,
+                "Assessor Email": assessor.email,
+                "Assessor Role": assessor.role,
+                "Program Id": req.params._id,
+                "School Id": eachAssessorSchool.externalId,
+                "School Name": eachAssessorSchool.name
+              });
+            })
+          }))
+        }
         input.push(null);
       } catch (error) {
         return reject({
@@ -172,15 +236,13 @@ module.exports = class Reports extends Abstract {
   async schoolAssessors(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        req.query = {};
-        req.populate = {
-          path: "schools",
-          select: ["name", "externalId"]
+        const programQueryParams = {
+          externalId: req.params._id
         };
-        const assessorsWithSchoolDetails = await controllers.schoolAssessorsController.populate(
-          req
-        );
-        
+        const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+
         const fileName = `schoolAssessors`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -192,7 +254,7 @@ module.exports = class Reports extends Abstract {
             fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
-        if(!assessorsWithSchoolDetails.result.length){
+        if (!assessorDocument.length) {
           input.push({
             "Assessor School Id": null,
             "Assessor School Name": null,
@@ -205,21 +267,56 @@ module.exports = class Reports extends Abstract {
             "Program Id": null
           });
         }
-        assessorsWithSchoolDetails.result.forEach(assessor => {
-          assessor.schools.forEach(assessorSchool => {
-            input.push({
-              "Assessor School Id": assessorSchool.externalId,
-              "Assessor School Name": assessorSchool.name,
-              "Assessor User Id": assessor.userId,
-              "Assessor Id": assessor.externalId,
-              "Assessor Name": assessor.name,
-              "Assessor Email": assessor.email,
-              "Parent Id": assessor.parentId,
-              "Assessor Role": assessor.role,
-              "Program Id": assessor.programId.toString()
-            });
+
+        const chunkSize = 10;
+        let chunkOfAssessorDocument = _.chunk(assessorDocument, chunkSize)
+        let assessorId
+        let assessorsDocuments
+
+
+        for (let pointerToAssessorIdDocument = 0; pointerToAssessorIdDocument < chunkOfAssessorDocument.length; pointerToAssessorIdDocument++) {
+          assessorId = chunkOfAssessorDocument[pointerToAssessorIdDocument].map(assessorModel => {
+            return assessorModel._id
           });
-        });
+
+          let assessorQueryObject = [
+            {
+              $match: {
+                _id: {
+                  $in: assessorId
+                }
+              }
+            }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+            {
+              $lookup: {
+                from: "schools",
+                localField: "schoolIdInObjectIdForm",
+                foreignField: "_id",
+                as: "schoolDocument"
+
+              }
+            }
+          ];
+
+          assessorsDocuments = await database.models["school-assessors"].aggregate(assessorQueryObject)
+
+          await Promise.all(assessorsDocuments.map(async (assessor) => {
+            assessor.schoolDocument.forEach(eachAssessorSchool => {
+              input.push({
+                "Assessor School Id": eachAssessorSchool.externalId,
+                "Assessor School Name": eachAssessorSchool.name,
+                "Assessor User Id": assessor.userId,
+                "Assessor Id": assessor.externalId,
+                "Assessor Name": assessor.name,
+                "Assessor Email": assessor.email,
+                "Parent Id": assessor.parentId,
+                "Assessor Role": assessor.role,
+                "Program Id": assessor.programId.toString()
+              });
+            })
+          }))
+
+        }
         input.push(null)
       } catch (error) {
         return reject({
@@ -291,7 +388,7 @@ module.exports = class Reports extends Abstract {
           ]
         ).exec();
 
-        
+
 
         const fileName = `programSchoolsStatusByProgramId_${req.params._id}`;
 
@@ -324,15 +421,15 @@ module.exports = class Reports extends Abstract {
               submissionCount: evidencesStatus.submissionCount
             };
           });
-          if(!schoolDocument.length){
+          if (!schoolDocument.length) {
             input.push({
               "Program Id": null,
               "School Name": null,
               "School Id": null,
-              "Status":null,
-              "Created At":null,
-              "Completed Date":null,
-              "Submission Count":null
+              "Status": null,
+              "Created At": null,
+              "Completed Date": null,
+              "Submission Count": null
             })
           }
           schoolDocument.forEach(school => {
@@ -357,7 +454,7 @@ module.exports = class Reports extends Abstract {
               programSchoolStatusObject["Status"] = "pending";
               programSchoolStatusObject["Created At"] = "-";
               programSchoolStatusObject["Completed Date"] = "-";
-              programSchoolStatusObject["Submission Count"]= 0;
+              programSchoolStatusObject["Submission Count"] = 0;
 
             }
             input.push(programSchoolStatusObject)
@@ -378,7 +475,7 @@ module.exports = class Reports extends Abstract {
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
 
-      try { 
+      try {
 
         const evidenceIdFromRequestParam = req.query.evidenceId;
         const evidenceQueryObject = "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
@@ -396,6 +493,15 @@ module.exports = class Reports extends Abstract {
           { _id: 1 }
         )
 
+        let questionIdObject = {}
+        const questionDocument = await database.models.questions.find({}, { externalId: 1 })
+
+        questionDocument.forEach(eachQuestionId => {
+          questionIdObject[eachQuestionId._id] = {
+            questionExternalId: eachQuestionId.externalId
+          }
+        })
+
         const fileName = `programsSubmissionStatus_${evidenceIdFromRequestParam}`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -408,11 +514,12 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        if(!submissionDocumentIdsToProcess.length){
+        if (!submissionDocumentIdsToProcess.length) {
           input.push({
             "School Name": null,
             "School Id": null,
             "Question": null,
+            "Question Id": null,
             "Answer": null,
             "Assessor Id": null,
             "Remarks": null,
@@ -420,7 +527,7 @@ module.exports = class Reports extends Abstract {
             "End Time": null,
             "Files": null
           })
-        }else{
+        } else {
 
           const chunkSize = 10
           const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, chunkSize)
@@ -466,12 +573,13 @@ module.exports = class Reports extends Abstract {
                   externalId: assessor.externalId
                 };
               });
-              
+
               submission.evidences[evidenceIdFromRequestParam].submissions.forEach(evidenceSubmission => {
 
                 if (assessors[evidenceSubmission.submittedBy.toString()] && evidenceSubmission.isValid === true) {
 
                   Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
+
 
                     if (singleAnswer.payload) {
 
@@ -479,6 +587,7 @@ module.exports = class Reports extends Abstract {
                         "School Name": submission.schoolInformation.name,
                         "School Id": submission.schoolInformation.externalId,
                         "Question": singleAnswer.payload.question[0],
+                        "Question Id": questionIdObject[singleAnswer.qid].questionExternalId,
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                         "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                         "Remarks": singleAnswer.remarks || "",
@@ -524,6 +633,7 @@ module.exports = class Reports extends Abstract {
                                     "School Name": submission.schoolInformation.name,
                                     "School Id": submission.schoolInformation.externalId,
                                     "Question": eachInstanceChildQuestion.question[0],
+                                    "Question Id": questionIdObject[eachInstanceChildQuestion._id].questionExternalId,
                                     "Answer": "",
                                     "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
@@ -596,7 +706,7 @@ module.exports = class Reports extends Abstract {
               });
             }));
           }
-          
+
         }
         input.push(null)
 
@@ -628,7 +738,7 @@ module.exports = class Reports extends Abstract {
 
         let evaluationFrameworksDocuments = database.models[
           "evaluation-frameworks"
-        ].find({},{themes:1}).exec();
+        ].find({}, { themes: 1 }).exec();
 
         const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
         let fileStream = new FileStream(fileName);
@@ -642,7 +752,7 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        Promise.all([submissionDocument,evaluationFrameworksDocuments]).then(submissionAndEvaluationFrameworksDocuments=>{
+        Promise.all([submissionDocument, evaluationFrameworksDocuments]).then(submissionAndEvaluationFrameworksDocuments => {
           let submissionDocument = submissionAndEvaluationFrameworksDocuments[0];
           let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
@@ -663,7 +773,7 @@ module.exports = class Reports extends Abstract {
             });
           });
 
-          if(!submissionDocument[0].criterias.length){
+          if (!submissionDocument[0].criterias.length) {
             input.push({
               "Theme Name": null,
               "AoI Name": null,
@@ -676,7 +786,7 @@ module.exports = class Reports extends Abstract {
           }
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
-  
+
             if (submissionCriterias._id) {
               let criteriaReportObject = {
                 "Theme Name": evaluationNameObject[submissionCriterias._id]
@@ -748,7 +858,7 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        Promise.all([allCriterias,allQuestionWithOptions,schoolSubmissionDocument]).then(documents=>{
+        Promise.all([allCriterias, allQuestionWithOptions, schoolSubmissionDocument]).then(documents => {
 
           let allCriterias = documents[0];
           let allQuestionWithOptions = documents[1];
@@ -758,19 +868,19 @@ module.exports = class Reports extends Abstract {
           let questionOptionObject = {};
 
           allCriterias.forEach(eachCriteria => {
-          eachCriteria.evidences.forEach(eachEvidence => {
-            eachEvidence.sections.forEach(eachSection => {
-              eachSection.questions.forEach(eachquestion => {
-                criteriaQuestionDetailsObject[eachquestion.toString()] = {
-                  criteriaId: eachCriteria._id,
-                  criteriaName: eachCriteria.name,
-                  questionId: eachquestion.toString()
-                };
+            eachCriteria.evidences.forEach(eachEvidence => {
+              eachEvidence.sections.forEach(eachSection => {
+                eachSection.questions.forEach(eachquestion => {
+                  criteriaQuestionDetailsObject[eachquestion.toString()] = {
+                    criteriaId: eachCriteria._id,
+                    criteriaName: eachCriteria.name,
+                    questionId: eachquestion.toString()
+                  };
+                });
               });
             });
           });
-          });
-         
+
           allQuestionWithOptions.forEach(question => {
             if (question.options.length > 0) {
               let optionString = "";
@@ -789,19 +899,19 @@ module.exports = class Reports extends Abstract {
                 score: singleCriteria.score
               };
             });
-            if(!Object.values(singleSchoolSubmission.answers).length){
+            if (!Object.values(singleSchoolSubmission.answers).length) {
               input.push({
-                "Criteria Name":"",
-                "Question":"",
-                "Answer":"",
-                "Options":"",
-                "Score":"",
-                "Remarks":"",
+                "Criteria Name": "",
+                "Question": "",
+                "Answer": "",
+                "Options": "",
+                "Score": "",
+                "Remarks": "",
                 "Files": ""
               })
             }
             Object.values(singleSchoolSubmission.answers).forEach(
-             singleAnswer => {
+              singleAnswer => {
                 if (singleAnswer.payload) {
                   let singleAnswerRecord = {
                     "Criteria Name":
@@ -819,7 +929,7 @@ module.exports = class Reports extends Abstract {
                     "Remarks": singleAnswer.remarks || "",
                     "Files": "",
                   };
-  
+
                   if (singleAnswer.fileName.length > 0) {
                     singleAnswer.fileName.forEach(file => {
                       singleAnswerRecord.Files +=
@@ -830,7 +940,7 @@ module.exports = class Reports extends Abstract {
                       ""
                     );
                   }
-  
+
                   if (!singleAnswer.notApplicable) {
                     if (singleAnswer.responseType != "matrix") {
                       singleAnswerRecord["Answer"] = singleAnswer.payload[
@@ -838,7 +948,7 @@ module.exports = class Reports extends Abstract {
                       ].toString();
                     } else {
                       singleAnswerRecord["Answer"] = "Instance Question";
-  
+
                       if (singleAnswer.payload.labels[0]) {
                         for (
                           let instance = 0;
@@ -859,13 +969,13 @@ module.exports = class Reports extends Abstract {
                                 "Question": eachInstanceChildQuestion.question[0],
                                 "Answer": eachInstanceChildQuestion.value,
                                 "Options":
-                                questionOptionObject[
-                                  eachInstanceChildQuestion._id
-                                ] == undefined
-                                  ? " No Options"
-                                  : questionOptionObject[
-                                  eachInstanceChildQuestion._id
-                                  ],
+                                  questionOptionObject[
+                                    eachInstanceChildQuestion._id
+                                  ] == undefined
+                                    ? " No Options"
+                                    : questionOptionObject[
+                                    eachInstanceChildQuestion._id
+                                    ],
                                 "Score":
                                   criteriaScoreObject[
                                     eachInstanceChildQuestion.payload.criteriaId
@@ -873,7 +983,7 @@ module.exports = class Reports extends Abstract {
                                 "Remarks": eachInstanceChildQuestion.remarks || "",
                                 "Files": "",
                               };
-  
+
                               if (eachInstanceChildQuestion.fileName.length > 0) {
                                 eachInstanceChildQuestion.fileName.forEach(
                                   file => {
@@ -886,11 +996,11 @@ module.exports = class Reports extends Abstract {
                                   ""
                                 );
                               }
-  
+
                               let radioResponse = {};
                               let multiSelectResponse = {};
                               let multiSelectResponseArray = [];
-  
+
                               if (
                                 eachInstanceChildQuestion.responseType == "radio"
                               ) {
@@ -911,16 +1021,16 @@ module.exports = class Reports extends Abstract {
                                       option.label;
                                   }
                                 );
-  
+
                                 eachInstanceChildQuestion.value.forEach(value => {
                                   multiSelectResponseArray.push(
                                     multiSelectResponse[value]
                                   );
                                 });
-  
+
                                 eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
                               }
-  
+
                               input.push(eachInstanceChildRecord);
                             }
                           );
@@ -947,7 +1057,6 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-
   async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -955,7 +1064,7 @@ module.exports = class Reports extends Abstract {
         const programQueryParams = {
           externalId: req.params._id
         };
-        
+
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find({ "programId": programsDocumentIds[0]._id }, { _id: 1 })
