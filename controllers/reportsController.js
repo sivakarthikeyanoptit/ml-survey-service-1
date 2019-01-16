@@ -37,6 +37,11 @@ module.exports = class Reports extends Abstract {
         let submissionQueryObject = {
           ["programInformation.externalId"]: req.params._id
         }
+
+        if(!req.params._id) {
+          throw "Program ID missing."
+        }
+
         let submissionsIds = await database.models.submissions.find(
           submissionQueryObject,
           {
@@ -131,7 +136,7 @@ module.exports = class Reports extends Abstract {
       } catch (error) {
         return reject({
           status: 500,
-          message: "Oops! Something went wrong!",
+          message: error,
           errorObject: error
         });
       }
@@ -141,6 +146,11 @@ module.exports = class Reports extends Abstract {
   async assessorSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
+        if(!req.params._id) {
+          throw "Program ID missing."
+        }
+
         const programQueryParams = {
           externalId: req.params._id
         };
@@ -226,7 +236,7 @@ module.exports = class Reports extends Abstract {
       } catch (error) {
         return reject({
           status: 500,
-          message: "Oops! Something went wrong!",
+          message: error,
           errorObject: error
         });
       }
@@ -236,6 +246,11 @@ module.exports = class Reports extends Abstract {
   async schoolAssessors(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
+        if(!req.params._id) {
+          throw "Program ID missing."
+        }
+
         const programQueryParams = {
           externalId: req.params._id
         };
@@ -321,7 +336,7 @@ module.exports = class Reports extends Abstract {
       } catch (error) {
         return reject({
           status: 500,
-          message: "Oops! Something went wrong!",
+          message: error,
           errorObject: error
         });
       }
