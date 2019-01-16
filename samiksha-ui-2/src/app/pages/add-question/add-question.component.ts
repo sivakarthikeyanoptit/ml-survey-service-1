@@ -15,6 +15,7 @@ import { ApiService } from "../../service/api/api.service";
 export class AddQuestionComponent implements OnInit {
   question: any;
   evidences: any;
+  DCPCRevidences:any;
   sections: any;
   criteriaQuestions: any;
   myControl = new FormControl();
@@ -92,6 +93,155 @@ export class AddQuestionComponent implements OnInit {
     this.headerTextService.setHeader("Add Questions");
 
     this.evidences = [
+        {
+          externalId: "DA",
+          tip: "Give the school leader the list of documents to be kept ready, and once they are given - begin the analysis",
+          name: "Documentary Analysis",
+          description: "Give the school leader the list of documents to be kept ready, and once they are given - begin the analysis",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "SW",
+          tip: "Conduct a school walkthrough first and then enter the data",
+          name: "School Walkthrough (Observations)",
+          description: "Conduct a school walkthrough first and then enter the data",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "PI",
+          tip: "Conduct principal interview on the first or second day, before the coordinator interview",
+          name: "Principal Interview",
+          description: "Conduct principal interview on the first or second day, before the coordinator interview",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "CO",
+          tip: "Conduct 3 pop-in observations of 10 minutes each for all teachers",
+          name: "Classroom Observation",
+          description: "Conduct 3 pop-in observations of 10 minutes each for all teachers",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "TI",
+          tip: "Conduct teacher interviews for 25% of teachers across sections or 10 teachers, whichever is greater",
+          name: "Teacher Interview",
+          description: "Conduct teacher interviews for 25% of teachers across sections or 10 teachers, whichever is greater",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "AC3",
+          tip: "",
+          name: "Assessment Class 3",
+          description: "",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: true
+        },
+        {
+          externalId: "AC5",
+          tip: "",
+          name: "Assessment Class 5",
+          description: "",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: true
+        },
+        {
+          externalId: "AC8",
+          tip: "",
+          name: "Assessment Class 8",
+          description: "",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: true
+        },
+        {
+          externalId: "PAI",
+          tip: "Approach parents when they are dropping children to the school or are waiting to pick children up from the school. Ask the following questions for 7-8 parents",
+          name: "Parent Interview",
+          description: "Approach parents when they are dropping children to the school or are waiting to pick children up from the school. Ask the following questions for 7-8 parents",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "COI",
+          tip: "Conduct coordinator interview on the second or third day, after the principal interview",
+          name: "Coordinator Interview",
+          description: "Conduct coordinator interview on the second or third day, after the principal interview",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "SFGD",
+          tip: "1 group (7-8 students from 4th and 5th)",
+          name: "Student Focused Group Discussions",
+          description: "1 group (7-8 students from 4th and 5th)",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        },
+        {
+          externalId: "TFGD",
+          tip: "3 (primary, middle, high)",
+          name: "Teacher Focused Group Discussions",
+          description: "3 (primary, middle, high)",
+          startTime: "",
+          endTime: "",
+          isSubmitted: false,
+          sections: [],
+          modeOfCollection: "onfield",
+          canBeNotApplicable: false
+        }
+      
+    ];
+
+    
+    this.DCPCRevidences = [
       {
         externalId: "AC3",
         tip: "Some tip at evidence level.",
