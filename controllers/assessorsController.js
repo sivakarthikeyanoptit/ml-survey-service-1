@@ -4,41 +4,47 @@ module.exports = class Assessors {
 
   async schools(req) {
     return new Promise(async (resolve,reject) => {
-
-      let schools = new Array
-      let responseMessage = "Not authorized to fetch schools for this user"
-
-      if (_.includes(req.userDetails.allRoles,"ASSESSOR") || _.includes(req.userDetails.allRoles,"LEAD_ASSESSOR")) {
-        req.query = { userId: req.userDetails.userId };
-        req.populate = {
-          path: 'schools',
-          select: ["name","externalId","addressLine1","addressLine2","city","state","isParentInterviewCompleted"]
-        };
-        const queryResult = await controllers.schoolAssessorsController.populate(req)
-        queryResult.result.forEach(assessor => {
-          assessor.schools.forEach(assessorSchool => {
-            let currentSchool = assessorSchool.toObject();
-            if(!currentSchool.isParentInterviewCompleted){
-              currentSchool.isParentInterviewCompleted = false;
-            }
-            schools.push(currentSchool)
-          })
+      try {
+        let schools = new Array
+        let responseMessage = "Not authorized to fetch schools for this user"
+  
+        if (_.includes(req.userDetails.allRoles,"ASSESSOR") || _.includes(req.userDetails.allRoles,"LEAD_ASSESSOR")) {
+          req.query = { 
+            userId: req.userDetails.userId,
+            limit: req.pageSize,
+            skip: req.pageNo - 1
+          };
+          req.populate = {
+            path: 'schools',
+            select: ["name","externalId","addressLine1","addressLine2","city","state","isParentInterviewCompleted"]
+          };
+          const queryResult = await controllers.schoolAssessorsController.populate(req)
+          queryResult.result.forEach(assessor => {
+            assessor.schools.forEach(assessorSchool => {
+              let currentSchool = assessorSchool.toObject();
+              if(!currentSchool.isParentInterviewCompleted){
+                currentSchool.isParentInterviewCompleted = false;
+              }
+              schools.push(currentSchool)
+            })
+          });
+          responseMessage = "School list fetched successfully"
+        }
+  
+        return resolve({
+          message: responseMessage,
+          result: schools
         });
-        responseMessage = "School list fetched successfully"
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
       }
 
-      return resolve({
-        message: responseMessage,
-        result: schools
-      });
-
-    }).catch(error => {
-      reject({
-        error: true,
-        status: 404,
-        message: "No record found"
-      });
-    })
+    });
   }
 
 

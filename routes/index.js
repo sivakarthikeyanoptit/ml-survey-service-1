@@ -8,6 +8,15 @@ module.exports = function(app) {
 
   app.use(applicationBaseUrl, authenticator);
 
+  app.get('/*', function (req, res, next) {
+    req.pageNo = (req.query.page && req.query.page > 0) ? req.query.page : 1
+    req.pageSize = (req.query.limit && req.query.limit > 0 && req.query.limit <= 100) ? req.query.limit : 100
+    req.searchText = (req.query.search && req.query.search != "") ? req.query.search : ""
+    delete req.query.page
+    delete req.query.limit
+    next();
+  })
+
   var router = function(req, res, next) {
 
     //req.params.controller = (req.params.controller).toLowerCase();
