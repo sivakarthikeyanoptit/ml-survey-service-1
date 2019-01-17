@@ -206,7 +206,7 @@ module.exports = class Criterias extends Abstract {
   async getCriteriasParentQuesAndInstParentQues(req) {
     return new Promise(async function(resolve, reject) {
 
-      let criteriaQueryResult = await database.models.criterias.find({});
+      let criteriaQueryResult = await database.models.criterias.find({ owner: { $ne: "e6074dd8-9652-4c58-8586-597a96bf65d5" } });
 
       const questionQueryObject = {
         //responseType: "matrix"
