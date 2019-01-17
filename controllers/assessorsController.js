@@ -5,27 +5,67 @@ module.exports = class Assessors {
   async schools(req) {
     return new Promise(async (resolve,reject) => {
       try {
+
         let schools = new Array
         let responseMessage = "Not authorized to fetch schools for this user"
   
         if (_.includes(req.userDetails.allRoles,"ASSESSOR") || _.includes(req.userDetails.allRoles,"LEAD_ASSESSOR")) {
-          req.query = { 
-            userId: req.userDetails.userId,
-            limit: req.pageSize,
-            skip: req.pageNo - 1
-          };
-          req.populate = {
-            path: 'schools',
-            select: ["name","externalId","addressLine1","addressLine2","city","state","isParentInterviewCompleted"]
-          };
-          const queryResult = await controllers.schoolAssessorsController.populate(req)
-          queryResult.result.forEach(assessor => {
-            assessor.schools.forEach(assessorSchool => {
-              let currentSchool = assessorSchool.toObject();
-              if(!currentSchool.isParentInterviewCompleted){
-                currentSchool.isParentInterviewCompleted = false;
+          
+          let assessorSchoolsQueryObject = [
+            {
+              $match: {
+                userId: req.userDetails.userId
               }
-              schools.push(currentSchool)
+            },
+            {
+              $lookup: {
+                from: "schools",
+                localField: "schools",
+                foreignField: "_id",
+                as: "schoolDocuments"
+              }
+            },
+            { 
+              $project : { 
+                "schoolDocuments._id" : 1,
+                "schoolDocuments.externalId" : 1 , 
+                "schoolDocuments.name" : 1 ,
+                "schoolDocuments.addressLine1" : 1 , 
+                "schoolDocuments.addressLine2" : 1 ,
+                "schoolDocuments.city" : 1 , 
+                "schoolDocuments.state" : 1
+              }
+            },
+            {$unwind: "$schoolDocuments"},
+            {
+              $match: { 
+                $or: [ 
+                  { "schoolDocuments.name": { $regex: /janak/i} },
+                  { "schoolDocuments.externalId": { $regex: /^1/} }
+                ] 
+              }
+            },
+            {
+              $skip : req.pageSize * (req.pageNo - 1) 
+            },
+            {
+              $limit : req.pageSize
+            },
+            {
+              $group: {
+                _id: "$_id",
+                schools :{"$push":"$schoolDocuments"}
+              }
+            }
+          ];
+
+          console.log(assessorSchoolsQueryObject)
+          const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
+
+          console.log(assessorsDocument)
+          assessorsDocument.forEach(assessor => {
+            assessor.schools.forEach(assessorSchool => {
+              schools.push(assessorSchool)
             })
           });
           responseMessage = "School list fetched successfully"

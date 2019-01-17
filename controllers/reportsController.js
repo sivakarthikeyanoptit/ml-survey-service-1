@@ -308,7 +308,6 @@ module.exports = class Reports extends Abstract {
                 localField: "schoolIdInObjectIdForm",
                 foreignField: "_id",
                 as: "schoolDocument"
-
               }
             }
           ];
