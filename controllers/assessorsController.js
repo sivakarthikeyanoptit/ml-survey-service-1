@@ -40,8 +40,8 @@ module.exports = class Assessors {
             {
               $match: { 
                 $or: [ 
-                  { "schoolDocuments.name": { $regex: /janak/i} },
-                  { "schoolDocuments.externalId": { $regex: /^1/} }
+                  { "schoolDocuments.name": { $regex: new RegExp(req.searchText,'i')} },
+                  { "schoolDocuments.externalId": { $regex: new RegExp(req.searchText)} }
                 ] 
               }
             },
