@@ -75,7 +75,7 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 //swagger docs
 const swagger = require("./swagger");
 const swaggerMW = new swagger();
-const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
+const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/api/"
 app.use(serviceBaseUrl+"api/v1/swagger", swaggerMW.sendFile);
 
 app.get(serviceBaseUrl+"web/*", function(req, res) {
