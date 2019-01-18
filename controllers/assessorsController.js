@@ -35,36 +35,13 @@ module.exports = class Assessors {
                 "schoolDocuments.city" : 1 , 
                 "schoolDocuments.state" : 1
               }
-            },
-            {$unwind: "$schoolDocuments"},
-            {
-              $match: { 
-                $or: [ 
-                  { "schoolDocuments.name": { $regex: new RegExp(req.searchText,'i')} },
-                  { "schoolDocuments.externalId": { $regex: new RegExp(req.searchText)} }
-                ] 
-              }
-            },
-            {
-              $skip : req.pageSize * (req.pageNo - 1) 
-            },
-            {
-              $limit : req.pageSize
-            },
-            {
-              $group: {
-                _id: "$_id",
-                schools :{"$push":"$schoolDocuments"}
-              }
             }
           ];
 
-          console.log(assessorSchoolsQueryObject)
           const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
 
-          console.log(assessorsDocument)
           assessorsDocument.forEach(assessor => {
-            assessor.schools.forEach(assessorSchool => {
+            assessor.schoolDocuments.forEach(assessorSchool => {
               schools.push(assessorSchool)
             })
           });
