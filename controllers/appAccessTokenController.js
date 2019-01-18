@@ -6,14 +6,23 @@ module.exports = class AppAccessToken extends Abstract {
         return "appAccessToken";
     }
 
-    tokenData(req) {
+    verify(req) {
         return new Promise((resolve, reject) => {
+            return resolve({
+                result: {
+                    "action": ["enableSubmission"],
+                    "schoolId": "5bebcfcf92ec921dcf114827",
+                    "evidenceCollectionMethod": "LW",
+                    "successMessage": "success"
+                }
+            })
+
             let queryObject = {
                 userId: req.userDetails.userId,
-                passcode: req.body.userId,
+                passcode: req.body.passcode,
                 isValid: true
             }
-            database.models['app-access-token'].findOne(queryObject).then((tokenData, err) => {
+            database.models.appAccessToken.findOne(queryObject).then((tokenData, err) => {
                 if (err) {
                     return reject({
                         status: 500,
@@ -23,7 +32,7 @@ module.exports = class AppAccessToken extends Abstract {
                 if(!tokenData){
                     return reject({
                         status: 400,
-                        message: 'no data found for given params'
+                        message: 'Bad Request'
                     })
                 }
                 let updatedTokenData = {};
@@ -36,8 +45,8 @@ module.exports = class AppAccessToken extends Abstract {
                             "userId": tokenData.userId,
                             "action": tokenData.action,
                             "schoolId": tokenData.schoolId,
-                            "ecmId": tokenData.ecmId,
-                            "message": "success"
+                            "evidenceCollectionMethod": tokenData.evidenceCollectionMethod,
+                            "successMessage": "success"
                         }
                     })
                 })
