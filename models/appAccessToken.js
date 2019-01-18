@@ -14,6 +14,7 @@ module.exports = {
       isValid: { type : Boolean, default: true },
       verifiedAt: Date,
       reference: "String",
+      createdBy: "String",
       requestedBy: "String",
       successMessage: "String",
     }
