@@ -54,4 +54,40 @@ module.exports = class AppAccessToken extends Abstract {
         })
     }
 
+    async createToken(req){
+        return new Promise(async (resolve,reject)=>{
+            try {
+                let token = req.body;
+                let schoolDocument = await database.models.schools.findOne({externalId:token.schoolId})
+                let programDocument = await database.models.programs.findOne({externalId:token.programId})
+                token.userExternalId = token.userExternalId;
+                token.schoolExternalId = token.schoolId;
+                token.programExternalId = token.programId;
+                token.schoolId = schoolDocument._id;
+                token.programId = programDocument._id;
+                token.passcode = gen.utils.generateRandomCharacters(10);
+                database.models.appAccessToken.create(token).then(tokenData=>{
+                    return resolve({
+                        status:200,
+                        message: {
+                            status: "token created successfully",
+                            passcode: tokenData.passcode,
+                        }
+                    });
+                }).catch(err=>{
+                    return reject({
+                        status:400,
+                        message: err
+                    })
+                })
+            }
+            catch(err){
+                return reject({
+                    status:500,
+                    message: err
+                })
+            }
+        })
+    }
+
 };
