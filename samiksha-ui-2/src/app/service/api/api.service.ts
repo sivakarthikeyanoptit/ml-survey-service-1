@@ -11,7 +11,7 @@ export class ApiService {
   api: any;
 
   constructor(private auth: AuthService, private http: HttpClient) {
-    this.host = environment.apiHost + "/assessment/api/v1";
+    this.host = environment.apiHost + environment.apiBaseEndpoint+ "api/v1";
     this.api = {
       createCriteria: { uri: this.host + "/criterias/insert", method: "post" },
       getCriteriaAndQuestion: {
