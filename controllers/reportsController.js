@@ -62,12 +62,9 @@ module.exports = class Reports extends Abstract {
         }());
 
         if (!submissionsIds.length) {
-          input.push({
-            "School Id": null,
-            "School Name": null,
-            "Program Id": null,
-            "Program Name": null,
-            "Status": null
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
           });
         }
 
@@ -156,6 +153,13 @@ module.exports = class Reports extends Abstract {
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
+
         const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
           ;
         const fileName = `assessorSchoolsfile`;
@@ -170,16 +174,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
         if (!assessorDocument.length) {
-          input.push({
-            "Assessor Id": null,
-            "Assessor UserId": null,
-            "Parent Id": null,
-            "Assessor Name": null,
-            "Assessor Email": null,
-            "Assessor Role": null,
-            "Program Id": null,
-            "School Id": null,
-            "School Name": null
+          return resolve({
+            status: 404,
+            message: "No assessor found for given params."
           });
         }
 
@@ -256,6 +253,13 @@ module.exports = class Reports extends Abstract {
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
+
         const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `schoolAssessors`;
@@ -270,16 +274,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
         if (!assessorDocument.length) {
-          input.push({
-            "Assessor School Id": null,
-            "Assessor School Name": null,
-            "Assessor User Id": null,
-            "Assessor Id": null,
-            "Assessor Name": null,
-            "Assessor Email": null,
-            "Parent Id": null,
-            "Assessor Role": null,
-            "Program Id": null
+          return resolve({
+            status: 404,
+            message: "No assessor found for given params."
           });
         }
 
@@ -355,6 +352,14 @@ module.exports = class Reports extends Abstract {
         let programDocument = await database.models.programs.findOne(
           programQueryObject
         );
+
+        if (!programDocument) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
+
         programDocument.components.forEach(document => {
           result.schoolId = document.schools;
           result.id = programDocument._id;
@@ -436,16 +441,11 @@ module.exports = class Reports extends Abstract {
               submissionCount: evidencesStatus.submissionCount
             };
           });
-          if (!schoolDocument.length) {
-            input.push({
-              "Program Id": null,
-              "School Name": null,
-              "School Id": null,
-              "Status": null,
-              "Created At": null,
-              "Completed Date": null,
-              "Submission Count": null
-            })
+          if (!schoolDocument.length || !submissionDocument.length) {
+            return resolve({
+              status: 404,
+              message: "No data found for given params."
+            });
           }
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
@@ -530,18 +530,10 @@ module.exports = class Reports extends Abstract {
         }());
 
         if (!submissionDocumentIdsToProcess.length) {
-          input.push({
-            "School Name": null,
-            "School Id": null,
-            "Question": null,
-            "Question Id": null,
-            "Answer": null,
-            "Assessor Id": null,
-            "Remarks": null,
-            "Start Time": null,
-            "End Time": null,
-            "Files": null
-          })
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
         } else {
 
           const chunkSize = 10
@@ -789,15 +781,10 @@ module.exports = class Reports extends Abstract {
           });
 
           if (!submissionDocument[0].criterias.length) {
-            input.push({
-              "Theme Name": null,
-              "AoI Name": null,
-              "Level 1": null,
-              "Level 2": null,
-              "Level 3": null,
-              "Level 4": null,
-              "Score": null
-            })
+            return resolve({
+              status: 404,
+              message: "No submissions found for given params."
+            });
           }
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
@@ -915,15 +902,10 @@ module.exports = class Reports extends Abstract {
               };
             });
             if (!Object.values(singleSchoolSubmission.answers).length) {
-              input.push({
-                "Criteria Name": "",
-                "Question": "",
-                "Answer": "",
-                "Options": "",
-                "Score": "",
-                "Remarks": "",
-                "Files": ""
-              })
+              return resolve({
+                status: 404,
+                message: "No submissions found for given params."
+              });
             }
             Object.values(singleSchoolSubmission.answers).forEach(
               singleAnswer => {
