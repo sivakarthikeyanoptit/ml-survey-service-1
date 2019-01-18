@@ -10,7 +10,7 @@ module.exports = class Criterias extends Abstract {
   }
 
 
-  insert(req) {
+  insertOld(req) {
     let qError = {},
       created = [];
     console.log("reached here!");
@@ -122,6 +122,50 @@ module.exports = class Criterias extends Abstract {
         });
     });
   }
+
+
+  insert(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        let result = {}
+        let criteria = req.body
+        criteria.owner = req.userDetails.id;
+
+        let rubricStructure = {
+          name: criteria.rubric.name,
+          description: criteria.rubric.description,
+          type: criteria.rubric.type,
+          levels: {}
+        }
+
+        criteria.rubric.levels.forEach((levelELement) => {
+          delete levelELement.expressionVariables
+          rubricStructure.levels[levelELement.level] = levelELement
+        })
+
+        criteria.rubric = rubricStructure
+        let generatedCriteriaDocument = await database.models.criterias.create(
+          criteria
+        );
+
+        result._id = generatedCriteriaDocument._id
+
+
+        let responseMessage = "Criteria added successfully."
+
+        let response = { message: responseMessage, result: result };
+
+        return resolve(response);
+      } catch (error) {
+        return reject({message:error});
+      }
+
+    })
+  }
+
 
   find(req) {
     return super.find(req);
