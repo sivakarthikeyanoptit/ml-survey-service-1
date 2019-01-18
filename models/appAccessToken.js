@@ -2,6 +2,7 @@ module.exports = {
     name: "appAccessToken",
     schema: {
       userId: "String",
+      passcode: "String",
       schoolId: "String",
       programId: "String",
       action: Array,
