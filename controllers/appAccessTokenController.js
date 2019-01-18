@@ -20,6 +20,12 @@ module.exports = class AppAccessToken extends Abstract {
                         message: err
                     })
                 }
+                if(!tokenData){
+                    return reject({
+                        status: 400,
+                        message: 'no data found for given params'
+                    })
+                }
                 let updatedTokenData = {};
                 updatedTokenData.isValid = false;
                 updatedTokenData.verifiedAt = new Date;
