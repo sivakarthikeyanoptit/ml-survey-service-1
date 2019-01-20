@@ -364,11 +364,15 @@ export class AddQuestionComponent implements OnInit {
       }
     ];
 
+    // this.DCPCRsections = [
+    //   { name: "Survey Questions", questions: [] },
+    //   { name: "Data to be Filled", questions: [] },
+    //   { name: "Group Interview", questions: [] },
+    //   { name: "Individual Interview", questions: [] }
+    // ];
+
     this.sections = [
-      { name: "Survey Questions", questions: [] },
-      { name: "Data to be Filled", questions: [] },
-      { name: "Group Interview", questions: [] },
-      { name: "Individual Interview", questions: [] }
+      { name: "Survey Questions", questions: [] }
     ];
   }
 
