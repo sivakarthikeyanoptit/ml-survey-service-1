@@ -75,14 +75,15 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 //swagger docs
 const swagger = require("./swagger");
 const swaggerMW = new swagger();
-const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/api/"
+const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
 app.use(serviceBaseUrl+"api/v1/swagger", swaggerMW.sendFile);
 
-app.get(serviceBaseUrl+"web/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
-});
+// app.get(serviceBaseUrl+"web/*", function(req, res) {
+//   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+// });
+
 app.get(serviceBaseUrl+"web2/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public/assessment/web2/index.html"));
+  res.sendFile(path.join(__dirname, "/public"+serviceBaseUrl+"web2/index.html"));
 });
 
 var bunyan = require("bunyan");
