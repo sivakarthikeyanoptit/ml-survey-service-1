@@ -1,5 +1,58 @@
 const math = require('mathjs')
 math.import({
+  compareTextValues: function (string1, string2) {
+
+    if(typeof string1 != "string" || typeof string2 != "string") {
+      return -1
+    }
+    
+    let searchUniverse = new Array
+    let matchOperator = ''
+    let searchString = ''
+    if(string1.split('||').length > 1) {
+      searchUniverse = string1.split('||')
+      matchOperator = 'or'
+      searchString = string2
+    } else if (string1.split('&&').length > 1) {
+      searchUniverse = string1.split('&&')
+      matchOperator = 'and'
+      searchString = string2
+    } else if (string2.split('||').length > 1) {
+      searchUniverse = string2.split('||')
+      matchOperator = 'or'
+      searchString = string1
+    } else if (string2.split('&&').length > 1) {
+      searchUniverse = string2.split('&&')
+      matchOperator = 'and'
+      searchString = string1
+    }
+
+    let compareTextValuesResult = -1
+
+    if (matchOperator === 'or') {
+      for (let pointerToSearchUniverseArray = 0; pointerToSearchUniverseArray < searchUniverse.length; pointerToSearchUniverseArray++) {
+        if(searchUniverse[pointerToSearchUniverseArray] == searchString) {
+          compareTextValuesResult = 0
+          break;
+        }
+      }
+    } else if (matchOperator === 'and') {
+      compareTextValuesResult = 0
+      for (let pointerToSearchUniverseArray = 0; pointerToSearchUniverseArray < searchUniverse.length; pointerToSearchUniverseArray++) {
+        if(searchUniverse[pointerToSearchUniverseArray] != searchString) {
+          compareTextValuesResult = -1
+          break;
+        }
+      }
+    } else {
+      if(string1 == string2) {
+        compareTextValuesResult = 0
+      }
+    }
+
+    return compareTextValuesResult
+
+  },
   compareDates: function (dateArg1, dateArg2) {
     let date1 = new Date(dateArg1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
     let date2 = new Date(dateArg2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
@@ -22,27 +75,113 @@ math.import({
   checkIfPresent: function (needle, haystack) {
     let searchUniverse = new Array
     if(haystack._data) {searchUniverse = haystack._data} else {searchUniverse = haystack}
-    return searchUniverse.findIndex( arrayElement => arrayElement === needle)
+
+    if(typeof needle != "string" && typeof needle != "number") {
+      return -1
+    }
+    
+    let searchParameters = new Array
+    let matchOperator = ''
+    if(needle.split('||').length > 1) {
+      searchParameters = needle.split('||')
+      matchOperator = 'or'
+    } else if (needle.split('&&').length > 1) {
+      searchParameters = needle.split('&&')
+      matchOperator = 'and'
+    }
+
+    let checkIfPresentResult = -1
+
+    if (matchOperator === 'or') {
+      for (let pointerToSearchParametersArray = 0; pointerToSearchParametersArray < searchParameters.length; pointerToSearchParametersArray++) {
+        if(searchUniverse.findIndex( arrayElement => arrayElement === searchParameters[pointerToSearchParametersArray]) >= 0) {
+          checkIfPresentResult = 0
+          break;
+        }
+      }
+    } else if (matchOperator === 'and') {
+      checkIfPresentResult = 0
+      for (let pointerToSearchParametersArray = 0; pointerToSearchParametersArray < searchParameters.length; pointerToSearchParametersArray++) {
+        if(searchUniverse.findIndex( arrayElement => arrayElement === searchParameters[pointerToSearchParametersArray]) < 0) {
+          checkIfPresentResult = -1
+          break;
+        }
+      }
+    } else {
+      checkIfPresentResult = searchUniverse.findIndex( arrayElement => arrayElement === needle)
+    }
+
+    return checkIfPresentResult
   },
   checkIfModeIs: function (needle, haystack) {
+
     let searchKey
     let isMode
+
     if(needle._data) {
+
       searchKey = needle._data
       searchKey.sort()
       haystack.forEach(haystackElm => {
         haystackElm.sort()
       })
-    } else {
-      searchKey = needle
-    }
-    const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
-    
-    if(needle._data) {
+
+      let countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
+      
       isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+    
     } else {
-      isMode = (countOfElements[0][0] === searchKey && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+
+      if(typeof needle != "string" && typeof needle != "number") {
+        return -1
+      }
+
+      let searchParameters = new Array
+      let matchOperator = ''
+      
+      if(needle.split('||').length > 1) {
+        searchParameters = needle.split('||')
+        matchOperator = 'or'
+      } else if (needle.split('&&').length > 1) {
+        searchParameters = needle.split('&&')
+        matchOperator = 'and'
+      }
+
+      searchKey = needle
+
+      let countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
+
+      isMode = -1
+      let modeValueCalculated
+
+      if (matchOperator === 'or') {
+        for (let pointerToSearchParametersArray = 0; pointerToSearchParametersArray < searchParameters.length; pointerToSearchParametersArray++) {
+          modeValueCalculated = (countOfElements[0][0] === searchParameters[pointerToSearchParametersArray] && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+          if(modeValueCalculated >= 0) {
+            isMode = 0
+            break;
+          }
+        }
+      } else if (matchOperator === 'and') {
+        isMode = 0
+        for (let pointerToSearchParametersArray = 0; pointerToSearchParametersArray < searchParameters.length; pointerToSearchParametersArray++) {
+          modeValueCalculated = (countOfElements[0][0] === searchParameters[pointerToSearchParametersArray] && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+          if(modeValueCalculated < 0) {
+            isMode = -1
+            break;
+          }
+        }
+      } else {
+        isMode = (countOfElements[0][0] === searchKey && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+      }
+      
     }
+
+    // if(needle._data) {
+    //   isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+    // } else {
+    //   isMode = (countOfElements[0][0] === searchKey && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
+    // }
 
     return isMode
   },
@@ -876,7 +1015,8 @@ module.exports = class Submission extends Abstract {
           result[criteria.externalId].criteriaName = criteria.name
           result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-          if(criteria.externalId == "SS/I/c3" && criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+          // criteria.externalId == "SS/I/c3" && 
+          if(criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
             let submissionAnswers = new Array
             const questionValueExtractor = function (question) {
               const questionArray = question.split('.')
@@ -918,6 +1058,12 @@ module.exports = class Submission extends Abstract {
                 } else {
                   return "NA"
                 }
+              }  else if (questionArray[1] === "countOfInstances") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
+                  return submissionDocument.answers[questionArray[0]].countOfInstances
+                } else {
+                  return "NA"
+                }
               }
             }
             let expressionVariables = {}
@@ -935,10 +1081,16 @@ module.exports = class Submission extends Abstract {
 
             if(allValuesAvailable) {
               Object.keys(criteria.rubric.levels).forEach(level => {
-                console.log("Debugging new functions starts")
-                console.log(expressionVariables)
-                console.log(math.eval("(compareText(PR1, 'R2') == 0) or (checkIfPresent('R1',PR2) >= 0)",expressionVariables))
-                console.log("Debugging new functions ends")
+
+                // if(level == "L3") {
+                //   console.log("Debugging new functions starts")
+                //   console.log(expressionVariables)
+                //   console.log(math.eval("(compareTextValues(PR1, 'R1') == 0)",expressionVariables))
+                //   console.log(math.eval("(checkIfPresent('R2||R3',PR2) >= 0)",expressionVariables))
+                //   console.log(math.eval("(compareTextValues(PR3, 'R1') == 0)",expressionVariables))
+                //   console.log(math.eval("(compareTextValues(PR4, 'R3||R4') == 0)",expressionVariables))
+                //   console.log("Debugging new functions ends")
+                // }
                 
                 if(criteria.rubric.levels[level].expression != "") {
                   try {
