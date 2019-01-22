@@ -8,6 +8,7 @@ import {
 import { Observable, Subject } from "rxjs";
 import { map } from "rxjs/operators";
 import { HeaderTextService } from "../../service/toolbar/header-text.service";
+import { environment } from "../../../environments/environment";
 
 @Component({
   selector: "sl-navigation",
@@ -30,9 +31,8 @@ export class NavigationComponent implements OnInit, OnDestroy {
     private headerTextService: HeaderTextService
   ) {
     this.navMenu = [
-      // { label: "Add Criteria", url: "/assessment/web/criteria/new" },
-      { label: "Criteria Details", url: "/assessment/web2/criteria" },
-      { label: "Questions", url: "/assessment/web2/questions/new" }
+      { label: "Criteria Details", url: environment.apiBaseEndpoint+"web2/criteria" },
+      { label: "Questions", url: environment.apiBaseEndpoint+"web2/questions/new" }
     ];
   }
   ngOnDestroy() {

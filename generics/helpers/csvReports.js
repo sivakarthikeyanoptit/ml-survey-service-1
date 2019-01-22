@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const mkdirp = require("mkdirp");
 
-const nodemailer = require("nodemailer");
+// const nodemailer = require("nodemailer");
 
 function gmtToIst(gmtTime) {
   let istStart = moment(gmtTime)
@@ -261,16 +261,16 @@ const getCSVData = async function(id, evidenceId) {
       .format("YYYY_MM_DD_HH_mm") +
     ".csv";
 
-  let transporter = nodemailer.createTransport({  
-    port: (process.env.SMTP_PORT ? process.env.SMTP_PORT : 465),
-    host: (process.env.SMTP_HOST ? process.env.SMTP_HOST : 'smtp.gmail.com'),
-    secure: (process.env.SMTP_SECURE ? process.env.SMTP_SECURE : true),
-    auth: {
-      user: (process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : ''),
-      pass: (process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_ACCESS_KEY_ID : '')
-    },
-    debug: true
-  });
+  // let transporter = nodemailer.createTransport({  
+  //   port: (process.env.SMTP_PORT ? process.env.SMTP_PORT : 465),
+  //   host: (process.env.SMTP_HOST ? process.env.SMTP_HOST : 'smtp.gmail.com'),
+  //   secure: (process.env.SMTP_SECURE ? process.env.SMTP_SECURE : true),
+  //   auth: {
+  //     user: (process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID : ''),
+  //     pass: (process.env.AWS_SECRET_ACCESS_KEY ? process.env.AWS_ACCESS_KEY_ID : '')
+  //   },
+  //   debug: true
+  // });
 
   fs.writeFile(pathFile, csv, function(err, data) {
     if (err) {

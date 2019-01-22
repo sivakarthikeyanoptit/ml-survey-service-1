@@ -75,13 +75,15 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 //swagger docs
 const swagger = require("./swagger");
 const swaggerMW = new swagger();
-app.use("/assessment/api/v1/swagger", swaggerMW.sendFile);
+const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
+app.use(serviceBaseUrl+"api/v1/swagger", swaggerMW.sendFile);
 
-app.get("/assessment/web/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
-});
-app.get("/assessment/web2/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public/assessment/web2/index.html"));
+// app.get(serviceBaseUrl+"web/*", function(req, res) {
+//   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+// });
+
+app.get(serviceBaseUrl+"web2/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "/public"+serviceBaseUrl+"web2/index.html"));
 });
 
 var bunyan = require("bunyan");
@@ -165,26 +167,26 @@ app.listen(config.port, () => {
 
 
 
-  const schedule = require("node-schedule");
+  // const schedule = require("node-schedule");
 
-  var schedule_string =
-    process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
+  // var schedule_string =
+  //   process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
 
-  var csvData = schedule.scheduleJob(schedule_string, () => {
-    var date = new Date();
-    var hour = date.getMinutes();
+  // var csvData = schedule.scheduleJob(schedule_string, () => {
+  //   var date = new Date();
+  //   var hour = date.getMinutes();
 
-    if (process.env.NODE_ENV == "production") {
-      var hour = date.getHours();
-    }
+  //   if (process.env.NODE_ENV == "production") {
+  //     var hour = date.getHours();
+  //   }
 
-    let csvReports = require("./generics/helpers/csvReports");
+  //   let csvReports = require("./generics/helpers/csvReports");
 
-    if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
-      let csvReports = require("./generics/helpers/csvReports");
-      ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
-        csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
-      );
-    }
-  });
+  //   if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
+  //     let csvReports = require("./generics/helpers/csvReports");
+  //     ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
+  //       csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
+  //     );
+  //   }
+  // });
 });

@@ -1,8 +1,12 @@
 let authenticator = require("../generics/middleware/authenticator");
 let slackClient = require("../generics/helpers/slackCommunications");
+const fs = require("fs");
 
 module.exports = function(app) {
-  app.use("/assessment/api", authenticator);
+  
+  const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
+
+  app.use(applicationBaseUrl, authenticator);
 
   var router = function(req, res, next) {
 
@@ -21,10 +25,23 @@ module.exports = function(app) {
         }
       })
         .then(result => {
-          if(result.csvResponse && result.csvResponse == true) {
-            res.setHeader('Content-disposition', 'attachment; filename='+result.fileName);
-            res.set('Content-Type', 'text/csv');
-            res.status(result.status ? result.status : 200).send(result.data);
+          if( result.isResponseAStream == true) {
+              // Check if file specified by the filePath exists 
+            fs.exists(result.fileNameWithPath, function(exists){
+              if (exists) {     
+
+                res.setHeader('Content-disposition', 'attachment; filename='+result.fileNameWithPath.split('/').pop());
+                res.set('Content-Type', 'application/octet-stream');
+                fs.createReadStream(result.fileNameWithPath).pipe(res);
+
+              } else {
+                res.status(500).send({
+                  status: 500,
+                  message: "Oops! Something went wrong!"
+                });
+              }
+            });
+
           } else {
             res.status(result.status ? result.status : 200).json({
               message: result.message,
@@ -73,14 +90,15 @@ module.exports = function(app) {
     }
   };
 
-  app.all("/assessment/api/v1/:controller/:method", router);
+  app.all(applicationBaseUrl+"api/v1/:controller/:method", router);
 
-  app.all("/assessment/api/v1/:controller/:_id/:method", router);
+  app.all(applicationBaseUrl+"api/v1/:controller/:_id/:method", router);
 
-  app.all("/assessment/api/v1/:controller/:method/:_id", router);
+  app.all(applicationBaseUrl+"api/v1/:controller/:method/:_id", router);
 
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");
   });
 };
+

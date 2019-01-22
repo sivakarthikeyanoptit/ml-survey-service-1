@@ -31,7 +31,7 @@ const routes: Routes = [
   {
     path: "",
     // component: CriteriaComponent
-    redirectTo: "assessment/web2/criteria",
+    redirectTo: environment.baseUrl+"criteria",
     pathMatch: "full"
   }
 ];
