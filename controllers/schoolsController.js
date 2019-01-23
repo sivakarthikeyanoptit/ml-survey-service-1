@@ -668,7 +668,6 @@ module.exports = class Schools extends Abstract {
                 criteriasIdArray.push(themeCriteriaId)
               })
             })
-            console.log(criteriasIdArray);
           });
 
           let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } }, {
