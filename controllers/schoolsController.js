@@ -176,7 +176,7 @@ module.exports = class Schools extends Abstract {
     return super.find(req);
   }
 
-  async assessments(req) {
+  async assessmentsOld(req) {
     return new Promise(async (resolve, reject) => {
       try {
         req.body = req.body || {};
@@ -475,7 +475,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async assessmentsNew(req) {
+  async assessments(req) {
     return new Promise(async (resolve, reject) => {
       try {
         req.body = req.body || {};
