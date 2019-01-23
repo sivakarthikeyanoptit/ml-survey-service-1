@@ -14,7 +14,7 @@ module.exports = class Assessors {
           let assessorSchoolsQueryObject = [
             {
               $match: {
-                userId: req.userDetails.userId
+                userId: "e97b5582-471c-4649-8401-3cc4249359bb"
               }
             },
             {
@@ -27,6 +27,7 @@ module.exports = class Assessors {
             },
             { 
               $project : { 
+                "schools": 1,
                 "schoolDocuments._id" : 1,
                 "schoolDocuments.externalId" : 1 , 
                 "schoolDocuments.name" : 1 ,
@@ -39,12 +40,40 @@ module.exports = class Assessors {
           ];
 
           const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
+          let assessor
+          let submissions
+          let schoolPAISubmissionStatus
 
-          assessorsDocument.forEach(assessor => {
+          for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
+            
+            assessor = assessorsDocument[pointerToAssessorDocumentArray];
+            
+            submissions = await database.models.submissions.find(
+              {
+                schoolId: {
+                  $in: assessor.schools
+                },
+                "evidences.PAI.isSubmitted" :true
+              },
+              {
+              "schoolId": 1
+              }
+            )
+
+            schoolPAISubmissionStatus = submissions.reduce( 
+              (ac, school) => ({...ac, [school.schoolId.toString()]: true }), {} )
+
             assessor.schoolDocuments.forEach(assessorSchool => {
+              if(schoolPAISubmissionStatus[assessorSchool._id.toString()]) {
+                assessorSchool.isParentInterviewCompleted = true
+              } else {
+                assessorSchool.isParentInterviewCompleted = false
+              }
               schools.push(assessorSchool)
             })
-          });
+
+          }
+
           responseMessage = "School list fetched successfully"
         }
   
