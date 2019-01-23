@@ -14,7 +14,7 @@ module.exports = class Assessors {
           let assessorSchoolsQueryObject = [
             {
               $match: {
-                userId: "e97b5582-471c-4649-8401-3cc4249359bb"
+                userId: req.userDetails.userId
               }
             },
             {
@@ -40,9 +40,10 @@ module.exports = class Assessors {
           ];
 
           const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
+          
           let assessor
           let submissions
-          let schoolPAISubmissionStatus
+          let schoolPAISubmissionStatus = new Array
 
           for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
             
