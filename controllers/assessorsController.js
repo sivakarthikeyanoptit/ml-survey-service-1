@@ -91,26 +91,20 @@ module.exports = class Assessors {
         const schoolsData = schoolsFromDatabase.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
 
-        // let programsData = {}
-        // programsFromDatabase.forEach(programData => {
-        //   programData.components.forEach(eachComponent => {
-        //     programsData[programData.externalId] = eachComponent
-        //   })
-        // })
-
         const programsData = programsFromDatabase.reduce(
           (ac, program) => ({ ...ac, [program.externalId]: program }), {})
 
         const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
           (ac, evaluationFramework) => ({ ...ac, [evaluationFramework.externalId]: evaluationFramework._id }), {})
 
-        // let programRoles = new Array;
         const roles = {
           ASSESSOR: "assessors",
           LEAD_ASSESSOR: "leadAssessors",
           PROJECT_MANAGER: "projectManagers",
           PROGRAM_MANAGER: "programManagers"
         };
+
+        const creatorId = req.userDetails.userId
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
@@ -120,7 +114,7 @@ module.exports = class Assessors {
 
           assessor.schools = assessorSchoolArray
           assessor.programId = programsData[assessor.programId]._id
-          assessor.createdBy = assessor.updatedBy
+          assessor.createdBy = assessor.updatedBy = creatorId
 
           let updateObject;
 
