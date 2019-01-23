@@ -166,6 +166,7 @@ module.exports = class Assessors {
                     programFrameworkRoles[role].users.push(assessor.userId)
                   }
                 }
+
                 else if ((roleIndex > 0)) {
                   programFrameworkRoles[role].users.splice(roleIndex, 1)
                 }

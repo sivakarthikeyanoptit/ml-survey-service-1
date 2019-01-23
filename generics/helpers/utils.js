@@ -29,7 +29,17 @@ function checkIfStringIsUrl(str) {
   return pattern.test(str);
 }
 
+function generateRandomCharacters(numberOfChar) {
+  var text = "";
+  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz123456789!@#%&*";
+  for (var i = 0; i < numberOfChar; i++)
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+  return text;
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
-  checkIfStringIsUrl: checkIfStringIsUrl
+  checkIfStringIsUrl: checkIfStringIsUrl,
+  generateRandomCharacters: generateRandomCharacters
 };
