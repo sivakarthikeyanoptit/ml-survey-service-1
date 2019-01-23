@@ -112,8 +112,6 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        console.log(assessorData.length)
-
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -180,7 +178,7 @@ module.exports = class Assessors {
 
               })
             }
-            // console.log(programFrameworkRoles)
+
             if (programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
 
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
@@ -193,7 +191,7 @@ module.exports = class Assessors {
           let queryObject = {
             _id: program._id
           }
-          // let progdoc = await database.models.programs.findOne(queryObject);
+
           await database.models.programs.findOneAndUpdate(
             queryObject,
             { $set: { "components": program.components } }
