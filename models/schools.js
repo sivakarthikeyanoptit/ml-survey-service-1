@@ -30,7 +30,6 @@ module.exports = {
     "totalBoys": Number,
     "lowestGrade": "String",
     "highestGrade": "String",
-    "isParentInterviewCompleted": false,
     "totalEnglishTeachers": Number,
     "totalHindiTeachers": Number,
     "totalMathsTeachers": Number,
