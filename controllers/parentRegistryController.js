@@ -380,7 +380,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: "",
           visible: true,
           editable: true,
-          input: "radio",
+          input: "multiselect",
           options: [
             {
               value: "P1",
