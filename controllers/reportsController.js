@@ -38,7 +38,7 @@ module.exports = class Reports extends Abstract {
           ["programInformation.externalId"]: req.params._id
         }
 
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -62,12 +62,9 @@ module.exports = class Reports extends Abstract {
         }());
 
         if (!submissionsIds.length) {
-          input.push({
-            "School Id": null,
-            "School Name": null,
-            "Program Id": null,
-            "Program Name": null,
-            "Status": null
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
           });
         }
 
@@ -119,14 +116,18 @@ module.exports = class Reports extends Abstract {
 
             result["Status"] = eachSubmissionDocument.status;
 
-            let evidenceMethodStatuses = eachSubmissionDocument.evidencesStatus.map(evidenceMethod =>
-              ({ [evidenceMethod.externalId]: evidenceMethod.isSubmitted })
-            )
+            let totalEcmsSubmittedCount = 0
+            eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
+              if(evidenceMethod.isSubmitted) {
+                totalEcmsSubmittedCount += 1
+              }
+              _.merge(result, {[evidenceMethod.externalId] : evidenceMethod.isSubmitted})
+              _.merge(result, {[evidenceMethod.externalId+"-duplication"] : (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false})
+            })
 
-            evidenceMethodStatuses.forEach(evidenceMethodStatus => {
-              _.merge(result, evidenceMethodStatus);
-            });
+            result["Total ECMs Submitted"] = totalEcmsSubmittedCount
             input.push(result);
+
           }))
 
         }
@@ -146,8 +147,7 @@ module.exports = class Reports extends Abstract {
   async assessorSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -155,6 +155,13 @@ module.exports = class Reports extends Abstract {
           externalId: req.params._id
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
 
         const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
           ;
@@ -170,16 +177,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
         if (!assessorDocument.length) {
-          input.push({
-            "Assessor Id": null,
-            "Assessor UserId": null,
-            "Parent Id": null,
-            "Assessor Name": null,
-            "Assessor Email": null,
-            "Assessor Role": null,
-            "Program Id": null,
-            "School Id": null,
-            "School Name": null
+          return resolve({
+            status: 404,
+            message: "No assessor found for given params."
           });
         }
 
@@ -247,7 +247,7 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -255,6 +255,13 @@ module.exports = class Reports extends Abstract {
           externalId: req.params._id
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
 
         const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
@@ -270,16 +277,9 @@ module.exports = class Reports extends Abstract {
           });
         }());
         if (!assessorDocument.length) {
-          input.push({
-            "Assessor School Id": null,
-            "Assessor School Name": null,
-            "Assessor User Id": null,
-            "Assessor Id": null,
-            "Assessor Name": null,
-            "Assessor Email": null,
-            "Parent Id": null,
-            "Assessor Role": null,
-            "Program Id": null
+          return resolve({
+            status: 404,
+            message: "No assessor found for given params."
           });
         }
 
@@ -308,7 +308,6 @@ module.exports = class Reports extends Abstract {
                 localField: "schoolIdInObjectIdForm",
                 foreignField: "_id",
                 as: "schoolDocument"
-
               }
             }
           ];
@@ -355,6 +354,14 @@ module.exports = class Reports extends Abstract {
         let programDocument = await database.models.programs.findOne(
           programQueryObject
         );
+
+        if (!programDocument) {
+          return resolve({
+            status: 404,
+            message: "No programs found for given params."
+          });
+        }
+
         programDocument.components.forEach(document => {
           result.schoolId = document.schools;
           result.id = programDocument._id;
@@ -436,16 +443,11 @@ module.exports = class Reports extends Abstract {
               submissionCount: evidencesStatus.submissionCount
             };
           });
-          if (!schoolDocument.length) {
-            input.push({
-              "Program Id": null,
-              "School Name": null,
-              "School Id": null,
-              "Status": null,
-              "Created At": null,
-              "Completed Date": null,
-              "Submission Count": null
-            })
+          if (!schoolDocument.length || !submissionDocument.length) {
+            return resolve({
+              status: 404,
+              message: "No data found for given params."
+            });
           }
           schoolDocument.forEach(school => {
             let programSchoolStatusObject = {
@@ -530,18 +532,10 @@ module.exports = class Reports extends Abstract {
         }());
 
         if (!submissionDocumentIdsToProcess.length) {
-          input.push({
-            "School Name": null,
-            "School Id": null,
-            "Question": null,
-            "Question Id": null,
-            "Answer": null,
-            "Assessor Id": null,
-            "Remarks": null,
-            "Start Time": null,
-            "End Time": null,
-            "Files": null
-          })
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
         } else {
 
           const chunkSize = 10
@@ -648,7 +642,7 @@ module.exports = class Reports extends Abstract {
                                     "School Name": submission.schoolInformation.name,
                                     "School Id": submission.schoolInformation.externalId,
                                     "Question": eachInstanceChildQuestion.question[0],
-                                    "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId: "",
+                                    "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                     "Answer": "",
                                     "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
@@ -789,15 +783,10 @@ module.exports = class Reports extends Abstract {
           });
 
           if (!submissionDocument[0].criterias.length) {
-            input.push({
-              "Theme Name": null,
-              "AoI Name": null,
-              "Level 1": null,
-              "Level 2": null,
-              "Level 3": null,
-              "Level 4": null,
-              "Score": null
-            })
+            return resolve({
+              status: 404,
+              message: "No submissions found for given params."
+            });
           }
           submissionDocument[0].criterias.forEach(submissionCriterias => {
             let levels = Object.values(submissionCriterias.rubric.levels);
@@ -915,15 +904,10 @@ module.exports = class Reports extends Abstract {
               };
             });
             if (!Object.values(singleSchoolSubmission.answers).length) {
-              input.push({
-                "Criteria Name": "",
-                "Question": "",
-                "Answer": "",
-                "Options": "",
-                "Score": "",
-                "Remarks": "",
-                "Files": ""
-              })
+              return resolve({
+                status: 404,
+                message: "No submissions found for given params."
+              });
             }
             Object.values(singleSchoolSubmission.answers).forEach(
               singleAnswer => {
@@ -1082,6 +1066,13 @@ module.exports = class Reports extends Abstract {
 
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No parent registry found for given params."
+          });
+        }
+
         const parentRegistryIdsArray = await database.models['parent-registry'].find({ "programId": programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `parentRegistry`;
@@ -1095,24 +1086,6 @@ module.exports = class Reports extends Abstract {
             fileNameWithPath: fileStream.fileNameWithPath()
           });
         }());
-
-        if (!parentRegistryIdsArray.length) {
-          input.push({
-            "Program Id": null,
-            "School Id": null,
-            "School Name": null,
-            "Student Name": null,
-            "Grade": null,
-            "Parent Name": null,
-            "Gender": null,
-            "Type": null,
-            "Type Label": null,
-            "Phone 1": null,
-            "Phone 2": null,
-            "Address": null,
-            "Call Response": null
-          });
-        }
 
         const chunkSize = 10;
         let chunkOfParentRegistryDocument = _.chunk(parentRegistryIdsArray, chunkSize)
@@ -1133,57 +1106,39 @@ module.exports = class Reports extends Abstract {
                 }
               }
             },
-            { "$addFields": { "schoolIdInObjectIdForm": { "$toObjectId": "$schoolId" } } },
+            { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
             {
               $lookup: {
                 from: "schools",
-                localField: "schoolIdInObjectIdForm",
+                localField: "schoolId",
                 foreignField: "_id",
                 as: "schoolDocument"
-
               }
-            }
-            , {
+            },
+            {
+              $unwind: '$schoolDocument'
+            },
+            { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
+            {
               $project: {
-                "studentName": 1,
-                "grade": 1,
-                "name": 1,
-                "gender": 1,
-                "type": 1,
-                "typeLabel": 1,
-                "phone1": 1,
-                "phone2": 1,
-                "address": 1,
-                "schoolName": 1,
-                "callResponse": 1,
-                "schoolDocument.externalId": 1,
-                "schoolId": 1,
-                "programId": 1
+                "schoolDocument": 0
               }
             }
           ];
 
-          parentRegistryDocuments = await database.models['parent-registry'].aggregate(parentRegistryQueryObject)
+          parentRegistryDocuments = await database.models['parent-registry'].aggregate(parentRegistryQueryObject);
 
           await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
-
-            input.push({
-              "Program Id": req.params._id,
-              "School Id": parentRegistry.schoolDocument[0].externalId,
-              "School Name": parentRegistry.schoolName,
-              "Student Name": parentRegistry.studentName,
-              "Grade": parentRegistry.grade,
-              "Parent Name": parentRegistry.name,
-              "Gender": parentRegistry.gender,
-              "Type": parentRegistry.type,
-              "Type Label": parentRegistry.typeLabel,
-              "Phone 1": parentRegistry.phone1,
-              "Phone 2": parentRegistry.phone2,
-              "Address": parentRegistry.address,
-              "Call Response": parentRegistry.callResponse
-            });
+            let parentRegistryObject = {};
+            Object.keys(parentRegistry).forEach(singleKey => {
+              if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry[singleKey];
+              }
+            })
+            parentRegistryObject['Program External Id'] = programQueryParams.externalId;
+            parentRegistryObject['School External Id'] = parentRegistry.schoolId;
+            input.push(parentRegistryObject);
           }))
-
         }
 
         input.push(null);
@@ -1220,34 +1175,10 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-
         if (!submissionIds.length) {
-          input.push({
-            // "Submission Id": null,
-            "School External Id": null,
-            "program External Id": null,
-            "School Types": null,
-            "Address Line 1": null,
-            "Address Line 2": null,
-            "Administration": null,
-            "City": null,
-            "Country": null,
-            "District Id": null,
-            "District Name": null,
-            "Gender": null,
-            "GpsLocation": null,
-            "Highest Grade": null,
-            "Lowest Grade": null,
-            "Name": null,
-            "Phone": null,
-            "Pincode": null,
-            "Principal Name": null,
-            "Shift": null,
-            "State": null,
-            "Total Boys": null,
-            "Total Girls": null,
-            "Total Students": null,
-            "Zone Id": null
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
           });
         }
 
@@ -1275,34 +1206,17 @@ module.exports = class Reports extends Abstract {
 
           await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
             let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
-
-            input.push({
-              // "Submission Id": eachSchoolProfileSubmissionDocument._id,
-              "School External Id": eachSchoolProfileSubmissionDocument.schoolExternalId,
-              "Program External Id": eachSchoolProfileSubmissionDocument.programExternalId,
-              "School Types": schoolProfile ? schoolProfile.schoolTypes : "",
-              "Address Line 1": schoolProfile ? schoolProfile.addressLine1 : "",
-              "Address Line 2": schoolProfile ? schoolProfile.addressLine2 : "",
-              "Administration": schoolProfile ? schoolProfile.administration : "",
-              "City": schoolProfile ? schoolProfile.city : "",
-              "Country": schoolProfile ? schoolProfile.country : "",
-              "District Id": schoolProfile ? schoolProfile.districtId : "",
-              "District Name": schoolProfile ? schoolProfile.districtName : "",
-              "Gender": schoolProfile ? schoolProfile.gender : "",
-              "GpsLocation": schoolProfile ? schoolProfile.gpsLocation : "",
-              "Highest Grade": schoolProfile ? schoolProfile.highestGrade : "",
-              "Lowest Grade": schoolProfile ? schoolProfile.lowestGrade : "",
-              "Name": schoolProfile ? schoolProfile.name : "",
-              "Phone": schoolProfile ? schoolProfile.phone : "",
-              "Pincode": schoolProfile ? schoolProfile.pincode : "",
-              "Principal Name": schoolProfile ? schoolProfile.principalName : "",
-              "Shift": schoolProfile ? schoolProfile.shift : "",
-              "State": schoolProfile ? schoolProfile.state : "",
-              "Total Boys": schoolProfile ? schoolProfile.totalBoys : "",
-              "Total Girls": schoolProfile ? schoolProfile.totalGirls : "",
-              "Total Students": schoolProfile ? schoolProfile.totalStudents : "",
-              "Zone Id": schoolProfile ? schoolProfile.zoneId : ""
-            });
+            if (schoolProfile) {
+              let schoolProfileObject = {};
+              schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
+              schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
+              Object.keys(schoolProfile).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(singleKey) == -1) {
+                  schoolProfileObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolProfile[singleKey] || "";
+                }
+              })
+              input.push(schoolProfileObject);
+            }
           }))
         }
         input.push(null);
