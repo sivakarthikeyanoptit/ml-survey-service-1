@@ -109,6 +109,37 @@ module.exports = class ParentRegistry extends Abstract {
 
             }
 
+            if(parent.callResponse != "") {
+              let parentCallResponseLabel
+              switch (parent.callResponse) {
+                case "R1":
+                  parentCallResponseLabel = "Call not initiated"
+                  break;
+                case "R2":
+                  parentCallResponseLabel = "Did not pick up"
+                  break;
+                case "R3":
+                  parentCallResponseLabel = "Not reachable"
+                  break;
+                case "R4":
+                  parentCallResponseLabel = "Call back later"
+                  break;
+                case "R5":
+                  parentCallResponseLabel = "Wrong number"
+                  break;
+                case "R6":
+                  parentCallResponseLabel = "Call disconnected mid way"
+                  break;
+                case "R7":
+                    parentCallResponseLabel = "Completed"
+                    break;
+                default:
+                  break;
+              }
+
+              parent.callResponse = parentCallResponseLabel
+            }
+
             return parent;
           })
 
@@ -380,7 +411,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: "",
           visible: true,
           editable: true,
-          input: "radio",
+          input: "multiselect",
           options: [
             {
               value: "P1",
