@@ -116,11 +116,16 @@ module.exports = class Reports extends Abstract {
 
             result["Status"] = eachSubmissionDocument.status;
 
+            let totalEcmsSubmittedCount = 0
             eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
+              if(evidenceMethod.isSubmitted) {
+                totalEcmsSubmittedCount += 1
+              }
               _.merge(result, {[evidenceMethod.externalId] : evidenceMethod.isSubmitted})
               _.merge(result, {[evidenceMethod.externalId+"-duplication"] : (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false})
             })
 
+            result["Total ECMs Submitted"] = totalEcmsSubmittedCount
             input.push(result);
 
           }))
