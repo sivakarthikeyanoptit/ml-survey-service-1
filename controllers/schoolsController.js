@@ -671,19 +671,24 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } }, {
-            resourceType: 0, language: 0,
-            keywords: 0,
-            concepts: 0,
-            createdFor: 0
-          })
+          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray}})
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
           let submissionDocumentCriterias = [];
 
           criteriaQuestionDocument.forEach(criteria => {
-            submissionDocumentCriterias.push(criteria._doc)
+            
+            submissionDocumentCriterias.push(
+              _.omit(criteria, [
+                "resourceType",
+                "language",
+                "keywords",
+                "concepts",
+                "createdFor",
+                "evidences"
+              ])
+            );
 
             criteria.evidences.forEach(evidenceMethod => {
               evidenceMethod.notApplicable = false;
