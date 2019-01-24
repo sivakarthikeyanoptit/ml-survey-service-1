@@ -1063,7 +1063,7 @@ module.exports = class Submission extends Abstract {
           }
         );
 
-        if(!submissionDocument._id) {
+        if(!submissionDocument|| !submissionDocument._id) {
           throw "Couldn't find the submission document"
         } else {
           if(submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
