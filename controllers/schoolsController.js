@@ -680,7 +680,7 @@ module.exports = class Schools extends Abstract {
           criteriaQuestionDocument.forEach(criteria => {
             
             submissionDocumentCriterias.push(
-              _.omit(criteria, [
+              _.omit(criteria._doc, [
                 "resourceType",
                 "language",
                 "keywords",
