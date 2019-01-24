@@ -1,23 +1,25 @@
 let MongoClient = require("mongodb").MongoClient;
-let url = "mongodb://localhost:27017/sl-assessment";
+let url = "mongodb://localhost:27017/";
 
-MongoClient.connect(url, function (err, db) {
+MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+    if (err) throw err
     let dbo = db.db("sl-assessment");
     const submissionsCollection = dbo.collection("submissions")
     submissionsCollection.find({}).project({ evidences: 1 }).toArray((err, submissionData) => {
-        submissionData['evidenceSubmissions'] = []
+
         submissionData.forEach(eachSubmission => {
+            eachSubmission['evidenceSubmissions'] = []
             Object.values(eachSubmission.evidences).forEach(singleEvidence => {
                 if (singleEvidence.submissions) {
                     singleEvidence.submissions.forEach(eachIndividualSubmission => {
                         delete eachIndividualSubmission.answers
-                        submissionData.evidenceSubmissions.push(eachIndividualSubmission);
+                        eachSubmission.evidenceSubmissions.push(eachIndividualSubmission);
                     });
                 }
 
             })
             let findQuery = { _id: eachSubmission._id }
-            let updateQuery = { $set: { evidenceSubmissions: submissionData.evidenceSubmissions } }
+            let updateQuery = { $set: { evidenceSubmissions: eachSubmission.evidenceSubmissions } }
             submissionsCollection.updateOne(findQuery, updateQuery).then(() => {
                 console.log("updated successfully")
             })
