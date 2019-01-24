@@ -38,7 +38,7 @@ module.exports = class Reports extends Abstract {
           ["programInformation.externalId"]: req.params._id
         }
 
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -116,13 +116,24 @@ module.exports = class Reports extends Abstract {
 
             result["Status"] = eachSubmissionDocument.status;
 
-            let evidenceMethodStatuses = eachSubmissionDocument.evidencesStatus.map(evidenceMethod =>
-              ({ [evidenceMethod.externalId]: evidenceMethod.isSubmitted })
+            eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
+              let evidenceMethodObject = {}
+              evidenceMethodObject[evidenceMethod.externalId] = evidenceMethod.isSubmitted
+              _.merge(result, evidenceMethodObject);
+            }
             )
 
-            evidenceMethodStatuses.forEach(evidenceMethodStatus => {
-              _.merge(result, evidenceMethodStatus);
-            });
+            eachSubmissionDocument.evidencesStatus.forEach(eachEvidenceStatus => {
+              let evidenceMethodDuplicateObject = {}
+              if (eachEvidenceStatus.hasConflicts) {
+                evidenceMethodDuplicateObject[eachEvidenceStatus.externalId + "-dup"] = eachEvidenceStatus.hasConflicts
+              }
+              else {
+                evidenceMethodDuplicateObject[eachEvidenceStatus.externalId + "-dup"] = false
+              }
+              _.merge(result, evidenceMethodDuplicateObject)
+            })
+            console.log(result)
             input.push(result);
           }))
 
@@ -144,7 +155,7 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -244,7 +255,7 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if(!req.params._id) {
+        if (!req.params._id) {
           throw "Program ID missing."
         }
 
@@ -639,7 +650,7 @@ module.exports = class Reports extends Abstract {
                                     "School Name": submission.schoolInformation.name,
                                     "School Id": submission.schoolInformation.externalId,
                                     "Question": eachInstanceChildQuestion.question[0],
-                                    "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId: "",
+                                    "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                     "Answer": "",
                                     "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
@@ -1062,7 +1073,7 @@ module.exports = class Reports extends Abstract {
         };
 
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
-        
+
         if (!programsDocumentIds.length) {
           return resolve({
             status: 404,
@@ -1115,10 +1126,10 @@ module.exports = class Reports extends Abstract {
             {
               $unwind: '$schoolDocument'
             },
-            { "$addFields": { "schoolId": "$schoolDocument.externalId" }  },
+            { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
             {
-              $project:{
-                "schoolDocument":0
+              $project: {
+                "schoolDocument": 0
               }
             }
           ];
@@ -1127,8 +1138,8 @@ module.exports = class Reports extends Abstract {
 
           await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
             let parentRegistryObject = {};
-            Object.keys(parentRegistry).forEach(singleKey=>{
-              if(["deleted", "_id", "__v", "createdAt", "updatedAt","schoolId","programId"].indexOf(singleKey) == -1){
+            Object.keys(parentRegistry).forEach(singleKey => {
+              if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
                 parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry[singleKey];
               }
             })
@@ -1137,7 +1148,7 @@ module.exports = class Reports extends Abstract {
             input.push(parentRegistryObject);
           }))
         }
-        
+
         input.push(null);
       } catch (error) {
         return reject({
@@ -1203,12 +1214,12 @@ module.exports = class Reports extends Abstract {
 
           await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
             let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
-            if(schoolProfile){
+            if (schoolProfile) {
               let schoolProfileObject = {};
               schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
               schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
-              Object.keys(schoolProfile).forEach(singleKey=>{
-                if(["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(singleKey) == -1){
+              Object.keys(schoolProfile).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(singleKey) == -1) {
                   schoolProfileObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolProfile[singleKey] || "";
                 }
               })
