@@ -10,6 +10,7 @@ MongoClient.connect(url, function (err, db) {
             Object.values(eachSubmission.evidences).forEach(singleEvidence => {
                 if (singleEvidence.submissions) {
                     singleEvidence.submissions.forEach(eachIndividualSubmission => {
+                        delete eachIndividualSubmission.answers
                         submissionData.evidenceSubmissions.push(eachIndividualSubmission);
                     });
                 }
@@ -22,4 +23,4 @@ MongoClient.connect(url, function (err, db) {
             })
         })
     })
-});
+})
