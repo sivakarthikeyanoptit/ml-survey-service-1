@@ -117,20 +117,12 @@ module.exports = class Reports extends Abstract {
             result["Status"] = eachSubmissionDocument.status;
 
             eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
-              let evidenceMethodObject = {}
-              let evidenceMethodDuplicateObject = {}
-              evidenceMethodObject[evidenceMethod.externalId] = evidenceMethod.isSubmitted
+              _.merge(result, {[evidenceMethod.externalId] : evidenceMethod.isSubmitted})
+              _.merge(result, {[evidenceMethod.externalId+"-duplication"] : (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false})
+            })
 
-              if (evidenceMethod.hasConflicts) {
-                evidenceMethodDuplicateObject[evidenceMethod.externalId + "-dup"] = evidenceMethod.hasConflicts
-              }
-              else {
-                evidenceMethodDuplicateObject[evidenceMethod.externalId + "-dup"] = false
-              }
-              _.merge(result, evidenceMethodObject, evidenceMethodDuplicateObject)
-            }
-            )
             input.push(result);
+
           }))
 
         }
