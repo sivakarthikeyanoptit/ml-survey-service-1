@@ -18,12 +18,21 @@ module.exports = class ParentRegistry extends Abstract {
       try {
 
         if(req.body.parents) {
+
+          req.body.parents.forEach(parent => {
+            if(typeof parent.type === "string") {
+              parent.type = new Array(parent.type)
+            }
+          })
+
           let addParentsQuery = await database.models["parent-registry"].insertMany(
             req.body.parents
           );
+
           if(addParentsQuery.length != req.body.parents.length) {
             throw "Some parent information was not inserted!"
           }
+
         } else {
           throw "Bad Request"
         }
@@ -60,31 +69,77 @@ module.exports = class ParentRegistry extends Abstract {
           );
 
           result = result.map(function(parent) {
-            if((parent.typeLabel == "" || !parent.typeLabel) && parent.type != "") {
-              switch (parent.type) {
-                case "P1":
-                  parent.typeLabel = "Parent only"
+            
+            if(parent.type.length > 0) {
+
+              let parentTypeLabelArray = new Array
+
+              parent.type.forEach(parentType => {
+                let parentTypeLabel
+                switch (parentType) {
+                  case "P1":
+                    parentTypeLabel = "Parent only"
+                    break;
+                  case "P2":
+                    parentTypeLabel = "SMC Parent Member"
+                    break;
+                  case "P3":
+                    parentTypeLabel = "Safety Committee Member"
+                    break;
+                  case "P4":
+                    parentTypeLabel = "EWS-DG Parent"
+                    break;
+                  case "P5":
+                    parentTypeLabel = "Social Worker"
+                    break;
+                  case "P6":
+                    parentTypeLabel = "Elected Representative Nominee"
+                    break;
+                  default:
+                    break;
+                }
+
+                if(parentTypeLabel != "") {
+                  parentTypeLabelArray.push(parentTypeLabel)
+                }
+
+              })
+
+              parent.type = parentTypeLabelArray
+
+            }
+
+            if(parent.callResponse != "") {
+              let parentCallResponseLabel
+              switch (parent.callResponse) {
+                case "R1":
+                  parentCallResponseLabel = "Call not initiated"
                   break;
-                case "P2":
-                  parent.typeLabel = "SMC Parent Member"
+                case "R2":
+                  parentCallResponseLabel = "Did not pick up"
                   break;
-                case "P3":
-                  parent.typeLabel = "Safety Committee Member"
+                case "R3":
+                  parentCallResponseLabel = "Not reachable"
                   break;
-                case "P4":
-                  parent.typeLabel = "EWS-DG Parent"
+                case "R4":
+                  parentCallResponseLabel = "Call back later"
                   break;
-                case "P5":
-                  parent.typeLabel = "Social Worker"
+                case "R5":
+                  parentCallResponseLabel = "Wrong number"
                   break;
-                case "P6":
-                  parent.typeLabel = "Elected Representative Nominee"
+                case "R6":
+                  parentCallResponseLabel = "Call disconnected mid way"
                   break;
+                case "R7":
+                    parentCallResponseLabel = "Completed"
+                    break;
                 default:
                   break;
               }
 
+              parent.callResponse = parentCallResponseLabel
             }
+
             return parent;
           })
 
@@ -150,7 +205,6 @@ module.exports = class ParentRegistry extends Abstract {
 
           for (let parentCounter = 1; parentCounter < 50; parentCounter++) {
             nameOfParentTypeField = "parent"+parentCounter+"Type";
-            nameOfParentTypeLabelField = "parent"+parentCounter+"TypeLabel";
             nameOfParentNameField = "parent"+parentCounter+"Name";
             nameOfParentAddressField = "parent"+parentCounter+"Address";
             nameOfParentPhoneField = "parent"+parentCounter+"Phone";
@@ -159,7 +213,6 @@ module.exports = class ParentRegistry extends Abstract {
               parentInformation.push({
                 name: schoolWiseParents[nameOfParentNameField],
                 type: schoolWiseParents[nameOfParentTypeField],
-                typeLabel: schoolWiseParents[nameOfParentTypeLabelField],
                 phone1: schoolWiseParents[nameOfParentPhoneField],
                 address: schoolWiseParents[nameOfParentAddressField],
                 programId: programsData[schoolWiseParents.programId]._id.toString(),
@@ -358,7 +411,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: "",
           visible: true,
           editable: true,
-          input: "radio",
+          input: "multiselect",
           options: [
             {
               value: "P1",
@@ -639,7 +692,7 @@ module.exports = class ParentRegistry extends Abstract {
           value: (parentInformation.type) ? parentInformation.type: "",
           visible: true,
           editable: true,
-          input: "radio",
+          input: "multiselect",
           options: [
             {
               value: "P1",
