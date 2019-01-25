@@ -27,6 +27,13 @@ var respUtil = function(resp) {
   };
 };
 
+var tokenAuthenticationFailureMessageToSlack = function (req,token,msg) {
+  let jwtInfomration = jwtDecode(token)
+  jwtInfomration["x-authenticated-user-token"] = token
+  const tokenByPassAllowedLog = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields : jwtInfomration}
+  slackClient.sendExceptionLogMessage(tokenByPassAllowedLog)
+}
+
 var apiInterceptor = new ApiInterceptor(keyCloakConfig, cacheConfig);
 var removedHeaders = [
   "host",
@@ -125,10 +132,7 @@ module.exports = function(req, res, next) {
       req.userDetails = tokenCheckByPassAllowedUserDetails;
       req.userDetails.allRoles = tokenCheckByPassAllowedUserDetails.roles;
 
-      let jwtInfomration = jwtDecode(token)
-      jwtInfomration["x-authenticated-user-token"] = req.rspObj.userToken
-      const tokenByPassAllowedLog = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: "TOKEN BYPASS ALLOWED", errorStack: err, customFields : jwtInfomration}
-      slackClient.sendExceptionLogMessage(tokenByPassAllowedLog)
+      tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN BYPASS ALLOWED")
       next();
       return
     }
@@ -137,6 +141,7 @@ module.exports = function(req, res, next) {
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
       rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
+      tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION WITH KEYCLOAK FAILED")
       return res.status(401).send(respUtil(rspObj));
     } else {
       req.rspObj.userId = tokenData.userId;
@@ -154,6 +159,7 @@ module.exports = function(req, res, next) {
             req.userDetails.allRoles = await getAllRoles(req.userDetails);
             next();
           } else {
+            tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION - FAILED TO GET USER DETAIL FROM LEARNER SERVICE")
             rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
             rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
             rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
@@ -161,6 +167,7 @@ module.exports = function(req, res, next) {
           }
         })
         .catch(error => {
+          tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION - ERROR FETCHING USER DETAIL FROM LEARNER SERVICE")
           return res.status(401).send(error);
         });
     }
