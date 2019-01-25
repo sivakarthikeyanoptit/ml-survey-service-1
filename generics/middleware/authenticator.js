@@ -1,3 +1,5 @@
+const jwtDecode = require('jwt-decode');
+let slackClient = require("../helpers/slackCommunications");
 var ApiInterceptor = require("./lib/apiInterceptor");
 var messageUtil = require("./lib/messageUtil");
 var responseCode = require("../httpStatusCodes");
@@ -66,6 +68,42 @@ module.exports = function(req, res, next) {
     return
   }
 
+  let tokenCheckByPassAllowedForURL = false
+  let tokenCheckByPassAllowedForUser = false
+  let tokenCheckByPassAllowedUserDetails = false
+  if(process.env.DISABLE_TOKEN_ON_OFF === "ON") {
+      process.env.DISABLE_TOKEN_CHECK_FOR_API.split(',').forEach(allowedEndpoints =>{
+        if(req.path.includes(allowedEndpoints)) {
+          tokenCheckByPassAllowedForURL = true
+          let allowedUsersPath = "DISABLE_TOKEN_"+allowedEndpoints+"_USERS"
+          if(process.env[allowedUsersPath] && process.env[allowedUsersPath] == "ALL") {
+            tokenCheckByPassAllowedForUser = true
+            tokenCheckByPassAllowedUserDetails = {
+              id: process.env.DISABLE_TOKEN_DEFAULT_USERID,
+              userId:process.env.DISABLE_TOKEN_DEFAULT_USERID,
+              roles:[process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
+              name:process.env.DISABLE_TOKEN_DEFAULT_USER_NAME,
+              email:process.env.DISABLE_TOKEN_DEFAULT_USER_EMAIL,
+            }
+          } else if(process.env[allowedUsersPath]) {
+            let jwtInfo = jwtDecode(token)
+            process.env[allowedUsersPath].split(',').forEach(allowedUser => {
+              if(allowedUser == jwtInfo.sub) {
+                tokenCheckByPassAllowedForUser = true
+                tokenCheckByPassAllowedUserDetails = {
+                  id: jwtInfo.sub,
+                  userId: jwtInfo.sub,
+                  roles:[process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
+                  name:jwtInfo.name,
+                  email:jwtInfo.email,
+                }
+              }
+            })
+          }
+        }
+      })
+  }
+
   if (!token) {
     console.error("Token Not Found!!");
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
@@ -76,6 +114,25 @@ module.exports = function(req, res, next) {
 
   apiInterceptor.validateToken(token, function(err, tokenData) {
     // console.error(err, tokenData, rspObj);
+    
+    if (err && tokenCheckByPassAllowedForURL && tokenCheckByPassAllowedForUser) {
+      req.rspObj.userId = tokenCheckByPassAllowedUserDetails.userId;
+      req.rspObj.userToken = req.headers["x-authenticated-user-token"];
+      delete req.headers["x-authenticated-userid"];
+      delete req.headers["x-authenticated-user-token"];
+      req.headers["x-authenticated-userid"] = tokenCheckByPassAllowedUserDetails.userId;
+      req.rspObj = rspObj;
+      req.userDetails = tokenCheckByPassAllowedUserDetails;
+      req.userDetails.allRoles = tokenCheckByPassAllowedUserDetails.roles;
+
+      let jwtInfomration = jwtDecode(token)
+      jwtInfomration["x-authenticated-user-token"] = req.rspObj.userToken
+      const tokenByPassAllowedLog = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: "TOKEN BYPASS ALLOWED", errorStack: err, customFields : jwtInfomration}
+      slackClient.sendExceptionLogMessage(tokenByPassAllowedLog)
+      next();
+      return
+    }
+    
     if (err) {
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
