@@ -71,7 +71,7 @@ module.exports = function(req, res, next) {
   let tokenCheckByPassAllowedForURL = false
   let tokenCheckByPassAllowedForUser = false
   let tokenCheckByPassAllowedUserDetails = false
-  if(process.env.DISABLE_TOKEN_ON_OFF && process.env.DISABLE_TOKEN_ON_OFF === "ON" && process.env.DISABLE_TOKEN_CHECK_FOR_API) {
+  if(process.env.DISABLE_TOKEN_ON_OFF && process.env.DISABLE_TOKEN_ON_OFF === "ON" && process.env.DISABLE_TOKEN_CHECK_FOR_API && process.env.DISABLE_TOKEN_CHECK_FOR_API!= "") {
       process.env.DISABLE_TOKEN_CHECK_FOR_API.split(',').forEach(allowedEndpoints =>{
         if(req.path.includes(allowedEndpoints)) {
           tokenCheckByPassAllowedForURL = true
