@@ -192,7 +192,7 @@ module.exports = class Assessors {
           assessor = await database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject)
 
           let programFrameworkRoles;
-          let assessorRolePerMap;
+          let assessorRole;
           let assessorCsvDataProgramId
           let assessorCsvDataEvaluationFrameworkId
           let assessorProgramComponents
@@ -209,37 +209,38 @@ module.exports = class Assessors {
 
             if (indexOfComponents >= 0) {
               programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
-              assessorRolePerMap = roles[assessor.role]
+              assessorRole = roles[assessor.role];
+
+              //constructing program roles
               Object.keys(programFrameworkRoles).forEach(role => {
-
-                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
-
-                if (role === assessorRolePerMap) {
-                  if (roleIndex < 0) {
-                    programFrameworkRoles[role].users.push(assessor.userId)
+                  let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+  
+                  if (role === assessorRole) {
+                    if (roleIndex < 0) {
+                      programFrameworkRoles[role].users.push(assessor.userId);
+                    }
                   }
-                }
-
-                else {
-                  if ((roleIndex > 0)) {
-                    programFrameworkRoles[role].users.splice(roleIndex, 1)
+                  else {
+                    if ((roleIndex > 0)) {
+                      programFrameworkRoles[role].users.splice(roleIndex, 1);
+                    }
+                    if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
+                      programFrameworkRoles[assessorRole].users.push(assessor.userId);
                   }
-                  if (!programFrameworkRoles[assessorRolePerMap].users.includes(assessor.userId)) 
-                    programFrameworkRoles[assessorRolePerMap].users.push(assessor.userId)
-                }
 
               })
             }
 
             if (programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
-
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
             }
           }
-          return assessor
-        }));
+          return assessor;
+        })).catch(error =>{
+          return reject({ message: error });
+        });
 
-        await Promise.all(Object.values(programsData).map(async (program) => {
+        Promise.all(Object.values(programsData).map(async (program) => {
           let queryObject = {
             _id: program._id
           }
@@ -248,7 +249,9 @@ module.exports = class Assessors {
             queryObject,
             { $set: { "components": program.components } }
           );
-        }))
+        })).catch(err=>{
+          return reject({ message: error });
+        })
 
 
         let responseMessage = "Assessor record created successfully."
