@@ -101,15 +101,15 @@ module.exports = class Assessors {
 
       try {
         if (!req.files || !req.files.assessors) {
-          let responseMessage = "Bad request."
+          let responseMessage = "Bad request.";
           return resolve({ status: 400, message: responseMessage })
         }
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
-        const assessorUploadCount = assessorData.length
+        const assessorUploadCount = assessorData.length;
 
-        let schoolQueryList = {}
-        let programQueryList = {}
-        let evaluationFrameworkQueryList = {}
+        let schoolQueryList = {};
+        let programQueryList = {};
+        let evaluationFrameworkQueryList = {};
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -157,7 +157,7 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        const creatorId = req.userDetails.userId
+        const creatorId = 'suihfiusf7qw64t76'
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
@@ -220,8 +220,12 @@ module.exports = class Assessors {
                   }
                 }
 
-                else if ((roleIndex > 0)) {
-                  programFrameworkRoles[role].users.splice(roleIndex, 1)
+                else {
+                  if ((roleIndex > 0)) {
+                    programFrameworkRoles[role].users.splice(roleIndex, 1)
+                  }
+                  if (!programFrameworkRoles[assessorRolePerMap].users.includes(assessor.userId)) 
+                    programFrameworkRoles[assessorRolePerMap].users.push(assessor.userId)
                 }
 
               })
