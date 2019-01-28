@@ -118,11 +118,11 @@ module.exports = class Reports extends Abstract {
 
             let totalEcmsSubmittedCount = 0
             eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
-              if(evidenceMethod.isSubmitted) {
+              if (evidenceMethod.isSubmitted) {
                 totalEcmsSubmittedCount += 1
               }
-              _.merge(result, {[evidenceMethod.externalId] : evidenceMethod.isSubmitted})
-              _.merge(result, {[evidenceMethod.externalId+"-duplication"] : (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false})
+              _.merge(result, { [evidenceMethod.externalId]: evidenceMethod.isSubmitted })
+              _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
             })
 
             result["Total ECMs Submitted"] = totalEcmsSubmittedCount
@@ -1227,6 +1227,251 @@ module.exports = class Reports extends Abstract {
           errorObject: error
         });
       }
+    });
+  }
+
+  async generateEcmReportForCurrentDate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        const fetchRequiredSubmissionDocumentIdQueryObj = {
+          ["programInformation.externalId"]: req.params._id,
+          'evidencesStatus.submissions.submissionDate':
+          {
+            $gte: new Date(req.query.fromDate),
+            $lt: new Date(req.query.toDate)
+          },
+          status: {
+            $nin:
+              ["started"]
+          }
+        };
+
+        const submissionDocumentIdsToProcess = await database.models.submissions.find(
+          fetchRequiredSubmissionDocumentIdQueryObj,
+          { _id: 1 }
+        )
+
+        let questionIdObject = {}
+        const questionDocument = await database.models.questions.find({}, { externalId: 1 })
+
+        questionDocument.forEach(eachQuestionId => {
+          questionIdObject[eachQuestionId._id] = {
+            questionExternalId: eachQuestionId.externalId
+          }
+        })
+
+        const fileName = `EcmReport from date ${req.query.fromDate} to ${req.query.toDate}`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionDocumentIdsToProcess.length) {
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
+        } else {
+
+          const chunkSize = 10
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, chunkSize)
+
+          let submissionIds
+          let submissionDocuments
+
+          for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
+
+            submissionIds = chunkOfSubmissionIds[pointerToSubmissionIdChunkArray].map(submissionModel => {
+              return submissionModel._id
+            });
+
+            submissionDocuments = await database.models.submissions.find(
+              {
+                _id: {
+                  $in: submissionIds
+                },
+              },
+              {
+                "assessors.userId": 1,
+                "assessors.externalId": 1,
+                "schoolInformation.name": 1,
+                "schoolInformation.externalId": 1,
+                "evidences": 1,
+                status: 1,
+              }
+            )
+
+
+            await Promise.all(submissionDocuments.map(async (submission) => {
+
+              let assessors = {}
+
+              submission.assessors.forEach(assessor => {
+                assessors[assessor.userId] = {
+                  externalId: assessor.externalId
+                };
+              });
+
+              Object.values(submission.evidences).forEach(singleEvidence => {
+                if (singleEvidence.submissions) {
+                  singleEvidence.submissions.forEach(evidenceSubmission => {
+                    console.log(req.query.fromDate)
+                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= new Date(req.query.fromDate) && evidenceSubmission.submissionDate < new Date(req.query.toDate))) {
+
+
+                      Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
+
+
+                        if (singleAnswer.payload) {
+
+                          let singleAnswerRecord = {
+                            "School Name": submission.schoolInformation.name,
+                            "School Id": submission.schoolInformation.externalId,
+                            "Question": singleAnswer.payload.question[0],
+                            "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
+                            "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                            "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                            "Remarks": singleAnswer.remarks || "",
+                            "Start Time": this.gmtToIst(singleAnswer.startTime),
+                            "End Time": this.gmtToIst(singleAnswer.endTime),
+                            "Files": "",
+                            "ECM": evidenceSubmission.externalId
+                          }
+
+                          if (singleAnswer.fileName.length > 0) {
+                            singleAnswer.fileName.forEach(file => {
+                              singleAnswerRecord.Files +=
+                                imageBaseUrl + file.sourcePath + ",";
+                            });
+                            singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                              /,\s*$/,
+                              ""
+                            );
+                          }
+
+
+                          if (!singleAnswer.notApplicable) {
+
+                            if (singleAnswer.responseType != "matrix") {
+
+                              singleAnswerRecord.Answer = singleAnswer.payload[
+                                "labels"
+                              ].toString();
+                              input.push(singleAnswerRecord)
+                            } else {
+
+                              singleAnswerRecord.Answer = "Instance Question";
+                              input.push(singleAnswerRecord)
+
+                              if (singleAnswer.payload.labels[0]) {
+                                for (
+                                  let instance = 0;
+                                  instance < singleAnswer.payload.labels[0].length;
+                                  instance++
+                                ) {
+
+                                  singleAnswer.payload.labels[0][instance].forEach(
+                                    eachInstanceChildQuestion => {
+                                      let eachInstanceChildRecord = {
+                                        "School Name": submission.schoolInformation.name,
+                                        "School Id": submission.schoolInformation.externalId,
+                                        "Question": eachInstanceChildQuestion.question[0],
+                                        "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
+                                        "Answer": "",
+                                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                        "Remarks": eachInstanceChildQuestion.remarks || "",
+                                        "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
+                                        "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                        "Files": "",
+                                        "ECM": evidenceSubmission.externalId
+                                      };
+
+                                      if (eachInstanceChildQuestion.fileName.length > 0) {
+                                        eachInstanceChildQuestion.fileName.forEach(
+                                          file => {
+                                            eachInstanceChildRecord.Files +=
+                                              imageBaseUrl + file + ",";
+                                          }
+                                        );
+                                        eachInstanceChildRecord.Files = eachInstanceChildRecord.Files.replace(
+                                          /,\s*$/,
+                                          ""
+                                        );
+                                      }
+
+                                      let radioResponse = {};
+                                      let multiSelectResponse = {};
+                                      let multiSelectResponseArray = [];
+
+                                      if (
+                                        eachInstanceChildQuestion.responseType == "radio"
+                                      ) {
+                                        eachInstanceChildQuestion.options.forEach(
+                                          option => {
+                                            radioResponse[option.value] = option.label;
+                                          }
+                                        );
+                                        eachInstanceChildRecord.Answer =
+                                          radioResponse[eachInstanceChildQuestion.value];
+                                      } else if (
+                                        eachInstanceChildQuestion.responseType ==
+                                        "multiselect"
+                                      ) {
+                                        eachInstanceChildQuestion.options.forEach(
+                                          option => {
+                                            multiSelectResponse[option.value] =
+                                              option.label;
+                                          }
+                                        );
+
+                                        eachInstanceChildQuestion.value.forEach(value => {
+                                          multiSelectResponseArray.push(
+                                            multiSelectResponse[value]
+                                          );
+                                        });
+
+                                        eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                      }
+                                      else {
+                                        eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;
+                                      }
+
+                                      input.push(eachInstanceChildRecord)
+                                    }
+                                  );
+                                }
+                              }
+                            }
+
+                          }
+                        }
+                      })
+                    }
+                  });
+                }
+              })
+            }));
+          }
+
+        }
+        input.push(null)
+
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
     });
   }
 
