@@ -100,10 +100,6 @@ module.exports = class Assessors {
     return new Promise(async (resolve, reject) => {
 
       try {
-        if (!req.files || !req.files.assessors) {
-          let responseMessage = "Bad request."
-          return resolve({ status: 400, message: responseMessage })
-        }
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
         const assessorUploadCount = assessorData.length
 
@@ -117,135 +113,126 @@ module.exports = class Assessors {
           })
 
           programQueryList[assessor.externalId] = assessor.programId
-
           evaluationFrameworkQueryList[assessor.externalId] = assessor.frameworkId
-
         });
 
 
         let schoolsFromDatabase = await database.models.schools.find({
-          externalId: { $in: Object.values(schoolQueryList) }
+          externalId : { $in: Object.values(schoolQueryList) }
         }, {
-            externalId: 1
-          });
-
+          externalId: 1
+        });
 
         let programsFromDatabase = await database.models.programs.find({
-          externalId: { $in: Object.values(programQueryList) }
+          externalId : { $in: Object.values(programQueryList) }
         });
 
         let evaluationFrameworksFromDatabase = await database.models["evaluation-frameworks"].find({
-          externalId: { $in: Object.values(evaluationFrameworkQueryList) }
+          externalId : { $in: Object.values(evaluationFrameworkQueryList) }
         }, {
-            externalId: 1
-          });
+          externalId: 1
+        });
 
+        const schoolsData = schoolsFromDatabase.reduce( 
+          (ac, school) => ({...ac, [school.externalId]: school._id }), {} )
+        
+        const programsData = programsFromDatabase.reduce( 
+          (ac, program) => ({...ac, [program.externalId]: program }), {} )
 
-        const schoolsData = schoolsFromDatabase.reduce(
-          (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
-
-        const programsData = programsFromDatabase.reduce(
-          (ac, program) => ({ ...ac, [program.externalId]: program }), {})
-
-        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
-          (ac, evaluationFramework) => ({ ...ac, [evaluationFramework.externalId]: evaluationFramework._id }), {})
-
-        const roles = {
-          ASSESSOR: "assessors",
-          LEAD_ASSESSOR: "leadAssessors",
-          PROJECT_MANAGER: "projectManagers",
-          PROGRAM_MANAGER: "programManagers"
-        };
+        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce( 
+            (ac, evaluationFramework) => ({...ac, [evaluationFramework.externalId]: evaluationFramework._id }), {} )
 
         const creatorId = req.userDetails.userId
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
+          
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
             assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
-
           assessor.schools = assessorSchoolArray
           assessor.programId = programsData[assessor.programId]._id
           assessor.createdBy = assessor.updatedBy = creatorId
 
-          let updateObject;
-
-          let otherFields = {
-            'email': assessor.email,
-            'name': assessor.name,
-            'externalId': assessor.externalId,
-            'role': assessor.role
-          }
-          if (assessor.operation == "Update") {
-            updateObject = { $set: { schools: assessor.schools, ...otherFields } }
-          }
-
-          else if (assessor.operation == "Add") {
-            updateObject = { $addToSet: { schools: assessor.schools }, $set: otherFields };
-          }
-
-          else {
-            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: otherFields };
-          }
-
-          assessor = await database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject)
-
-          let programFrameworkRoles;
-          let assessorRolePerMap;
-          let assessorCsvDataProgramId
-          let assessorCsvDataEvaluationFrameworkId
-          let assessorProgramComponents
-          let indexOfComponents
-
-          if (assessorUploadCount === assessorData.length) {
-            assessorCsvDataProgramId = programQueryList[assessor.externalId]
-            assessorCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[assessor.externalId]
-            assessorProgramComponents = programsData[assessorCsvDataProgramId].components
-
-            indexOfComponents = assessorProgramComponents.findIndex(component => {
-              return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
-            });
-
-            if (indexOfComponents >= 0) {
-              programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
-              assessorRolePerMap = roles[assessor.role]
-              Object.keys(programFrameworkRoles).forEach(role => {
-
-                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
-
-                if (role === assessorRolePerMap) {
-                  if (roleIndex < 0) {
-                    programFrameworkRoles[role].users.push(assessor.userId)
-                  }
-                }
-
-                else if ((roleIndex > 0)) {
-                  programFrameworkRoles[role].users.splice(roleIndex, 1)
-                }
-
-              })
+          assessor = await database.models["school-assessors"].findOneAndUpdate(
+            { userId: assessor.userId },
+            assessor,
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument : true
             }
-
-            if (programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
-
-              programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
-            }
-          }
+          );
           return assessor
         }));
 
-        await Promise.all(Object.values(programsData).map(async (program) => {
-          let queryObject = {
-            _id: program._id
+
+        const assessorRoleMapping = {
+          ASSESSOR: "assessors",
+          LEAD_ASSESSOR: "leadAssessors",
+          PROJECT_MANAGER: "projectManagers",
+          PROGRAM_MANAGER:"programManagers"
+        };
+
+        if(assessorUploadCount === assessorData.length) {
+
+          let assessorElement = new Object;
+          let assessorProgramComponents = new Array
+          let indexOfEvaluationFrameworkInProgram
+          let programFrameworkRoles = new Array
+          let assessorRolePerMap
+          let userIdIndexInRole
+          let assessorCsvDataProgramId
+          let assessorCsvDataEvaluationFrameworkId
+
+          for (let assessorIndexInData = 0; assessorIndexInData < assessorData.length; assessorIndexInData++) {
+            assessorElement = assessorData[assessorIndexInData];
+            
+            assessorCsvDataProgramId = programQueryList[assessorElement.externalId] 
+            assessorCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[assessorElement.externalId] 
+            assessorProgramComponents = programsData[assessorCsvDataProgramId].components
+            indexOfEvaluationFrameworkInProgram = assessorProgramComponents.findIndex( component => component.id.toString() === evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString() );
+            
+            if(indexOfEvaluationFrameworkInProgram >= 0) {
+              programFrameworkRoles = assessorProgramComponents[indexOfEvaluationFrameworkInProgram].roles
+              assessorRolePerMap = assessorRoleMapping[assessorElement.role]
+              Object.keys(programFrameworkRoles).forEach(role => {
+                if(role === assessorRolePerMap) {
+                  if(programFrameworkRoles[role].users.findIndex( user => user === assessorElement.userId) < 0) {
+                    programFrameworkRoles[role].users.push(assessorElement.userId)
+                  }
+                } else if (programFrameworkRoles[role].users.findIndex( user => user === assessorElement.userId) > 0) {
+                  userIdIndexInRole = programFrameworkRoles[role].users.findIndex( user => user === assessorElement.userId)
+                  programFrameworkRoles[role].users.splice(userIdIndexInRole,1)
+                }
+              })
+            }
+
           }
 
-          await database.models.programs.findOneAndUpdate(
-            queryObject,
-            { $set: { "components": program.components } }
-          );
-        }))
+          await Promise.all(Object.values(programsData).map(async (program) => {
 
+            let queryObject = {
+              _id: ObjectId(program._id.toString())
+            }
+            let updateObject = {}
+
+            updateObject.$set = {
+              ["components"]: program.components
+            }
+
+            await database.models.programs.findOneAndUpdate(
+              queryObject,
+              updateObject
+            );
+
+            return
+          }));
+
+        } else {
+          throw "Something went wrong, not all records were inserted/updated."
+        }
 
         let responseMessage = "Assessor record created successfully."
 
@@ -254,7 +241,7 @@ module.exports = class Assessors {
         return resolve(response);
 
       } catch (error) {
-        return reject({ message: error });
+        return reject({message:error});
       }
 
     })

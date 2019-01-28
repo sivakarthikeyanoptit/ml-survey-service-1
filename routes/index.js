@@ -79,7 +79,13 @@ module.exports = function(app) {
             }
           }
 
-          const toLogObject = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: error.errorObject.message, errorStack: error.errorObject.stack, customFields: customFields }
+          const toLogObject = { method: req.method,
+            url: req.url, headers: req.headers,
+            body: req.body,
+            errorMsg: error.errorObject ? error.errorObject.message : null, 
+            errorStack: error.errorObject ? error.errorObject.stack : null, 
+            customFields: customFields 
+          }
           slackClient.sendExceptionLogMessage(toLogObject)
           loggerExceptionObj.info(toLogObject);
           loggerObj.info({ resp: error});
