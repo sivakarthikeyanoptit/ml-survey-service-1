@@ -143,7 +143,7 @@ module.exports = class Assessments {
                                     exisitingSectionInEvidenceMethod.name ==
                                     evidenceMethodSection.name
                                 ) {
-                                    sectionExisitsInEvidenceMethod = 1;//why
+                                    sectionExisitsInEvidenceMethod = 1;
                                     existingSectionQuestionsArrayInEvidenceMethod =
                                         exisitingSectionInEvidenceMethod.questions;
                                 }
@@ -171,7 +171,7 @@ module.exports = class Assessments {
             submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
             submissionDocument.criterias = submissionDocumentCriterias;
 
-            let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(//why
+            let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
                 submissionDocument,
                 req
             );
