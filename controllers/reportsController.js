@@ -68,8 +68,7 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        const chunkSize = 10;
-        let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, chunkSize)
+        let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
         let submissionId
         let submissionDocumentsArray
 
@@ -164,7 +163,7 @@ module.exports = class Reports extends Abstract {
         }
 
         const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
-          ;
+
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -183,8 +182,7 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        const chunkSize = 10;
-        let chunkOfAssessorDocument = _.chunk(assessorDocument, chunkSize)
+        let chunkOfAssessorDocument = _.chunk(assessorDocument, 10)
         let assessorId
         let assessorsDocuments
 
@@ -283,8 +281,7 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        const chunkSize = 10;
-        let chunkOfAssessorDocument = _.chunk(assessorDocument, chunkSize)
+        let chunkOfAssessorDocument = _.chunk(assessorDocument, 10)
         let assessorId
         let assessorsDocuments
 
@@ -538,8 +535,7 @@ module.exports = class Reports extends Abstract {
           });
         } else {
 
-          const chunkSize = 10
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, chunkSize)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
 
           const pathToSubmissionAnswers = "evidences." + evidenceIdFromRequestParam + ".submissions.answers";
           const pathToSubmissionSubmittedBy = "evidences." + evidenceIdFromRequestParam + ".submissions.submittedBy";
@@ -1087,8 +1083,7 @@ module.exports = class Reports extends Abstract {
           });
         }());
 
-        const chunkSize = 10;
-        let chunkOfParentRegistryDocument = _.chunk(parentRegistryIdsArray, chunkSize)
+        let chunkOfParentRegistryDocument = _.chunk(parentRegistryIdsArray, 10)
         let parentRegistryId
         let parentRegistryDocuments
 
@@ -1182,8 +1177,7 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        const chunkSize = 10;
-        let chunkOfSubmissionIds = _.chunk(submissionIds, chunkSize)
+        let chunkOfSubmissionIds = _.chunk(submissionIds, 10)
         let submissionIdArray
         let schoolProfileSubmissionDocuments
 
@@ -1280,8 +1274,7 @@ module.exports = class Reports extends Abstract {
           });
         } else {
 
-          const chunkSize = 10
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, chunkSize)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
 
           let submissionIds
           let submissionDocuments
