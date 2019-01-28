@@ -4,11 +4,12 @@ module.exports = class Assessments {
 
         return new Promise(async (resolve, reject) => {
 
-            let userId = 'e97b5582-471c-4649-8401-3cc4249359bb';
 
             let queryObject = {
                 "components.type": "assessment",
-                "components.entities": userId
+                //subtype
+                "components.entities": req.userDetails.userId
+                //date and status
             };
 
             let programDocument = await database.models.programs.aggregate([
@@ -198,27 +199,27 @@ module.exports = class Assessments {
                 );
                 assessment.submissionId = submissionDoc.result._id;
 
-                if (
-                    submissionDoc.result.parentInterviewResponses &&
-                    submissionDoc.result.parentInterviewResponses.length > 0
-                ) {
-                    assessment.parentInterviewResponses =
-                        submissionDoc.result.parentInterviewResponses;
-                }
+                // if (
+                //     submissionDoc.result.parentInterviewResponses &&
+                //     submissionDoc.result.parentInterviewResponses.length > 0
+                // ) {
+                //     assessment.parentInterviewResponses =
+                //         submissionDoc.result.parentInterviewResponses;
+                // }
 
-                const parsedAssessment = await this.parseQuestionsByIndividual(//why
+                const parsedAssessment = await this.parseQuestionsByIndividual(
                     Object.values(evidenceMethodArray),
                     submissionDoc.result.evidences
                 );
 
                 assessment.evidences = parsedAssessment.evidences;
                 assessment.submissions = parsedAssessment.submissions;
-                if (
-                    parsedAssessment.generalQuestions &&
-                    parsedAssessment.generalQuestions.length > 0
-                ) {
-                    assessment.generalQuestions = parsedAssessment.generalQuestions;
-                }
+                // if (
+                //     parsedAssessment.generalQuestions &&
+                //     parsedAssessment.generalQuestions.length > 0
+                // ) {
+                //     assessment.generalQuestions = parsedAssessment.generalQuestions;
+                // }
                 detailedAssessment.assessments.push(assessment)
             }
 
@@ -313,15 +314,15 @@ module.exports = class Assessments {
             questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray;
           }
     
-          if (questionArrayElm[1]["isAGeneralQuestion"] === true) {//remove ?
-            questionArrayElm[1]["payload"].isAGeneralQuestion = true;
-            generalQuestions.push(questionArrayElm[1]);
-          }
+        //   if (questionArrayElm[1]["isAGeneralQuestion"] === true) {//remove ?
+        //     questionArrayElm[1]["payload"].isAGeneralQuestion = true;
+        //     generalQuestions.push(questionArrayElm[1]);
+        //   }
         });
         return {
           evidences: evidences,
           submissions: submissionsObjects,
-          generalQuestions: generalQuestions
+        //   generalQuestions: generalQuestions
         };
       }
 
