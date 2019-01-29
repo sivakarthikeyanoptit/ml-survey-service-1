@@ -163,7 +163,7 @@ module.exports = class Assessors {
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
-            if(schoolsData[assessorSchool.trim()])
+            if (schoolsData[assessorSchool.trim()])
               assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
 
@@ -171,15 +171,12 @@ module.exports = class Assessors {
           assessor.programId = programsData[assessor.programId]._id
           assessor.createdBy = assessor.updatedBy = creatorId
 
-          
+
           let otherFields = {};
-          if (assessor.email) otherFields['email'] = assessor.email;
-          if (assessor.name) otherFields['name'] = assessor.name;
-          if (assessor.externalId) otherFields['externalId'] = assessor.externalId;
-          if (assessor.role) otherFields['role'] = assessor.role;
-          
-          
-          
+          Object.keys(database.models['school-assessors'].schema.paths).forEach(fieldName => {
+            if (fieldName != 'schools' && assessor[fieldName]) otherFields[fieldName] = assessor[fieldName];
+          })
+
           let updateObject;
           if (assessor.schoolOperation == "UPDATE") {
             updateObject = { $set: { schools: assessor.schools, ...otherFields } }
