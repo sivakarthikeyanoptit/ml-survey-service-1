@@ -969,6 +969,60 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+
+  async isAllowed(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        let result = {
+          allowed : true
+        }
+        req.body = req.body || {};
+        let message = "Submission check completed successfully"
+
+        let queryObject = {
+          "_id": req.params._id
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject,
+          {
+            ["evidences."+req.query.evidenceId+".isSubmitted"] : 1,
+            ["evidences."+req.query.evidenceId+".submissions"] : 1
+          }
+        );
+
+        if(!submissionDocument|| !submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        } else {
+          if(submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
+            submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
+              if(submission.submittedBy == req.userDetails.userId) {
+                result.allowed = false
+              }
+            })
+          }
+        }
+        
+        let response = {
+          message: message,
+          result: result
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status:500,
+          message:error,
+          errorObject: error
+        });
+      }
+      
+    })
+  }
+
   // Commented out the rating flow
   // async fetchRatingQuestions(req) {
   //   return new Promise(async (resolve, reject) => {

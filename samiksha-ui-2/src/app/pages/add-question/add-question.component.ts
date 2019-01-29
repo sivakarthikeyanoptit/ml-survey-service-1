@@ -372,7 +372,10 @@ export class AddQuestionComponent implements OnInit {
     // ];
 
     this.sections = [
-      { name: "Survey Questions", questions: [] }
+      { name: "Survey Questions", questions: [] },
+      { name: "Reading Fluency - English", questions: [] },
+      { name: "Reading Comprehension", questions: [] },
+      { name: "Math Assessment", questions: [] }
     ];
   }
 
