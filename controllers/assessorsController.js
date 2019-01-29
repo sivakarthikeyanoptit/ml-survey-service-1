@@ -172,22 +172,22 @@ module.exports = class Assessors {
           assessor.createdBy = assessor.updatedBy = creatorId
 
 
-          let otherFields = {};
+          let fieldsWithOutSchool = {};
           Object.keys(database.models['school-assessors'].schema.paths).forEach(fieldName => {
-            if (fieldName != 'schools' && assessor[fieldName]) otherFields[fieldName] = assessor[fieldName];
+            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
           })
 
           let updateObject;
           if (assessor.schoolOperation == "UPDATE") {
-            updateObject = { $set: { schools: assessor.schools, ...otherFields } }
+            updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
           }
 
           else if (assessor.schoolOperation == "ADD") {
-            updateObject = { $addToSet: { schools: assessor.schools }, $set: otherFields };
+            updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
           }
 
           else if (assessor.schoolOperation == "DELETE"){
-            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: otherFields };
+            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
 
           let programFrameworkRoles;
