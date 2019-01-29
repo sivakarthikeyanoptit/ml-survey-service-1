@@ -3,14 +3,14 @@ const csv = require("csvtojson");
 module.exports = class Assessors {
 
   async schools(req) {
-    return new Promise(async (resolve,reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
 
         let schools = new Array
         let responseMessage = "Not authorized to fetch schools for this user"
-  
-        if (_.includes(req.userDetails.allRoles,"ASSESSOR") || _.includes(req.userDetails.allRoles,"LEAD_ASSESSOR")) {
-          
+
+        if (_.includes(req.userDetails.allRoles, "ASSESSOR") || _.includes(req.userDetails.allRoles, "LEAD_ASSESSOR")) {
+
           let assessorSchoolsQueryObject = [
             {
               $match: {
@@ -25,47 +25,47 @@ module.exports = class Assessors {
                 as: "schoolDocuments"
               }
             },
-            { 
-              $project : { 
+            {
+              $project: {
                 "schools": 1,
-                "schoolDocuments._id" : 1,
-                "schoolDocuments.externalId" : 1 , 
-                "schoolDocuments.name" : 1 ,
-                "schoolDocuments.addressLine1" : 1 , 
-                "schoolDocuments.addressLine2" : 1 ,
-                "schoolDocuments.city" : 1 , 
-                "schoolDocuments.state" : 1
+                "schoolDocuments._id": 1,
+                "schoolDocuments.externalId": 1,
+                "schoolDocuments.name": 1,
+                "schoolDocuments.addressLine1": 1,
+                "schoolDocuments.addressLine2": 1,
+                "schoolDocuments.city": 1,
+                "schoolDocuments.state": 1
               }
             }
           ];
 
           const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
-          
+
           let assessor
           let submissions
           let schoolPAISubmissionStatus = new Array
 
           for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
-            
+
             assessor = assessorsDocument[pointerToAssessorDocumentArray];
-            
+
             submissions = await database.models.submissions.find(
               {
                 schoolId: {
                   $in: assessor.schools
                 },
-                "evidences.PAI.isSubmitted" :true
+                "evidences.PAI.isSubmitted": true
               },
               {
-              "schoolId": 1
+                "schoolId": 1
               }
             )
 
-            schoolPAISubmissionStatus = submissions.reduce( 
-              (ac, school) => ({...ac, [school.schoolId.toString()]: true }), {} )
+            schoolPAISubmissionStatus = submissions.reduce(
+              (ac, school) => ({ ...ac, [school.schoolId.toString()]: true }), {})
 
             assessor.schoolDocuments.forEach(assessorSchool => {
-              if(schoolPAISubmissionStatus[assessorSchool._id.toString()]) {
+              if (schoolPAISubmissionStatus[assessorSchool._id.toString()]) {
                 assessorSchool.isParentInterviewCompleted = true
               } else {
                 assessorSchool.isParentInterviewCompleted = false
@@ -77,7 +77,7 @@ module.exports = class Assessors {
 
           responseMessage = "School list fetched successfully"
         }
-  
+
         return resolve({
           message: responseMessage,
           result: schools
@@ -113,7 +113,8 @@ module.exports = class Assessors {
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
-            schoolQueryList[assessorSchool.trim()] = assessorSchool.trim()
+            if (assessorSchool)
+              schoolQueryList[assessorSchool.trim()] = assessorSchool.trim()
           })
 
           programQueryList[assessor.externalId] = assessor.programId
@@ -157,35 +158,38 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        const creatorId = 'suihfiusf7qw64t76'
+        const creatorId = req.userDetails.userId;
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
-            assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
+            if(schoolsData[assessorSchool.trim()])
+              assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
 
           assessor.schools = assessorSchoolArray
           assessor.programId = programsData[assessor.programId]._id
           assessor.createdBy = assessor.updatedBy = creatorId
 
+          
+          let otherFields = {};
+          if (assessor.email) otherFields['email'] = assessor.email;
+          if (assessor.name) otherFields['name'] = assessor.name;
+          if (assessor.externalId) otherFields['externalId'] = assessor.externalId;
+          if (assessor.role) otherFields['role'] = assessor.role;
+          
+          
+          
           let updateObject;
-
-          let otherFields = {
-            'email': assessor.email,
-            'name': assessor.name,
-            'externalId': assessor.externalId,
-            'role': assessor.role
-          }
-          if (assessor.operation == "Update") {
+          if (assessor.schoolOperation == "UPDATE") {
             updateObject = { $set: { schools: assessor.schools, ...otherFields } }
           }
 
-          else if (assessor.operation == "Add") {
+          else if (assessor.schoolOperation == "ADD") {
             updateObject = { $addToSet: { schools: assessor.schools }, $set: otherFields };
           }
 
-          else {
+          else if (assessor.schoolOperation == "DELETE"){
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: otherFields };
           }
 
@@ -211,20 +215,20 @@ module.exports = class Assessors {
 
               //constructing program roles
               Object.keys(programFrameworkRoles).forEach(role => {
-                  let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
-  
-                  if (role === assessorRole) {
-                    if (roleIndex < 0) {
-                      programFrameworkRoles[role].users.push(assessor.userId);
-                    }
+                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+
+                if (role === assessorRole) {
+                  if (roleIndex < 0) {
+                    programFrameworkRoles[role].users.push(assessor.userId);
                   }
-                  else {
-                    if ((roleIndex > 0)) {
-                      programFrameworkRoles[role].users.splice(roleIndex, 1);
-                    }
-                    if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
-                      programFrameworkRoles[assessorRole].users.push(assessor.userId);
+                }
+                else {
+                  if ((roleIndex > 0)) {
+                    programFrameworkRoles[role].users.splice(roleIndex, 1);
                   }
+                  if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
+                    programFrameworkRoles[assessorRole].users.push(assessor.userId);
+                }
 
               })
             }
@@ -233,9 +237,16 @@ module.exports = class Assessors {
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
             }
           }
-          
-          return database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject).exec();
-        })).catch(error =>{
+
+          return database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject,
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument: true
+            });
+
+        })).catch(error => {
           return reject({ message: error });
         });
 
@@ -248,7 +259,7 @@ module.exports = class Assessors {
             queryObject,
             { $set: { "components": program.components } }
           );
-        })).catch(err=>{
+        })).catch(err => {
           return reject({ message: error });
         })
 
