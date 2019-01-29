@@ -1078,9 +1078,25 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        const parentRegistryIdsArray = await database.models['parent-registry'].find({ "programId": programsDocumentIds[0]._id }, { _id: 1 })
+        const parentRegistryQueryParams = {}
 
-        const fileName = `parentRegistry`;
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id
+
+        if (req.query.fromDate || req.query.toDate) {
+          parentRegistryQueryParams["createdAt"] = {}
+          if (req.query.fromDate) {
+            parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate)
+            parentRegistryQueryParams["createdAt"]["$lt"] = (req.query.toDate) ? new Date(req.query.toDate) : req.query.toDate = new Date()
+          }
+          else {
+            parentRegistryQueryParams["createdAt"]["$lt"] = new Date(req.query.toDate)
+          }
+        }
+
+        const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
+
+        const fileName = (req.query.fromDate || req.query.to) ? `parentRegistry from ${req.query.fromDate} to ${req.query.toDate}` : `parentRegistry`;
+
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1282,7 +1298,7 @@ module.exports = class Reports extends Abstract {
           }
         })
 
-        const fileName = `EcmReport from date ${req.query.fromDate} to ${req.query.toDate}`;
+        const fileName = `EcmReport from date ${req.query.fromDate} to ${req.query.toDate} `;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
