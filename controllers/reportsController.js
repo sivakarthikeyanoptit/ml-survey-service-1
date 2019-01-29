@@ -1074,28 +1074,22 @@ module.exports = class Reports extends Abstract {
         if (!programsDocumentIds.length) {
           return resolve({
             status: 404,
-            message: "No parent registry found for given params."
+            message: "No parent registry found for given parameters."
           });
         }
 
-        const parentRegistryQueryParams = {}
+        let parentRegistryQueryParams = {}
 
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id
 
-        if (req.query.fromDate || req.query.toDate) {
-          parentRegistryQueryParams["createdAt"] = {}
-          if (req.query.fromDate) {
-            parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate)
-            parentRegistryQueryParams["createdAt"]["$lt"] = (req.query.toDate) ? new Date(req.query.toDate) : req.query.toDate = new Date()
-          }
-          else {
-            parentRegistryQueryParams["createdAt"]["$lt"] = new Date(req.query.toDate)
-          }
-        }
+        (req.query.fromDate != "") ? parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate) : parentRegistryQueryParams["createdAt"]["$gte"] = new Date(0)
+        (req.query.toDate != "") ? parentRegistryQueryParams["createdAt"]["$lte"] = new Date(req.query.toDate) : parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
-        const fileName = (req.query.fromDate || req.query.to) ? `parentRegistry from ${req.query.fromDate} to ${req.query.toDate}` : `parentRegistry`;
+        let fileName = "parentRegistry"
+        (req.query.fromDate != "") ? fileName += " from "+ req.query.fromDate : ""
+        (req.query.toDate != "") ? fileName += " to "+ req.query.toDate : ""
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1261,7 +1255,7 @@ module.exports = class Reports extends Abstract {
     });
   }
 
-  async generateEcmReportByCurrentDate(req) {
+  async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
@@ -1269,7 +1263,7 @@ module.exports = class Reports extends Abstract {
         if (!req.query.fromDate) {
           return resolve({
             status: 404,
-            message: "Required fromDate as req.query"
+            message: "From date is a mandatory field."
           });
         }
 
@@ -1277,7 +1271,7 @@ module.exports = class Reports extends Abstract {
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
           fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {
             $gte: new Date(req.query.fromDate),
-            $lt: (req.query.toDate) ? new Date(req.query.toDate) : req.query.toDate = new Date()
+            $lte: (req.query.toDate) ? new Date(req.query.toDate) : req.query.toDate = new Date()
           }
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
