@@ -189,8 +189,6 @@ module.exports = class Assessors {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: otherFields };
           }
 
-          assessor = await database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject)
-
           let programFrameworkRoles;
           let assessorRole;
           let assessorCsvDataProgramId
@@ -235,7 +233,8 @@ module.exports = class Assessors {
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
             }
           }
-          return assessor;
+          
+          return database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject).exec();
         })).catch(error =>{
           return reject({ message: error });
         });
