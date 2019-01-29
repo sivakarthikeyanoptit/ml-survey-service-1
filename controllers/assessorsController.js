@@ -105,11 +105,11 @@ module.exports = class Assessors {
           return resolve({ status: 400, message: responseMessage })
         }
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
-        const assessorUploadCount = assessorData.length;
 
         let schoolQueryList = {};
         let programQueryList = {};
         let evaluationFrameworkQueryList = {};
+        let skippedDocumentCount = 0;
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -168,7 +168,12 @@ module.exports = class Assessors {
           })
 
           assessor.schools = assessorSchoolArray
-          assessor.programId = programsData[assessor.programId]._id
+          if(programsData[assessor.programId]){
+            assessor.programId = programsData[assessor.programId]._id;
+          }else{
+            assessor.programId = null;
+            skippedDocumentCount += 1;
+          }
           assessor.createdBy = assessor.updatedBy = creatorId
 
 
@@ -197,43 +202,45 @@ module.exports = class Assessors {
           let assessorProgramComponents
           let indexOfComponents
 
-          if (assessorUploadCount === assessorData.length) {
-            assessorCsvDataProgramId = programQueryList[assessor.externalId]
-            assessorCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[assessor.externalId]
-            assessorProgramComponents = programsData[assessorCsvDataProgramId].components
+          assessorCsvDataProgramId = programQueryList[assessor.externalId]
+          assessorCsvDataEvaluationFrameworkId = evaluationFrameworkQueryList[assessor.externalId]
+          assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
 
-            indexOfComponents = assessorProgramComponents.findIndex(component => {
-              return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
-            });
+          indexOfComponents = assessorProgramComponents.findIndex(component => {
+            return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
+          });
 
-            if (indexOfComponents >= 0) {
-              programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
-              assessorRole = roles[assessor.role];
+          if (indexOfComponents >= 0) {
+            programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
+            assessorRole = roles[assessor.role];
 
-              //constructing program roles
-              Object.keys(programFrameworkRoles).forEach(role => {
-                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+            //constructing program roles
+            Object.keys(programFrameworkRoles).forEach(role => {
+              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
 
-                if (role === assessorRole) {
-                  if (roleIndex < 0) {
-                    programFrameworkRoles[role].users.push(assessor.userId);
-                  }
+              if (role === assessorRole) {
+                if (roleIndex < 0) {
+                  programFrameworkRoles[role].users.push(assessor.userId);
                 }
-                else {
-                  if ((roleIndex > 0)) {
-                    programFrameworkRoles[role].users.splice(roleIndex, 1);
-                  }
-                  if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
-                    programFrameworkRoles[assessorRole].users.push(assessor.userId);
+              }
+              else {
+                if ((roleIndex > 0)) {
+                  programFrameworkRoles[role].users.splice(roleIndex, 1);
                 }
 
-              })
-            }
+                if(!assessorRole) skippedDocumentCount +=1;
 
-            if (programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
-              programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
-            }
+                if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
+                  programFrameworkRoles[assessorRole].users.push(assessor.userId);
+              }
+
+            })
           }
+
+          if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
+            programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
+          }
+
 
           return database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject,
             {
@@ -264,6 +271,11 @@ module.exports = class Assessors {
         let responseMessage = "Assessor record created successfully."
 
         let response = { message: responseMessage };
+
+        if(skippedDocumentCount > 0){
+          let responseMessage =  `Not all records were inserted/updated.`;
+          return resolve({ status: 400, message: responseMessage })
+        }
 
         return resolve(response);
 
