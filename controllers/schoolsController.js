@@ -192,7 +192,7 @@ module.exports = class Schools extends Abstract {
           schoolQueryObject
         );
         schoolDocument = await schoolDocument.toObject();
-
+        // req.userDetails.id = 'd8e31da5-5e67-4383-9ec2-c42a94cdeed4';
         let programQueryObject = {
           status: "active",
           "components.schools": { $in: [ObjectId(req.params._id)] },
@@ -585,11 +585,14 @@ module.exports = class Schools extends Abstract {
         evidence.sections.forEach(section => {
           let arrangedQuestion = [];
           let questionsArray = section.questions;
+          let questionExternalIds = questionsArray.map(questionExternalId=> questionExternalId.externalId)
           questionSequenceByEcm[evidence.externalId].forEach(sequenceQuestionId => {
             let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
             if (questionObject)
               arrangedQuestion.push(questionObject);
           })
+          let missingQuestions = _.differenceWith(questionExternalIds,arrangedQuestion.map(question=> question.externalId), _.isEqual);
+          missingQuestions && missingQuestions.forEach(questionExternalId=> arrangedQuestion.push(section.questions.find(question=> question.externalId === questionExternalId)) )
           section.questions = arrangedQuestion;
         })
       }
