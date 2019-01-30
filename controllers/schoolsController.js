@@ -694,6 +694,7 @@ module.exports = class Schools extends Abstract {
               evidenceMethod.notApplicable = false;
               evidenceMethod.canBeNotAllowed = true;
               evidenceMethod.remarks = "";
+              evidenceMethod.submissions = new Array
               submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                 evidenceMethod,
                 ["sections"]
