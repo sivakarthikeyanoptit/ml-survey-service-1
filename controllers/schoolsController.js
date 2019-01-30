@@ -192,7 +192,7 @@ module.exports = class Schools extends Abstract {
           schoolQueryObject
         );
         schoolDocument = await schoolDocument.toObject();
-        // req.userDetails.id = 'd8e31da5-5e67-4383-9ec2-c42a94cdeed4';
+        req.userDetails.id = 'd8e31da5-5e67-4383-9ec2-c42a94cdeed4';
         let programQueryObject = {
           status: "active",
           "components.schools": { $in: [ObjectId(req.params._id)] },
@@ -372,14 +372,14 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray}})
+          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } })
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
           let submissionDocumentCriterias = [];
 
           criteriaQuestionDocument.forEach(criteria => {
-            
+
             submissionDocumentCriterias.push(
               _.omit(criteria._doc, [
                 "resourceType",
@@ -464,7 +464,7 @@ module.exports = class Schools extends Abstract {
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
             submissionDoc.result.evidences,
-            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm)  ? evaluationFrameworkDocument[0].questionSequenceByEcm : null
+            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm) ? evaluationFrameworkDocument[0].questionSequenceByEcm : false
           );
 
           assessment.evidences = parsedAssessment.evidences;
@@ -491,7 +491,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async parseQuestions(evidences, schoolTypes, submissionDocEvidences, questionSequenceByEcm) {
+  async parseQuestions(evidences, schoolTypes, submissionDocEvidences, questionSequenceByEcm = false) {
     let schoolFilterQuestionArray = {};
     let sectionQuestionArray = {};
     let generalQuestions = [];
@@ -579,24 +579,28 @@ module.exports = class Schools extends Abstract {
       }
     });
 
-    //sort by sequence
-    questionSequenceByEcm && evidences.forEach(evidence => {
-      if (Object.keys(questionSequenceByEcm).includes(evidence.externalId)) {
-        evidence.sections.forEach(section => {
-          let arrangedQuestion = [];
-          let questionsArray = section.questions;
-          let questionExternalIds = questionsArray.map(questionExternalId=> questionExternalId.externalId)
-          questionSequenceByEcm[evidence.externalId].forEach(sequenceQuestionId => {
-            let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
-            if (questionObject)
-              arrangedQuestion.push(questionObject);
+    // Sort questions by sequence
+    if(questionSequenceByEcm) {
+      evidences.forEach(evidence => {
+        if (questionSequenceByEcm[evidence.externalId]) {
+          evidence.sections.forEach(section => {
+            if(questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
+              let arrangedQuestion = [];
+              let questionsArray = section.questions;
+              let questionExternalIds = questionsArray.map(questionExternalId=> questionExternalId.externalId);
+              questionSequenceByEcm[evidence.externalId][section.name].forEach(sequenceQuestionId => {
+                let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
+                if (questionObject)
+                  arrangedQuestion.push(questionObject);
+              })
+              let missingQuestions = _.differenceWith(questionExternalIds,arrangedQuestion.map(question=> question.externalId), _.isEqual);
+              (missingQuestions && missingQuestions.length) && missingQuestions.forEach(questionExternalId=> arrangedQuestion.push(section.questions.find(question=> question.externalId === questionExternalId)) );
+              section.questions = arrangedQuestion;
+            }
           })
-          let missingQuestions = _.differenceWith(questionExternalIds,arrangedQuestion.map(question=> question.externalId), _.isEqual);
-          missingQuestions && missingQuestions.forEach(questionExternalId=> arrangedQuestion.push(section.questions.find(question=> question.externalId === questionExternalId)) )
-          section.questions = arrangedQuestion;
-        })
-      }
-    })
+        }
+      })
+    }
 
     return {
       evidences: evidences,
