@@ -1438,7 +1438,6 @@ module.exports = class Reports extends Abstract {
                                         "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
                                         "Files": "",
                                         "ECM": evidenceSubmission.externalId
-
                                       };
 
                                       if (eachInstanceChildQuestion.fileName.length > 0) {
