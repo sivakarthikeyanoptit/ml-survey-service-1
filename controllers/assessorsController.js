@@ -168,9 +168,9 @@ module.exports = class Assessors {
           })
 
           assessor.schools = assessorSchoolArray
-          if(programsData[assessor.programId]){
+          if (programsData[assessor.programId]) {
             assessor.programId = programsData[assessor.programId]._id;
-          }else{
+          } else {
             assessor.programId = null;
             skippedDocumentCount += 1;
           }
@@ -191,7 +191,7 @@ module.exports = class Assessors {
             updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
           }
 
-          else if (assessor.schoolOperation == "DELETE"){
+          else if (assessor.schoolOperation == "DELETE") {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
 
@@ -228,7 +228,7 @@ module.exports = class Assessors {
                   programFrameworkRoles[role].users.splice(roleIndex, 1);
                 }
 
-                if(!assessorRole) skippedDocumentCount +=1;
+                if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
 
                 if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
                   programFrameworkRoles[assessorRole].users.push(assessor.userId);
@@ -251,7 +251,11 @@ module.exports = class Assessors {
             });
 
         })).catch(error => {
-          return reject({ message: error });
+          return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+          });
         });
 
         Promise.all(Object.values(programsData).map(async (program) => {
@@ -263,8 +267,12 @@ module.exports = class Assessors {
             queryObject,
             { $set: { "components": program.components } }
           );
-        })).catch(err => {
-          return reject({ message: error });
+        })).catch(error => {
+          return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+          });
         })
 
 
@@ -272,19 +280,27 @@ module.exports = class Assessors {
 
         let response = { message: responseMessage };
 
-        if(skippedDocumentCount > 0){
-          let responseMessage =  `Not all records were inserted/updated.`;
+        if (skippedDocumentCount > 0) {
+          let responseMessage = `Not all records were inserted/updated.`;
           return resolve({ status: 400, message: responseMessage })
         }
 
         return resolve(response);
 
       } catch (error) {
-        return reject({ message: error });
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
       }
 
-    }).catch(err=>{
-      console.log(err);
+    }).catch(error => {
+      return reject({
+        status: 500,
+        message: error,
+        errorObject: error
+      });
     })
   }
 
