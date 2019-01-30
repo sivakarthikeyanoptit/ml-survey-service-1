@@ -585,14 +585,21 @@ module.exports = class Schools extends Abstract {
         if (questionSequenceByEcm[evidence.externalId]) {
           evidence.sections.forEach(section => {
             if(questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
-              let arrangedQuestion = [];
-              let questionsArray = section.questions;
-              questionSequenceByEcm[evidence.externalId].forEach(sequenceQuestionId => {
-                let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
-                if (questionObject)
-                  arrangedQuestion.push(questionObject);
+
+              let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
+              let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
+              let sortedQuestionArray = new Array
+
+              questionSequenceByEcmSection.forEach(questionId => {
+                if(sectionQuestionByEcm[questionId]) {
+                  sortedQuestionArray.push(sectionQuestionByEcm[questionId])
+                  delete sectionQuestionByEcm[questionId]
+                }
               })
-              section.questions = arrangedQuestion;
+
+              sortedQuestionArray = _.concat(sortedQuestionArray, Object.values(sectionQuestionByEcm));
+              
+              section.questions = sortedQuestionArray
             }
           })
         }
