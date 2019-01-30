@@ -224,13 +224,13 @@ module.exports = class Assessors {
                 }
               }
               else {
-                if ((roleIndex > 0)) {
+                if ((roleIndex >= 0)) {
                   programFrameworkRoles[role].users.splice(roleIndex, 1);
                 }
 
                 if(!assessorRole) skippedDocumentCount +=1;
 
-                if (assessorRole && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
+                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
                   programFrameworkRoles[assessorRole].users.push(assessor.userId);
               }
 
@@ -283,6 +283,8 @@ module.exports = class Assessors {
         return reject({ message: error });
       }
 
+    }).catch(err=>{
+      console.log(err);
     })
   }
 
