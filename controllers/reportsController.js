@@ -1069,7 +1069,7 @@ module.exports = class Reports extends Abstract {
           externalId: req.params._id
         };
 
-        const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
         if (!programsDocumentIds.length) {
           return resolve({
@@ -1080,16 +1080,28 @@ module.exports = class Reports extends Abstract {
 
         let parentRegistryQueryParams = {}
 
-        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams["createdAt"] = {};
+        parentRegistryQueryParams["createdAt"]["$gte"] = {};
+        parentRegistryQueryParams["createdAt"]["$lte"] = {};
+        if (req.query.fromDate) {
+          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate.split("-").reverse().join("-")
+          )
+        } else {
+          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(0)
+        }
 
-        (req.query.fromDate != "") ? parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate) : parentRegistryQueryParams["createdAt"]["$gte"] = new Date(0)
-        (req.query.toDate != "") ? parentRegistryQueryParams["createdAt"]["$lte"] = new Date(req.query.toDate) : parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
+        if (req.query.toDate) {
+          parentRegistryQueryParams["createdAt"]["$lte"] = new Date(req.query.toDate.split("-").reverse().join("-"))
+        } else {
+          parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
+        }
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
-        let fileName = "parentRegistry"
-        (req.query.fromDate != "") ? fileName += " from "+ req.query.fromDate : ""
-        (req.query.toDate != "") ? fileName += " to "+ req.query.toDate : ""
+        let fileName = "parentRegistry";
+        (req.query.fromDate != "") ? fileName += " from " + req.query.fromDate : "";
+        (req.query.toDate != "") ? fileName += " to " + req.query.toDate : "";
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1160,6 +1172,7 @@ module.exports = class Reports extends Abstract {
               })
               parentRegistryObject['Program External Id'] = programQueryParams.externalId;
               parentRegistryObject['School External Id'] = parentRegistry.schoolId;
+              parentRegistryObject['Created At'] = parentRegistry.createdAt;
               input.push(parentRegistryObject);
             }))
           }
@@ -1259,19 +1272,21 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-
-        if (!req.query.fromDate) {
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
+        if (!fromDate) {
           return resolve({
             status: 404,
             message: "From date is a mandatory field."
           });
         }
 
+
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
           fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {
-            $gte: new Date(req.query.fromDate),
-            $lte: (req.query.toDate) ? new Date(req.query.toDate) : req.query.toDate = new Date()
+            '$gte': new Date(fromDate.split("-").reverse().join("-")),
+            '$lte': (toDate) ? new Date(toDate.split("-").reverse().join("-")) : toDate = new Date()
           }
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
@@ -1292,7 +1307,7 @@ module.exports = class Reports extends Abstract {
           }
         })
 
-        const fileName = `EcmReport from date ${req.query.fromDate} to ${req.query.toDate} `;
+        const fileName = `EcmReport from date ${fromDate} to ${toDate} `;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1352,8 +1367,8 @@ module.exports = class Reports extends Abstract {
               Object.values(submission.evidences).forEach(singleEvidence => {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
-                    // console.log(req.query.fromDate)
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= new Date(req.query.fromDate) && evidenceSubmission.submissionDate < new Date(req.query.toDate))) {
+
+                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= new Date(fromDate.split("-").reverse().join("-")) && evidenceSubmission.submissionDate < new Date(toDate.split("-").reverse().join("-")))) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1372,7 +1387,8 @@ module.exports = class Reports extends Abstract {
                             "Start Time": this.gmtToIst(singleAnswer.startTime),
                             "End Time": this.gmtToIst(singleAnswer.endTime),
                             "Files": "",
-                            "ECM": evidenceSubmission.externalId
+                            "ECM": evidenceSubmission.externalId,
+                            "Created At": singleAnswer.createdAt ? this.gmtToIst(singleAnswer.createdAt) : ""
                           }
 
                           if (singleAnswer.fileName.length > 0) {
@@ -1414,6 +1430,7 @@ module.exports = class Reports extends Abstract {
                                         "School Id": submission.schoolInformation.externalId,
                                         "Question": eachInstanceChildQuestion.question[0],
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
+                                        "Created At": this.gmtToIst(eachInstanceChildQuestion.createdAt),
                                         "Answer": "",
                                         "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
