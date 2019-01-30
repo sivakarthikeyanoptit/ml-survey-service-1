@@ -192,7 +192,6 @@ module.exports = class Schools extends Abstract {
           schoolQueryObject
         );
         schoolDocument = await schoolDocument.toObject();
-        req.userDetails.id = 'd8e31da5-5e67-4383-9ec2-c42a94cdeed4';
         let programQueryObject = {
           status: "active",
           "components.schools": { $in: [ObjectId(req.params._id)] },
@@ -584,18 +583,22 @@ module.exports = class Schools extends Abstract {
       evidences.forEach(evidence => {
         if (questionSequenceByEcm[evidence.externalId]) {
           evidence.sections.forEach(section => {
+
             if(questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
-              let arrangedQuestion = [];
-              let questionsArray = section.questions;
-              let questionExternalIds = questionsArray.map(questionExternalId=> questionExternalId.externalId);
-              questionSequenceByEcm[evidence.externalId][section.name].forEach(sequenceQuestionId => {
-                let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
-                if (questionObject)
-                  arrangedQuestion.push(questionObject);
+              let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
+              let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
+              let sortedQuestionArray = new Array
+
+              questionSequenceByEcmSection.forEach(questionId => {
+                if(sectionQuestionByEcm[questionId]) {
+                  sortedQuestionArray.push(sectionQuestionByEcm[questionId])
+                  delete sectionQuestionByEcm[questionId]
+                }
               })
-              let missingQuestions = _.differenceWith(questionExternalIds,arrangedQuestion.map(question=> question.externalId), _.isEqual);
-              (missingQuestions && missingQuestions.length) && missingQuestions.forEach(questionExternalId=> arrangedQuestion.push(section.questions.find(question=> question.externalId === questionExternalId)) );
-              section.questions = arrangedQuestion;
+
+              sortedQuestionArray = _.concat(sortedQuestionArray, Object.values(sectionQuestionByEcm));
+            
+              section.questions = sortedQuestionArray
             }
           })
         }
