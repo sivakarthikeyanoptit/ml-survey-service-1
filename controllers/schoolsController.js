@@ -464,7 +464,7 @@ module.exports = class Schools extends Abstract {
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
             submissionDoc.result.evidences,
-            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm)  ? evaluationFrameworkDocument[0].questionSequenceByEcm : null
+            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm)  ? evaluationFrameworkDocument[0].questionSequenceByEcm : false
           );
 
           assessment.evidences = parsedAssessment.evidences;
@@ -491,7 +491,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async parseQuestions(evidences, schoolTypes, submissionDocEvidences, questionSequenceByEcm) {
+  async parseQuestions(evidences, schoolTypes, submissionDocEvidences, questionSequenceByEcm = false) {
     let schoolFilterQuestionArray = {};
     let sectionQuestionArray = {};
     let generalQuestions = [];
@@ -579,21 +579,25 @@ module.exports = class Schools extends Abstract {
       }
     });
 
-    //sort by sequence
-    questionSequenceByEcm && evidences.forEach(evidence => {
-      if (Object.keys(questionSequenceByEcm).includes(evidence.externalId)) {
-        evidence.sections.forEach(section => {
-          let arrangedQuestion = [];
-          let questionsArray = section.questions;
-          questionSequenceByEcm[evidence.externalId].forEach(sequenceQuestionId => {
-            let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
-            if (questionObject)
-              arrangedQuestion.push(questionObject);
+    // Sort questions by sequence
+    if(questionSequenceByEcm) {
+      evidences.forEach(evidence => {
+        if (questionSequenceByEcm[evidence.externalId]) {
+          evidence.sections.forEach(section => {
+            if(questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
+              let arrangedQuestion = [];
+              let questionsArray = section.questions;
+              questionSequenceByEcm[evidence.externalId].forEach(sequenceQuestionId => {
+                let questionObject = questionsArray.find(questionObject => questionObject.externalId == sequenceQuestionId);
+                if (questionObject)
+                  arrangedQuestion.push(questionObject);
+              })
+              section.questions = arrangedQuestion;
+            }
           })
-          section.questions = arrangedQuestion;
-        })
-      }
-    })
+        }
+      })
+    }
 
     return {
       evidences: evidences,
