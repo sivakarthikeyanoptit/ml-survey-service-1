@@ -1,13 +1,13 @@
 const csv = require("csvtojson");
 
-module.exports = class SchoolLeadersRegistry extends Abstract {
+module.exports = class SchoolLeaderRegistry extends Abstract {
 
     constructor(schema) {
         super(schema);
     }
 
     static get name() {
-        return "schoolLeadersRegistry";
+        return "schoolLeaderRegistry";
     }
 
 
@@ -19,19 +19,19 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
 
                 if (req.body.schoolLeaders) {
 
-                    let addTeachersQuery = await database.models["school-leaders-registry"].create(
+                    let addTeachersQuery = await database.models["school-leader-registry"].create(
                         req.body.schoolLeaders
                     );
 
                     if (addTeachersQuery.length != req.body.schoolLeaders.length) {
-                        throw "Some schoolLeaders information was not inserted!"
+                        throw "School Leaders information was not inserted!"
                     }
 
                 } else {
                     throw "Bad Request"
                 }
 
-                let responseMessage = "School schoolLeaders information added successfully."
+                let responseMessage = "School Leaders information added successfully."
 
                 let response = { message: responseMessage };
 
@@ -58,7 +58,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                         schoolId: req.params._id
                     }
 
-                    result = await database.models["school-leaders-registry"].find(
+                    result = await database.models["school-leader-registry"].find(
                         queryObject
                     );
 
@@ -282,7 +282,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
     async fetch(req) {
         return new Promise(async function (resolve, reject) {
 
-            let schoolLeadersInformation = await database.models["school-leaders-registry"].findOne(
+            let schoolLeadersInformation = await database.models["school-leader-registry"].findOne(
                 { _id: ObjectId(req.params._id) }
             );
 
@@ -460,13 +460,13 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
         return new Promise(async function (resolve, reject) {
 
             try {
-                let schoolLeadersInformation = await database.models["school-leaders-registry"].findOneAndUpdate(
+                let schoolLeadersInformation = await database.models["school-leader-registry"].findOneAndUpdate(
                     { _id: ObjectId(req.params._id) },
                     req.body,
                     { new: true }
                 );
 
-                let responseMessage = "Teacher information updated successfully."
+                let responseMessage = "School Leader information updated successfully."
 
                 let response = { message: responseMessage, result: schoolLeadersInformation };
 
