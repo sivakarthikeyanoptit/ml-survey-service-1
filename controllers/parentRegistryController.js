@@ -23,11 +23,9 @@ module.exports = class ParentRegistry extends Abstract {
             if(typeof parent.type === "string") {
               parent.type = new Array(parent.type)
             }
-            parent.createdAt = new Date;
-            parent.updatedAt = new Date;
           })
 
-          let addParentsQuery = await database.models["parent-registry"].insertMany(
+          let addParentsQuery = await database.models["parent-registry"].create(
             req.body.parents
           );
 
