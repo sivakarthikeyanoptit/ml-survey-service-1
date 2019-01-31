@@ -496,7 +496,7 @@ module.exports = class Reports extends Abstract {
 
       try {
 
-        const evidenceIdFromRequestParam = evidenceId;
+        const evidenceIdFromRequestParam = req.query.evidenceId;
         const evidenceQueryObject = "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
         const fetchRequiredSubmissionDocumentIdQueryObj = {
           ["programInformation.externalId"]: req.params._id,
