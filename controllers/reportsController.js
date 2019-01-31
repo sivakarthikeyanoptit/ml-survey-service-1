@@ -1079,10 +1079,10 @@ module.exports = class Reports extends Abstract {
         }
 
         let fromDate = req.query.fromDate;
-        let toDate = req.query.toDate;
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date();
         let parentRegistryQueryParams = {}
 
-        if (new Date(fromDate.split("-").reverse().join("-")) > new Date(toDate.split("-").reverse().join("-"))) {
+        if (new Date(fromDate.split("-").reverse().join("-")) > toDate) {
           return resolve({
             status: 400,
             message: "From date cannot be greater than to date."
@@ -1101,7 +1101,7 @@ module.exports = class Reports extends Abstract {
         }
 
         if (toDate) {
-          parentRegistryQueryParams["createdAt"]["$lte"] = new Date(toDate.split("-").reverse().join("-"))
+          parentRegistryQueryParams["createdAt"]["$lte"] = toDate
         } else {
           parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
         }
@@ -1281,8 +1281,8 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let fromDate = req.query.fromDate
-        let toDate = req.query.toDate
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
         if (!fromDate) {
           return resolve({
@@ -1291,7 +1291,7 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        if (new Date(fromDate.split("-").reverse().join("-")) > new Date(toDate.split("-").reverse().join("-"))) {
+        if (fromDate > toDate) {
           return resolve({
             status: 400,
             message: "From date cannot be greater than to date."
@@ -1300,10 +1300,12 @@ module.exports = class Reports extends Abstract {
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
-          fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {
-            '$gte': new Date(fromDate.split("-").reverse().join("-")),
-            '$lte': (toDate) ? new Date(toDate.split("-").reverse().join("-")) : new Date()
-          }
+          fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
+
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
             ["started"]
@@ -1387,10 +1389,7 @@ module.exports = class Reports extends Abstract {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    let fromDateValue = new Date(fromDate.split("-").reverse().join("-"))
-                    let toDateValue = toDate ? new Date(toDate.split("-").reverse().join("-")) : new Date()
-
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDateValue && evidenceSubmission.submissionDate < toDateValue)) {
+                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
