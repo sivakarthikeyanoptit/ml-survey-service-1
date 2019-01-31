@@ -496,7 +496,7 @@ module.exports = class Reports extends Abstract {
 
       try {
 
-        const evidenceIdFromRequestParam = req.query.evidenceId;
+        const evidenceIdFromRequestParam = evidenceId;
         const evidenceQueryObject = "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
         const fetchRequiredSubmissionDocumentIdQueryObj = {
           ["programInformation.externalId"]: req.params._id,
@@ -1078,21 +1078,30 @@ module.exports = class Reports extends Abstract {
           });
         }
 
+        let fromDate = req.query.fromDate;
+        let toDate = req.query.toDate;
         let parentRegistryQueryParams = {}
+
+        if (new Date(fromDate.split("-").reverse().join("-")) > new Date(toDate.split("-").reverse().join("-"))) {
+          return resolve({
+            status: 400,
+            message: "From date cannot be greater than to date."
+          });
+        }
 
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
         parentRegistryQueryParams["createdAt"] = {};
         parentRegistryQueryParams["createdAt"]["$gte"] = {};
         parentRegistryQueryParams["createdAt"]["$lte"] = {};
-        if (req.query.fromDate) {
-          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(req.query.fromDate.split("-").reverse().join("-")
+        if (fromDate) {
+          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(fromDate.split("-").reverse().join("-")
           )
         } else {
           parentRegistryQueryParams["createdAt"]["$gte"] = new Date(0)
         }
 
-        if (req.query.toDate) {
-          parentRegistryQueryParams["createdAt"]["$lte"] = new Date(req.query.toDate.split("-").reverse().join("-"))
+        if (toDate) {
+          parentRegistryQueryParams["createdAt"]["$lte"] = new Date(toDate.split("-").reverse().join("-"))
         } else {
           parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
         }
@@ -1100,8 +1109,8 @@ module.exports = class Reports extends Abstract {
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
         let fileName = "parentRegistry";
-        (req.query.fromDate != "") ? fileName += " from " + req.query.fromDate : "";
-        (req.query.toDate != "") ? fileName += " to " + req.query.toDate : "";
+        (fromDate != "") ? fileName += " from " + fromDate : "";
+        (toDate != "") ? fileName += " to " + toDate : "";
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1274,6 +1283,7 @@ module.exports = class Reports extends Abstract {
       try {
         let fromDate = req.query.fromDate
         let toDate = req.query.toDate
+
         if (!fromDate) {
           return resolve({
             status: 404,
@@ -1281,12 +1291,18 @@ module.exports = class Reports extends Abstract {
           });
         }
 
+        if (new Date(fromDate.split("-").reverse().join("-")) > new Date(toDate.split("-").reverse().join("-"))) {
+          return resolve({
+            status: 400,
+            message: "From date cannot be greater than to date."
+          });
+        }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
           fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {
             '$gte': new Date(fromDate.split("-").reverse().join("-")),
-            '$lte': (toDate) ? new Date(toDate.split("-").reverse().join("-")) : toDate = new Date()
+            '$lte': (toDate) ? new Date(toDate.split("-").reverse().join("-")) : new Date()
           }
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
@@ -1307,7 +1323,10 @@ module.exports = class Reports extends Abstract {
           }
         })
 
-        const fileName = `EcmReport from date ${fromDate} to ${toDate} `;
+        let fileName = `EcmReport`;
+        (fromDate) ? fileName += "from date _" + fromDate : "";
+        (toDate) ? fileName += "to date _" + toDate : new Date();
+
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1368,7 +1387,10 @@ module.exports = class Reports extends Abstract {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= new Date(fromDate.split("-").reverse().join("-")) && evidenceSubmission.submissionDate < new Date(toDate.split("-").reverse().join("-")))) {
+                    let fromDateValue = new Date(fromDate.split("-").reverse().join("-"))
+                    let toDateValue = toDate ? new Date(toDate.split("-").reverse().join("-")) : new Date()
+
+                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDateValue && evidenceSubmission.submissionDate < toDateValue)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
