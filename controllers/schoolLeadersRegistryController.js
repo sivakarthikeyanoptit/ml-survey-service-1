@@ -82,138 +82,6 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
         })
     }
 
-
-    async upload(req) {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-                let schoolWiseLeadersData = await csv().fromString(req.files.leaders.data.toString());
-
-                let schoolQueryList = {}
-                let programQueryList = {}
-
-                schoolWiseLeadersData.forEach(schoolWiseLeaders => {
-                    schoolQueryList[schoolWiseLeaders.schoolId] = schoolWiseLeaders.schoolId
-                    programQueryList[schoolWiseLeaders.schoolId] = schoolWiseLeaders.programId
-                });
-
-                let schoolsFromDatabase = await database.models.schools.find({
-                    externalId: { $in: Object.values(schoolQueryList) }
-                }, {
-                        externalId: 1,
-                        name: 1
-                    });
-
-                let programsFromDatabase = await database.models.programs.find({
-                    externalId: { $in: Object.values(programQueryList) }
-                });
-
-                const schoolsData = schoolsFromDatabase.reduce(
-                    (ac, school) => ({ ...ac, [school.externalId]: { _id: school._id, name: school.name } }), {})
-
-                const programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program }), {})
-
-
-                schoolWiseLeadersData = await Promise.all(schoolWiseLeadersData.map(async (schoolWiseLeaders) => {
-
-                    let leaderInformation = new Array
-                    let nameOfLeaderNameField
-                    let ageField
-                    let genderField
-                    let descriptionField
-                    let numberOfExperienceInEducationSector
-                    let numberOfExperienceInCurrentSchool
-                    let experienceAsSchoolLeaders
-                    let dutiesOrResponsibility
-                    let timeOfDiscussion
-                    let nonTeachingHours
-                    let bestPart
-                    let challenges
-                    let validLeaderCount = 0
-
-                    for (let schoolLeaderCounter = 1; schoolLeaderCounter < 50; schoolLeaderCounter++) {
-                        nameOfLeaderNameField = "leader" + teacherCounter + "Name";
-                        ageField = "leader" + schoolLeaderCounter + "Age";
-                        genderField = "leader" + schoolLeaderCounter + "Gender";
-                        descriptionField = "leader" + schoolLeaderCounter + "Number of Years In Current School";
-                        numberOfExperienceInEducationSector = "leader" + schoolLeaderCounter + "Number of Experience in education sector";
-                        numberOfExperienceInCurrentSchool = "leader" + schoolLeaderCounter + "Number of Experience in current school";
-                        experienceAsSchoolLeaders = "leader" + schoolLeaderCounter + "Experience as a school leaders";
-                        dutiesOrResponsibility = "leader" + schoolLeaderCounter + "Duties and Responsibility";
-                        timeOfDiscussion = "leader" + schoolLeaderCounter + "Discussion Time";
-                        nonTeachingHours = "leader" + schoolLeaderCounter + "Non teaching hours";
-                        bestPart = "leader" + schoolLeaderCounter + "Best Part";
-                        challenges = "leader" + schoolLeaderCounter + "Challenges";
-
-                        if (schoolWiseLeaders[nameOfLeaderNameField] && schoolWiseLeaders[ageField] && schoolsData[schoolWiseLeaders.schoolId] && schoolWiseLeaders[nameOfLeaderNameField] != "") {
-                            leaderInformation.push({
-                                name: schoolWiseLeaders[nameOfLeaderNameField],
-                                qualifications: schoolWiseLeaders[ageField],
-                                yearOfExperience: schoolWiseLeaders[yearOfExperience],
-                                descriptionField: schoolWiseLeaders[descriptionField],
-                                numberOfExperienceInEducationSector: schoolWiseLeaders[numberOfExperienceInEducationSector],
-                                numberOfExperienceInCurrentSchool: schoolWiseLeaders[numberOfExperienceInCurrentSchool],
-                                experienceAsSchoolLeaders: schoolWiseLeaders[experienceAsSchoolLeaders],
-                                dutiesOrResponsibility: schoolWiseLeaders[dutiesOrResponsibility],
-                                timeOfDiscussion: schoolWiseLeaders[timeOfDiscussion],
-                                nonTeachingHours: schoolWiseLeaders[nonTeachingHours],
-                                bestPart: schoolWiseLeaders[bestPart],
-                                challenges: schoolWiseLeaders[challenges],
-                                genderField: schoolWiseLeaders[genderField],
-                                programId: programsData[schoolWiseLeaders.programId]._id.toString(),
-                                schoolId: schoolsData[schoolWiseLeaders.schoolId]._id.toString(),
-                                schoolName: schoolsData[schoolWiseLeaders.schoolId].name,
-                            })
-                            validLeaderCount += 1
-                        }
-                    }
-                    leaderInformation = await Promise.all(leaderInformation.map(async (teacher) => {
-
-                        teacher = await database.models["teacher-registry"].findOneAndUpdate(
-                            {
-                                programId: teacher.programId,
-                                schoolId: teacher.schoolId
-                            },
-                            teacher,
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true,
-                                returnNewDocument: true
-                            }
-                        );
-                        return teacher
-
-                    }));
-
-                    if (validLeaderCount > 0 && validLeaderCount == leaderInformation.length) {
-                        return leaderInformation
-                    } else {
-                        return;
-                    }
-
-                }));
-
-                if (schoolWiseLeadersData.findIndex(school => school === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated."
-                }
-
-                let responseMessage = "Parents record created successfully."
-
-                let response = { message: responseMessage };
-
-                return resolve(response);
-
-            } catch (error) {
-                return reject({ message: error });
-            }
-
-        })
-    }
-
-
     async form(req) {
         return new Promise(async function (resolve, reject) {
 
@@ -235,7 +103,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -252,7 +120,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "description",
+                    field: "bio",
                     label: "Description",
                     value: "",
                     visible: true,
@@ -268,7 +136,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -279,18 +147,18 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
                 },
                 {
-                    field: "experienceAsSchoolLeaders",
+                    field: "experienceAsSchoolLeader",
                     label: "Years of experience as a school leader?",
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -307,7 +175,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "timeOfDiscussion",
+                    field: "timeOfAvailability",
                     label: "Time of discussion?",
                     value: "",
                     visible: true,
@@ -323,7 +191,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -421,7 +289,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: (schoolLeadersInformation.age) ? schoolLeadersInformation.age : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -438,9 +306,9 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "description",
+                    field: "bio",
                     label: "Description",
-                    value: (schoolLeadersInformation.description) ? schoolLeadersInformation.description : "",
+                    value: (schoolLeadersInformation.bio) ? schoolLeadersInformation.bio : "",
                     visible: true,
                     editable: true,
                     input: "text",
@@ -454,7 +322,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: (schoolLeadersInformation.experienceInEducationSector) ? schoolLeadersInformation.experienceInEducationSector : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -465,18 +333,18 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: (schoolLeadersInformation.experienceInCurrentSchool) ? schoolLeadersInformation.experienceInCurrentSchool : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
                 },
                 {
-                    field: "experienceAsSchoolLeaders",
+                    field: "experienceAsSchoolLeader",
                     label: "Years of experience as a school leader?",
                     value: (schoolLeadersInformation.experienceAsSchoolLeaders) ? schoolLeadersInformation.experienceAsSchoolLeaders : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -493,7 +361,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "timeOfDiscussion",
+                    field: "timeOfAvailability",
                     label: "Time of discussion?",
                     value: (schoolLeadersInformation.timeOfDiscussion) ? schoolLeadersInformation.timeOfDiscussion : "",
                     visible: true,
@@ -509,7 +377,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                     value: (schoolLeadersInformation.nonTeachingHours) ? schoolLeadersInformation.nonTeachingHours : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }

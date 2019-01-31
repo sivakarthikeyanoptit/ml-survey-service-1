@@ -82,114 +82,6 @@ module.exports = class TeacherRegistry extends Abstract {
         })
     }
 
-
-    async upload(req) {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-                let schoolWiseTeachersData = await csv().fromString(req.files.teachers.data.toString());
-
-                let schoolQueryList = {}
-                let programQueryList = {}
-
-                schoolWiseTeachersData.forEach(schoolWiseTeachers => {
-                    schoolQueryList[schoolWiseTeachers.schoolId] = schoolWiseTeachers.schoolId
-                    programQueryList[schoolWiseTeachers.schoolId] = schoolWiseTeachers.programId
-                });
-
-                let schoolsFromDatabase = await database.models.schools.find({
-                    externalId: { $in: Object.values(schoolQueryList) }
-                }, {
-                        externalId: 1,
-                        name: 1
-                    });
-
-                let programsFromDatabase = await database.models.programs.find({
-                    externalId: { $in: Object.values(programQueryList) }
-                });
-
-                const schoolsData = schoolsFromDatabase.reduce(
-                    (ac, school) => ({ ...ac, [school.externalId]: { _id: school._id, name: school.name } }), {})
-
-                const programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program }), {})
-
-
-                schoolWiseTeachersData = await Promise.all(schoolWiseTeachersData.map(async (schoolWiseTeachers) => {
-
-                    let teacherInformation = new Array
-                    let nameOfTeacherNameField
-                    let nameOfTeacherQualificationField
-                    let nameOfTeacherExperienceField
-                    let yearsInCurrentSchool
-                    let validTeacherCount = 0
-
-                    for (let teacherCounter = 1; teacherCounter < 50; teacherCounter++) {
-                        nameOfTeacherNameField = "teacher" + teacherCounter + "Name";
-                        nameOfTeacherQualificationField = "teacher" + teacherCounter + "Qualification";
-                        nameOfTeacherExperienceField = "teacher" + teacherCounter + "Experience";
-                        yearsInCurrentSchool = "teacher" + teacherCounter + "Number of Years In Current School";
-
-                        if (schoolWiseTeachers[nameOfTeacherNameField] && schoolWiseTeachers[nameOfTeacherQualificationField] && schoolsData[schoolWiseTeachers.schoolId] && schoolWiseTeachers[nameOfTeacherNameField] != "") {
-                            teacherInformation.push({
-                                name: schoolWiseTeachers[nameOfTeacherNameField],
-                                qualifications: schoolWiseTeachers[nameOfTeacherQualificationField],
-                                yearOfExperience: schoolWiseTeachers[yearOfExperience],
-                                yearsInCurrentSchool: schoolWiseTeachers[yearsInCurrentSchool],
-                                nameOfTeacherExperienceField: schoolWiseTeachers[nameOfTeacherExperienceField],
-                                programId: programsData[schoolWiseTeachers.programId]._id.toString(),
-                                schoolId: schoolsData[schoolWiseTeachers.schoolId]._id.toString(),
-                                schoolName: schoolsData[schoolWiseTeachers.schoolId].name,
-                            })
-                            validTeacherCount += 1
-                        }
-                    }
-                    teacherInformation = await Promise.all(teacherInformation.map(async (teacher) => {
-
-                        teacher = await database.models["teacher-registry"].findOneAndUpdate(
-                            {
-                                programId: teacher.programId,
-                                schoolId: teacher.schoolId
-                            },
-                            teacher,
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true,
-                                returnNewDocument: true
-                            }
-                        );
-                        return teacher
-
-                    }));
-
-                    if (validTeacherCount > 0 && validTeacherCount == parentInformation.length) {
-                        return parentInformation
-                    } else {
-                        return;
-                    }
-
-                }));
-
-                if (schoolWiseTeachersData.findIndex(school => school === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated."
-                }
-
-                let responseMessage = "Parents record created successfully."
-
-                let response = { message: responseMessage };
-
-                return resolve(response);
-
-            } catch (error) {
-                return reject({ message: error });
-            }
-
-        })
-    }
-
-
     async form(req) {
         return new Promise(async function (resolve, reject) {
 
@@ -217,12 +109,12 @@ module.exports = class TeacherRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "yearOfExperience",
+                    field: "yearsOfExperience",
                     label: "Years Of Experience",
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -233,7 +125,7 @@ module.exports = class TeacherRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -316,12 +208,12 @@ module.exports = class TeacherRegistry extends Abstract {
                     }
                 },
                 {
-                    field: "yearOfExperience",
+                    field: "yearsOfExperience",
                     label: "Years Of Experience",
-                    value: (teacherInformation.yearOfExperience) ? teacherInformation.yearOfExperience : "",
+                    value: (teacherInformation.yearsOfExperience) ? teacherInformation.yearsOfExperience : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }
@@ -332,7 +224,7 @@ module.exports = class TeacherRegistry extends Abstract {
                     value: (teacherInformation.yearsInCurrentSchool) ? teacherInformation.yearsInCurrentSchool : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "number",
                     validation: {
                         required: true
                     }

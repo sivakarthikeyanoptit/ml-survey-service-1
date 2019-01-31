@@ -3,8 +3,8 @@ module.exports = {
     schema: {
         name: "string",
         qualifications: "string",
-        yearOfExperience: "string",
-        yearsInCurrentSchool: "string",
+        yearsOfExperience: Number,
+        yearsInCurrentSchool: Number,
         schoolId: "string",
         schoolName: "string",
         programId: "string"
