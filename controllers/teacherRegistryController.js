@@ -19,7 +19,7 @@ module.exports = class TeacherRegistry extends Abstract {
 
                 if (req.body.teachers) {
 
-                    let addTeachersQuery = await database.models["teacher-registry"].insertMany(
+                    let addTeachersQuery = await database.models["teacher-registry"].create(
                         req.body.teachers
                     );
 

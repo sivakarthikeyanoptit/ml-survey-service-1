@@ -17,21 +17,21 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
 
             try {
 
-                if (req.body.leaders) {
+                if (req.body.schoolLeaders) {
 
-                    let addTeachersQuery = await database.models["school-leaders-registry"].insertMany(
-                        req.body.leaders
+                    let addTeachersQuery = await database.models["school-leaders-registry"].create(
+                        req.body.schoolLeaders
                     );
 
-                    if (addTeachersQuery.length != req.body.leaders.length) {
-                        throw "Some leaders information was not inserted!"
+                    if (addTeachersQuery.length != req.body.schoolLeaders.length) {
+                        throw "Some schoolLeaders information was not inserted!"
                     }
 
                 } else {
                     throw "Bad Request"
                 }
 
-                let responseMessage = "School leaders information added successfully."
+                let responseMessage = "School schoolLeaders information added successfully."
 
                 let response = { message: responseMessage };
 
