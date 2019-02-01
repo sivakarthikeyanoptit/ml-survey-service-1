@@ -1078,38 +1078,27 @@ module.exports = class Reports extends Abstract {
           });
         }
 
-        let fromDate = req.query.fromDate;
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date();
-        let parentRegistryQueryParams = {}
+        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
-        if (new Date(fromDate.split("-").reverse().join("-")) > toDate) {
+        if (fromDateValue > toDate) {
           return resolve({
             status: 400,
-            message: "From date cannot be greater than to date."
-          });
+            message: "From Date cannot be greater than to date !!!"
+          })
         }
+
+        let parentRegistryQueryParams = {}
 
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
-        parentRegistryQueryParams["createdAt"] = {};
-        parentRegistryQueryParams["createdAt"]["$gte"] = {};
-        parentRegistryQueryParams["createdAt"]["$lte"] = {};
-        if (fromDate) {
-          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(fromDate.split("-").reverse().join("-")
-          )
-        } else {
-          parentRegistryQueryParams["createdAt"]["$gte"] = new Date(0)
-        }
-
-        if (toDate) {
-          parentRegistryQueryParams["createdAt"]["$lte"] = toDate
-        } else {
-          parentRegistryQueryParams["createdAt"]["$lte"] = new Date()
-        }
+        parentRegistryQueryParams['createdAt'] = {}
+        parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
+        parentRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
         let fileName = "parentRegistry";
-        (fromDate != "") ? fileName += " from " + fromDate : "";
+        (fromDateValue != "") ? fileName += " from " + fromDateValue : "";
         (toDate != "") ? fileName += " to " + toDate : "";
 
         let fileStream = new FileStream(fileName);
@@ -1208,14 +1197,7 @@ module.exports = class Reports extends Abstract {
           externalId: 1
         })
 
-        if (!req.query.fromDate) {
-          return resolve({
-            status: 404,
-            message: "From Date is mandatory!!"
-          })
-        }
-
-        let fromDateValue = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
         if (fromDateValue > toDate) {
@@ -1225,12 +1207,13 @@ module.exports = class Reports extends Abstract {
           })
         }
 
-
         let teacherRegistryQueryParams = {}
+
         teacherRegistryQueryParams['programId'] = programsDocument[0]._id
+
         teacherRegistryQueryParams['createdAt'] = {}
         teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        teacherRegistryQueryParams['createdAt']["$lte"] = toDate
+        teacherRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
 
         const teacherRegistryDocument = await database.models['teacher-registry'].find(teacherRegistryQueryParams, { _id: 1 })
 
@@ -1309,6 +1292,126 @@ module.exports = class Reports extends Abstract {
               teacherRegistryObject['School External Id'] = teacherRegistry.schoolId;
               teacherRegistryObject['Created At'] = this.gmtToIst(teacherRegistry.createdAt);
               input.push(teacherRegistryObject);
+            }))
+          }
+        }
+        input.push(null);
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    }))
+  }
+
+  async schoolLeaderRegistry(req) {
+    return (new Promise(async (resolve, reject) => {
+      try {
+        const programsQueryParams = {
+          externalId: req.params._id
+        }
+        const programsDocument = await database.models.programs.find(programsQueryParams, {
+          externalId: 1
+        })
+
+        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+
+        if (fromDateValue > toDate) {
+          return resolve({
+            status: 400,
+            message: "From Date cannot be greater than to date !!!"
+          })
+        }
+
+        let schoolLeaderRegistryQueryParams = {}
+
+        schoolLeaderRegistryQueryParams['programId'] = programsDocument[0]._id
+
+        schoolLeaderRegistryQueryParams['createdAt'] = {}
+        schoolLeaderRegistryQueryParams['createdAt']["$gte"] = fromDateValue
+        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+
+        const schoolLeaderRegistryDocument = await database.models['school-leader-registry'].find(schoolLeaderRegistryQueryParams, { _id: 1 })
+
+        let fileName = "School Leader Registry";
+        (fromDateValue) ? fileName += "from" + fromDateValue : "";
+        (toDate) ? fileName += "to" + toDate : "";
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!schoolLeaderRegistryDocument.length) {
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
+        }
+
+        else {
+          let schoolLeaderChunkData = _.chunk(schoolLeaderRegistryDocument, 10)
+          let schoolLeaderRegistryIds
+          let schoolLeaderRegistryData
+
+          for (let pointerToSchoolLeaderRegistry = 0; pointerToSchoolLeaderRegistry < schoolLeaderChunkData.length; pointerToSchoolLeaderRegistry++) {
+            schoolLeaderRegistryIds = schoolLeaderChunkData[pointerToSchoolLeaderRegistry].map(schoolLeaderRegistryId => {
+              return schoolLeaderRegistryId._id
+            })
+
+            let schoolLeaderRegistryParams = [
+              {
+                $match: {
+                  _id: {
+                    $in: schoolLeaderRegistryIds
+                  }
+                }
+              },
+              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
+              {
+                $lookup: {
+                  from: "schools",
+                  localField: "schoolId",
+                  foreignField: "_id",
+                  as: "schoolDocument"
+                }
+              },
+              {
+                $unwind: '$schoolDocument'
+              },
+              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
+              {
+                $project: {
+                  "schoolDocument": 0
+                }
+              }
+            ];
+
+
+            schoolLeaderRegistryData = await database.models["school-leader-registry"].aggregate(schoolLeaderRegistryParams)
+
+            await Promise.all(schoolLeaderRegistryData.map(async (schoolLeaderRegistry) => {
+
+              let schoolLeaderRegistryObject = {};
+              Object.keys(schoolLeaderRegistry).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                  schoolLeaderRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolLeaderRegistry[singleKey];
+                }
+              })
+              schoolLeaderRegistryObject['Program External Id'] = programsQueryParams.externalId;
+              schoolLeaderRegistryObject['School External Id'] = schoolLeaderRegistry.schoolId;
+              schoolLeaderRegistryObject['Created At'] = this.gmtToIst(schoolLeaderRegistry.createdAt);
+              input.push(schoolLeaderRegistryObject);
             }))
           }
         }
