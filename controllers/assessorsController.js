@@ -183,15 +183,15 @@ module.exports = class Assessors {
           })
 
           let updateObject;
-          if (assessor.schoolOperation == "UPDATE") {
+          if (assessor.schoolOperation == "OVERRIDE") {
             updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
           }
 
-          else if (assessor.schoolOperation == "ADD") {
+          else if (assessor.schoolOperation == "APPEND") {
             updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
           }
 
-          else if (assessor.schoolOperation == "DELETE") {
+          else if (assessor.schoolOperation == "REMOVE") {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
 
