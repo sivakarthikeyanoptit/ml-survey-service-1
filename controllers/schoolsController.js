@@ -585,7 +585,7 @@ module.exports = class Schools extends Abstract {
         if (questionSequenceByEcm[evidence.externalId]) {
           evidence.sections.forEach(section => {
 
-            if(questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
+            if(questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
               let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
               let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
               let sortedQuestionArray = new Array
