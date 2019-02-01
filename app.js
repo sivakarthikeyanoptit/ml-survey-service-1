@@ -32,6 +32,22 @@ global.models = requireAll({
   }
 });
 
+//load base controllers
+require('fs').readdirSync(__dirname+'/controllers/v1/').forEach(function(file) {
+  if (file.match(/\.js$/) !== null) {
+    var name = file.replace('Controller.js', '');
+    global[name+'BaseController'] = require('./controllers/v1/' + file);
+  }
+});
+
+//load schema files
+require('fs').readdirSync(__dirname+'/models/').forEach(function(file) {
+  if (file.match(/\.js$/) !== null) {
+    var name = file.replace('.js', '');
+    global[name+'Schema'] = require('./models/' + file);
+  }
+});
+
 // boostrap all controllers
 global.controllers = requireAll({
   dirname: __dirname + "/controllers",
