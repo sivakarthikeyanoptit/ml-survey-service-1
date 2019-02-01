@@ -803,8 +803,6 @@ module.exports = class Submission extends Abstract {
             result.parentId = req.query.parentId
           }
 
-          console.log(submissionDocument);
-
           if((submissionDocument.parentInterviewResponses) && submissionDocument.parentInterviewResponses[req.query.parentId])
             {
               result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
