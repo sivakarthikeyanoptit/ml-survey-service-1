@@ -1198,6 +1198,132 @@ module.exports = class Reports extends Abstract {
     });
   }
 
+  async teacherRegistry(req) {
+    return (new Promise(async (resolve, reject) => {
+      try {
+        const programsQueryParams = {
+          externalId: req.params._id
+        }
+        const programsDocument = await database.models.programs.find(programsQueryParams, {
+          externalId: 1
+        })
+
+        if (!req.query.fromDate) {
+          return resolve({
+            status: 404,
+            message: "From Date is mandatory!!"
+          })
+        }
+
+        let fromDateValue = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+
+        if (fromDateValue > toDate) {
+          return resolve({
+            status: 400,
+            message: "From Date cannot be greater than to date !!!"
+          })
+        }
+
+
+        let teacherRegistryQueryParams = {}
+        teacherRegistryQueryParams['programId'] = programsDocument[0]._id
+        teacherRegistryQueryParams['createdAt'] = {}
+        teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
+        teacherRegistryQueryParams['createdAt']["$lte"] = toDate
+
+        const teacherRegistryDocument = await database.models['teacher-registry'].find(teacherRegistryQueryParams, { _id: 1 })
+
+        let fileName = "Teacher Registry";
+        (fromDateValue) ? fileName += "from" + fromDateValue : "";
+        (toDate) ? fileName += "to" + toDate : "";
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!teacherRegistryDocument.length) {
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
+        }
+
+        else {
+          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
+          let teacherRegistryIds
+          let teacherRegistryData
+
+          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
+            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
+              return teacherRegistryId._id
+            })
+
+            let teacherRegistryParams = [
+              {
+                $match: {
+                  _id: {
+                    $in: teacherRegistryIds
+                  }
+                }
+              },
+              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
+              {
+                $lookup: {
+                  from: "schools",
+                  localField: "schoolId",
+                  foreignField: "_id",
+                  as: "schoolDocument"
+                }
+              },
+              {
+                $unwind: '$schoolDocument'
+              },
+              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
+              {
+                $project: {
+                  "schoolDocument": 0
+                }
+              }
+            ];
+
+
+            teacherRegistryData = await database.models["teacher-registry"].aggregate(teacherRegistryParams)
+
+            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
+
+              let teacherRegistryObject = {};
+              Object.keys(teacherRegistry).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
+                }
+              })
+              teacherRegistryObject['Program External Id'] = programsQueryParams.externalId;
+              teacherRegistryObject['School External Id'] = teacherRegistry.schoolId;
+              teacherRegistryObject['Created At'] = this.gmtToIst(teacherRegistry.createdAt);
+              input.push(teacherRegistryObject);
+            }))
+          }
+        }
+        input.push(null);
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    }))
+  }
+
   async schoolProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
