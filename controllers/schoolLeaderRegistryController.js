@@ -88,7 +88,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
             let result = [
                 {
                     field: "name",
-                    label: "School leader Name",
+                    label: "Name",
                     tip: "",
                     value: "",
                     visible: true,
@@ -117,14 +117,14 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                     value: "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "radio",
                     validation: {
                         required: true
                     }
                 },
                 {
                     field: "bio",
-                    label: "Description",
+                    label: "Can you tell me a little about yourself?",
                     tip: "",
                     value: "",
                     visible: true,
@@ -136,7 +136,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInEducationSector",
-                    label: "Years of experience in education sector",
+                    label: "How long have you been in education sector?",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -148,7 +148,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInCurrentSchool",
-                    label: "Years of experience in current school?",
+                    label: "How long have you been in this school?",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -160,7 +160,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceAsSchoolLeader",
-                    label: "Years of experience as a school leader?",
+                    label: "How long have you been a school leader here?",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -172,7 +172,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "dutiesOrResponsibility",
-                    label: "Roles and responsibility?",
+                    label: "What does your day look like? Apart from performing the duties of a principal/coordinator, do you also have to teach?",
                     tip: "Also find out how often they come to school",
                     value: "",
                     visible: true,
@@ -184,7 +184,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "timeOfAvailability",
-                    label: "Time of discussion?",
+                    label: "When would you be able to get time during the day when we can update you or discuss our plans with you?",
                     tip: "",
                     value: "",
                     visible: true,
@@ -196,7 +196,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "nonTeachingHours",
-                    label: "Number of non-teaching hours?",
+                    label: "Number of non-teaching hours in a day:",
                     tip: "",
                     value: "",
                     visible: true,
@@ -208,7 +208,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "bestPart",
-                    label: "Best part about the profession?",
+                    label: "What do you like the best about the profession?",
                     tip: "",
                     value: "",
                     visible: true,
@@ -220,7 +220,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "challenges",
-                    label: "Challenges in the profession?",
+                    label: "What do you find challenging in your profession?",
                     tip: "",
                     value: "",
                     visible: true,
@@ -289,7 +289,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
             let result = [
                 {
                     field: "name",
-                    label: "School leader Name",
+                    label: "Name",
                     tip: "",
                     value: (schoolLeadersInformation.name) ? schoolLeadersInformation.name : "",
                     visible: true,
@@ -318,14 +318,14 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                     value: (schoolLeadersInformation.gender) ? schoolLeadersInformation.gender : "",
                     visible: true,
                     editable: true,
-                    input: "text",
+                    input: "radio",
                     validation: {
                         required: true
                     }
                 },
                 {
                     field: "bio",
-                    label: "Description",
+                    label: "Can you tell me a little about yourself?",
                     tip: "",
                     value: (schoolLeadersInformation.bio) ? schoolLeadersInformation.bio : "",
                     visible: true,
@@ -337,7 +337,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInEducationSector",
-                    label: "Years of experience in education sector",
+                    label: "How long have you been in education sector?",
                     tip: "Enter number in terms of years",
                     value: (schoolLeadersInformation.experienceInEducationSector) ? schoolLeadersInformation.experienceInEducationSector : "",
                     visible: true,
@@ -349,7 +349,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInCurrentSchool",
-                    label: "Years of experience in current school?",
+                    label: "How long have you been in this school?",
                     tip: "Enter number in terms of years",
                     value: (schoolLeadersInformation.experienceInCurrentSchool) ? schoolLeadersInformation.experienceInCurrentSchool : "",
                     visible: true,
@@ -361,7 +361,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceAsSchoolLeader",
-                    label: "Years of experience as a school leader?",
+                    label: "How long have you been a school leader here?",
                     tip: "Enter number in terms of years",
                     value: (schoolLeadersInformation.experienceAsSchoolLeaders) ? schoolLeadersInformation.experienceAsSchoolLeaders : "",
                     visible: true,
@@ -373,7 +373,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "dutiesOrResponsibility",
-                    label: "Roles and responsibility?",
+                    label: "What does your day look like? Apart from performing the duties of a principal/coordinator, do you also have to teach?",
                     tip: "Also find out how often they come to school",
                     value: (schoolLeadersInformation.dutiesOrResponsibility) ? schoolLeadersInformation.dutiesOrResponsibility : "",
                     visible: true,
@@ -385,7 +385,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "timeOfAvailability",
-                    label: "Time of discussion?",
+                    label: "When would you be able to get time during the day when we can update you or discuss our plans with you?",
                     tip: "",
                     value: (schoolLeadersInformation.timeOfDiscussion) ? schoolLeadersInformation.timeOfDiscussion : "",
                     visible: true,
@@ -397,7 +397,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "nonTeachingHours",
-                    label: "Number of non-teaching hours?",
+                    label: "Number of non-teaching hours in a day:",
                     tip: "",
                     value: (schoolLeadersInformation.nonTeachingHours) ? schoolLeadersInformation.nonTeachingHours : "",
                     visible: true,
@@ -409,7 +409,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "bestPart",
-                    label: "Best part about the profession?",
+                    label: "What do you like the best about the profession?",
                     tip: "",
                     value: (schoolLeadersInformation.bestPart) ? schoolLeadersInformation.bestPart : "",
                     visible: true,
@@ -421,7 +421,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "challenges",
-                    label: "Challenges in the profession?",
+                    label: "What do you find challenging in your profession?",
                     tip: "",
                     value: (schoolLeadersInformation.challenges) ? schoolLeadersInformation.challenges : "",
                     visible: true,
