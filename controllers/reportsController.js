@@ -1080,6 +1080,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1093,7 +1094,7 @@ module.exports = class Reports extends Abstract {
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
         parentRegistryQueryParams['createdAt'] = {}
         parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        parentRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        parentRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
@@ -1201,6 +1202,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1215,7 +1217,7 @@ module.exports = class Reports extends Abstract {
 
         teacherRegistryQueryParams['createdAt'] = {}
         teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        teacherRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        teacherRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const teacherRegistryDocument = await database.models['teacher-registry'].find(teacherRegistryQueryParams, { _id: 1 })
 
@@ -1322,6 +1324,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1336,7 +1339,7 @@ module.exports = class Reports extends Abstract {
 
         schoolLeaderRegistryQueryParams['createdAt'] = {}
         schoolLeaderRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const schoolLeaderRegistryDocument = await database.models['school-leader-registry'].find(schoolLeaderRegistryQueryParams, { _id: 1 })
 
@@ -1524,6 +1527,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
           return resolve({
@@ -1696,6 +1700,9 @@ module.exports = class Reports extends Abstract {
                                       if (eachInstanceChildQuestion.fileName.length > 0) {
                                         eachInstanceChildQuestion.fileName.forEach(
                                           file => {
+                                            if(file.split('/').length == 1) {
+                                              file = submission._id.toString()+"/"+evidenceSubmission.submittedBy+"/"+file
+                                            }
                                             eachInstanceChildRecord.Files +=
                                               imageBaseUrl + file + ",";
                                           }
