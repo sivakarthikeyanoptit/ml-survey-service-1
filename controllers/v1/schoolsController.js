@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+
 module.exports = class Schools extends Abstract {
   constructor() {
     super(schoolsSchema);
@@ -191,7 +192,6 @@ module.exports = class Schools extends Abstract {
           schoolQueryObject
         );
         schoolDocument = await schoolDocument.toObject();
-
         let programQueryObject = {
           status: "active",
           "components.schools": { $in: [ObjectId(req.params._id)] },
@@ -341,7 +341,7 @@ module.exports = class Schools extends Abstract {
           let evaluationFrameworkQueryObject = [
             { $match: { _id: ObjectId(component.id) } },
             {
-              $project: { themes: 1, name: 1, description: 1, externalId: 1 }
+              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
             }
           ];
 
@@ -371,14 +371,14 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray}})
+          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } })
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
           let submissionDocumentCriterias = [];
 
           criteriaQuestionDocument.forEach(criteria => {
-            
+
             submissionDocumentCriterias.push(
               _.omit(criteria._doc, [
                 "resourceType",
@@ -394,6 +394,7 @@ module.exports = class Schools extends Abstract {
               evidenceMethod.notApplicable = false;
               evidenceMethod.canBeNotAllowed = true;
               evidenceMethod.remarks = "";
+              evidenceMethod.submissions = new Array
               submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                 evidenceMethod,
                 ["sections"]
@@ -462,7 +463,8 @@ module.exports = class Schools extends Abstract {
           const parsedAssessment = await this.parseQuestions(
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
-            submissionDoc.result.evidences
+            submissionDoc.result.evidences,
+            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm) ? evaluationFrameworkDocument[0].questionSequenceByEcm : false
           );
 
           assessment.evidences = parsedAssessment.evidences;
@@ -489,7 +491,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async parseQuestions(evidences, schoolTypes, submissionDocEvidences) {
+  async parseQuestions(evidences, schoolTypes, submissionDocEvidences, questionSequenceByEcm = false) {
     let schoolFilterQuestionArray = {};
     let sectionQuestionArray = {};
     let generalQuestions = [];
@@ -576,6 +578,34 @@ module.exports = class Schools extends Abstract {
         generalQuestions.push(questionArrayElm[1]);
       }
     });
+
+    // Sort questions by sequence
+    if(questionSequenceByEcm) {
+      evidences.forEach(evidence => {
+        if (questionSequenceByEcm[evidence.externalId]) {
+          evidence.sections.forEach(section => {
+
+            if(questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
+              let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
+              let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
+              let sortedQuestionArray = new Array
+
+              questionSequenceByEcmSection.forEach(questionId => {
+                if(sectionQuestionByEcm[questionId]) {
+                  sortedQuestionArray.push(sectionQuestionByEcm[questionId])
+                  delete sectionQuestionByEcm[questionId]
+                }
+              })
+
+              sortedQuestionArray = _.concat(sortedQuestionArray, Object.values(sectionQuestionByEcm));
+            
+              section.questions = sortedQuestionArray
+            }
+          })
+        }
+      })
+    }
+
     return {
       evidences: evidences,
       submissions: submissionsObjects,

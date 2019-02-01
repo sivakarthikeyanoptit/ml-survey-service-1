@@ -242,6 +242,7 @@ module.exports = class Submission extends Abstract {
             evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
             evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
             evidencesStatusToBeChanged['hasConflicts'] = false;
+            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence,"answers"));
 
             updateObject.$push = { 
               ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
@@ -282,6 +283,7 @@ module.exports = class Submission extends Abstract {
             }
 
             evidencesStatusToBeChanged['hasConflicts']=true;
+            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence,"answers"));
 
             updateObject.$set = {
               evidencesStatus:submissionDocument.evidencesStatus,
@@ -465,6 +467,7 @@ module.exports = class Submission extends Abstract {
           evidencesStatusToBeChanged['startTime'] = "";
           evidencesStatusToBeChanged['endTime'] = new Date;
           evidencesStatusToBeChanged['hasConflicts'] = false;
+          evidencesStatusToBeChanged['submissions'].push(_.omit(evidenceSubmission,"answers"));
 
           updateObject.$push = { 
             ["evidences."+parentInterviewEvidenceMethod+".submissions"]: evidenceSubmission
