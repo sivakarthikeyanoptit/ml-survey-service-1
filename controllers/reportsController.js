@@ -1533,11 +1533,9 @@ module.exports = class Reports extends Abstract {
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
-          fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate.setHours(23, 59, 59)
 
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
@@ -1642,7 +1640,7 @@ module.exports = class Reports extends Abstract {
                             "End Time": this.gmtToIst(singleAnswer.endTime),
                             "Files": "",
                             "ECM": evidenceSubmission.externalId,
-                            "Created At": singleAnswer.createdAt ? this.gmtToIst(singleAnswer.createdAt) : ""
+                            "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
                           }
 
                           if (singleAnswer.fileName.length > 0) {
@@ -1684,7 +1682,7 @@ module.exports = class Reports extends Abstract {
                                         "School Id": submission.schoolInformation.externalId,
                                         "Question": eachInstanceChildQuestion.question[0],
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
-                                        "Created At": this.gmtToIst(eachInstanceChildQuestion.createdAt),
+                                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
