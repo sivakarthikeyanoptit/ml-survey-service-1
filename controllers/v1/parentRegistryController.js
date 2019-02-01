@@ -2,8 +2,8 @@ const csv = require("csvtojson");
 
 module.exports = class ParentRegistry extends Abstract {
 
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(parentRegistrySchema);
   }
 
   static get name() {

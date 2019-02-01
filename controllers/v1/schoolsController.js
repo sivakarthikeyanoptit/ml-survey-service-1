@@ -372,7 +372,7 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } })
+          let criteriaQuestionDocument = await database.models["criteriaQuestions"].find({ _id: { $in: criteriasIdArray } })
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};

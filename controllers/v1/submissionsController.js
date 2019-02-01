@@ -88,8 +88,8 @@ math.import({
 
 
 module.exports = class Submission extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(submissionsSchema);
   }
 
   static get name() {
