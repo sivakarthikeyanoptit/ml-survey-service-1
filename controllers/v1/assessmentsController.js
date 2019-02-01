@@ -1,4 +1,3 @@
-const Boom = require('boom')
 module.exports = class Assessments {
 
     async list(req) {
@@ -7,10 +6,10 @@ module.exports = class Assessments {
 
             try {
                 if (!req.query.type || !req.query.subType)
-                    return reject(Boom.badRequest('Bad Request.'))
+                    return reject(boomErrorHandler.boomReply('Bad request.',400))
 
                 let queryObject = {};
-                queryObject["components.type"] = req.query.type;
+                queryObject["components.type"] = req.query.tye;
                 queryObject["components.subType"] = req.query.subType;
                 queryObject["components.entities"] = req.userDetails.userId;
                 if (req.query.fromDate) queryObject["components.fromDate"] = { $gte: new Date(req.query.fromDate) };
@@ -43,7 +42,7 @@ module.exports = class Assessments {
 
             }
             catch (error) {
-                return reject(Boom.badImplementation(error));
+                return reject(boomErrorHandler.boomReply(error,500));
             }
 
         })

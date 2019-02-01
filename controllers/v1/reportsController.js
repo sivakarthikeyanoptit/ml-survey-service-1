@@ -1,5 +1,5 @@
 const moment = require("moment-timezone");
-const FileStream = require("../generics/fileStream");
+const FileStream = require("../../generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports extends Abstract {
@@ -14,7 +14,7 @@ module.exports = class Reports extends Abstract {
   async dataFix(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let dataFixer = require("../generics/helpers/dataFixer");
+        let dataFixer = require("../../generics/helpers/dataFixer");
         dataFixer.processData(req.params._id);
 
         return resolve({

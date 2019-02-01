@@ -13,13 +13,19 @@ module.exports = function(app) {
     //req.params.controller = (req.params.controller).toLowerCase();
 
     req.params.controller += "Controller";
-    if (!controllers[req.params.controller]) next();
-    else if (!controllers[req.params.controller][req.params.method]) next();
+    if (!req.params.version) next();
+    else if (!controllers[req.params.version]) next();
+    else if (!controllers[req.params.version][req.params.controller]) next();
+    else if (!controllers[req.params.version][req.params.controller][req.params.method]) next();
     else if (req.params.method.startsWith("_")) next();
     else {
       new Promise((resolve, reject) => {
         try {
-          resolve(controllers[req.params.controller][req.params.method](req));
+          if(controllers[req.params.version]){
+            resolve(controllers[req.params.version][req.params.controller][req.params.method](req));
+          }else{
+            resolve(controllers['v1'][req.params.controller][req.params.method](req));
+          }
         } catch (ex) {
           reject(ex);
         }
@@ -96,12 +102,9 @@ module.exports = function(app) {
     }
   };
 
-  app.all(applicationBaseUrl+"api/v1/:controller/:method", router);
+  app.all(applicationBaseUrl+"api/:version/:controller/:method", router);
 
-  app.all(applicationBaseUrl+"api/v1/:controller/:_id/:method", router);
-
-  app.all(applicationBaseUrl+"api/v1/:controller/:method/:_id", router);
-
+  app.all(applicationBaseUrl+"api/:version/:controller/:method/:_id", router);
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");
