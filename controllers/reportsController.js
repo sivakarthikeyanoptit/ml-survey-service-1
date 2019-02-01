@@ -1536,7 +1536,7 @@ module.exports = class Reports extends Abstract {
         fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate.setHours(23, 59, 59)
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
 
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
