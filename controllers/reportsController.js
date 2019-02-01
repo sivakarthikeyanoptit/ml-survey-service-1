@@ -1164,13 +1164,15 @@ module.exports = class Reports extends Abstract {
             await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
               let parentRegistryObject = {};
               Object.keys(parentRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
                   parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry[singleKey];
                 }
               })
+
               parentRegistryObject['Program External Id'] = programQueryParams.externalId;
               parentRegistryObject['School External Id'] = parentRegistry.schoolId;
-              parentRegistryObject['Created At'] = parentRegistry.createdAt;
+              (parentRegistry.createdAt) ? parentRegistryObject['Created At'] = this.gmtToIst(parentRegistry.createdAt) : parentRegistryObject['Created At'] = "";
+              (parentRegistry.updatedAt) ? parentRegistryObject['Updated At'] = this.gmtToIst(parentRegistry.updatedAt) : parentRegistryObject['Updated At'] = "";
               input.push(parentRegistryObject);
             }))
           }
@@ -1284,13 +1286,14 @@ module.exports = class Reports extends Abstract {
 
               let teacherRegistryObject = {};
               Object.keys(teacherRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
                   teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
                 }
               })
               teacherRegistryObject['Program External Id'] = programsQueryParams.externalId;
               teacherRegistryObject['School External Id'] = teacherRegistry.schoolId;
-              teacherRegistryObject['Created At'] = this.gmtToIst(teacherRegistry.createdAt);
+              (teacherRegistry.createdAt) ? teacherRegistryObject['Created At'] = this.gmtToIst(teacherRegistry.createdAt) : teacherRegistryObject['Created At'] = "";
+              (teacherRegistry.updatedAt) ? teacherRegistryObject['Updated At'] = this.gmtToIst(teacherRegistry.updatedAt) : teacherRegistryObject['Updated At'] = "";
               input.push(teacherRegistryObject);
             }))
           }
@@ -1404,13 +1407,14 @@ module.exports = class Reports extends Abstract {
 
               let schoolLeaderRegistryObject = {};
               Object.keys(schoolLeaderRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "createdAt", "updatedAt", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
                   schoolLeaderRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolLeaderRegistry[singleKey];
                 }
               })
               schoolLeaderRegistryObject['Program External Id'] = programsQueryParams.externalId;
               schoolLeaderRegistryObject['School External Id'] = schoolLeaderRegistry.schoolId;
-              schoolLeaderRegistryObject['Created At'] = this.gmtToIst(schoolLeaderRegistry.createdAt);
+              (schoolLeaderRegistry.createdAt) ? schoolLeaderRegistryObject['Created At'] = this.gmtToIst(schoolLeaderRegistry.createdAt) : schoolLeaderRegistryObject['Created At'] = "";
+              (schoolLeaderRegistry.updatedAt) ? schoolLeaderRegistryObject['Updated At'] = this.gmtToIst(schoolLeaderRegistry.updatedAt) : schoolLeaderRegistryObject['Updated At'] = "";
               input.push(schoolLeaderRegistryObject);
             }))
           }
