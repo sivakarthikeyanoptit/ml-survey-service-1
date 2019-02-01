@@ -1514,15 +1514,16 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
-        if (!fromDate) {
+        if (!req.query.fromDate) {
           return resolve({
             status: 404,
             message: "From date is a mandatory field."
           });
         }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
         if (fromDate > toDate) {
           return resolve({
@@ -1532,10 +1533,10 @@ module.exports = class Reports extends Abstract {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
+        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate.setHours(23, 59, 59)
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
 
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
