@@ -655,6 +655,9 @@ module.exports = class Reports extends Abstract {
                                   if (eachInstanceChildQuestion.fileName.length > 0) {
                                     eachInstanceChildQuestion.fileName.forEach(
                                       file => {
+                                        if (file.split('/').length == 1) {
+                                          file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                        }
                                         eachInstanceChildRecord.Files +=
                                           imageBaseUrl + file + ",";
                                       }
@@ -1700,8 +1703,8 @@ module.exports = class Reports extends Abstract {
                                       if (eachInstanceChildQuestion.fileName.length > 0) {
                                         eachInstanceChildQuestion.fileName.forEach(
                                           file => {
-                                            if(file.split('/').length == 1) {
-                                              file = submission._id.toString()+"/"+evidenceSubmission.submittedBy+"/"+file
+                                            if (file.split('/').length == 1) {
+                                              file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
                                             }
                                             eachInstanceChildRecord.Files +=
                                               imageBaseUrl + file + ",";
