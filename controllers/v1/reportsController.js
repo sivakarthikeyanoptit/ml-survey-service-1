@@ -655,6 +655,9 @@ module.exports = class Reports extends Abstract {
                                   if (eachInstanceChildQuestion.fileName.length > 0) {
                                     eachInstanceChildQuestion.fileName.forEach(
                                       file => {
+                                        if (file.split('/').length == 1) {
+                                          file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                        }
                                         eachInstanceChildRecord.Files +=
                                           imageBaseUrl + file + ",";
                                       }
@@ -1080,6 +1083,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1093,7 +1097,7 @@ module.exports = class Reports extends Abstract {
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
         parentRegistryQueryParams['createdAt'] = {}
         parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        parentRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        parentRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
 
@@ -1201,6 +1205,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1215,7 +1220,7 @@ module.exports = class Reports extends Abstract {
 
         teacherRegistryQueryParams['createdAt'] = {}
         teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        teacherRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        teacherRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const teacherRegistryDocument = await database.models['teacher-registry'].find(teacherRegistryQueryParams, { _id: 1 })
 
@@ -1322,6 +1327,7 @@ module.exports = class Reports extends Abstract {
 
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1336,7 +1342,7 @@ module.exports = class Reports extends Abstract {
 
         schoolLeaderRegistryQueryParams['createdAt'] = {}
         schoolLeaderRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate.setHours(23, 59, 59)
+        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate
 
         const schoolLeaderRegistryDocument = await database.models['school-leader-registry'].find(schoolLeaderRegistryQueryParams, { _id: 1 })
 
@@ -1514,15 +1520,17 @@ module.exports = class Reports extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
 
-        if (!fromDate) {
+        if (!req.query.fromDate) {
           return resolve({
             status: 404,
             message: "From date is a mandatory field."
           });
         }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
           return resolve({
@@ -1532,10 +1540,8 @@ module.exports = class Reports extends Abstract {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id,
-          fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
 
@@ -1642,7 +1648,7 @@ module.exports = class Reports extends Abstract {
                             "End Time": this.gmtToIst(singleAnswer.endTime),
                             "Files": "",
                             "ECM": evidenceSubmission.externalId,
-                            "Created At": singleAnswer.createdAt ? this.gmtToIst(singleAnswer.createdAt) : ""
+                            "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
                           }
 
                           if (singleAnswer.fileName.length > 0) {
@@ -1684,7 +1690,7 @@ module.exports = class Reports extends Abstract {
                                         "School Id": submission.schoolInformation.externalId,
                                         "Question": eachInstanceChildQuestion.question[0],
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
-                                        "Created At": this.gmtToIst(eachInstanceChildQuestion.createdAt),
+                                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
@@ -1697,6 +1703,9 @@ module.exports = class Reports extends Abstract {
                                       if (eachInstanceChildQuestion.fileName.length > 0) {
                                         eachInstanceChildQuestion.fileName.forEach(
                                           file => {
+                                            if (file.split('/').length == 1) {
+                                              file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                            }
                                             eachInstanceChildRecord.Files +=
                                               imageBaseUrl + file + ",";
                                           }
