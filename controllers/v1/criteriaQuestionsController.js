@@ -1,9 +1,11 @@
-module.exports = class CriteriaQuestions {
+module.exports = class CriteriaQuestions extends Abstract {
+
     constructor() {
+      super(criteriaQuestionsSchema);
     }
 
     static get name() {
-        return "criteriaQuestions";
+        return "criteria-questions";
     }
 
 

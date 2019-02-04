@@ -822,7 +822,7 @@ module.exports = class Criterias extends Abstract {
             { $match: { _id: ObjectId(component.id) } },
             {
               $lookup: {
-                from: "criteriaQuestions",
+                from: "criteria-questions",
                 localField: "themes.aoi.indicators.criteria",
                 foreignField: "_id",
                 as: "criteriaDocs"
