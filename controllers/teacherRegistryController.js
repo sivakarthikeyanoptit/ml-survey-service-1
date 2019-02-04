@@ -88,7 +88,7 @@ module.exports = class TeacherRegistry extends Abstract {
             let result = [
                 {
                     field: "name",
-                    label: "Teacher Name",
+                    label: "Name",
                     value: "",
                     visible: true,
                     editable: true,
@@ -187,7 +187,7 @@ module.exports = class TeacherRegistry extends Abstract {
             let result = [
                 {
                     field: "name",
-                    label: "Teacher Name",
+                    label: "Name",
                     value: (teacherInformation.name) ? teacherInformation.name : "",
                     visible: true,
                     editable: true,
