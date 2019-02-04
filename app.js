@@ -14,6 +14,7 @@ let app = express();
 const requireAll = require("require-all");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+var fs = require("fs");
 
 //To enable cors
 app.use(cors());
@@ -33,7 +34,7 @@ global.models = requireAll({
 });
 
 //load base controllers
-require('fs').readdirSync(__dirname+'/controllers/v1/').forEach(function(file) {
+fs.readdirSync(__dirname+'/controllers/v1/').forEach(function(file) {
   if (file.match(/\.js$/) !== null) {
     var name = file.replace('Controller.js', '');
     global[name+'BaseController'] = require('./controllers/v1/' + file);
@@ -41,7 +42,7 @@ require('fs').readdirSync(__dirname+'/controllers/v1/').forEach(function(file) {
 });
 
 //load schema files
-require('fs').readdirSync(__dirname+'/models/').forEach(function(file) {
+fs.readdirSync(__dirname+'/models/').forEach(function(file) {
   if (file.match(/\.js$/) !== null) {
     var name = file.replace('.js', '');
     global[name+'Schema'] = require('./models/' + file);
@@ -64,7 +65,6 @@ app.use(bodyParser.urlencoded({ limit: '50MB', extended: false }));
 app.use(express.static("public"));
 
 //request logger
-var fs = require("fs");
 //var morgan = require("morgan");
 var path = require("path");
 

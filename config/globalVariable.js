@@ -22,7 +22,6 @@ module.exports = function() {
   global.log = new Log(global.config.log);
   global._ = require("lodash");
   gen.utils = require("../generics/helpers/utils");
-  gen.jwt = require("../generics/helpers/jwt");
 };
 
 function mkdirp(dir, exist = "", state = 1) {
