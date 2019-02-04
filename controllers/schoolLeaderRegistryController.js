@@ -136,7 +136,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInEducationSector",
-                    label: "How long have you been in education sector?",
+                    label: "How long have you been in the education sector?",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -337,7 +337,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInEducationSector",
-                    label: "How long have you been in education sector?",
+                    label: "How long have you been in the education sector?",
                     tip: "Enter number in terms of years",
                     value: (schoolLeadersInformation.experienceInEducationSector) ? schoolLeadersInformation.experienceInEducationSector : "",
                     visible: true,
