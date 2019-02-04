@@ -1,7 +1,7 @@
 module.exports = class Feedback extends Abstract {
 
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(feedbackSchema);
   }
 
   static get name() {

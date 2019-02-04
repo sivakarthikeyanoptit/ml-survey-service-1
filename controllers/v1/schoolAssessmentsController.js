@@ -1,6 +1,6 @@
 module.exports = class SchoolAssessments extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(schoolAssessmentsSchema);
   }
 
   static get name() {

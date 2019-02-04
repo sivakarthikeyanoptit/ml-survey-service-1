@@ -2,8 +2,8 @@ const csv = require("csvtojson");
 
 module.exports = class ParentRegistry extends Abstract {
 
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(parentRegistrySchema);
   }
 
   static get name() {
@@ -25,8 +25,8 @@ module.exports = class ParentRegistry extends Abstract {
             }
           })
 
-          let addParentsQuery = await database.models["parent-registry"].create(
-            req.body.parents
+          let addParentsQuery = await database.models["parent-registry"].insertMany(
+            req.body.parents,{rawResult:true}
           );
 
           if(addParentsQuery.length != req.body.parents.length) {

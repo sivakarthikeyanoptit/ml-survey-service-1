@@ -1,8 +1,8 @@
 const csv = require("csvtojson");
 
 module.exports = class Criterias extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(criteriasSchema);
   }
 
   static get name() {

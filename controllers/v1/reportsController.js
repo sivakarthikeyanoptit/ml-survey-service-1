@@ -2,9 +2,8 @@ const moment = require("moment-timezone");
 const FileStream = require("../../generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
-module.exports = class Reports extends Abstract {
-  constructor(schema) {
-    super(schema);
+module.exports = class Reports {
+  constructor() {
   }
 
   static get name() {

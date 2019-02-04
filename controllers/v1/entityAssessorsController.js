@@ -1,6 +1,6 @@
 module.exports = class EntityAssessors extends Abstract {
-    constructor(schema) {
-      super(schema);
+    constructor() {
+      super(entityAssessorsSchema);
     }
   
     static get name() {

@@ -1,7 +1,7 @@
 var shikshalokam = require("../../generics/helpers/shikshalokam");
 module.exports = class Programs extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(programsSchema);
   }
 
   static get name() {
