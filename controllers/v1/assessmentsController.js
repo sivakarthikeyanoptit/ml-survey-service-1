@@ -5,8 +5,10 @@ module.exports = class Assessments {
         return new Promise(async (resolve, reject) => {
 
             try {
-                if (!req.query.type || !req.query.subType)
-                    return reject(boomErrorHandler.boomReply('Bad request.',400))
+                if (!req.query.type || !req.query.subType) {
+                    let responseMessage = "Bad request.";
+                    return resolve({ status: 400, message: responseMessage })
+                }
 
                 let queryObject = {};
                 queryObject["components.type"] = req.query.tye;
@@ -42,7 +44,11 @@ module.exports = class Assessments {
 
             }
             catch (error) {
-                return reject(boomErrorHandler.boomReply(error,500));
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
             }
 
         })
@@ -71,8 +77,10 @@ module.exports = class Assessments {
 
             let frameWorkDocument = await database.models['evaluation-frameworks'].findOne({ _id: assessmentId });
 
-            if (!frameWorkDocument)
-                return reject(Boom.badRequest('No assessments found.'))
+            if (!frameWorkDocument){
+                let responseMessage = 'No assessments found.';
+                return resolve({ status: 400, message: responseMessage })
+            }
 
             let assessment = {};
 
