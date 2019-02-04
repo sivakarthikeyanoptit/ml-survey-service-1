@@ -4,7 +4,7 @@ module.exports = class CriteriaQuestions extends Abstract {
     }
 
     static get name() {
-        return "criteria-questions";
+        return "criteriaQuestions";
     }
 
 

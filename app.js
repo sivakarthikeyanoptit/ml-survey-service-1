@@ -108,7 +108,7 @@ global.loggerObj = bunyan.createLogger({
   streams: [
     {
       type: "rotating-file",
-      path: path.join(__dirname + "/logs/all.log"),
+      path: path.join(__dirname + "/logs/"+process.pid+"-all.log"),
       period: "1d", // daily rotation
       count: 3 // keep 3 back copies
     }
@@ -119,7 +119,7 @@ global.loggerExceptionObj = bunyan.createLogger({
   streams: [
     {
       type: "rotating-file",
-      path: path.join(__dirname + "/logs/exception.log"),
+      path: path.join(__dirname + "/logs/"+process.pid+"-exception.log"),
       period: "1d", // daily rotation
       count: 3 // keep 3 back copies
     }
