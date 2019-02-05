@@ -1,6 +1,6 @@
 module.exports = class EvaluationFrameworks extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(evaluationFrameworksSchema);
   }
 
   static get name() {

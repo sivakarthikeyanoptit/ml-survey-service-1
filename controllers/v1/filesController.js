@@ -1,5 +1,5 @@
-let gcp = require("../generics/helpers/gcpFileUpload");
-let UploadFile = require("../generics/helpers/fileUpload");
+let gcp = require(ROOT_PATH + "/generics/helpers/gcpFileUpload");
+let UploadFile = require(ROOT_PATH + "/generics/helpers/fileUpload");
 let uploadFile = new UploadFile(
   require("path").join(__dirname + "/../" + "uploads")
 );

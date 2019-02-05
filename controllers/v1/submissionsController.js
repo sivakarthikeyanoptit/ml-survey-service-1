@@ -1,8 +1,8 @@
-const mathJs = require("../generics/helpers/mathFunctions");
+const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 
 module.exports = class Submission extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(submissionsSchema);
   }
 
   static get name() {

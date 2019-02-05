@@ -1,13 +1,13 @@
 const csv = require("csvtojson");
 
-module.exports = class SchoolLeaderRegistry extends Abstract {
+module.exports = class SchoolLeadersRegistry extends Abstract {
 
-    constructor(schema) {
-        super(schema);
+    constructor() {
+        super(schoolLeaderRegistrySchema);
     }
 
     static get name() {
-        return "schoolLeaderRegistry";
+        return "schoolLeadersRegistry";
     }
 
 

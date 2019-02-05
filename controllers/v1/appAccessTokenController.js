@@ -1,7 +1,7 @@
 module.exports = class AppAccessToken extends Abstract {
     
-    constructor(schema) {
-        super(schema);
+    constructor() {
+        super(appAccessTokenSchema);
     }
 
     static get name() {

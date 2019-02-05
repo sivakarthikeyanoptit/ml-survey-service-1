@@ -9,28 +9,6 @@ let Abstract = class Abstract {
     };
   }
 
-  //check required fields
-  _checkRequired(params, body) {
-    return new Promise((resolve, reject) => {
-      ASYNC.each(
-        params,
-        (param, callback) => {
-          if (!body[param]) {
-            callback(new Error("Parameter `" + param + "` is Missing"));
-          }
-          callback();
-        },
-        err => {
-          if (err) {
-            reject({ error: true, message: err.message, status: 400 });
-          } else {
-            resolve({ data: "continue" });
-          }
-        }
-      );
-    });
-  }
-
   //insert
   insert(req) {
     let query = req.body ? req.body : req;
@@ -198,6 +176,7 @@ let Abstract = class Abstract {
       });
     });
   }
+  
   _getSelectedFields(fields) {
     // Removed below line from layer
     //let f = fields !== undefined ? fields.replace(/,/g, " ") : "";

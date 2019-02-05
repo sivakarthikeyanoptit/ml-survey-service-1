@@ -1,126 +1,12 @@
 const csv = require("csvtojson");
 
 module.exports = class Criterias extends Abstract {
-  constructor(schema) {
-    super(schema);
+  constructor() {
+    super(criteriasSchema);
   }
 
   static get name() {
     return "criterias";
-  }
-
-
-  insertOld(req) {
-    let qError = {},
-      created = [];
-    console.log("reached here!");
-    return new Promise((resole, reject) => {
-      return database.models.questions
-        .find({ externalId: { $in: req.body.questionsExtId } })
-        .then(result => {
-          if (result.length) {
-            return resole({
-              message: "Questions Already Existed",
-              status: 409,
-              result: result
-            });
-          } else {
-            delete req.body.questionsExtId;
-            async.forEachOf(
-              req.body.evidences,
-              (evidence, k, cb1) => {
-                console.log(evidence, k);
-
-                async.forEachOf(
-                  evidence.sections,
-                  (section, j, cb2) => {
-                    console.log(section, j);
-
-                    async.forEachOf(
-                      section.questions,
-                      (question, i, cb3) => {
-                        console.log(question, i);
-                        if(Object.keys(question.visibleIf[0]).length <= 0) {
-                          question.visibleIf = ""
-                        }
-                        if(question.file.required === false) {
-                          question.file = ""
-                        }
-                        question.owner = req.userDetails.id;
-                        database.models.questions
-                          .create(question)
-                          .then(result => {
-                            req.body.evidences[k].sections[j].questions[i] =
-                              result._id;
-                            created.push(result._id);
-                            cb3(null);
-                          })
-                          .catch(error => {
-                            qError[question.externalId] = error.message;
-                            cb3(error);
-                          });
-                      },
-                      error => {
-                        cb2(error);
-                      }
-                    );
-                  },
-                  error => {
-                    cb1(error);
-                  }
-                );
-              },
-              error => {
-                if (error) console.log(error);
-                console.log("done", JSON.stringify(req.body.evidences, "", 4));
-                if (Object.keys(qError).length) {
-                  return database.models.questions
-                    .deleteMany({
-                      externalId: { $in: Object.keys(qError) }
-                    })
-                    .then(result => {
-                      console.log(result, created, typeof created[0]);
-
-                      return resole({
-                        status: 400,
-                        failed: qError,
-                        message: "Criteria can not be created"
-                      });
-                    })
-                    .catch(error => {
-                      throw error;
-                    });
-                } else {
-                  return controllers.questionsController
-                    .populateChildQuestions({
-                      body: { created: created }
-                    })
-                    .then(result => {
-                      req.body.owner = req.userDetails.id;
-
-                      return super
-                        .insert(req)
-                        .then(criteria => {
-                          return resole(criteria);
-                        })
-                        .catch(error => {
-                          return reject(error);
-                        });
-                    })
-                    .catch(error => {
-                      console.log(error);
-                    });
-                }
-
-                // return resole(Object.assign(super.insert(req), { failed: error }));
-              }
-            );
-          }
-        })
-        .catch(error => {
-          throw error;
-        });
-    });
   }
 
 
@@ -822,7 +708,7 @@ module.exports = class Criterias extends Abstract {
             { $match: { _id: ObjectId(component.id) } },
             {
               $lookup: {
-                from: "criteria-questions",
+                from: "criteriaQuestions",
                 localField: "themes.aoi.indicators.criteria",
                 foreignField: "_id",
                 as: "criteriaDocs"
