@@ -1,11 +1,12 @@
 let fs = require("fs"),
   path = require("path");
+const requireAll = require("require-all");
 mkdirp(path.join(__dirname + "/../logs/" + process.env.NODE_ENV));
 mkdirp(path.join(__dirname + "/../" + "uploads"));
 
 gen = Object.assign(global, {});
 
-module.exports = function() {
+module.exports = function () {
   var Log = require("log");
   // let createStream = fs.createWriteStream(
   //   __dirname +
@@ -18,10 +19,46 @@ module.exports = function() {
   // );
   // let readStream = fs.createReadStream(__dirname +'/../logs/'+process.env.NODE_ENV + '/logs.log');
   global.async = require("async");
-
+  global.ROOT_PATH = path.join(__dirname, '..')
   global.log = new Log(global.config.log);
   global._ = require("lodash");
-  gen.utils = require("../generics/helpers/utils");
+  gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
+  global.config = require(".");
+
+  // boostrap all models
+  global.models = requireAll({
+    dirname: ROOT_PATH+ "/models",
+    filter: /(.+)\.js$/,
+    resolve: function (Model) {
+      return Model;
+    }
+  });
+
+  //load base controllers
+  fs.readdirSync(ROOT_PATH + '/controllers/v1/').forEach(function (file) {
+    if (file.match(/\.js$/) !== null) {
+      var name = file.replace('Controller.js', '');
+      global[name + 'BaseController'] = require(ROOT_PATH + '/controllers/v1/' + file);
+    }
+  });
+
+  //load schema files
+  fs.readdirSync(ROOT_PATH + '/models/').forEach(function (file) {
+    if (file.match(/\.js$/) !== null) {
+      var name = file.replace('.js', '');
+      global[name + 'Schema'] = require(ROOT_PATH + '/models/' + file);
+    }
+  });
+
+  // boostrap all controllers
+  global.controllers = requireAll({
+    dirname: ROOT_PATH + "/controllers",
+    filter: /(.+Controller)\.js$/,
+    resolve: function (Controller) {
+      if (Controller.name) return new Controller(models[Controller.name]);
+      else return new Controller();
+    }
+  });
 };
 
 function mkdirp(dir, exist = "", state = 1) {

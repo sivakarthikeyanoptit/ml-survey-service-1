@@ -1,5 +1,5 @@
-let authenticator = require("../generics/middleware/authenticator");
-let slackClient = require("../generics/helpers/slackCommunications");
+let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
+let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
 module.exports = function (app) {

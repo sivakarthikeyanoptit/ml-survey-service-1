@@ -7,14 +7,14 @@ let router = require("./routes");
 
 //express
 const express = require("express");
-const fileUpload = require("express-fileupload");
 let app = express();
 
 //required modules
-const requireAll = require("require-all");
+const fileUpload = require("express-fileupload");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 var fs = require("fs");
+var path = require("path");
 
 //To enable cors
 app.use(cors());
@@ -24,69 +24,12 @@ app.get("/ping", (req, res) => {
   res.send("pong!");
 });
 
-// boostrap all models
-global.models = requireAll({
-  dirname: __dirname + "/models",
-  filter: /(.+)\.js$/,
-  resolve: function(Model) {
-    return Model;
-  }
-});
-
-//load base controllers
-fs.readdirSync(__dirname+'/controllers/v1/').forEach(function(file) {
-  if (file.match(/\.js$/) !== null) {
-    var name = file.replace('Controller.js', '');
-    global[name+'BaseController'] = require('./controllers/v1/' + file);
-  }
-});
-
-//load schema files
-fs.readdirSync(__dirname+'/models/').forEach(function(file) {
-  if (file.match(/\.js$/) !== null) {
-    var name = file.replace('.js', '');
-    global[name+'Schema'] = require('./models/' + file);
-  }
-});
-
-// boostrap all controllers
-global.controllers = requireAll({
-  dirname: __dirname + "/controllers",
-  filter: /(.+Controller)\.js$/,
-  resolve: function(Controller) {
-    if (Controller.name) return new Controller(models[Controller.name]);
-    else return new Controller();
-  }
-});
-
 app.use(fileUpload());
 app.use(bodyParser.json({limit: '50MB'}));
 app.use(bodyParser.urlencoded({ limit: '50MB', extended: false }));
 app.use(express.static("public"));
 
-//request logger
-//var morgan = require("morgan");
-var path = require("path");
-
 fs.existsSync("logs") || fs.mkdirSync("logs");
-// var accessLogStream = fs.createWriteStream(
-//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/access.log"),
-//   { flags: "a" }
-// );
-// var errorLogStream = fs.createWriteStream(
-//   path.join(__dirname, "./logs/" + process.env.NODE_ENV + "/error.log"),
-//   { flags: "a" }
-// );
-// app.use(morgan("combined", { stream: accessLogStream }));
-// app.use(
-//   morgan("combined", {
-//     stream: errorLogStream,
-//     skip: function(req, res) {
-//       return res.statusCode < 400;
-//     }
-//   })
-// );
-// app.use(morgan("dev"));
 
 //swagger docs
 const swagger = require("./swagger");
@@ -148,61 +91,17 @@ app.all("*", (req, res, next) => {
   next();
 });
 
-// Add headers
-/* app.use(function(req, res, next) {
-
-    // Website you wish to allow to connect
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    // Request methods you wish to allow
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
-    // Request headers you wish to allow
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-    // Set to true if you need the website to include cookies in the requests sent
-    // to the API (e.g. in case you use sessions)
-    res.setHeader('Access-Control-Allow-Credentials', true);
-
-    // Pass to next layer of middleware
-    next();
-}); */
-
 //add routing
 router(app);
 
 //listen to given port
-
 app.listen(config.port, () => {
+
   log.info(
     "Environment: " +
       (process.env.NODE_ENV ? process.env.NODE_ENV : "development")
   );
+
   log.info("Application is running on the port:" + config.port);
 
-
-
-
-  // const schedule = require("node-schedule");
-
-  // var schedule_string =
-  //   process.env.NODE_ENV == "production" ? "0 0 * * * *" : "0 * * * * *";
-
-  // var csvData = schedule.scheduleJob(schedule_string, () => {
-  //   var date = new Date();
-  //   var hour = date.getMinutes();
-
-  //   if (process.env.NODE_ENV == "production") {
-  //     var hour = date.getHours();
-  //   }
-
-  //   let csvReports = require("./generics/helpers/csvReports");
-
-  //   if ((hour % 2 == 0) && (hour >= 8) && (hour <= 20)) {
-  //     let csvReports = require("./generics/helpers/csvReports");
-  //     ["BL", "LW", "SI", "AC3", "PI", "AC8", "PAI", "TI", "AC5"].map(item =>
-  //       csvReports.getCSVData(process.env.PROGRAM_NAME_FOR_SCHEDULE, item)
-  //     );
-  //   }
-  // });
 });
