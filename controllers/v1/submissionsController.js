@@ -1,4 +1,4 @@
-const mathJs = require("../generics/helpers/mathFunctions");
+const mathJs = require("../../generics/helpers/mathFunctions");
 
 module.exports = class Submission extends Abstract {
   constructor() {
