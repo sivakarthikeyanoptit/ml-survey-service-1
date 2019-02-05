@@ -1,91 +1,4 @@
-const math = require('mathjs')
-math.import({
-  compareDates: function (dateArg1, dateArg2) {
-    let date1 = new Date(dateArg1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
-    let date2 = new Date(dateArg2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
-
-    date1.setHours(0)
-    date1.setMinutes(0)
-    date1.setSeconds(0)
-    date2.setHours(0)
-    date2.setMinutes(0)
-    date2.setSeconds(0)
-
-    if(date1 > date2) {
-      return 1
-    } else if (date1 < date2) {
-      return -1
-    } else {
-      return 0
-    }
-  },
-  checkIfPresent: function (needle, haystack) {
-    let searchUniverse = new Array
-    if(haystack._data) {searchUniverse = haystack._data} else {searchUniverse = haystack}
-    return searchUniverse.findIndex( arrayElement => arrayElement === needle)
-  },
-  checkIfModeIs: function (needle, haystack) {
-    let searchKey
-    let isMode
-    if(needle._data) {
-      searchKey = needle._data
-      searchKey.sort()
-      haystack.forEach(haystackElm => {
-        haystackElm.sort()
-      })
-    } else {
-      searchKey = needle
-    }
-    const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
-    
-    if(needle._data) {
-      isMode = (_.isEqual(countOfElements[0][0].split(','), searchKey) && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
-    } else {
-      isMode = (countOfElements[0][0] === searchKey && ((countOfElements[1]) ? countOfElements[0][1] > countOfElements[1][1] : true )) ? 1 : -1
-    }
-
-    return isMode
-  },
-  modeValue: function (haystack) {
-    const countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
-    return countOfElements[0][1]
-  },
-  percentageOf: function (needle, haystack) {
-    const countOfElements = _.countBy(haystack)
-    return (countOfElements[needle]) ? Math.round((countOfElements[needle]/haystack.length)*100) : 0
-  },
-  averageOf: function (haystack) {
-    haystack = haystack.map(x => parseInt(x));
-    return Math.round(_.sum(haystack)/haystack.length)
-  },
-  differenceInDays: function (dateArg1, dateArg2) { 
-
-    let date1
-    let date2
-    
-    if(typeof dateArg1 === "string") {
-      date1 = new Date(dateArg1.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
-    } else {
-      date1 = new Date(dateArg1)
-    }
-
-    if(typeof dateArg2 === "string") {
-      date2 = new Date(dateArg2.replace( /(\d{2})-(\d{2})-(\d{4})/, "$2/$1/$3"))
-    } else {
-      date2 = new Date(dateArg2)
-    }
-
-    date1.setHours(0)
-    date1.setMinutes(0)
-    date1.setSeconds(0)
-    date2.setHours(0)
-    date2.setMinutes(0)
-    date2.setSeconds(0)
-
-    return Math.ceil((date1.getTime() - date2.getTime()) / (1000 * 3600 * 24))
-  }
-})
-
+const mathJs = require("../generics/helpers/mathFunctions");
 
 module.exports = class Submission extends Abstract {
   constructor(schema) {
@@ -877,6 +790,7 @@ module.exports = class Submission extends Abstract {
           result[criteria.externalId].criteriaName = criteria.name
           result[criteria.externalId].criteriaExternalId = criteria.externalId
 
+          // criteria.externalId == "SS/I/c3" && 
           if(criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
             let submissionAnswers = new Array
             const questionValueExtractor = function (question) {
@@ -919,6 +833,12 @@ module.exports = class Submission extends Abstract {
                 } else {
                   return "NA"
                 }
+              }  else if (questionArray[1] === "countOfInstances") {
+                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
+                  return submissionDocument.answers[questionArray[0]].countOfInstances
+                } else {
+                  return "NA"
+                }
               }
             }
             let expressionVariables = {}
@@ -936,12 +856,22 @@ module.exports = class Submission extends Abstract {
 
             if(allValuesAvailable) {
               Object.keys(criteria.rubric.levels).forEach(level => {
-                //console.log(math.eval("(((G3/G1)>31) and ((G3/G1)<=35) and (compare((G2-G1),-1) == 0))",expressionVariables))
+
+                // if(level == "L3") {
+                //   console.log("Debugging new functions starts")
+                //   console.log(expressionVariables)
+                //   console.log(math.eval("(compareTextValues(PR1, 'R1') == 0)",expressionVariables))
+                //   console.log(math.eval("(checkIfPresent('R2||R3',PR2) >= 0)",expressionVariables))
+                //   console.log(math.eval("(compareTextValues(PR3, 'R1') == 0)",expressionVariables))
+                //   console.log(math.eval("(compareTextValues(PR4, 'R3||R4') == 0)",expressionVariables))
+                //   console.log("Debugging new functions ends")
+                // }
+                
                 if(criteria.rubric.levels[level].expression != "") {
                   try {
                     expressionResult[level] = {
                       expressionParsed : criteria.rubric.levels[level].expression,
-                      result : math.eval(criteria.rubric.levels[level].expression,expressionVariables)
+                      result : mathJs.eval(criteria.rubric.levels[level].expression,expressionVariables)
                     }
                   } catch (error) {
                     console.log("---------------Some exception caught begins---------------")
