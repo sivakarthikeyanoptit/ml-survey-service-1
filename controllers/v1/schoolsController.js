@@ -190,6 +190,12 @@ module.exports = class Schools extends Abstract {
         let schoolDocument = await database.models.schools.findOne(
           schoolQueryObject
         );
+
+        if(!schoolDocument){
+          let responseMessage = 'No schools found.';
+          return resolve({ status: 400, message: responseMessage })
+        }
+
         schoolDocument = await schoolDocument.toObject();
         let programQueryObject = {
           status: "active",
@@ -218,6 +224,11 @@ module.exports = class Schools extends Abstract {
         let programDocument = await database.models.programs.findOne(
           programQueryObject
         );
+
+        if(!programDocument){
+          let responseMessage = 'No program found.';
+          return resolve({ status: 400, message: responseMessage })
+        }
 
         let accessability =
           programDocument.components[0].roles[
