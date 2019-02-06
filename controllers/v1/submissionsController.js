@@ -785,8 +785,6 @@ module.exports = class Submission extends Abstract {
         result.runUpdateQuery = true
         let criteriaIdWithParsingErrors = new Array
 
-
-        submissionDocument.evidencesStatus
         let allSubmittedEvidence = submissionDocument.evidencesStatus.every(this.allSubmission)
 
         if (allSubmittedEvidence) {
@@ -998,7 +996,7 @@ module.exports = class Submission extends Abstract {
             result: result
           };
 
-          if (criteriaIdWithParsingErrors.length) {
+          if (criteriaIdWithParsingErrors.length > 0) {
             const toLogObject = {
               submissionId: submissionDocument._id,
               schoolId: req.params._id,
