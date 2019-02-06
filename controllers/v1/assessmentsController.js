@@ -11,7 +11,7 @@ module.exports = class Assessments {
                 }
 
                 let queryObject = {};
-                queryObject["components.type"] = req.query.tye;
+                queryObject["components.type"] = req.query.type;
                 queryObject["components.subType"] = req.query.subType;
                 queryObject["components.entities"] = req.userDetails.userId;
                 if (req.query.fromDate) queryObject["components.fromDate"] = { $gte: new Date(req.query.fromDate) };
@@ -177,8 +177,8 @@ module.exports = class Assessments {
             submissionDocument.evidences = submissionDocumentEvidences;
             submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
             submissionDocument.criterias = submissionDocumentCriterias;
-
-            let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
+            let submissionController = new submissionsBaseController;
+            let submissionDoc = await submissionController.findSubmissionBySchoolProgram(
                 submissionDocument,
                 req
             );

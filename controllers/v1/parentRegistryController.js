@@ -25,8 +25,8 @@ module.exports = class ParentRegistry extends Abstract {
             }
           })
 
-          let addParentsQuery = await database.models.parentRegistry.insertMany(
-            req.body.parents,{rawResult:true}
+          let addParentsQuery = await database.models.parentRegistry.create(
+            req.body.parents
           );
 
           if(addParentsQuery.length != req.body.parents.length) {
