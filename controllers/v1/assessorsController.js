@@ -194,10 +194,10 @@ module.exports = class Assessors {
           else if (assessor.schoolOperation == "REMOVE") {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
+          let assessorCsvDataProgramId
 
           let programFrameworkRoles;
           let assessorRole;
-          let assessorCsvDataProgramId
           let assessorCsvDataEvaluationFrameworkId
           let assessorProgramComponents
           let indexOfComponents
@@ -302,6 +302,218 @@ module.exports = class Assessors {
         errorObject: error
       });
     })
+  }
+
+  async uploadAssessorBasedOnId(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        if (!req.files || !req.files.assessors) {
+          let responseMessage = "Bad request.";
+          return resolve({ status: 400, message: responseMessage })
+        }
+        let assessorData = await csv().fromString(req.files.assessors.data.toString());
+
+        let schoolQueryList = {};
+        // let programQueryList = {};
+        // let evaluationFrameworkQueryList = {};
+        let skippedDocumentCount = 0;
+
+        assessorData.forEach(assessor => {
+          assessor.schools.split(",").forEach(assessorSchool => {
+            if (assessorSchool)
+              schoolQueryList[assessorSchool.trim()] = assessorSchool.trim()
+          })
+        })
+
+
+        //   programQueryList[assessor.externalId] = assessor.programId
+
+        //   evaluationFrameworkQueryList[assessor.externalId] = assessor.frameworkId
+
+        // });
+
+
+        let schoolsFromDatabase = await database.models.schools.find({
+          externalId: { $in: Object.values(schoolQueryList) }
+        }, {
+            externalId: 1
+          });
+
+
+        let programsFromDatabase = await database.models.programs.find({
+          _id: req.query.programId
+        });
+
+        let evaluationFrameworksFromDatabase = await database.models.evaluationFrameworks.find({
+          _id: req.query.componentId
+        }, {
+            externalId: 1
+          });
+
+
+        const schoolsData = schoolsFromDatabase.reduce(
+          (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
+
+        const programsData = programsFromDatabase.reduce(
+          (ac, program) => ({ ...ac, [program._id]: program }), {})
+
+        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
+          (ac, evaluationFramework) => ({ ...ac, [evaluationFramework._id]: evaluationFramework._id }), {})
+
+        const roles = {
+          ASSESSOR: "assessors",
+          LEAD_ASSESSOR: "leadAssessors",
+          PROJECT_MANAGER: "projectManagers",
+          PROGRAM_MANAGER: "programManagers"
+        };
+
+        // const creatorId = req.userDetails.userId;
+
+        assessorData = await Promise.all(assessorData.map(async (assessor) => {
+          let assessorSchoolArray = new Array
+          assessor.schools.split(",").forEach(assessorSchool => {
+            if (schoolsData[assessorSchool.trim()])
+              assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
+          })
+
+          assessor.schools = assessorSchoolArray
+          if (programsData[req.query.programId]) {
+            assessor.programId = programsData[req.query.programId]._id;
+          } else {
+            assessor.programId = null;
+            skippedDocumentCount += 1;
+          }
+          // assessor.createdBy = assessor.updatedBy = creatorId
+
+
+          let fieldsWithOutSchool = {};
+          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
+            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+          })
+
+          let updateObject;
+          if (assessor.schoolOperation == "OVERRIDE") {
+            updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
+          }
+
+          else if (assessor.schoolOperation == "APPEND") {
+            updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
+          }
+
+          else if (assessor.schoolOperation == "REMOVE") {
+            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
+          }
+          let assessorCsvDataProgramId
+
+          let programFrameworkRoles;
+          let assessorRole;
+          let assessorCsvDataEvaluationFrameworkId
+          let assessorProgramComponents
+          let indexOfComponents
+
+          assessorCsvDataProgramId = req.query.programId
+          assessorCsvDataEvaluationFrameworkId = req.query.componentId
+          assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
+
+          indexOfComponents = assessorProgramComponents.findIndex(component => {
+            return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
+          });
+
+          if (indexOfComponents >= 0) {
+            programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
+            assessorRole = roles[assessor.role];
+
+            //constructing program roles
+            Object.keys(programFrameworkRoles).forEach(role => {
+              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+
+              if (role === assessorRole) {
+                if (roleIndex < 0) {
+                  programFrameworkRoles[role].users.push(assessor.userId);
+                }
+              }
+              else {
+                if ((roleIndex >= 0)) {
+                  programFrameworkRoles[role].users.splice(roleIndex, 1);
+                }
+
+                if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
+
+                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
+                  programFrameworkRoles[assessorRole].users.push(assessor.userId);
+              }
+
+            })
+          }
+
+          if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
+            programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
+          }
+
+
+          return database.models.schoolAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument: true
+            });
+
+        })).catch(error => {
+          return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+          });
+        });
+
+        Promise.all(Object.values(programsData).map(async (program) => {
+          let queryObject = {
+            _id: program._id
+          }
+
+          await database.models.programs.findOneAndUpdate(
+            queryObject,
+            { $set: { "components": program.components } }
+          );
+        })).catch(error => {
+          return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+          });
+        })
+
+
+        let responseMessage = "Assessor record created successfully."
+
+        let response = { message: responseMessage };
+
+        if (skippedDocumentCount > 0) {
+          let responseMessage = `Not all records were inserted/updated.`;
+          return resolve({ status: 400, message: responseMessage })
+        }
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+    // .catch(error => {
+    //   return reject({
+    //     status: 500,
+    //     message: error,
+    //     errorObject: error
+    //   });
+    // })
   }
 
 };

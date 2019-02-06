@@ -170,6 +170,146 @@ module.exports = class Schools extends Abstract {
     });
   }
 
+  async uploadBasedOnId(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let schoolsData = await csv().fromString(
+          req.files.schools.data.toString()
+        );
+        const schoolsUploadCount = schoolsData.length;
+
+        let programsFromDatabase = await database.models.programs.find({
+          _id: req.query.programId
+        });
+
+        let evaluationFrameworksFromDatabase = await database.models[
+          "evaluationFrameworks"
+        ].find(
+          {
+            _id: req.query.componentId
+          }
+        );
+
+        const programsData = programsFromDatabase.reduce(
+          (ac, program) => ({ ...ac, [program._id]: program }),
+          {}
+        );
+
+        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
+          (ac, evaluationFramework) => ({
+            ...ac,
+            [evaluationFramework._id]: evaluationFramework._id
+          }),
+          {}
+        );
+
+        const schoolUploadedData = await Promise.all(
+          schoolsData.map(async school => {
+            school.schoolTypes = await school.schoolType.split(",");
+            // school.createdBy = school.updatedBy = req.userDetails.id;
+            school.gpsLocation = "";
+            const schoolCreateObject = await database.models.schools.findOneAndUpdate(
+              { externalId: school.externalId },
+              school,
+              {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true,
+                returnNewDocument: true
+              }
+            );
+
+            return {
+              _id: schoolCreateObject._id,
+              externalId: school.externalId,
+              programId: req.query.programId,
+              frameworkId: req.query.componentId
+            };
+          })
+        );
+
+        if (schoolsUploadCount === schoolUploadedData.length) {
+          let schoolElement = new Object();
+          let indexOfEvaluationFrameworkInProgram;
+          let schoolProgramComponents = new Array();
+          let programFrameworkSchools = new Array();
+          let schoolCsvDataProgramId;
+          let schoolCsvDataEvaluationFrameworkId;
+
+          for (
+            let schoolIndexInData = 0;
+            schoolIndexInData < schoolUploadedData.length;
+            schoolIndexInData++
+          ) {
+            schoolElement = schoolUploadedData[schoolIndexInData];
+
+            schoolCsvDataProgramId = req.query.programId;
+            schoolCsvDataEvaluationFrameworkId =
+              req.query.componentId;
+            schoolProgramComponents =
+              programsData[schoolCsvDataProgramId].components;
+            indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
+              component =>
+                component.id.toString() ===
+                evaluationFrameworksData[
+                  schoolCsvDataEvaluationFrameworkId
+                ].toString()
+            );
+
+            if (indexOfEvaluationFrameworkInProgram >= 0) {
+              programFrameworkSchools =
+                schoolProgramComponents[indexOfEvaluationFrameworkInProgram]
+                  .schools;
+              if (
+                programFrameworkSchools.findIndex(
+                  school => school.toString() == schoolElement._id.toString()
+                ) < 0
+              ) {
+                programFrameworkSchools.push(
+                  ObjectId(schoolElement._id.toString())
+                );
+              }
+            }
+          }
+
+          await Promise.all(
+            Object.values(programsData).map(async program => {
+              let queryObject = {
+                _id: ObjectId(program._id.toString())
+              };
+              let updateObject = {};
+
+              updateObject.$set = {
+                ["components"]: program.components
+              };
+
+              await database.models.programs.findOneAndUpdate(
+                queryObject,
+                updateObject
+              );
+
+              return;
+            })
+          );
+        } else {
+          throw "Something went wrong, not all records were inserted/updated.";
+        }
+
+        let responseMessage = "School record created successfully.";
+
+        let response = { message: responseMessage };
+
+        return resolve(response);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
   find(req) {
     req.query.fields = ["name", "externalId"];
     return super.find(req);
