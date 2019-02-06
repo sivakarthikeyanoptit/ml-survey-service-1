@@ -1,5 +1,6 @@
 const Request = require('./httpRequest');
 const slackCommunicationsOnOff = process.env.SLACK_COMMUNICATIONS_ON_OFF
+const Rubric_Error_OnOff = process.env.Rubric_Error_OnOff
 const slackToken = process.env.SLACK_TOKEN
 const exceptionLogPostUrl = process.env.SLACK_EXCEPTION_LOG_URL;
 
@@ -92,7 +93,7 @@ const sendExceptionLogMessage = function (errorObject) {
 }
 
 const rubricErrorLogs = function (errorMessage) {
-  if (slackCommunicationsOnOff === "ON" && slackToken != "" && gen.utils.checkIfStringIsUrl(exceptionLogPostUrl)) {
+  if (slackCommunicationsOnOff === "ON" && Rubric_Error_OnOff === "ON" && slackToken != "" && gen.utils.checkIfStringIsUrl(exceptionLogPostUrl)) {
     const reqObj = new Request()
     let attachmentData = new Array
     let fieldsData = new Array
@@ -163,5 +164,5 @@ const rubricErrorLogs = function (errorMessage) {
 
 module.exports = {
   sendExceptionLogMessage: sendExceptionLogMessage,
-  sendExceptionLevelMessage: sendExceptionLevelMessage
+  rubricErrorLogs: rubricErrorLogs
 };
