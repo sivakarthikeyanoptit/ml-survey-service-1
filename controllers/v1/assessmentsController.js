@@ -33,7 +33,9 @@ module.exports = class Assessments {
                     {
                         $project: {
                             'assessments': '$components',
-                            'externalId': 1
+                            'externalId': 1,
+                            'name': 1,
+                            'description': 1
                         }
                     }
                 ]);
