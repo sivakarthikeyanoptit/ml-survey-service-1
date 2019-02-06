@@ -177,8 +177,8 @@ module.exports = class Assessments {
             submissionDocument.evidences = submissionDocumentEvidences;
             submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
             submissionDocument.criterias = submissionDocumentCriterias;
-
-            let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
+            let submissionController = new submissionsBaseController;
+            let submissionDoc = await submissionController.findSubmissionBySchoolProgram(
                 submissionDocument,
                 req
             );
