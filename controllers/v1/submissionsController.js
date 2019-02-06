@@ -1,4 +1,5 @@
 const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
+let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 
 module.exports = class Submission extends Abstract {
   constructor() {
@@ -8,46 +9,46 @@ module.exports = class Submission extends Abstract {
   static get name() {
     return "submissions";
   }
-  
-  async findSubmissionBySchoolProgram(document,requestObject) {
+
+  async findSubmissionBySchoolProgram(document, requestObject) {
 
     let queryObject = {
       schoolId: document.schoolId,
-      programId:document.programId
+      programId: document.programId
     };
 
     let submissionDocument = await database.models.submissions.findOne(
       queryObject
     );
-    
-    if(!submissionDocument) {
-        let schoolAssessorsQueryObject = [
-          {
-            $match: { schools: document.schoolId, programId: document.programId}
-          }
-        ];
 
-        document.assessors = await database.models[
-          "school-assessors"
-        ].aggregate(schoolAssessorsQueryObject);
-
-        let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-        if(assessorElement && assessorElement.externalId != "") {
-          assessorElement.assessmentStatus = "started"
-          assessorElement.userAgent = requestObject.headers['user-agent']
+    if (!submissionDocument) {
+      let schoolAssessorsQueryObject = [
+        {
+          $match: { schools: document.schoolId, programId: document.programId }
         }
+      ];
 
-        submissionDocument = await database.models.submissions.create(
-          document
-        );
+      document.assessors = await database.models[
+        "school-assessors"
+      ].aggregate(schoolAssessorsQueryObject);
+
+      let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+      if (assessorElement && assessorElement.externalId != "") {
+        assessorElement.assessmentStatus = "started"
+        assessorElement.userAgent = requestObject.headers['user-agent']
+      }
+
+      submissionDocument = await database.models.submissions.create(
+        document
+      );
     } else {
       let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-      if(assessorElement && assessorElement.externalId != "") {
+      if (assessorElement && assessorElement.externalId != "") {
         assessorElement.assessmentStatus = "started"
         assessorElement.userAgent = requestObject.headers['user-agent']
         let updateObject = {}
-        updateObject.$set = { 
-          assessors : submissionDocument.assessors
+        updateObject.$set = {
+          assessors: submissionDocument.assessors
         }
         submissionDocument = await database.models.submissions.findOneAndUpdate(
           queryObject,
@@ -66,7 +67,7 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "Submission completed successfully"
         let runUpdateQuery = false
@@ -74,7 +75,7 @@ module.exports = class Submission extends Abstract {
         let queryObject = {
           _id: ObjectId(req.params._id)
         }
-        
+
         let queryOptions = {
           new: true
         }
@@ -86,27 +87,27 @@ module.exports = class Submission extends Abstract {
         let updateObject = {}
         let result = {}
 
-        if(req.body.schoolProfile) {
-          updateObject.$set = { schoolProfile : req.body.schoolProfile }
+        if (req.body.schoolProfile) {
+          updateObject.$set = { schoolProfile: req.body.schoolProfile }
           runUpdateQuery = true
         }
-      
-        if(req.body.evidence) {
+
+        if (req.body.evidence) {
           req.body.evidence.gpsLocation = req.headers.gpslocation
           req.body.evidence.submittedBy = req.userDetails.userId
           req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
           req.body.evidence.submittedByEmail = req.userDetails.email
           req.body.evidence.submissionDate = new Date()
 
-          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
+          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == req.body.evidence.externalId);
 
-          if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
+          if (submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
             let answerArray = {}
             Object.entries(req.body.evidence.answers).forEach(answer => {
-              if(answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
                   submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
                     generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
                       generalQuestionInstanceValue.isAGeneralQuestionResponse = true
@@ -118,15 +119,15 @@ module.exports = class Submission extends Abstract {
                   })
                 }
                 for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-                  
+
                   _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-                    
-                    if(answerArray[question.qid]) {
+
+                    if (answerArray[question.qid]) {
                       answerArray[question.qid].instanceResponses.push(question.value)
                       answerArray[question.qid].instanceRemarks.push(question.remarks)
                       answerArray[question.qid].instanceFileName.push(question.fileName)
                     } else {
-                      let clonedQuestion = {...question}
+                      let clonedQuestion = { ...question }
                       clonedQuestion.instanceResponses = new Array
                       clonedQuestion.instanceRemarks = new Array
                       clonedQuestion.instanceFileName = new Array
@@ -146,28 +147,28 @@ module.exports = class Submission extends Abstract {
               }
               answerArray[answer[0]] = answer[1]
             });
-            
-            if(answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse}
-            
+
+            if (answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse }
+
 
             evidencesStatusToBeChanged['isSubmitted'] = true;
             evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
             evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
             evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
             evidencesStatusToBeChanged['hasConflicts'] = false;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence,"answers"));
+            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
 
-            updateObject.$push = { 
-              ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+            updateObject.$push = {
+              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
             }
-            updateObject.$set = { 
-              answers : _.assignIn(submissionDocument.answers, answerArray),
-              ["evidences."+req.body.evidence.externalId+".isSubmitted"] : true,
-              ["evidences."+req.body.evidence.externalId+".notApplicable"] : req.body.evidence.notApplicable,
-              ["evidences."+req.body.evidence.externalId+".startTime"] : req.body.evidence.startTime,
-              ["evidences."+req.body.evidence.externalId+".endTime"] : req.body.evidence.endTime,
-              ["evidences."+req.body.evidence.externalId+".hasConflicts"]: false,
-              evidencesStatus:submissionDocument.evidencesStatus,
+            updateObject.$set = {
+              answers: _.assignIn(submissionDocument.answers, answerArray),
+              ["evidences." + req.body.evidence.externalId + ".isSubmitted"]: true,
+              ["evidences." + req.body.evidence.externalId + ".notApplicable"]: req.body.evidence.notApplicable,
+              ["evidences." + req.body.evidence.externalId + ".startTime"]: req.body.evidence.startTime,
+              ["evidences." + req.body.evidence.externalId + ".endTime"]: req.body.evidence.endTime,
+              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: false,
+              evidencesStatus: submissionDocument.evidencesStatus,
               status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
             }
           } else {
@@ -175,8 +176,8 @@ module.exports = class Submission extends Abstract {
             req.body.evidence.isValid = false
 
             Object.entries(req.body.evidence.answers).forEach(answer => {
-              if(answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if(answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
                   submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
                     generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
                       generalQuestionInstanceValue.isAGeneralQuestionResponse = true
@@ -191,35 +192,35 @@ module.exports = class Submission extends Abstract {
               }
             });
 
-            updateObject.$push = { 
-              ["evidences."+req.body.evidence.externalId+".submissions"]: req.body.evidence
+            updateObject.$push = {
+              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
             }
 
-            evidencesStatusToBeChanged['hasConflicts']=true;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence,"answers"));
+            evidencesStatusToBeChanged['hasConflicts'] = true;
+            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
 
             updateObject.$set = {
-              evidencesStatus:submissionDocument.evidencesStatus,
-              ["evidences."+req.body.evidence.externalId+".hasConflicts"]: true,
+              evidencesStatus: submissionDocument.evidencesStatus,
+              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: true,
               status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
             }
 
             message = "Duplicate evidence method submission detected."
           }
-          
+
         }
-        
-        if(runUpdateQuery) {
+
+        if (runUpdateQuery) {
           let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
             queryObject,
             updateObject,
             queryOptions
           );
-          
-          let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-          let {ratingsEnabled} = canRatingsBeEnabled
 
-          if(ratingsEnabled) {
+          let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+          let { ratingsEnabled } = canRatingsBeEnabled
+
+          if (ratingsEnabled) {
             updateObject.$set = {
               status: "completed",
               completedDate: new Date()
@@ -251,12 +252,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -264,7 +265,7 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "Parent Interview completed successfully."
         const parentInterviewEvidenceMethod = "PAI"
@@ -273,7 +274,7 @@ module.exports = class Submission extends Abstract {
         let queryObject = {
           _id: ObjectId(req.params._id)
         }
-        
+
         let queryOptions = {
           new: true
         }
@@ -294,15 +295,15 @@ module.exports = class Submission extends Abstract {
           schoolQueryObject
         );
 
-        let schoolUpdatedDocument={};
+        let schoolUpdatedDocument = {};
 
         let updateSchoolObject = {}
 
         updateSchoolObject.$set = {}
 
-        let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==parentInterviewEvidenceMethod);
+        let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == parentInterviewEvidenceMethod);
 
-        if(submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
+        if (submissionDocument && (submissionDocument.evidences[parentInterviewEvidenceMethod].isSubmitted != true)) {
           let evidenceSubmission = {}
           evidenceSubmission.externalId = parentInterviewEvidenceMethod
           evidenceSubmission.submittedBy = req.userDetails.userId
@@ -318,9 +319,9 @@ module.exports = class Submission extends Abstract {
 
 
           Object.entries(submissionDocument.parentInterviewResponses).forEach(parentInterviewResponse => {
-            if(parentInterviewResponse[1].status === "completed") {
+            if (parentInterviewResponse[1].status === "completed") {
               Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
-                if(evidenceSubmissionAnswerArray[answer[0]]) {
+                if (evidenceSubmissionAnswerArray[answer[0]]) {
                   answer[1].value.forEach(instanceResponse => {
                     evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
                   })
@@ -337,24 +338,24 @@ module.exports = class Submission extends Abstract {
 
           evidenceSubmission.answers = evidenceSubmissionAnswerArray
 
-          if(Object.keys(evidenceSubmission.answers).length > 0) {
+          if (Object.keys(evidenceSubmission.answers).length > 0) {
             runUpdateQuery = true
           }
 
           let answerArray = {}
           Object.entries(evidenceSubmission.answers).forEach(answer => {
-            if(answer[1].responseType === "matrix") {
+            if (answer[1].responseType === "matrix") {
 
               for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-                
+
                 _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-                  
-                  if(answerArray[question.qid]) {
+
+                  if (answerArray[question.qid]) {
                     answerArray[question.qid].instanceResponses.push(question.value)
                     answerArray[question.qid].instanceRemarks.push(question.remarks)
                     answerArray[question.qid].instanceFileName.push(question.fileName)
                   } else {
-                    let clonedQuestion = {...question}
+                    let clonedQuestion = { ...question }
                     clonedQuestion.instanceResponses = new Array
                     clonedQuestion.instanceRemarks = new Array
                     clonedQuestion.instanceFileName = new Array
@@ -380,19 +381,19 @@ module.exports = class Submission extends Abstract {
           evidencesStatusToBeChanged['startTime'] = "";
           evidencesStatusToBeChanged['endTime'] = new Date;
           evidencesStatusToBeChanged['hasConflicts'] = false;
-          evidencesStatusToBeChanged['submissions'].push(_.omit(evidenceSubmission,"answers"));
+          evidencesStatusToBeChanged['submissions'].push(_.omit(evidenceSubmission, "answers"));
 
-          updateObject.$push = { 
-            ["evidences."+parentInterviewEvidenceMethod+".submissions"]: evidenceSubmission
+          updateObject.$push = {
+            ["evidences." + parentInterviewEvidenceMethod + ".submissions"]: evidenceSubmission
           }
-          updateObject.$set = { 
-            answers : _.assignIn(submissionDocument.answers, answerArray),
-            ["evidences."+parentInterviewEvidenceMethod+".isSubmitted"] : true,
-            ["evidences."+parentInterviewEvidenceMethod+".notApplicable"] :false,
-            ["evidences."+parentInterviewEvidenceMethod+".startTime"] : "",
-            ["evidences."+parentInterviewEvidenceMethod+".endTime"] : new Date,
-            ["evidences."+parentInterviewEvidenceMethod+".hasConflicts"]: false,
-            evidencesStatus:submissionDocument.evidencesStatus,
+          updateObject.$set = {
+            answers: _.assignIn(submissionDocument.answers, answerArray),
+            ["evidences." + parentInterviewEvidenceMethod + ".isSubmitted"]: true,
+            ["evidences." + parentInterviewEvidenceMethod + ".notApplicable"]: false,
+            ["evidences." + parentInterviewEvidenceMethod + ".startTime"]: "",
+            ["evidences." + parentInterviewEvidenceMethod + ".endTime"]: new Date,
+            ["evidences." + parentInterviewEvidenceMethod + ".hasConflicts"]: false,
+            evidencesStatus: submissionDocument.evidencesStatus,
             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
           }
 
@@ -401,8 +402,8 @@ module.exports = class Submission extends Abstract {
 
 
           updateSchoolObject.$set = {
-              isParentInterviewCompleted: true
-            }
+            isParentInterviewCompleted: true
+          }
 
           schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
             schoolQueryObject,
@@ -410,7 +411,7 @@ module.exports = class Submission extends Abstract {
             {}
           );
 
-          
+
 
           //isParentInterviewCompleted
 
@@ -421,7 +422,7 @@ module.exports = class Submission extends Abstract {
           return resolve(response);
         }
 
-        if(runUpdateQuery) {
+        if (runUpdateQuery) {
           let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
             queryObject,
             updateObject,
@@ -429,9 +430,9 @@ module.exports = class Submission extends Abstract {
           );
 
           let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-          let {ratingsEnabled} = canRatingsBeEnabled
+          let { ratingsEnabled } = canRatingsBeEnabled
 
-          if(ratingsEnabled) {
+          if (ratingsEnabled) {
             updateObject.$set = {
               status: "completed",
               completedDate: new Date()
@@ -444,8 +445,8 @@ module.exports = class Submission extends Abstract {
           }
 
           updateSchoolObject.$set = {
-              isParentInterviewCompleted: true
-            }
+            isParentInterviewCompleted: true
+          }
 
           schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
             schoolQueryObject,
@@ -471,12 +472,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -484,7 +485,7 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "General question submitted successfully."
         let runUpdateQuery = false
@@ -492,7 +493,7 @@ module.exports = class Submission extends Abstract {
         let queryObject = {
           _id: ObjectId(req.params._id)
         }
-        
+
         let queryOptions = {
           new: true
         }
@@ -503,30 +504,30 @@ module.exports = class Submission extends Abstract {
 
         let updateObject = {}
         updateObject.$set = {}
-      
-        if(req.body.answers) {
+
+        if (req.body.answers) {
           let gpsLocation = req.headers.gpslocation
           let submittedBy = req.userDetails.userId
           let submissionDate = new Date()
-          
+
           Object.entries(req.body.answers).forEach(answer => {
-            if(answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
+            if (answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
               runUpdateQuery = true
               answer[1].gpslocation = gpsLocation
               answer[1].submittedBy = submittedBy
               answer[1].submissionDate = submissionDate
-              if(submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+              if (submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
                 submissionDocument.generalQuestions[answer[0]].submissions.push(answer[1])
               } else {
                 submissionDocument.generalQuestions = {
-                  [answer[0]] : {
-                    submissions : [answer[1]]
+                  [answer[0]]: {
+                    submissions: [answer[1]]
                   }
                 }
               }
-              if(submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
-                submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission,indexOfEvidenceMethodSubmission) => {
-                  if(evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
+              if (submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
+                submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission, indexOfEvidenceMethodSubmission) => {
+                  if (evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
                     answer[1].value.forEach(incomingGeneralQuestionInstance => {
                       incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
                       evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
@@ -536,30 +537,30 @@ module.exports = class Submission extends Abstract {
                     })
                     evidenceMethodSubmission.answers[answer[0]].countOfInstances = evidenceMethodSubmission.answers[answer[0]].value.length
                   }
-                  if(evidenceMethodSubmission.isValid === true) {
+                  if (evidenceMethodSubmission.isValid === true) {
 
                     for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-                      
+
                       _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-                        
-                          if(submissionDocument.answers[question.qid]) {
-                            submissionDocument.answers[question.qid].instanceResponses.push(question.value)
-                            submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
-                            submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
-                          } else {
-                            let clonedQuestion = {...question}
-                            clonedQuestion.instanceResponses = new Array
-                            clonedQuestion.instanceRemarks = new Array
-                            clonedQuestion.instanceFileName = new Array
-                            clonedQuestion.instanceResponses.push(question.value)
-                            clonedQuestion.instanceRemarks.push(question.remarks)
-                            clonedQuestion.instanceFileName.push(question.fileName)
-                            delete clonedQuestion.value
-                            delete clonedQuestion.remarks
-                            delete clonedQuestion.fileName
-                            delete clonedQuestion.payload
-                            submissionDocument.answers[question.qid] = clonedQuestion
-                          }
+
+                        if (submissionDocument.answers[question.qid]) {
+                          submissionDocument.answers[question.qid].instanceResponses.push(question.value)
+                          submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
+                          submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
+                        } else {
+                          let clonedQuestion = { ...question }
+                          clonedQuestion.instanceResponses = new Array
+                          clonedQuestion.instanceRemarks = new Array
+                          clonedQuestion.instanceFileName = new Array
+                          clonedQuestion.instanceResponses.push(question.value)
+                          clonedQuestion.instanceRemarks.push(question.remarks)
+                          clonedQuestion.instanceFileName.push(question.fileName)
+                          delete clonedQuestion.value
+                          delete clonedQuestion.remarks
+                          delete clonedQuestion.fileName
+                          delete clonedQuestion.payload
+                          submissionDocument.answers[question.qid] = clonedQuestion
+                        }
 
                       })
                     }
@@ -567,7 +568,7 @@ module.exports = class Submission extends Abstract {
 
                 })
               }
-              
+
             }
           });
 
@@ -577,7 +578,7 @@ module.exports = class Submission extends Abstract {
 
         }
 
-        if(runUpdateQuery) {
+        if (runUpdateQuery) {
           let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
             queryObject,
             updateObject,
@@ -601,12 +602,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -614,14 +615,14 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "Parent interview submitted successfully."
 
         let queryObject = {
           _id: ObjectId(req.params._id)
         }
-        
+
         let queryOptions = {
           new: true
         }
@@ -630,18 +631,18 @@ module.exports = class Submission extends Abstract {
           queryObject
         );
 
-        if(req.body.parentId && req.body.status && submissionDocument) {
+        if (req.body.parentId && req.body.status && submissionDocument) {
 
           let parentInformation = await database.models["parent-registry"].findOne(
-            {_id:ObjectId(req.body.parentId)}
+            { _id: ObjectId(req.body.parentId) }
           );
 
-          if(parentInformation) {
+          if (parentInformation) {
             let parentInterview = {}
             parentInterview.parentInformation = parentInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
-            if(submissionDocument.parentInterviewResponses) {
+            if (submissionDocument.parentInterviewResponses) {
               submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
             } else {
               submissionDocument.parentInterviewResponses = {}
@@ -653,7 +654,7 @@ module.exports = class Submission extends Abstract {
             updateObject.$set.parentInterviewResponses = submissionDocument.parentInterviewResponses
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-              {_id:ObjectId(submissionDocument._id)},
+              { _id: ObjectId(submissionDocument._id) },
               updateObject,
               queryOptions
             );
@@ -675,12 +676,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -688,7 +689,7 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "Parent interview response fetched successfully."
         let result = {}
@@ -696,7 +697,7 @@ module.exports = class Submission extends Abstract {
         let queryObject = {
           _id: ObjectId(req.params._id)
         }
-        
+
         let queryOptions = {
           new: true
         }
@@ -705,36 +706,35 @@ module.exports = class Submission extends Abstract {
           queryObject
         );
 
-        if(req.query.parentId && submissionDocument) {
+        if (req.query.parentId && submissionDocument) {
 
           let parentInformation = await database.models["parent-registry"].findOne(
-            {_id:ObjectId(req.query.parentId)}
+            { _id: ObjectId(req.query.parentId) }
           );
-          
-          if(parentInformation) {
+
+          if (parentInformation) {
             result.parentInformation = parentInformation
             result.parentId = req.query.parentId
           }
 
-          if((submissionDocument.parentInterviewResponses) && submissionDocument.parentInterviewResponses[req.query.parentId])
-            {
-              result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
-              result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
-            }
-            else {
-              let noSubmissionResponse = {
-              result:[],
+          if ((submissionDocument.parentInterviewResponses) && submissionDocument.parentInterviewResponses[req.query.parentId]) {
+            result.status = submissionDocument.parentInterviewResponses[req.query.parentId].status
+            result.answers = submissionDocument.parentInterviewResponses[req.query.parentId].answers
+          }
+          else {
+            let noSubmissionResponse = {
+              result: [],
               message: "No submissions for parent found"
             };
 
             return resolve(noSubmissionResponse);
-        
+
           }
 
         } else {
-          
+
           let noSubmissionResponse = {
-            result:[],
+            result: [],
             message: "No submissions found"
           };
 
@@ -743,7 +743,7 @@ module.exports = class Submission extends Abstract {
 
 
         let response = {
-          result:result,
+          result: result,
           message: message
         };
 
@@ -751,12 +751,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:"Oops! Something went wrong!",
+          status: 500,
+          message: "Oops! Something went wrong!",
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -764,7 +764,7 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         req.body = req.body || {};
         let message = "Crtieria rating completed successfully"
 
@@ -774,16 +774,20 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          {answers : 1, criterias: 1}
+          { answers: 1, criterias: 1, evidencesStatus: 1, schoolInformation: 1, programInformation: 1 }
         );
 
-        if(!submissionDocument._id) {
+        if (!submissionDocument._id) {
           throw "Couldn't find the submission document"
         }
 
         let result = {}
         result.runUpdateQuery = true
+        let criteriaIdWithParsingErrors = new Array
 
+        // let allSubmittedEvidence = Object.values(submissionDocument.evidencesStatus).every(this.allSubmission)
+
+        // if (allSubmittedEvidence) {
         let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
 
           result[criteria.externalId] = {}
@@ -791,7 +795,7 @@ module.exports = class Submission extends Abstract {
           result[criteria.externalId].criteriaExternalId = criteria.externalId
 
           // criteria.externalId == "SS/I/c3" && 
-          if(criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+          if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
             let submissionAnswers = new Array
             const questionValueExtractor = function (question) {
               const questionArray = question.split('.')
@@ -803,38 +807,38 @@ module.exports = class Submission extends Abstract {
               //   console.log(submissionDocument.answers[questionArray[0]])
               //   console.log(submissionDocument.answers[questionArray[0]].value)
               // }
-              if(questionArray[1] === "value") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
+              if (questionArray[1] === "value") {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
                   return submissionDocument.answers[questionArray[0]].value
                 } else {
                   return "NA"
                 }
               } else if (questionArray[1] === "mode") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
                   return submissionDocument.answers[questionArray[0]].value
                 } else {
                   return "NA"
                 }
               } else if (questionArray[1] === "instanceResponses") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].instanceResponses) {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].instanceResponses) {
                   return submissionDocument.answers[questionArray[0]].instanceResponses
                 } else {
                   return "NA"
                 }
-              }  else if (questionArray[1] === "endTime") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].endTime) {
+              } else if (questionArray[1] === "endTime") {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].endTime) {
                   return submissionDocument.answers[questionArray[0]].endTime
                 } else {
                   return "NA"
                 }
-              }  else if (questionArray[1] === "startTime") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].startTime) {
+              } else if (questionArray[1] === "startTime") {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].startTime) {
                   return submissionDocument.answers[questionArray[0]].startTime
                 } else {
                   return "NA"
                 }
-              }  else if (questionArray[1] === "countOfInstances") {
-                if(submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
+              } else if (questionArray[1] === "countOfInstances") {
+                if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
                   return submissionDocument.answers[questionArray[0]].countOfInstances
                 } else {
                   return "NA"
@@ -844,17 +848,23 @@ module.exports = class Submission extends Abstract {
             let expressionVariables = {}
             let expressionResult = {}
             let allValuesAvailable = true
+
             Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-              if(variable != "default") {
+              if (variable != "default") {
                 expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable])
                 expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
-                if(expressionVariables[variable] === "NA") {
+                if (expressionVariables[variable] === "NA") {
                   allValuesAvailable = false
                 }
               }
             })
 
-            if(allValuesAvailable) {
+            let errorWhileParsingCriteriaExpression = false
+            let errorLevel = {}
+            let errorLevels = [];
+            let errorExpression = {}
+
+            if (allValuesAvailable) {
               Object.keys(criteria.rubric.levels).forEach(level => {
 
                 // if(level == "L3") {
@@ -866,12 +876,12 @@ module.exports = class Submission extends Abstract {
                 //   console.log(math.eval("(compareTextValues(PR4, 'R3||R4') == 0)",expressionVariables))
                 //   console.log("Debugging new functions ends")
                 // }
-                
-                if(criteria.rubric.levels[level].expression != "") {
+
+                if (criteria.rubric.levels[level].expression != "") {
                   try {
                     expressionResult[level] = {
-                      expressionParsed : criteria.rubric.levels[level].expression,
-                      result : mathJs.eval(criteria.rubric.levels[level].expression,expressionVariables)
+                      expressionParsed: criteria.rubric.levels[level].expression,
+                      result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
                     }
                   } catch (error) {
                     console.log("---------------Some exception caught begins---------------")
@@ -881,19 +891,36 @@ module.exports = class Submission extends Abstract {
                     console.log(expressionVariables)
                     console.log(criteria.rubric.expressionVariables)
                     console.log("---------------Some exception caught ends---------------")
+
+                    // errorExpressions.push(criteria.rubric.levels[level].expression)
+                    if (_.isEmpty(errorExpression[criteria.externalId], true)) {
+                      errorExpression[criteria.externalId] = {}
+                    }
+                    errorExpression[criteria.externalId][criteria.rubric.levels[level].level] = {
+                      expression: criteria.rubric.levels[level].expression,
+                      error: error.toString()
+                    }
+
+                    errorLevels.push(criteria.rubric.levels[level].level)
+                    errorLevel[criteria.externalId] = {
+                      level: errorLevels.join(',')
+                    }
+
+
+                    errorWhileParsingCriteriaExpression = true
                   }
                 } else {
                   expressionResult[level] = {
-                    expressionParsed : criteria.rubric.levels[level].expression,
-                    result : false
+                    expressionParsed: criteria.rubric.levels[level].expression,
+                    result: false
                   }
                 }
               })
             }
-            
+
             let score = "NA"
-            if(allValuesAvailable) {
-              if(expressionResult.L4.result) {
+            if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
+              if (expressionResult.L4.result) {
                 score = "L4"
               } else if (expressionResult.L3.result) {
                 score = "L3"
@@ -905,19 +932,18 @@ module.exports = class Submission extends Abstract {
                 score = "No Level Matched"
               }
             }
-
             // const parser = math.parser()
             // create a string
             // console.log(math.compareText("hello", "hello"))                      // String, "hello"
 
             result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
             result[criteria.externalId].expressionVariables = expressionVariables
-            
-            if(score == "NA") {
+
+            if (score == "NA") {
               result[criteria.externalId].valuesNotFound = true
               result[criteria.externalId].score = score
               criteria.score = score
-            } else if (score == "No Level Matched"){
+            } else if (score == "No Level Matched") {
               result[criteria.externalId].noExpressionMatched = true
               result[criteria.externalId].score = score
               criteria.score = score
@@ -928,22 +954,35 @@ module.exports = class Submission extends Abstract {
 
             result[criteria.externalId].expressionResult = expressionResult
             result[criteria.externalId].submissionAnswers = submissionAnswers
-            
+
+            if (errorWhileParsingCriteriaExpression) {
+
+              criteriaIdWithParsingErrors.push({
+                [criteria.externalId]: {
+                  criteriaName: result[criteria.externalId].criteriaName,
+                  criteriaId: result[criteria.externalId].criteriaExternalId,
+                  expressionVariableDefined: result[criteria.externalId].expressionVariablesDefined,
+                  expressionVariables: result[criteria.externalId].expressionVariables,
+                  level: errorLevel[criteria.externalId].level,
+                  allLevelexpression: errorExpression[criteria.externalId] ? errorExpression[criteria.externalId] : "",
+                }
+              })
+
+            }
           }
-          
           return criteria
 
         }));
 
-        if (criteriaData.findIndex( criteria => criteria === undefined) >= 0) {
+        if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
           result.runUpdateQuery = false
         }
 
-        if(result.runUpdateQuery) {
+        if (result.runUpdateQuery) {
           let updateObject = {}
 
-          updateObject.$set = { 
-            criterias : criteriaData
+          updateObject.$set = {
+            criterias: criteriaData
           }
 
           let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
@@ -951,22 +990,35 @@ module.exports = class Submission extends Abstract {
             updateObject
           );
         }
-        
+
         let response = {
           message: message,
           result: result
         };
 
-        return resolve(response);
+        if (criteriaIdWithParsingErrors.length) {
+          const toLogObject = {
+            submissionId: submissionDocument._id,
+            schoolId: req.params._id,
+            schoolName: submissionDocument.schoolInformation.name,
+            programId: submissionDocument.programInformation.externalId,
+            errorMsg: new Error(JSON.stringify(criteriaIdWithParsingErrors))
+          }
 
+          slackClient.sendExceptionLevelMessage(toLogObject)
+
+        }
+
+        return resolve(response);
+        // }
       } catch (error) {
         return reject({
-          status:500,
-          message:error,
+          status: 500,
+          message: error,
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -975,9 +1027,9 @@ module.exports = class Submission extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        
+
         let result = {
-          allowed : true
+          allowed: true
         }
         req.body = req.body || {};
         let message = "Submission check completed successfully"
@@ -989,23 +1041,23 @@ module.exports = class Submission extends Abstract {
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
           {
-            ["evidences."+req.query.evidenceId+".isSubmitted"] : 1,
-            ["evidences."+req.query.evidenceId+".submissions"] : 1
+            ["evidences." + req.query.evidenceId + ".isSubmitted"]: 1,
+            ["evidences." + req.query.evidenceId + ".submissions"]: 1
           }
         );
 
-        if(!submissionDocument|| !submissionDocument._id) {
+        if (!submissionDocument || !submissionDocument._id) {
           throw "Couldn't find the submission document"
         } else {
-          if(submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
+          if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
             submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
-              if(submission.submittedBy == req.userDetails.userId) {
+              if (submission.submittedBy == req.userDetails.userId) {
                 result.allowed = false
               }
             })
           }
         }
-        
+
         let response = {
           message: message,
           result: result
@@ -1015,12 +1067,12 @@ module.exports = class Submission extends Abstract {
 
       } catch (error) {
         return reject({
-          status:500,
-          message:error,
+          status: 500,
+          message: error,
           errorObject: error
         });
       }
-      
+
     })
   }
 
@@ -1031,7 +1083,7 @@ module.exports = class Submission extends Abstract {
 
   //     let result = {}
   //     let responseMessage
-      
+
   //     let queryObject = {
   //       _id: ObjectId(req.params._id)
   //     }
@@ -1050,7 +1102,7 @@ module.exports = class Submission extends Abstract {
   //       result.criterias = criterias
   //       result.allManualCriteriaRatingSubmitted = (submissionDocument.allManualCriteriaRatingSubmitted) ? submissionDocument.allManualCriteriaRatingSubmitted : false
   //       responseMessage = "Rating questions fetched successfully."
-        
+
   //     } else {
   //       responseMessage = "Rating questions not yet enabled for this submission."
   //     }
@@ -1125,7 +1177,7 @@ module.exports = class Submission extends Abstract {
   //       return resolve(response);
   //     }
 
-      
+
   //   }).catch(error => {
   //     reject(error);
   //   });
@@ -1146,17 +1198,17 @@ module.exports = class Submission extends Abstract {
   //     let submissionDocument = await database.models.submissions.findOne(
   //       queryObject
   //     );
-      
+
   //     if(submissionDocument.allManualCriteriaRatingSubmitted === true) {
   //       let criteriaResponses = {}
   //       submissionDocument.criterias.forEach(criteria => {
   //         if (criteria.criteriaType === 'manual') {
   //           criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'remarks', 'flag'])
-            
+
   //           if(criteria.flagRaised && criteria.flagRaised[req.userDetails.userId]) {
   //             criteriaResponses[criteria._id].flagRaised = _.pick(criteria.flagRaised[req.userDetails.userId], ['value', 'remarks', 'submissionDate'])
   //           }
-            
+
   //         }
   //       })
 
@@ -1226,13 +1278,13 @@ module.exports = class Submission extends Abstract {
   //     } else {
   //       responseMessage = "Invalid request"
   //     }
-      
+
   //     if(runUpdateQuery) {
   //       result = await database.models.submissions.findOneAndUpdate(
   //         queryObject,
   //         updateObject
   //       );
-        
+
   //       responseMessage = "Criterias flagged successfully."
 
   //     }
@@ -1242,7 +1294,7 @@ module.exports = class Submission extends Abstract {
   //     };
 
   //     return resolve(response);
-      
+
   //   }).catch(error => {
   //     reject(error);
   //   });
@@ -1265,28 +1317,28 @@ module.exports = class Submission extends Abstract {
 
       let updateObject = {}
 
-      if(req.body.feedback && submissionDocument.status != "started") {
+      if (req.body.feedback && submissionDocument.status != "started") {
 
         req.body.feedback.userId = req.userDetails.userId
         req.body.feedback.submissionDate = new Date()
         req.body.feedback.submissionGpsLocation = req.headers.gpslocation
 
         runUpdateQuery = true
-        
-        updateObject.$push = { 
+
+        updateObject.$push = {
           ["feedback"]: req.body.feedback
         }
 
       } else {
         responseMessage = "Atleast one evidence method has to be completed before giving feedback."
       }
-      
-      if(runUpdateQuery) {
+
+      if (runUpdateQuery) {
         let result = await database.models.submissions.findOneAndUpdate(
           queryObject,
           updateObject
         );
-        
+
         responseMessage = "Feedback submitted successfully."
 
       }
@@ -1296,7 +1348,7 @@ module.exports = class Submission extends Abstract {
       };
 
       return resolve(response);
-      
+
     }).catch(error => {
       reject(error);
     });
@@ -1316,12 +1368,12 @@ module.exports = class Submission extends Abstract {
         queryObject
       );
 
-      if(submissionDocument){
+      if (submissionDocument) {
         result._id = submissionDocument._id
         result.status = submissionDocument.status
         result.evidences = submissionDocument.evidences
       }
-      
+
       let response = { message: "Submission status fetched successfully", result: result };
 
       return resolve(response);
@@ -1375,10 +1427,10 @@ module.exports = class Submission extends Abstract {
     result.ratingsEnabled = true
     result.responseMessage = ""
 
-    if(submissionDocument.evidences && submissionDocument.status !== "blocked") {
+    if (submissionDocument.evidences && submissionDocument.status !== "blocked") {
       const evidencesArray = Object.entries(submissionDocument.evidences)
       for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
-        if(!evidencesArray[iterator][1].isSubmitted || evidencesArray[iterator][1].hasConflicts === true) {
+        if (!evidencesArray[iterator][1].isSubmitted || evidencesArray[iterator][1].hasConflicts === true) {
           result.ratingsEnabled = false
           result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
           break
@@ -1393,4 +1445,7 @@ module.exports = class Submission extends Abstract {
 
   }
 
+  allSubmission(allSubmission) {
+    return allSubmission.isSubmitted
+  }
 };
