@@ -19,7 +19,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
 
                 if (req.body.schoolLeaders) {
 
-                    let addTeachersQuery = await database.models["school-leader-registry"].create(
+                    let addTeachersQuery = await database.models.schoolLeaderRegistry.create(
                         req.body.schoolLeaders
                     );
 
@@ -58,7 +58,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
                         schoolId: req.params._id
                     }
 
-                    result = await database.models["school-leader-registry"].find(
+                    result = await database.models.schoolLeaderRegistry.find(
                         queryObject
                     );
 
@@ -282,7 +282,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
     async fetch(req) {
         return new Promise(async function (resolve, reject) {
 
-            let schoolLeadersInformation = await database.models["school-leader-registry"].findOne(
+            let schoolLeadersInformation = await database.models.schoolLeaderRegistry.findOne(
                 { _id: ObjectId(req.params._id) }
             );
 
@@ -460,7 +460,7 @@ module.exports = class SchoolLeadersRegistry extends Abstract {
         return new Promise(async function (resolve, reject) {
 
             try {
-                let schoolLeadersInformation = await database.models["school-leader-registry"].findOneAndUpdate(
+                let schoolLeadersInformation = await database.models.schoolLeaderRegistry.findOneAndUpdate(
                     { _id: ObjectId(req.params._id) },
                     req.body,
                     { new: true }

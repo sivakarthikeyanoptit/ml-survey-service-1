@@ -1,5 +1,5 @@
 module.exports = {
-    name: "teacher-registry",
+    name: "teacherRegistry",
     schema: {
         name: "string",
         qualifications: "string",

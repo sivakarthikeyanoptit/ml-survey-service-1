@@ -25,7 +25,7 @@ module.exports = class ParentRegistry extends Abstract {
             }
           })
 
-          let addParentsQuery = await database.models["parent-registry"].insertMany(
+          let addParentsQuery = await database.models.parentRegistry.insertMany(
             req.body.parents,{rawResult:true}
           );
 
@@ -64,7 +64,7 @@ module.exports = class ParentRegistry extends Abstract {
             schoolId: req.params._id
           }
 
-          result = await database.models["parent-registry"].find(
+          result = await database.models.parentRegistry.find(
             queryObject
           );
 
@@ -225,7 +225,7 @@ module.exports = class ParentRegistry extends Abstract {
 
           parentInformation = await Promise.all(parentInformation.map(async (parent) => {
           
-            parent = await database.models["parent-registry"].findOneAndUpdate(
+            parent = await database.models.parentRegistry.findOneAndUpdate(
               { 
                 phone1: parent.phone1,
                 programId: parent.programId,
@@ -526,10 +526,15 @@ module.exports = class ParentRegistry extends Abstract {
   async fetch(req) {
     return new Promise(async function(resolve, reject) {
       
-      let parentInformation = await database.models["parent-registry"].findOne(
+      let parentInformation = await database.models.parentRegistry.findOne(
         {_id:ObjectId(req.params._id)}
       );
       
+      if(!parentInformation){
+        let responseMessage = `No parent information found for given params.`;
+        return resolve({ status: 400, message: responseMessage })
+      }
+
       let result = [
         {
           field: "name",
@@ -781,7 +786,7 @@ module.exports = class ParentRegistry extends Abstract {
     return new Promise(async function(resolve, reject) {
       
       try {
-        let parentInformation = await database.models["parent-registry"].findOneAndUpdate(
+        let parentInformation = await database.models.parentRegistry.findOneAndUpdate(
           {_id:ObjectId(req.params._id)},
           req.body,
           { new: true }

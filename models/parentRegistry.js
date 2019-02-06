@@ -1,5 +1,5 @@
 module.exports = {
-  name: "parent-registry",
+  name: "parentRegistry",
   schema: {
     studentName: "String",
     grade: "String",

@@ -1,6 +1,6 @@
 // let ObjectId = require("mongoose").Types.ObjectId;
 module.exports = {
-  name: "evaluation-frameworks",
+  name: "evaluationFrameworks",
   schema: {
     externalId: "String",
     name: "String",

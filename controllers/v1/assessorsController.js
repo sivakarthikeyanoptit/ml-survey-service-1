@@ -39,7 +39,7 @@ module.exports = class Assessors {
             }
           ];
 
-          const assessorsDocument = await database.models["school-assessors"].aggregate(assessorSchoolsQueryObject)
+          const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
 
           let assessor
           let submissions
@@ -135,7 +135,7 @@ module.exports = class Assessors {
           externalId: { $in: Object.values(programQueryList) }
         });
 
-        let evaluationFrameworksFromDatabase = await database.models["evaluation-frameworks"].find({
+        let evaluationFrameworksFromDatabase = await database.models.evaluationFrameworks.find({
           externalId: { $in: Object.values(evaluationFrameworkQueryList) }
         }, {
             externalId: 1
@@ -178,7 +178,7 @@ module.exports = class Assessors {
 
 
           let fieldsWithOutSchool = {};
-          Object.keys(database.models['school-assessors'].schema.paths).forEach(fieldName => {
+          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
             if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
           })
 
@@ -242,7 +242,7 @@ module.exports = class Assessors {
           }
 
 
-          return database.models["school-assessors"].findOneAndUpdate({ userId: assessor.userId }, updateObject,
+          return database.models.schoolAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
             {
               upsert: true,
               new: true,

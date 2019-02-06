@@ -28,7 +28,7 @@ module.exports = class Submission extends Abstract {
         ];
 
         document.assessors = await database.models[
-          "school-assessors"
+          "schoolAssessors"
         ].aggregate(schoolAssessorsQueryObject);
 
         let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
@@ -632,7 +632,7 @@ module.exports = class Submission extends Abstract {
 
         if(req.body.parentId && req.body.status && submissionDocument) {
 
-          let parentInformation = await database.models["parent-registry"].findOne(
+          let parentInformation = await database.models.parentRegistry.findOne(
             {_id:ObjectId(req.body.parentId)}
           );
 
@@ -707,7 +707,7 @@ module.exports = class Submission extends Abstract {
 
         if(req.query.parentId && submissionDocument) {
 
-          let parentInformation = await database.models["parent-registry"].findOne(
+          let parentInformation = await database.models.parentRegistry.findOne(
             {_id:ObjectId(req.query.parentId)}
           );
           
