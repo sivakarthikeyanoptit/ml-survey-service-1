@@ -11,7 +11,7 @@ module.exports = class Assessments {
                 }
 
                 let queryObject = {};
-                queryObject["components.type"] = req.query.tye;
+                queryObject["components.type"] = req.query.type;
                 queryObject["components.subType"] = req.query.subType;
                 queryObject["components.entities"] = req.userDetails.userId;
                 if (req.query.fromDate) queryObject["components.fromDate"] = { $gte: new Date(req.query.fromDate) };
