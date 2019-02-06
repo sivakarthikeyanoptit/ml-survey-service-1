@@ -91,7 +91,7 @@ const sendExceptionLogMessage = function (errorObject) {
 
 }
 
-const sendExceptionLevelMessage = function (errorMessage) {
+const rubricErrorLogs = function (errorMessage) {
   if (slackCommunicationsOnOff === "ON" && slackToken != "" && gen.utils.checkIfStringIsUrl(exceptionLogPostUrl)) {
     const reqObj = new Request()
     let attachmentData = new Array
