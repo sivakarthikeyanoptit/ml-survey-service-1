@@ -717,7 +717,7 @@ module.exports = class Criterias extends Abstract {
           ];
 
           let evaluationFrameworkDocument = await database.models[
-            "evaluation-frameworks"
+            "evaluationFrameworks"
           ].aggregate(evaluationFrameworkQueryObject);
 
           evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {

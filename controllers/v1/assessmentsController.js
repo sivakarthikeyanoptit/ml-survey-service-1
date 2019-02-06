@@ -75,7 +75,7 @@ module.exports = class Assessments {
                 "updatedAt": 0,
             });
 
-            let frameWorkDocument = await database.models['evaluation-frameworks'].findOne({ _id: assessmentId });
+            let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId });
 
             if (!frameWorkDocument){
                 let responseMessage = 'No assessments found.';
@@ -106,7 +106,7 @@ module.exports = class Assessments {
 
             let submissionDocument = {};
 
-            let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } })
+            let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
             let evidenceMethodArray = {};
             let submissionDocumentEvidences = {};
