@@ -1,5 +1,5 @@
 module.exports = {
-  name: "school-assessors",
+  name: "schoolAssessors",
   schema: {
     externalId: "String",
     userId: "String",

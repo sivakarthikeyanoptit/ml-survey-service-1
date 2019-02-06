@@ -11,7 +11,7 @@ module.exports = class Assessments {
                 }
 
                 let queryObject = {};
-                queryObject["components.type"] = req.query.tye;
+                queryObject["components.type"] = req.query.type;
                 queryObject["components.subType"] = req.query.subType;
                 queryObject["components.entities"] = req.userDetails.userId;
                 if (req.query.fromDate) queryObject["components.fromDate"] = { $gte: new Date(req.query.fromDate) };
@@ -33,7 +33,9 @@ module.exports = class Assessments {
                     {
                         $project: {
                             'assessments': '$components',
-                            'externalId': 1
+                            'externalId': 1,
+                            'name': 1,
+                            'description': 1
                         }
                     }
                 ]);
@@ -75,7 +77,7 @@ module.exports = class Assessments {
                 "updatedAt": 0,
             });
 
-            let frameWorkDocument = await database.models['evaluation-frameworks'].findOne({ _id: assessmentId });
+            let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId });
 
             if (!frameWorkDocument){
                 let responseMessage = 'No assessments found.';
@@ -106,7 +108,7 @@ module.exports = class Assessments {
 
             let submissionDocument = {};
 
-            let criteriaQuestionDocument = await database.models["criteria-questions"].find({ _id: { $in: criteriasIdArray } })
+            let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
             let evidenceMethodArray = {};
             let submissionDocumentEvidences = {};
@@ -177,8 +179,8 @@ module.exports = class Assessments {
             submissionDocument.evidences = submissionDocumentEvidences;
             submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
             submissionDocument.criterias = submissionDocumentCriterias;
-
-            let submissionDoc = await controllers.submissionsController.findSubmissionBySchoolProgram(
+            let submissionController = new submissionsBaseController;
+            let submissionDoc = await submissionController.findSubmissionBySchoolProgram(
                 submissionDocument,
                 req
             );

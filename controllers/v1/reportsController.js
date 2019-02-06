@@ -162,7 +162,7 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
@@ -212,7 +212,7 @@ module.exports = class Reports {
               }
             ];
 
-            assessorsDocuments = await database.models["school-assessors"].aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
               assessor.schoolDocument.forEach(eachAssessorSchool => {
@@ -262,7 +262,7 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models['school-assessors'].find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `schoolAssessors`;
         let fileStream = new FileStream(fileName);
@@ -310,7 +310,7 @@ module.exports = class Reports {
               }
             ];
 
-            assessorsDocuments = await database.models["school-assessors"].aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
               assessor.schoolDocument.forEach(eachAssessorSchool => {
@@ -749,7 +749,7 @@ module.exports = class Reports {
         ).exec();
 
         let evaluationFrameworksDocuments = database.models[
-          "evaluation-frameworks"
+          "evaluationFrameworks"
         ].find({}, { themes: 1 }).exec();
 
         const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
@@ -1098,7 +1098,7 @@ module.exports = class Reports {
         parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
         parentRegistryQueryParams['createdAt']["$lte"] = toDate
 
-        const parentRegistryIdsArray = await database.models['parent-registry'].find(parentRegistryQueryParams, { _id: 1 })
+        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 })
 
         let fileName = "parentRegistry";
         (fromDateValue != "") ? fileName += " from " + fromDateValue : "";
@@ -1162,7 +1162,7 @@ module.exports = class Reports {
               }
             ];
 
-            parentRegistryDocuments = await database.models['parent-registry'].aggregate(parentRegistryQueryObject);
+            parentRegistryDocuments = await database.models.parentRegistry.aggregate(parentRegistryQueryObject);
 
             await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
               let parentRegistryObject = {};
@@ -1221,7 +1221,7 @@ module.exports = class Reports {
         teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
         teacherRegistryQueryParams['createdAt']["$lte"] = toDate
 
-        const teacherRegistryDocument = await database.models['teacher-registry'].find(teacherRegistryQueryParams, { _id: 1 })
+        const teacherRegistryDocument = await database.models.teacherRegistry.find(teacherRegistryQueryParams, { _id: 1 })
 
         let fileName = "Teacher Registry";
         (fromDateValue) ? fileName += "from" + fromDateValue : "";
@@ -1284,7 +1284,7 @@ module.exports = class Reports {
             ];
 
 
-            teacherRegistryData = await database.models["teacher-registry"].aggregate(teacherRegistryParams)
+            teacherRegistryData = await database.models.teacherRegistry.aggregate(teacherRegistryParams)
 
             await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
 
@@ -1343,7 +1343,7 @@ module.exports = class Reports {
         schoolLeaderRegistryQueryParams['createdAt']["$gte"] = fromDateValue
         schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate
 
-        const schoolLeaderRegistryDocument = await database.models['school-leader-registry'].find(schoolLeaderRegistryQueryParams, { _id: 1 })
+        const schoolLeaderRegistryDocument = await database.models.schoolLeaderRegistry.find(schoolLeaderRegistryQueryParams, { _id: 1 })
 
         let fileName = "School Leader Registry";
         (fromDateValue) ? fileName += "from" + fromDateValue : "";
@@ -1406,7 +1406,7 @@ module.exports = class Reports {
             ];
 
 
-            schoolLeaderRegistryData = await database.models["school-leader-registry"].aggregate(schoolLeaderRegistryParams)
+            schoolLeaderRegistryData = await database.models.schoolLeaderRegistry.aggregate(schoolLeaderRegistryParams)
 
             await Promise.all(schoolLeaderRegistryData.map(async (schoolLeaderRegistry) => {
 

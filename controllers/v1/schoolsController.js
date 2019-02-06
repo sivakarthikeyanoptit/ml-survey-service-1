@@ -40,7 +40,7 @@ module.exports = class Schools extends Abstract {
         });
 
         let evaluationFrameworksFromDatabase = await database.models[
-          "evaluation-frameworks"
+          "evaluationFrameworks"
         ].find(
           {
             externalId: { $in: Object.values(evaluationFrameworkQueryList) }
@@ -190,6 +190,12 @@ module.exports = class Schools extends Abstract {
         let schoolDocument = await database.models.schools.findOne(
           schoolQueryObject
         );
+
+        if (!schoolDocument) {
+          let responseMessage = 'No schools found.';
+          return resolve({ status: 400, message: responseMessage })
+        }
+
         schoolDocument = await schoolDocument.toObject();
         let programQueryObject = {
           status: "active",
@@ -218,6 +224,11 @@ module.exports = class Schools extends Abstract {
         let programDocument = await database.models.programs.findOne(
           programQueryObject
         );
+
+        if (!programDocument) {
+          let responseMessage = 'No program found.';
+          return resolve({ status: 400, message: responseMessage })
+        }
 
         let accessability =
           programDocument.components[0].roles[
@@ -277,7 +288,7 @@ module.exports = class Schools extends Abstract {
           },
           {
             $graphLookup: {
-              from: "school-assessors", // Use the school-assessors collection
+              from: "schoolAssessors", // Use the schoolAssessors collection
               startWith: "$parentId", // Start looking at the document's `parentId` property
               connectFromField: "parentId", // A link in the graph is represented by the parentId property...
               connectToField: "userId", // ... pointing to another assessor's _id property
@@ -287,23 +298,21 @@ module.exports = class Schools extends Abstract {
           }
         ];
 
-        let userHierarchyDocument = await database.models[
-          "school-assessors"
-        ].aggregate(schoolAssessorHierarchyObject);
-        userHierarchyDocument[0].connections.forEach(connection => {
-          if (connection.role === "PROJECT_MANAGER") {
-            response.result.program.projectManagers = _.pick(connection, [
-              "userId",
-              "externalId"
-            ]);
-          }
-          if (connection.role === "LEAD_ASSESSOR") {
-            response.result.program.leadAssessors = _.pick(connection, [
-              "userId",
-              "externalId"
-            ]);
-          }
-        });
+        // let userHierarchyDocument = await database.models.schoolAssessors.aggregate(schoolAssessorHierarchyObject);
+        // userHierarchyDocument[0].connections.forEach(connection => {
+        //   if (connection.role === "PROJECT_MANAGER") {
+        //     response.result.program.projectManagers = _.pick(connection, [
+        //       "userId",
+        //       "externalId"
+        //     ]);
+        //   }
+        //   if (connection.role === "LEAD_ASSESSOR") {
+        //     response.result.program.leadAssessors = _.pick(connection, [
+        //       "userId",
+        //       "externalId"
+        //     ]);
+        //   }
+        // });
 
         let submissionDocument = {
           schoolId: schoolDocument._id,
@@ -346,7 +355,7 @@ module.exports = class Schools extends Abstract {
           ];
 
           let evaluationFrameworkDocument = await database.models[
-            "evaluation-frameworks"
+            "evaluationFrameworks"
           ].aggregate(evaluationFrameworkQueryObject);
 
           assessment.name = evaluationFrameworkDocument[0].name;
@@ -371,7 +380,7 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models["criteriaQuestions"].find({ _id: { $in: criteriasIdArray } })
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({})
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
@@ -501,19 +510,21 @@ module.exports = class Schools extends Abstract {
     evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
 
     evidences.forEach(evidence => {
-      evidence.startTime =
-        submissionDocEvidences[evidence.externalId].startTime;
-      evidence.endTime = submissionDocEvidences[evidence.externalId].endTime;
-      evidence.isSubmitted =
-        submissionDocEvidences[evidence.externalId].isSubmitted;
-      if (submissionDocEvidences[evidence.externalId].submissions) {
-        submissionDocEvidences[evidence.externalId].submissions.forEach(
-          submission => {
-            if (submission.isValid) {
-              submissionsObjects[evidence.externalId] = submission;
+      if (submissionDocEvidences[evidence.externalId]) {
+        evidence.startTime =
+          submissionDocEvidences[evidence.externalId].startTime;
+        evidence.endTime = submissionDocEvidences[evidence.externalId].endTime;
+        evidence.isSubmitted =
+          submissionDocEvidences[evidence.externalId].isSubmitted;
+        if (submissionDocEvidences[evidence.externalId].submissions) {
+          submissionDocEvidences[evidence.externalId].submissions.forEach(
+            submission => {
+              if (submission.isValid) {
+                submissionsObjects[evidence.externalId] = submission;
+              }
             }
-          }
-        );
+          );
+        }
       }
 
       evidence.sections.forEach(section => {
@@ -581,25 +592,25 @@ module.exports = class Schools extends Abstract {
     });
 
     // Sort questions by sequence
-    if(questionSequenceByEcm) {
+    if (questionSequenceByEcm) {
       evidences.forEach(evidence => {
         if (questionSequenceByEcm[evidence.externalId]) {
           evidence.sections.forEach(section => {
 
-            if(questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
+            if (questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
               let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
               let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
               let sortedQuestionArray = new Array
 
               questionSequenceByEcmSection.forEach(questionId => {
-                if(sectionQuestionByEcm[questionId]) {
+                if (sectionQuestionByEcm[questionId]) {
                   sortedQuestionArray.push(sectionQuestionByEcm[questionId])
                   delete sectionQuestionByEcm[questionId]
                 }
               })
 
               sortedQuestionArray = _.concat(sortedQuestionArray, Object.values(sectionQuestionByEcm));
-            
+
               section.questions = sortedQuestionArray
             }
           })
