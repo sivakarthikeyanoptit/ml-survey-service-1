@@ -295,13 +295,8 @@ module.exports = class Assessors {
         });
       }
 
-    }).catch(error => {
-      return reject({
-        status: 500,
-        message: error,
-        errorObject: error
-      });
     })
+
   }
 
   async uploadAssessorBasedOnId(req) {
@@ -507,13 +502,6 @@ module.exports = class Assessors {
       }
 
     })
-    // .catch(error => {
-    //   return reject({
-    //     status: 500,
-    //     message: error,
-    //     errorObject: error
-    //   });
-    // })
   }
 
 };
