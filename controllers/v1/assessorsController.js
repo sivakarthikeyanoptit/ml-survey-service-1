@@ -194,10 +194,10 @@ module.exports = class Assessors {
           else if (assessor.schoolOperation == "REMOVE") {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
-          let assessorCsvDataProgramId
 
           let programFrameworkRoles;
           let assessorRole;
+          let assessorCsvDataProgramId
           let assessorCsvDataEvaluationFrameworkId
           let assessorProgramComponents
           let indexOfComponents
@@ -433,7 +433,6 @@ module.exports = class Assessors {
           if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
             programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
           }
-
 
           return database.models.schoolAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
             {
