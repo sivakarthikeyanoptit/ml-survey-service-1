@@ -11,18 +11,16 @@ module.exports = class Programs extends Abstract {
     return super.find(req);
   }
 
-
-
   async list(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let programDocument = await database.models.programs.aggregate([
-          { "$addFields": { "assessmentObjectId": "$components.id" } },
+          // { "$addFields": { "assessmentObjectId": "$components.id" } },
           {
             $lookup: {
               from: "evaluationFrameworks",
-              localField: "assessmentObjectId",
+              localField: "components.id",
               foreignField: "_id",
               as: "assessments"
             }
@@ -60,4 +58,28 @@ module.exports = class Programs extends Abstract {
     })
 
   }
+
+  async programDocument(programIds = "all", fields = "all") {
+    let queryObject = {}
+
+    if (programIds != "all") {
+      queryObject = {
+        _id: {
+          $in: programIds
+        }
+      }
+    }
+
+    let projectionObject = {}
+
+    if (fields != "all") {
+      fields.forEach(element => {
+        projectionObject[element] = 1
+      });
+    }
+
+    let programDocument = await database.models.programs.find(queryObject, projectionObject)
+    return programDocument
+  }
+
 };
