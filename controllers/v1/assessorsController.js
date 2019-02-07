@@ -308,10 +308,18 @@ module.exports = class Assessors {
           let responseMessage = "Bad request.";
           return resolve({ status: 400, message: responseMessage })
         }
+        let programId = req.query.programId
+        let componentId = req.query.componentId
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
-
         let schoolQueryList = {};
         let skippedDocumentCount = 0;
+
+        if (!programId || !componentId) {
+          return reject({
+            status: 400,
+            message: "programId and componentId is compulsory"
+          })
+        }
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -320,30 +328,28 @@ module.exports = class Assessors {
           })
         })
 
-        let schoolsFromDatabase = await database.models.schools.find({
+        let schoolsDocument = await database.models.schools.find({
           externalId: { $in: Object.values(schoolQueryList) }
         }, {
             externalId: 1
           });
 
 
-        let programsFromDatabase = await database.models.programs.find({
-          _id: req.query.programId
+        let programDocument = await database.models.programs.find({
+          _id: programId
         });
 
-        let evaluationFrameworksFromDatabase = await database.models.evaluationFrameworks.find({
-          _id: req.query.componentId
-        }, {
-            externalId: 1
-          });
+        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.find({
+          _id: componentId
+        });
 
-        const schoolsData = schoolsFromDatabase.reduce(
+        const schoolsData = schoolsDocument.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
 
-        const programsData = programsFromDatabase.reduce(
+        const programsData = programDocument.reduce(
           (ac, program) => ({ ...ac, [program._id]: program }), {})
 
-        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
+        const evaluationFrameworksData = evaluationFrameworkDocument.reduce(
           (ac, evaluationFramework) => ({ ...ac, [evaluationFramework._id]: evaluationFramework._id }), {})
 
         const roles = {
@@ -363,8 +369,8 @@ module.exports = class Assessors {
           })
 
           assessor.schools = assessorSchoolArray
-          if (programsData[req.query.programId]) {
-            assessor.programId = programsData[req.query.programId]._id;
+          if (programsData[programId]) {
+            assessor.programId = programsData[programId]._id;
           } else {
             assessor.programId = null;
             skippedDocumentCount += 1;
@@ -396,8 +402,8 @@ module.exports = class Assessors {
           let assessorProgramComponents
           let indexOfComponents
 
-          assessorCsvDataProgramId = req.query.programId
-          assessorCsvDataEvaluationFrameworkId = req.query.componentId
+          assessorCsvDataProgramId = programId
+          assessorCsvDataEvaluationFrameworkId = componentId
           assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
 
           indexOfComponents = assessorProgramComponents.findIndex(component => {

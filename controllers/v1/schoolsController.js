@@ -177,25 +177,34 @@ module.exports = class Schools extends Abstract {
           req.files.schools.data.toString()
         );
         const schoolsUploadCount = schoolsData.length;
+        let programId = req.query.programId
+        let componentId = req.query.componentId
 
-        let programsFromDatabase = await database.models.programs.find({
-          _id: req.query.programId
+        if (!programId || !componentId) {
+          return reject({
+            status: 400,
+            message: "programId and componentId is compulsory"
+          })
+        }
+
+        let programDocument = await database.models.programs.find({
+          _id: programId
         });
 
-        let evaluationFrameworksFromDatabase = await database.models[
+        let evaluationFrameworkDocument = await database.models[
           "evaluationFrameworks"
         ].find(
           {
-            _id: req.query.componentId
+            _id: componentId
           }
         );
 
-        const programsData = programsFromDatabase.reduce(
+        const programsData = programDocument.reduce(
           (ac, program) => ({ ...ac, [program._id]: program }),
           {}
         );
 
-        const evaluationFrameworksData = evaluationFrameworksFromDatabase.reduce(
+        const evaluationFrameworksData = evaluationFrameworkDocument.reduce(
           (ac, evaluationFramework) => ({
             ...ac,
             [evaluationFramework._id]: evaluationFramework._id
@@ -206,7 +215,7 @@ module.exports = class Schools extends Abstract {
         const schoolUploadedData = await Promise.all(
           schoolsData.map(async school => {
             school.schoolTypes = await school.schoolType.split(",");
-            // school.createdBy = school.updatedBy = req.userDetails.id;
+            school.createdBy = school.updatedBy = req.userDetails.id;
             school.gpsLocation = "";
             const schoolCreateObject = await database.models.schools.findOneAndUpdate(
               { externalId: school.externalId },
@@ -222,8 +231,8 @@ module.exports = class Schools extends Abstract {
             return {
               _id: schoolCreateObject._id,
               externalId: school.externalId,
-              programId: req.query.programId,
-              frameworkId: req.query.componentId
+              programId: programId,
+              frameworkId: componentId
             };
           })
         );
@@ -243,9 +252,9 @@ module.exports = class Schools extends Abstract {
           ) {
             schoolElement = schoolUploadedData[schoolIndexInData];
 
-            schoolCsvDataProgramId = req.query.programId;
+            schoolCsvDataProgramId = programId;
             schoolCsvDataEvaluationFrameworkId =
-              req.query.componentId;
+              componentId;
             schoolProgramComponents =
               programsData[schoolCsvDataProgramId].components;
             indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
