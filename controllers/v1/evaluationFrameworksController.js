@@ -20,7 +20,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
   }
 
 
-  async evaluationFrameworkDocument(evaluationIds = all, fields = all) {
+  async evaluationFrameworkDocument(evaluationIds = "all", fields = "all") {
 
     let queryObject = {}
 

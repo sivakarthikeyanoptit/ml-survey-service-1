@@ -314,13 +314,25 @@ module.exports = class Assessors {
         let programId = req.query.programId;
 
         if (!programId) {
-          throw "programId is compulsory"
+          throw "Program Id is missing"
         }
 
         let componentId = req.query.componentId;
 
         if (!componentId) {
-          throw "componentId is compulsory"
+          throw "Component Id is missing"
+        }
+
+        let programDocument = await programController.programDocument([programId]);
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
+        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument(new Array(componentId), ["_id"])
+
+        if (!evaluationFrameworkDocument) {
+          throw "Bad request"
         }
 
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
@@ -338,21 +350,7 @@ module.exports = class Assessors {
           externalId: { $in: Object.values(schoolQueryList) }
         }, {
             externalId: 1
-          });
-
-
-        let programDocument = await programController.programDocument(new Array(programId), "all");
-
-        if (!programDocument) {
-          throw "Bad request"
-        }
-        let fields = { _id: 1 }
-
-        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument(new Array(componentId), fields)
-
-        if (!evaluationFrameworkDocument) {
-          throw "Bad request"
-        }
+        });
 
         const schoolsData = schoolsDocument.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})

@@ -185,24 +185,22 @@ module.exports = class Schools extends Abstract {
         let programId = req.query.programId
 
         if (!programId) {
-          throw "programId is compulsory"
+          throw "Program Id is missing"
         }
 
         let componentId = req.query.componentId
 
         if (!componentId) {
-          throw "componentId is compulsory"
+          throw "Component Id is missing."
         }
 
-        let fields = [{ _id: 1 }]
-
-        let programDocument = await programController.programDocument(new Array(programId), "all")
+        let programDocument = await programController.programDocument([programId])
 
         if (!programDocument) {
           throw "Bad request"
         }
 
-        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument(new Array(componentId), fields)
+        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument([componentId], ["_id"])
 
         if (!evaluationFrameworkDocument) {
           throw "Bad request"

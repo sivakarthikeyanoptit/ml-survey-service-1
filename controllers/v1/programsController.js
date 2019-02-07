@@ -59,7 +59,7 @@ module.exports = class Programs extends Abstract {
 
   }
 
-  async programDocument(programIds = all, fields = all) {
+  async programDocument(programIds = "all", fields = "all") {
     let queryObject = {}
 
     if (programIds != "all") {
