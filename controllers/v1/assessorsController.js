@@ -311,8 +311,6 @@ module.exports = class Assessors {
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
 
         let schoolQueryList = {};
-        // let programQueryList = {};
-        // let evaluationFrameworkQueryList = {};
         let skippedDocumentCount = 0;
 
         assessorData.forEach(assessor => {
@@ -321,14 +319,6 @@ module.exports = class Assessors {
               schoolQueryList[assessorSchool.trim()] = assessorSchool.trim()
           })
         })
-
-
-        //   programQueryList[assessor.externalId] = assessor.programId
-
-        //   evaluationFrameworkQueryList[assessor.externalId] = assessor.frameworkId
-
-        // });
-
 
         let schoolsFromDatabase = await database.models.schools.find({
           externalId: { $in: Object.values(schoolQueryList) }
@@ -347,7 +337,6 @@ module.exports = class Assessors {
             externalId: 1
           });
 
-
         const schoolsData = schoolsFromDatabase.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
 
@@ -364,7 +353,7 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        // const creatorId = req.userDetails.userId;
+        const creatorId = req.userDetails.userId;
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
@@ -380,8 +369,7 @@ module.exports = class Assessors {
             assessor.programId = null;
             skippedDocumentCount += 1;
           }
-          // assessor.createdBy = assessor.updatedBy = creatorId
-
+          assessor.createdBy = assessor.updatedBy = creatorId
 
           let fieldsWithOutSchool = {};
           Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
@@ -420,7 +408,6 @@ module.exports = class Assessors {
             programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
             assessorRole = roles[assessor.role];
 
-            //constructing program roles
             Object.keys(programFrameworkRoles).forEach(role => {
               let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
 
