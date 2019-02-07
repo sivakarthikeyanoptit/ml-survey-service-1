@@ -299,14 +299,13 @@ module.exports = class Assessors {
 
   }
 
-  async uploadAssessorForPortal(req) {
+  async uploadForPortal(req) {
 
     return new Promise(async (resolve, reject) => {
 
       try {
         if (!req.files || !req.files.assessors) {
-          let responseMessage = "Bad request.";
-          return resolve({ status: 400, message: responseMessage })
+          throw "Bad request"
         }
 
         let programController = new programsBaseController;
@@ -371,7 +370,7 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        // const creatorId = req.userDetails.userId;
+        const creatorId = req.userDetails.userId;
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
@@ -387,7 +386,7 @@ module.exports = class Assessors {
             assessor.programId = null;
             skippedDocumentCount += 1;
           }
-          // assessor.createdBy = assessor.updatedBy = creatorId
+          assessor.createdBy = assessor.updatedBy = creatorId
 
           let fieldsWithOutSchool = {};
           Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
@@ -461,11 +460,7 @@ module.exports = class Assessors {
             });
 
         })).catch(error => {
-          return reject({
-            status: 500,
-            message: error,
-            errorObject: error
-          });
+          throw error
         });
 
         Promise.all(Object.values(programsData).map(async (program) => {
@@ -478,11 +473,7 @@ module.exports = class Assessors {
             { $set: { "components": program.components } }
           );
         })).catch(error => {
-          return reject({
-            status: 500,
-            message: error,
-            errorObject: error
-          });
+          throw error
         })
 
 

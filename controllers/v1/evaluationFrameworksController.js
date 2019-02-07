@@ -22,28 +22,26 @@ module.exports = class EvaluationFrameworks extends Abstract {
 
   async evaluationFrameworkDocument(evaluationIds = all, fields = all) {
 
-    if (evaluationIds) {
-      let evaluationFrameworkDocument = await database.models[
-        "evaluationFrameworks"
-      ].find({
+    let queryObject = {}
+
+    if (evaluationIds != "all") {
+      queryObject = {
         _id: {
           $in: evaluationIds
         }
-      });
-      return evaluationFrameworkDocument
-    }
-    if (fields) {
-      let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].find({}, fields)
-      return evaluationFrameworkDocument
-    }
-    if (evaluationIds && fields) {
-      if (!evaluationIds) {
-        throw "evaluationId is compulsory"
       }
-      let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].find({ _id: { $in: evaluationIds } }, fields);
-      return evaluationFrameworkDocument
     }
-    let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].find({});
-    return evaluationFrameworkDocument
+
+
+    let projectionObject = {}
+
+    if (fields != "all") {
+      fields.forEach(element => {
+        projectionObject[element] = 1
+      });
+    }
+
+    let evaluationFrameworkDocuments = await database.models["evaluationFrameworks"].find(queryObject, projectionObject);
+    return evaluationFrameworkDocuments
   }
 };

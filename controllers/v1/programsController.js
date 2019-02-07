@@ -60,24 +60,25 @@ module.exports = class Programs extends Abstract {
   }
 
   async programDocument(programIds = all, fields = all) {
+    let queryObject = {}
 
-    if (programIds) {
-      let programDocument = await database.models.programs.find({
+    if (programIds != "all") {
+      queryObject = {
         _id: {
           $in: programIds
         }
+      }
+    }
+
+    let projectionObject = {}
+
+    if (fields != "all") {
+      fields.forEach(element => {
+        projectionObject[element] = 1
       });
-      return programDocument
     }
-    if (fields) {
-      let programDocument = await database.models.programs.find({}, fields)
-      return programDocument
-    }
-    if (programIds && fields) {
-      let programDocument = await database.models.programs.find({ _id: { $in: programIds } }, fields);
-      return programDocument
-    }
-    let programDocument = await database.models.programs.find({});
+
+    let programDocument = await database.models.programs.find(queryObject, projectionObject)
     return programDocument
   }
 

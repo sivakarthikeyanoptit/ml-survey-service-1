@@ -171,7 +171,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async uploadSchoolForPortal(req) {
+  async uploadForPortal(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolsData = await csv().fromString(
@@ -194,7 +194,7 @@ module.exports = class Schools extends Abstract {
           throw "componentId is compulsory"
         }
 
-        let fields = { _id: 1 }
+        let fields = [{ _id: 1 }]
 
         let programDocument = await programController.programDocument(new Array(programId), "all")
 
@@ -224,7 +224,7 @@ module.exports = class Schools extends Abstract {
         const schoolUploadedData = await Promise.all(
           schoolsData.map(async school => {
             school.schoolTypes = await school.schoolType.split(",");
-            // school.createdBy = school.updatedBy = req.userDetails.id;
+            school.createdBy = school.updatedBy = req.userDetails.id;
             school.gpsLocation = "";
             const schoolCreateObject = await database.models.schools.findOneAndUpdate(
               { externalId: school.externalId },
