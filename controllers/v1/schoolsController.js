@@ -180,8 +180,12 @@ module.exports = class Schools extends Abstract {
         let programId = req.query.programId
         let componentId = req.query.componentId
 
-        if (!programId || !componentId) {
-          throw "programId and componentId is compulsory"
+        if (!programId) {
+          throw "programId  is compulsory"
+        }
+
+        if (!componentId) {
+          throw "componentId is compulsory"
         }
 
         let programDocument = await database.models.programs.find({
