@@ -299,7 +299,7 @@ module.exports = class Assessors {
 
   }
 
-  async uploadAssessorBasedOnId(req) {
+  async uploadAssessorForPortal(req) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -314,11 +314,12 @@ module.exports = class Assessors {
         let schoolQueryList = {};
         let skippedDocumentCount = 0;
 
-        if (!programId || !componentId) {
-          return reject({
-            status: 400,
-            message: "programId and componentId is compulsory"
-          })
+        if (!programId) {
+          throw "programId is compulsory"
+        }
+
+        if (!componentId) {
+          throw "componentId is compulsory"
         }
 
         assessorData.forEach(assessor => {
@@ -339,9 +340,17 @@ module.exports = class Assessors {
           _id: programId
         });
 
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
         let evaluationFrameworkDocument = await database.models.evaluationFrameworks.find({
           _id: componentId
         });
+
+        if (!evaluationFrameworkDocument) {
+          throw "Bad request"
+        }
 
         const schoolsData = schoolsDocument.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
@@ -359,7 +368,7 @@ module.exports = class Assessors {
           PROGRAM_MANAGER: "programManagers"
         };
 
-        const creatorId = req.userDetails.userId;
+        // const creatorId = req.userDetails.userId;
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
@@ -375,7 +384,7 @@ module.exports = class Assessors {
             assessor.programId = null;
             skippedDocumentCount += 1;
           }
-          assessor.createdBy = assessor.updatedBy = creatorId
+          // assessor.createdBy = assessor.updatedBy = creatorId
 
           let fieldsWithOutSchool = {};
           Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {

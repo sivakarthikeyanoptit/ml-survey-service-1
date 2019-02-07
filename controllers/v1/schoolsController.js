@@ -170,7 +170,7 @@ module.exports = class Schools extends Abstract {
     });
   }
 
-  async uploadBasedOnId(req) {
+  async uploadSchoolForPortal(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolsData = await csv().fromString(
@@ -181,15 +181,16 @@ module.exports = class Schools extends Abstract {
         let componentId = req.query.componentId
 
         if (!programId || !componentId) {
-          return reject({
-            status: 400,
-            message: "programId and componentId is compulsory"
-          })
+          throw "programId and componentId is compulsory"
         }
 
         let programDocument = await database.models.programs.find({
           _id: programId
         });
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
 
         let evaluationFrameworkDocument = await database.models[
           "evaluationFrameworks"
@@ -198,6 +199,10 @@ module.exports = class Schools extends Abstract {
             _id: componentId
           }
         );
+
+        if (!evaluationFrameworkDocument) {
+          throw "Bad request"
+        }
 
         const programsData = programDocument.reduce(
           (ac, program) => ({ ...ac, [program._id]: program }),
@@ -215,7 +220,7 @@ module.exports = class Schools extends Abstract {
         const schoolUploadedData = await Promise.all(
           schoolsData.map(async school => {
             school.schoolTypes = await school.schoolType.split(",");
-            school.createdBy = school.updatedBy = req.userDetails.id;
+            // school.createdBy = school.updatedBy = req.userDetails.id;
             school.gpsLocation = "";
             const schoolCreateObject = await database.models.schools.findOneAndUpdate(
               { externalId: school.externalId },
