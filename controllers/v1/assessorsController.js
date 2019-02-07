@@ -308,19 +308,25 @@ module.exports = class Assessors {
           let responseMessage = "Bad request.";
           return resolve({ status: 400, message: responseMessage })
         }
-        let programId = req.query.programId
-        let componentId = req.query.componentId
-        let assessorData = await csv().fromString(req.files.assessors.data.toString());
-        let schoolQueryList = {};
-        let skippedDocumentCount = 0;
+
+        let programController = new programsBaseController;
+        let evaluationFrameworkController = new evaluationFrameworksBaseController
+
+        let programId = req.query.programId;
 
         if (!programId) {
           throw "programId is compulsory"
         }
 
+        let componentId = req.query.componentId;
+
         if (!componentId) {
           throw "componentId is compulsory"
         }
+
+        let assessorData = await csv().fromString(req.files.assessors.data.toString());
+        let schoolQueryList = {};
+        let skippedDocumentCount = 0;
 
         assessorData.forEach(assessor => {
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -336,17 +342,14 @@ module.exports = class Assessors {
           });
 
 
-        let programDocument = await database.models.programs.find({
-          _id: programId
-        });
+        let programDocument = await programController.programDocument(new Array(programId), "all");
 
         if (!programDocument) {
           throw "Bad request"
         }
+        let fields = { _id: 1 }
 
-        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.find({
-          _id: componentId
-        });
+        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument(new Array(componentId), fields)
 
         if (!evaluationFrameworkDocument) {
           throw "Bad request"

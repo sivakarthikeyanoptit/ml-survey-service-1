@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+
 module.exports = class Schools extends Abstract {
   constructor() {
     super(schoolsSchema);
@@ -176,33 +177,32 @@ module.exports = class Schools extends Abstract {
         let schoolsData = await csv().fromString(
           req.files.schools.data.toString()
         );
+
         const schoolsUploadCount = schoolsData.length;
+        let programController = new programsBaseController;
+        let evaluationFrameworkController = new evaluationFrameworksBaseController
+
         let programId = req.query.programId
-        let componentId = req.query.componentId
 
         if (!programId) {
-          throw "programId  is compulsory"
+          throw "programId is compulsory"
         }
+
+        let componentId = req.query.componentId
 
         if (!componentId) {
           throw "componentId is compulsory"
         }
 
-        let programDocument = await database.models.programs.find({
-          _id: programId
-        });
+        let fields = { _id: 1 }
+
+        let programDocument = await programController.programDocument(new Array(programId), "all")
 
         if (!programDocument) {
           throw "Bad request"
         }
 
-        let evaluationFrameworkDocument = await database.models[
-          "evaluationFrameworks"
-        ].find(
-          {
-            _id: componentId
-          }
-        );
+        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument(new Array(componentId), fields)
 
         if (!evaluationFrameworkDocument) {
           throw "Bad request"
