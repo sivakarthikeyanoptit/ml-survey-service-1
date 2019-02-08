@@ -78,7 +78,7 @@ module.exports = class Programs extends Abstract {
       });
     }
 
-    let programDocument = await database.models.programs.find(queryObject, projectionObject)
+    let programDocument = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocument
   }
 
@@ -120,21 +120,12 @@ module.exports = class Programs extends Abstract {
               as: "schoolInformation"
             }
           },
-          // {
-          //   $lookup: {
-          //     from: "evaluationFrameworks",
-          //     localField: "components.id",
-          //     foreignField: "_id",
-          //     as: "assessments"
-          //   }
-          // },
-          // { $unwind: "$assessments" },
           {
             $project: {
               "programId": "$_id",
-              "schoolDocument._id": 1,
-              "schoolDocument.externalId": 1,
-              "schoolDocument.name": 1,
+              "schoolInformation._id": 1,
+              "schoolInformation.externalId": 1,
+              "schoolInformation.name": 1,
               "_id": 0
             }
           }
@@ -190,22 +181,23 @@ module.exports = class Programs extends Abstract {
               from: "schoolAssessors",
               localField: "schoolIdInObjectIdForm",
               foreignField: "schools",
-              as: "schoolInformation"
+              as: "assessorInformation"
             }
           },
           {
             $project: {
-              "schoolInformation.role": 1,
-              "schoolInformation.programId": 1,
-              "schoolInformation.userId": 1,
-              "schoolInformation.programId": 1,
-              "schoolInformation.externalId": 1
+              "assessorInformation.role": 1,
+              "assessorInformation.programId": 1,
+              "assessorInformation.userId": 1,
+              "assessorInformation.programId": 1,
+              "assessorInformation.externalId": 1
             }
           }
         ])
 
         return resolve({
-          message: "Assessors fetched successfully",
+          status: 200,
+          message: "List of assessors fetched successfully",
           result: programDocument
         })
 
@@ -219,49 +211,4 @@ module.exports = class Programs extends Abstract {
     })
   }
 
-  async assessorWiseSchools(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let assessorId = req.params._id
-
-        if (!assessorId) {
-          throw "Assessor id is missing"
-        }
-        let assessorWiseSchoolDocument = await database.models.schoolAssessors.aggregate([{
-          $match: {
-            _id: ObjectId(assessorId)
-          }
-        }, {
-          $lookup: {
-            from: "schools",
-            localField: "schools",
-            foreignField: "_id",
-            as: "assessorWiseSchools"
-          }
-        }, {
-          $project: {
-            externalId: 1,
-            role: 1,
-            programId: 1,
-            "assessorWiseSchools.externalId": 1,
-            "assessorWiseSchools.name": 1,
-            "assessorWiseSchools._id": 1
-          }
-        }
-        ])
-
-        if (!assessorWiseSchoolDocument) {
-          throw "Bad request"
-        }
-
-        resolve({ status: 200, message: "Assessor wise school information is fetched", result: assessorWiseSchoolDocument })
-      }
-      catch (error) {
-        return reject({
-          status: 400,
-          message: error
-        })
-      }
-    })
-  }
 };
