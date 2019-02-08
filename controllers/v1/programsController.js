@@ -78,8 +78,8 @@ module.exports = class Programs extends Abstract {
       });
     }
 
-    let programDocument = await database.models.programs.find(queryObject, projectionObject)
-    return programDocument
+    let programDocuments = await database.models.programs.find(queryObject, projectionObject)
+    return programDocuments
   }
 
   async listSchools(req) {
@@ -194,6 +194,10 @@ module.exports = class Programs extends Abstract {
             }
           }
         ])
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
 
         return resolve({
           status: 200,
