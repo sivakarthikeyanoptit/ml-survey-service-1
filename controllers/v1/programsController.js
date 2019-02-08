@@ -82,7 +82,7 @@ module.exports = class Programs extends Abstract {
     return programDocuments
   }
 
-  async listSchools(req) {
+  async schoolList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -135,7 +135,7 @@ module.exports = class Programs extends Abstract {
           throw "Bad request"
         }
 
-        return resolve({ message: "List of schools fetched successfully", result: programDocument })
+        return resolve({ message: "List of schools fetched successfully", result: programDocument[0].schoolInformation })
       }
       catch (error) {
         return reject({
@@ -146,7 +146,7 @@ module.exports = class Programs extends Abstract {
     })
   }
 
-  async listAssessors(req) {
+  async userList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -186,11 +186,8 @@ module.exports = class Programs extends Abstract {
           },
           {
             $project: {
-              "assessorInformation.role": 1,
-              "assessorInformation.programId": 1,
-              "assessorInformation.userId": 1,
-              "assessorInformation.programId": 1,
-              "assessorInformation.externalId": 1
+              "assessorInformation.schools": 0,
+              "assessorInformation.deleted": 0
             }
           }
         ])
@@ -202,7 +199,7 @@ module.exports = class Programs extends Abstract {
         return resolve({
           status: 200,
           message: "List of assessors fetched successfully",
-          result: programDocument
+          result: programDocument[0].assessorInformation
         })
 
       }
