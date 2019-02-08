@@ -197,7 +197,6 @@ module.exports = class Programs extends Abstract {
         }
 
         return resolve({
-          status: 200,
           message: "List of assessors fetched successfully",
           result: programDocument[0].assessorInformation
         })
