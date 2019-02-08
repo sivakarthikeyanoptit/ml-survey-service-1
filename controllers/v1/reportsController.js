@@ -1784,6 +1784,94 @@ module.exports = class Reports {
     });
   }
 
+  async generateFeedbackForSubmission(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let submissionQueryObject = {
+          programExternalId: req.params._id
+        }
+
+        if (!req.params._id) {
+          throw "Program ID missing."
+        }
+
+        let submissionsIds = await database.models.submissions.find(
+          submissionQueryObject,
+          {
+            _id: 1
+          }
+        );
+
+        const fileName = `Generate Feedback For Submission`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionsIds.length) {
+          throw "No submission found for given params"
+        }
+
+        else {
+          let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
+          let submissionId
+          let submissionDocumentsArray
+
+
+          for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
+            submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
+              return submissionModel._id
+            });
+
+
+            submissionDocumentsArray = await database.models.submissions.find(
+              {
+                _id: {
+                  $in: submissionId
+                },
+                feedback: { $exists: true, $ne: [] }
+              },
+              { feedback: 1 }
+            )
+            await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
+              let result = {};
+
+              eachSubmission.feedback.forEach(eachFeedback => {
+                result["Q1"] = eachFeedback.q1;
+                result["Q2"] = eachFeedback.q2;
+                result["Q3"] = eachFeedback.q3;
+                result["Q4"] = eachFeedback.q4;
+                result["School Id"] = eachFeedback.schoolId;
+                result["School Name"] = eachFeedback.schoolName;
+                result["Program Id"] = eachFeedback.programId;
+                result["User Id"] = eachFeedback.userId
+              });
+
+              input.push(result);
+
+            }))
+
+          }
+        }
+        input.push(null);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
   gmtToIst(gmtTime) {
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
