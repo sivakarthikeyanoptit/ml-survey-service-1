@@ -138,7 +138,7 @@ module.exports = class Programs extends Abstract {
         return resolve({ message: "List of schools fetched successfully", result: programDocument })
       }
       catch (error) {
-        reject({
+        return reject({
           status: 400,
           message: error
         })
