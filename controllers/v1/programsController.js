@@ -78,7 +78,7 @@ module.exports = class Programs extends Abstract {
       });
     }
 
-    let programDocument = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
+    let programDocument = await database.models.programs.find(queryObject, projectionObject)
     return programDocument
   }
 
