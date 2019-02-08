@@ -19,7 +19,8 @@ var path = require("path");
 //To enable cors
 app.use(cors());
 
-//check server connectivity
+
+//health check
 app.get("/ping", (req, res) => {
   res.send("pong!");
 });
@@ -31,11 +32,15 @@ app.use(express.static("public"));
 
 fs.existsSync("logs") || fs.mkdirSync("logs");
 
-//swagger docs
-const swagger = require("./swagger");
-const swaggerMW = new swagger();
-const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
-app.use(serviceBaseUrl+"api/v1/swagger", swaggerMW.sendFile);
+const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/";
+
+//API documentation (apidoc)
+if(process.env.NODE_ENV == "development"){
+   app.use(express.static("apidoc"));
+   app.get("/apidoc", (req, res) => {
+     res.sendFile(path.join(__dirname, "/public/apidoc/index.html"));
+   });
+}
 
 // app.get(serviceBaseUrl+"web/*", function(req, res) {
 //   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
