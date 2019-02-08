@@ -1789,11 +1789,7 @@ module.exports = class Reports {
 
       try {
 
-        if (!req.query.fromDate) {
-          throw "From Date is missing."
-        }
-
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
         toDate.setHours(23, 59, 59)
 
@@ -1870,7 +1866,7 @@ module.exports = class Reports {
                 result["School Id"] = eachFeedback.schoolId;
                 result["School Name"] = eachFeedback.schoolName;
                 result["Program Id"] = eachFeedback.programId;
-                result["User Id"] = assessorObject[eachFeedback.userId].externalId;
+                result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
                 result["Submission Date"] = eachFeedback.submissionDate;
               });
               input.push(result);
