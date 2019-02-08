@@ -1,5 +1,19 @@
 module.exports = class Assessments {
 
+    /**
+    * @api {get} /assessment/api/v1/assessments/list?type={assessment}&subType={individual}&status={active} Individual assessment list
+    * @apiVersion 0.0.1
+    * @apiName Individual assessment list
+    * @apiGroup IndividualAssessments
+    * @apiParam {String} type Type.
+    * @apiParam {String} subType SubType.
+    * @apiParam {String} status Status.
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/assessments/list
+    * @apiSuccess {String} status 200
+    * @apiSuccess {String} result Data
+    */
+
     async list(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -57,6 +71,18 @@ module.exports = class Assessments {
 
     }
 
+    /**
+    * @api {get} /assessment/api/v1/assessments/details/{programID}?assessmentId={assessmentID} Detailed assessments
+    * @apiVersion 0.0.1
+    * @apiName Individual assessment details
+    * @apiGroup IndividualAssessments
+    * @apiParam {String} assessmentId Assessment ID.
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/assessments/details/:programID
+    * @apiSuccess {String} status 200
+    * @apiSuccess {String} result Data
+    */
+
     async details(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -79,7 +105,7 @@ module.exports = class Assessments {
 
             let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId });
 
-            if (!frameWorkDocument){
+            if (!frameWorkDocument) {
                 let responseMessage = 'No assessments found.';
                 return resolve({ status: 400, message: responseMessage })
             }
