@@ -1784,13 +1784,28 @@ module.exports = class Reports {
     });
   }
 
-  async generateFeedbackForSubmission(req) {
+  async submissionFeedback(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let submissionQueryObject = {
-          programExternalId: req.params._id
+
+        if (!req.query.fromDate) {
+          throw "From Date is missing."
         }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let submissionQueryObject = {};
+        submissionQueryObject.programExternalId = req.params._id
+        submissionQueryObject["feedback.submissionDate"] = {}
+        submissionQueryObject["feedback.submissionDate"]["$gte"] = fromDate
+        submissionQueryObject["feedback.submissionDate"]["$lte"] = toDate
 
         if (!req.params._id) {
           throw "Program ID missing."
@@ -1835,13 +1850,17 @@ module.exports = class Reports {
               {
                 _id: {
                   $in: submissionId
-                },
-                feedback: { $exists: true, $ne: [] }
+                }
               },
-              { feedback: 1 }
+              { feedback: 1, assessors: 1 }
             )
             await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
               let result = {};
+              let assessorObject = {};
+
+              eachSubmission.assessors.forEach(eachAssessor => {
+                assessorObject[eachAssessor.userId] = { externalId: eachAssessor.externalId };
+              })
 
               eachSubmission.feedback.forEach(eachFeedback => {
                 result["Q1"] = eachFeedback.q1;
@@ -1851,13 +1870,11 @@ module.exports = class Reports {
                 result["School Id"] = eachFeedback.schoolId;
                 result["School Name"] = eachFeedback.schoolName;
                 result["Program Id"] = eachFeedback.programId;
-                result["User Id"] = eachFeedback.userId
+                result["User Id"] = assessorObject[eachFeedback.userId].externalId;
+                result["Submission Date"] = eachFeedback.submissionDate;
               });
-
               input.push(result);
-
             }))
-
           }
         }
         input.push(null);
