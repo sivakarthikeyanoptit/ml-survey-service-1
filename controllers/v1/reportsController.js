@@ -1784,6 +1784,107 @@ module.exports = class Reports {
     });
   }
 
+  async submissionFeedback(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let submissionQueryObject = {};
+        submissionQueryObject.programExternalId = req.params._id
+        submissionQueryObject["feedback.submissionDate"] = {}
+        submissionQueryObject["feedback.submissionDate"]["$gte"] = fromDate
+        submissionQueryObject["feedback.submissionDate"]["$lte"] = toDate
+
+        if (!req.params._id) {
+          throw "Program ID missing."
+        }
+
+        let submissionsIds = await database.models.submissions.find(
+          submissionQueryObject,
+          {
+            _id: 1
+          }
+        );
+
+        const fileName = `Generate Feedback For Submission`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionsIds.length) {
+          throw "No submission found for given params"
+        }
+
+        else {
+          let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
+          let submissionId
+          let submissionDocumentsArray
+
+
+          for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
+            submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
+              return submissionModel._id
+            });
+
+
+            submissionDocumentsArray = await database.models.submissions.find(
+              {
+                _id: {
+                  $in: submissionId
+                }
+              },
+              { feedback: 1, assessors: 1 }
+            )
+            await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
+              let result = {};
+              let assessorObject = {};
+
+              eachSubmission.assessors.forEach(eachAssessor => {
+                assessorObject[eachAssessor.userId] = { externalId: eachAssessor.externalId };
+              })
+
+              eachSubmission.feedback.forEach(eachFeedback => {
+                result["Q1"] = eachFeedback.q1;
+                result["Q2"] = eachFeedback.q2;
+                result["Q3"] = eachFeedback.q3;
+                result["Q4"] = eachFeedback.q4;
+                result["School Id"] = eachFeedback.schoolId;
+                result["School Name"] = eachFeedback.schoolName;
+                result["Program Id"] = eachFeedback.programId;
+                result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
+                result["Submission Date"] = eachFeedback.submissionDate;
+              });
+              input.push(result);
+            }))
+          }
+        }
+        input.push(null);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
   gmtToIst(gmtTime) {
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
