@@ -59,7 +59,30 @@ module.exports = class Programs extends Abstract {
 
   }
 
-  async programDocument(programIds = "all", fields = "all") {
+  // async programDocument(programIds = "all", fields = "all") {
+  //   let queryObject = {}
+
+  //   if (programIds != "all") {
+  //     queryObject = {
+  //       _id: {
+  //         $in: programIds
+  //       }
+  //     }
+  //   }
+
+  //   let projectionObject = {}
+
+  //   if (fields != "all") {
+  //     fields.forEach(element => {
+  //       projectionObject[element] = 1
+  //     });
+  //   }
+
+  //   let programDocuments = await database.models.programs.find(queryObject, projectionObject)
+  //   return programDocuments
+  // }
+
+  async programDocument(programIds = "all", fields = "all", pageIndex = "all", pageSize = "all") {
     let queryObject = {}
 
     if (programIds != "all") {
@@ -78,7 +101,19 @@ module.exports = class Programs extends Abstract {
       });
     }
 
-    let programDocuments = await database.models.programs.find(queryObject, projectionObject)
+    let pageIndexValue = 0;
+    let limitingValue = 0;
+
+    if (pageIndex != "all" && pageSize !== "all") {
+      pageIndexValue = (pageIndex - 1) * pageSize;
+      limitingValue = pageSize;
+    }
+
+    // if (search !== "all") {
+
+    // }
+
+    let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocuments
   }
 
@@ -86,6 +121,10 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
+        let pageIndexValue = 0;
+        let limitingValue = 0;
+        let pageIndex = req.query.pageIndex;
+        let pageSize = req.query.pageSize;
         let programId = req.query.programId
 
         if (!programId) {
@@ -98,27 +137,43 @@ module.exports = class Programs extends Abstract {
           throw "Component Id is missing"
         }
 
+        if (pageIndex != 0 && pageSize !== 0) {
+          pageIndexValue = parseInt((pageIndex - 1) * pageSize);
+          limitingValue = parseInt(pageSize);
+        }
+
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
               _id: ObjectId(programId)
             }
-          }, {
+          },
+          {
             $unwind: "$components"
           }, {
             $match: {
               "components.id": ObjectId(componentId)
             }
-          }, {
-            "$addFields": { "schoolIdInObjectIdForm": "$components.schools" }
           },
           {
             $lookup: {
               from: "schools",
-              localField: "schoolIdInObjectIdForm",
-              foreignField: "_id",
-              as: "schoolInformation"
-            }
+              "let": {
+                "schoolId": "$_id"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": ["$components.schools", "$schoolId"]
+                    }
+                  }
+                },
+                { "$skip": pageIndexValue },
+                { "$limit": limitingValue },
+              ],
+              "as": "schoolInformation"
+            },
           },
           {
             $project: {
@@ -128,7 +183,7 @@ module.exports = class Programs extends Abstract {
               "schoolInformation.name": 1,
               "_id": 0
             }
-          }
+          },
         ])
 
         if (!programDocument) {
