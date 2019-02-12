@@ -71,14 +71,14 @@ module.exports = {
     "totalStudentsGrade12": "String",
     "totalNoOfTeachers": "String",
     "totalNoOfPrincipal": "String",
-    "totalNoOfVicePrincipal": "String",
+    "totalNoOfHMsOrCoordinators": "String",
     "presenceOfSchoolBoardOrManagement": "String",
     "briefHistoryOfTheSchool": "String",
-    "communityDescriptionAroundTheSchool": "String",
+    "descriptionOfCommunityAroundSchool": "String",
     "studentBackground": "String",
     "stateOfStudentDropout": "String",
-    "facingIssuesWithTeachers": "String",
+    "issuesWithTeachersLeavingSchool": "String",
     "teacherAttendanceInTheSchool": "String",
-    "areThereAnyAdminOrHelpingStaff": "String"
+    "adminOrHelpingStaff": "String"
   }
 };

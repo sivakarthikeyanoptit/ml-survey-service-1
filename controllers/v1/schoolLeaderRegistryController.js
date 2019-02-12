@@ -136,7 +136,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInEducationSector",
-                    label: "How long have you been in the education sector?",
+                    label: "No. of years in education sector",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -148,7 +148,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceInCurrentSchool",
-                    label: "How long have you been in this school?",
+                    label: "No. of years in this school",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -160,7 +160,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "experienceAsSchoolLeader",
-                    label: "How long have you been a school leader here?",
+                    label: "No. of years as school leader here",
                     tip: "Enter number in terms of years",
                     value: "",
                     visible: true,
@@ -172,7 +172,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "dutiesOrResponsibility",
-                    label: "What does your day look like? Apart from performing the duties of a principal/coordinator, do you also have to teach?",
+                    label: "Roles and responsibilities",
                     tip: "Also find out how often they come to school",
                     value: "",
                     visible: true,
@@ -184,7 +184,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "timeOfAvailability",
-                    label: "When would you be able to get time during the day when we can update you or discuss our plans with you?",
+                    label: "Time for planning during school hours",
                     tip: "",
                     value: "",
                     visible: true,
@@ -208,7 +208,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "bestPart",
-                    label: "What do you like the best about the profession?",
+                    label: "Best thing about the profession",
                     tip: "",
                     value: "",
                     visible: true,
@@ -220,7 +220,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                 },
                 {
                     field: "challenges",
-                    label: "What do you find challenging in your profession?",
+                    label: "Challenges in the profession",
                     tip: "",
                     value: "",
                     visible: true,
