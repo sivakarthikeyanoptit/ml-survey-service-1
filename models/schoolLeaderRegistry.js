@@ -1,5 +1,5 @@
 module.exports = {
-    name: "school-leader-registry",
+    name: "schoolLeaderRegistry",
     schema: {
         name: "string",
         age: Number,
