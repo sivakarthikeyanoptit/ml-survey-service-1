@@ -99,7 +99,7 @@ module.exports = class Submission extends Abstract {
           req.body.evidence.submissionDate = new Date()
 
           let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus=>singleEvidenceStatus.externalId==req.body.evidence.externalId);
-
+          evidencesStatusToBeChanged['submissions'] = [];
           if(submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
