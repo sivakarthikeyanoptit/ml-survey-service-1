@@ -156,6 +156,7 @@ module.exports = class Assessments {
                     evidenceMethod.notApplicable = false;
                     evidenceMethod.canBeNotAllowed = true;
                     evidenceMethod.remarks = "";
+                    evidenceMethod.submissions = new Array;
                     submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                         evidenceMethod,
                         ["sections"]
