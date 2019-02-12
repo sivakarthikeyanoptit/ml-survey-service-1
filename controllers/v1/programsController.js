@@ -138,8 +138,16 @@ module.exports = class Programs extends Abstract {
         }
 
         if (pageIndex != 0 && pageSize !== 0) {
-          pageIndexValue = parseInt((pageIndex - 1) * pageSize);
+          pageIndexValue = (pageIndex - 1) * pageSize;
           limitingValue = parseInt(pageSize);
+        }
+
+        let queryName = {};
+        let queryExternalId = {};
+
+        if (req.query.search != undefined) {
+          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search));
+          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search));
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -154,43 +162,46 @@ module.exports = class Programs extends Abstract {
             $match: {
               "components.id": ObjectId(componentId)
             }
-          },
+          }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
+
           {
             $lookup: {
               from: "schools",
-              "let": {
-                "schoolId": "$_id"
-              },
-              "pipeline": [
-                {
-                  "$match": {
-                    "$expr": {
-                      "$eq": ["$components.schools", "$schoolId"]
-                    }
-                  }
-                },
-                { "$skip": pageIndexValue },
-                { "$limit": limitingValue },
-              ],
-              "as": "schoolInformation"
-            },
+              localField: "schoolIdInObjectIdForm",
+              foreignField: "_id",
+              as: "schoolInformation"
+            }
           },
+
           {
             $project: {
-              "programId": "$_id",
               "schoolInformation._id": 1,
               "schoolInformation.externalId": 1,
               "schoolInformation.name": 1,
               "_id": 0
             }
           },
+
+          { $addFields: { totalCount: { $size: "$schoolInformation" } } },
+          { $unwind: "$schoolInformation" },
+          { $match: { $or: [queryName, queryExternalId] } },
+          { $skip: pageIndexValue },
+          { $limit: limitingValue }
         ])
 
         if (!programDocument) {
           throw "Bad request"
         }
 
-        return resolve({ message: "List of schools fetched successfully", result: programDocument[0].schoolInformation })
+        let result = {};
+        let schoolInformation = [];
+        programDocument.forEach(eachProgram => {
+          schoolInformation.push(eachProgram.schoolInformation)
+        })
+        result["schoolInformation"] = schoolInformation;
+        result["totalCount"] = programDocument[0].totalCount
+
+        return resolve({ message: "List of schools fetched successfully", result: result })
       }
       catch (error) {
         return reject({
@@ -267,3 +278,4 @@ module.exports = class Programs extends Abstract {
   }
 
 };
+
