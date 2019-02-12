@@ -59,29 +59,6 @@ module.exports = class Programs extends Abstract {
 
   }
 
-  // async programDocument(programIds = "all", fields = "all") {
-  //   let queryObject = {}
-
-  //   if (programIds != "all") {
-  //     queryObject = {
-  //       _id: {
-  //         $in: programIds
-  //       }
-  //     }
-  //   }
-
-  //   let projectionObject = {}
-
-  //   if (fields != "all") {
-  //     fields.forEach(element => {
-  //       projectionObject[element] = 1
-  //     });
-  //   }
-
-  //   let programDocuments = await database.models.programs.find(queryObject, projectionObject)
-  //   return programDocuments
-  // }
-
   async programDocument(programIds = "all", fields = "all", pageIndex = "all", pageSize = "all") {
     let queryObject = {}
 
@@ -278,4 +255,5 @@ module.exports = class Programs extends Abstract {
   }
 
 };
+
 
