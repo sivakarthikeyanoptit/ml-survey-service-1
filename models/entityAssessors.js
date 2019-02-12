@@ -1,14 +1,13 @@
 module.exports = {
-  name: "schoolAssessors",
+  name: "entityAssessors",
   schema: {
-    externalId: "String",
     userId: "String",
     name: "String",
     email: "String",
     role: "String",
     programId: "ObjectId",
     parentId: "String",
-    schools: [{ type: "ObjectId", ref: "schools" }],
+    entities: [{ type: "ObjectId", ref: "schools" }],
     createdBy: "String",
     updatedBy: "String"
   }
