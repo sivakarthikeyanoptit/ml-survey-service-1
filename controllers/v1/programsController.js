@@ -98,46 +98,33 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let pageIndexValue = 0;
-        let limitingValue = 0;
-        let pageIndex = req.query.pageIndex;
-        let pageSize = req.query.pageSize;
-        let programId = req.query.programId
-
-        if (!programId) {
+        if (!req.programId) {
           throw "Program id is missing"
         }
 
-        let componentId = req.query.componentId
-
-        if (!componentId) {
+        if (!req.componentId) {
           throw "Component Id is missing"
         }
 
-        if (pageIndex != 0 && pageSize !== 0) {
-          pageIndexValue = (pageIndex - 1) * pageSize;
-          limitingValue = parseInt(pageSize);
-        }
+        let schoolName = {};
+        let schoolExternalId = {};
 
-        let queryName = {};
-        let queryExternalId = {};
-
-        if (req.query.search != undefined) {
-          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search), "i");
-          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search), "i");
+        if (req.searchText != undefined) {
+          schoolName['schoolInformation.name'] = new RegExp(decodeURI(req.searchText), "i");
+          schoolExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
-              _id: ObjectId(programId)
+              _id: ObjectId(req.programId)
             }
           },
           {
             $unwind: "$components"
           }, {
             $match: {
-              "components.id": ObjectId(componentId)
+              "components.id": ObjectId(req.componentId)
             }
           }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
           {
@@ -157,15 +144,15 @@ module.exports = class Programs extends Abstract {
             }
           },
           { $unwind: "$schoolInformation" },
-          { $match: { $or: [queryName, queryExternalId] } },
+          { $match: { $or: [schoolName, schoolExternalId] } },
           {
             $facet: {
               "totalCount": [
                 { "$count": "count" }
               ],
               "schoolInformationData": [
-                { $skip: pageIndexValue },
-                { $limit: limitingValue }
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
               ],
             }
           }

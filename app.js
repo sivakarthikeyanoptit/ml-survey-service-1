@@ -26,7 +26,7 @@ app.get("/ping", (req, res) => {
 });
 
 app.use(fileUpload());
-app.use(bodyParser.json({limit: '50MB'}));
+app.use(bodyParser.json({ limit: '50MB' }));
 app.use(bodyParser.urlencoded({ limit: '50MB', extended: false }));
 app.use(express.static("public"));
 
@@ -35,19 +35,19 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/";
 
 //API documentation (apidoc)
-if(process.env.NODE_ENV == "development"){
-   app.use(express.static("apidoc"));
-   app.get("/apidoc", (req, res) => {
-     res.sendFile(path.join(__dirname, "/public/apidoc/index.html"));
-   });
+if (process.env.NODE_ENV == "development") {
+  app.use(express.static("apidoc"));
+  app.get("/apidoc", (req, res) => {
+    res.sendFile(path.join(__dirname, "/public/apidoc/index.html"));
+  });
 }
 
 // app.get(serviceBaseUrl+"web/*", function(req, res) {
 //   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
 // });
 
-app.get(serviceBaseUrl+"web2/*", function(req, res) {
-  res.sendFile(path.join(__dirname, "/public"+serviceBaseUrl+"web2/index.html"));
+app.get(serviceBaseUrl + "web2/*", function (req, res) {
+  res.sendFile(path.join(__dirname, "/public" + serviceBaseUrl + "web2/index.html"));
 });
 
 var bunyan = require("bunyan");
@@ -56,7 +56,7 @@ global.loggerObj = bunyan.createLogger({
   streams: [
     {
       type: "rotating-file",
-      path: path.join(__dirname + "/logs/"+process.pid+"-all.log"),
+      path: path.join(__dirname + "/logs/" + process.pid + "-all.log"),
       period: "1d", // daily rotation
       count: 3 // keep 3 back copies
     }
@@ -67,7 +67,7 @@ global.loggerExceptionObj = bunyan.createLogger({
   streams: [
     {
       type: "rotating-file",
-      path: path.join(__dirname + "/logs/"+process.pid+"-exception.log"),
+      path: path.join(__dirname + "/logs/" + process.pid + "-exception.log"),
       period: "1d", // daily rotation
       count: 3 // keep 3 back copies
     }
@@ -96,6 +96,25 @@ app.all("*", (req, res, next) => {
   next();
 });
 
+app.get('/*', function (req, res, next) {
+  req.pageNo = (req.query.page && Number(req.query.page) > 0) ? Number(req.query.page) : 1
+  req.pageSize = (req.query.limit && Number(req.query.limit) > 0 && Number(req.query.limit) <= 100) ? Number(req.query.limit) : 100
+  req.searchText = (req.query.search && req.query.search != "") ? req.query.search : ""
+  delete req.query.page
+  delete req.query.limit
+  next();
+})
+
+app.get("/*", (req, res, next) => {
+  req.programId = req.query.programId;
+  next();
+})
+
+app.get("/*", (req, res, next) => {
+  req.componentId = req.query.componentId;
+  next();
+})
+
 //add routing
 router(app);
 
@@ -104,7 +123,7 @@ app.listen(config.port, () => {
 
   log.info(
     "Environment: " +
-      (process.env.NODE_ENV ? process.env.NODE_ENV : "development")
+    (process.env.NODE_ENV ? process.env.NODE_ENV : "development")
   );
 
   log.info("Application is running on the port:" + config.port);
