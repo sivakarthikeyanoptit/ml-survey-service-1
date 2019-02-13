@@ -140,7 +140,6 @@ module.exports = class Programs extends Abstract {
               "components.id": ObjectId(componentId)
             }
           }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
-
           {
             $lookup: {
               from: "schools",
@@ -149,7 +148,6 @@ module.exports = class Programs extends Abstract {
               as: "schoolInformation"
             }
           },
-
           {
             $project: {
               "schoolInformation._id": 1,
@@ -158,12 +156,19 @@ module.exports = class Programs extends Abstract {
               "_id": 0
             }
           },
-
-          { $addFields: { totalCount: { $size: "$schoolInformation" } } },
           { $unwind: "$schoolInformation" },
           { $match: { $or: [queryName, queryExternalId] } },
-          { $skip: pageIndexValue },
-          { $limit: limitingValue }
+          {
+            $facet: {
+              "totalCount": [
+                { "$count": "count" }
+              ],
+              "schoolInformationData": [
+                { $skip: pageIndexValue },
+                { $limit: limitingValue }
+              ],
+            }
+          }
         ])
 
         if (!programDocument) {
@@ -172,11 +177,16 @@ module.exports = class Programs extends Abstract {
 
         let result = {};
         let schoolInformation = [];
-        programDocument.forEach(eachProgram => {
-          schoolInformation.push(eachProgram.schoolInformation)
+
+        programDocument[0].totalCount.forEach(eachCount => {
+          result["totalCount"] = eachCount.count;
         })
+
+        programDocument[0].schoolInformationData.forEach(eachSchoolData => {
+          schoolInformation.push(eachSchoolData.schoolInformation)
+        })
+
         result["schoolInformation"] = schoolInformation;
-        result["totalCount"] = programDocument[0].totalCount
 
         return resolve({ message: "List of schools fetched successfully", result: result })
       }
