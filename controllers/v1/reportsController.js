@@ -361,13 +361,15 @@ module.exports = class Reports {
           });
         }
 
+        result.id = programDocument._id;
+        result.schoolId = [];
+
         programDocument.components.forEach(document => {
-          result.schoolId = document.schools;
-          result.id = programDocument._id;
+          result.schoolId.push(...document.schools);
         });
 
         let schoolQueryObject = {
-          _id: { $in: Object.values(result.schoolId) }
+          _id: { $in: result.schoolId }
         };
         let schoolDocument = await database.models.schools.find(
           schoolQueryObject
@@ -426,20 +428,16 @@ module.exports = class Reports {
 
         Promise.all([submissionDocument, submissionEvidencesCount]).then(submissionDocumentWithCount => {
           let submissionDocument = submissionDocumentWithCount[0];
-          let submissionEvidencesCount = submissionDocumentWithCount[1];
           let schoolSubmission = {};
+          let submissionEvidencesCountBySchoolId = _.keyBy(submissionDocumentWithCount[1], 'schoolId');
           submissionDocument.forEach(submission => {
-
-            let evidencesStatus = submissionEvidencesCount.find(singleEvidenceCount => {
-              return singleEvidenceCount.schoolId.toString() == submission.schoolId.toString()
-            })
             schoolSubmission[submission.schoolId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
                 : "-",
               createdAt: this.gmtToIst(submission.createdAt),
-              submissionCount: evidencesStatus.submissionCount
+              submissionCount: submissionEvidencesCountBySchoolId[submission.schoolId.toString()].submissionCount
             };
           });
           if (!schoolDocument.length || !submissionDocument.length) {
