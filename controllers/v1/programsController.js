@@ -112,7 +112,7 @@ module.exports = class Programs extends Abstract {
         let schoolName = {};
         let schoolExternalId = {};
 
-        if (req.query.search != undefined) {
+        if (req.searchText != undefined) {
           schoolName['schoolInformation.name'] = new RegExp(decodeURI(req.searchText), "i");
           schoolExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.searchText), "i");
         }
