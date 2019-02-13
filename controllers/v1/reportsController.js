@@ -1738,13 +1738,19 @@ module.exports = class Reports {
                                           }
                                         );
 
-                                        eachInstanceChildQuestion.value.forEach(value => {
-                                          multiSelectResponseArray.push(
-                                            multiSelectResponse[value]
-                                          );
-                                        });
+                                        if(typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
-                                        eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                          eachInstanceChildQuestion.value.forEach(value => {
+                                            multiSelectResponseArray.push(
+                                              multiSelectResponse[value]
+                                            );
+                                          });
+  
+                                          eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                        } else {
+                                          eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value
+                                        }
+                                        
                                       }
                                       else {
                                         eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;

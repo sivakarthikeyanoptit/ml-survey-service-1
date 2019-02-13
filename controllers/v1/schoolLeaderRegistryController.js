@@ -118,6 +118,20 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
                     visible: true,
                     editable: true,
                     input: "radio",
+                    options: [
+                        {
+                          value: "R1",
+                          label: "Male"
+                        },
+                        {
+                          value: "R2",
+                          label: "Female"
+                        },
+                        {
+                          value: "R3",
+                          label: "Other"
+                        }
+                    ],
                     validation: {
                         required: true
                     }
