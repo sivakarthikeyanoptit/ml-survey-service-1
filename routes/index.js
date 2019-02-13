@@ -1,4 +1,5 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
+let pagination = require(ROOT_PATH + "/generics/middleware/pagination")
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -6,7 +7,8 @@ module.exports = function (app) {
 
   const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
 
-  // app.use(applicationBaseUrl, authenticator);
+  app.use(applicationBaseUrl, authenticator);
+  app.use(applicationBaseUrl, pagination);
 
   var router = async function (req, res, next) {
 
@@ -99,25 +101,6 @@ module.exports = function (app) {
       };
     }
   };
-
-  app.get('/*', function (req, res, next) {
-    req.pageNo = (req.query.page && Number(req.query.page) > 0) ? Number(req.query.page) : 1
-    req.pageSize = (req.query.limit && Number(req.query.limit) > 0 && Number(req.query.limit) <= 100) ? Number(req.query.limit) : 100
-    req.searchText = (req.query.search && req.query.search != "") ? req.query.search : ""
-    delete req.query.page
-    delete req.query.limit
-    next();
-  })
-
-  app.get("/*", (req, res, next) => {
-    req.programId = req.query.programId;
-    next();
-  })
-
-  app.get("/*", (req, res, next) => {
-    req.componentId = req.query.componentId;
-    next();
-  })
 
   app.all(applicationBaseUrl + "api/:version/:controller/:method", router);
 

@@ -98,18 +98,21 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.programId) {
+        let programId = req.query.programId;
+        let componentId = req.query.componentId;
+
+        if (!programId) {
           throw "Program id is missing"
         }
 
-        if (!req.componentId) {
+        if (!componentId) {
           throw "Component Id is missing"
         }
 
         let schoolName = {};
         let schoolExternalId = {};
 
-        if (req.searchText != undefined) {
+        if (req.query.search != undefined) {
           schoolName['schoolInformation.name'] = new RegExp(decodeURI(req.searchText), "i");
           schoolExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.searchText), "i");
         }
@@ -117,14 +120,14 @@ module.exports = class Programs extends Abstract {
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
-              _id: ObjectId(req.programId)
+              _id: ObjectId(programId)
             }
           },
           {
             $unwind: "$components"
           }, {
             $match: {
-              "components.id": ObjectId(req.componentId)
+              "components.id": ObjectId(componentId)
             }
           }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
           {
