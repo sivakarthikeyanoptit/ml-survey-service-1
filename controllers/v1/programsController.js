@@ -123,8 +123,8 @@ module.exports = class Programs extends Abstract {
         let queryExternalId = {};
 
         if (req.query.search != undefined) {
-          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search));
-          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search));
+          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search), "i");
+          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
