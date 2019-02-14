@@ -205,6 +205,14 @@ module.exports = class Programs extends Abstract {
           throw "Component id is missing"
         }
 
+        let assessorName = {};
+        let assessorExternalId = {};
+
+        if (req.searchText != undefined) {
+          assessorName["assessorInformation.name"] = new RegExp(decodeURI(req.searchText), "i");
+          assessorExternalId["assessorInformation.externalId"] = new RegExp(decodeURI(req.searchText), "i");
+        }
+
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
@@ -232,16 +240,42 @@ module.exports = class Programs extends Abstract {
               "assessorInformation.schools": 0,
               "assessorInformation.deleted": 0
             }
-          }
+          },
+          { $unwind: "$assessorInformation" },
+          { $match: { $or: [assessorName, assessorExternalId] } },
+          {
+            $facet: {
+              "totalCount": [
+                { "$count": "count" }
+              ],
+              "assessorInformationData": [
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
+              ],
+            }
+          },
         ])
 
         if (!programDocument) {
           throw "Bad request"
         }
 
+        let result = {};
+        let assessorInformation = [];
+
+        programDocument[0].totalCount.forEach(eachCount => {
+          result["totalCount"] = eachCount.count
+        })
+
+        programDocument[0].assessorInformationData.forEach(eachAssessor => {
+          assessorInformation.push(eachAssessor.assessorInformation)
+        })
+
+        result["assessorInformation"] = assessorInformation;
+
         return resolve({
           message: "List of assessors fetched successfully",
-          result: programDocument[0].assessorInformation
+          result: result
         })
 
       }
