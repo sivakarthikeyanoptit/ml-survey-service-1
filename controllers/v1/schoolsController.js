@@ -1,6 +1,18 @@
 const csv = require("csvtojson");
 
 module.exports = class Schools extends Abstract {
+  /**
+    * @apiDefine errorBody
+    * @apiError {String} status 4XX,5XX
+    * @apiError {String} message Error
+    */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
   constructor() {
     super(schoolsSchema);
     this.roles = {
@@ -326,10 +338,32 @@ module.exports = class Schools extends Abstract {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/schools/find School find
+* @apiVersion 0.0.1
+* @apiName School find
+* @apiGroup School
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schools/find
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   find(req) {
     req.query.fields = ["name", "externalId"];
     return super.find(req);
   }
+
+  /**
+* @api {get} /assessment/api/v1/schools/assessments/:schoolID School assessments
+* @apiVersion 0.0.1
+* @apiName School assessments
+* @apiGroup School
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schools/assessments/5beaa888af0065f0e0a10515
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async assessments(req) {
     return new Promise(async (resolve, reject) => {
@@ -536,7 +570,7 @@ module.exports = class Schools extends Abstract {
             })
           });
 
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray}})
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
