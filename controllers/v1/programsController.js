@@ -86,10 +86,6 @@ module.exports = class Programs extends Abstract {
       limitingValue = pageSize;
     }
 
-    // if (search !== "all") {
-
-    // }
-
     let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocuments
   }
@@ -98,33 +94,23 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let pageIndexValue = 0;
-        let limitingValue = 0;
-        let pageIndex = req.query.pageIndex;
-        let pageSize = req.query.pageSize;
-        let programId = req.query.programId
+        let programId = req.query.programId;
+        let componentId = req.query.componentId;
 
         if (!programId) {
           throw "Program id is missing"
         }
 
-        let componentId = req.query.componentId
-
         if (!componentId) {
           throw "Component Id is missing"
         }
 
-        if (pageIndex != 0 && pageSize !== 0) {
-          pageIndexValue = (pageIndex - 1) * pageSize;
-          limitingValue = parseInt(pageSize);
-        }
+        let schoolName = {};
+        let schoolExternalId = {};
 
-        let queryName = {};
-        let queryExternalId = {};
-
-        if (req.query.search != undefined) {
-          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search), "i");
-          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search), "i");
+        if (req.searchText != "") {
+          schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
+          schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -157,15 +143,15 @@ module.exports = class Programs extends Abstract {
             }
           },
           { $unwind: "$schoolInformation" },
-          { $match: { $or: [queryName, queryExternalId] } },
+          { $match: { $or: [schoolName, schoolExternalId] } },
           {
             $facet: {
               "totalCount": [
                 { "$count": "count" }
               ],
               "schoolInformationData": [
-                { $skip: pageIndexValue },
-                { $limit: limitingValue }
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
               ],
             }
           }
@@ -178,9 +164,7 @@ module.exports = class Programs extends Abstract {
         let result = {};
         let schoolInformation = [];
 
-        programDocument[0].totalCount.forEach(eachCount => {
-          result["totalCount"] = eachCount.count;
-        })
+        result["totalCount"] = programDocument[0].totalCount[0].count;
 
         programDocument[0].schoolInformationData.forEach(eachSchoolData => {
           schoolInformation.push(eachSchoolData.schoolInformation)
@@ -215,6 +199,14 @@ module.exports = class Programs extends Abstract {
           throw "Component id is missing"
         }
 
+        let assessorName = {};
+        let assessorExternalId = {};
+
+        if (req.searchText != "") {
+          assessorName["assessorInformation.name"] = new RegExp((req.searchText), "i");
+          assessorExternalId["assessorInformation.externalId"] = new RegExp((req.searchText), "i");
+        }
+
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
@@ -242,16 +234,40 @@ module.exports = class Programs extends Abstract {
               "assessorInformation.schools": 0,
               "assessorInformation.deleted": 0
             }
-          }
+          },
+          { $unwind: "$assessorInformation" },
+          { $match: { $or: [assessorName, assessorExternalId] } },
+          {
+            $facet: {
+              "totalCount": [
+                { "$count": "count" }
+              ],
+              "assessorInformationData": [
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
+              ],
+            }
+          },
         ])
 
         if (!programDocument) {
           throw "Bad request"
         }
 
+        let result = {};
+        let assessorInformation = [];
+
+        result["totalCount"] = programDocument[0].totalCount[0].count;
+
+        programDocument[0].assessorInformationData.forEach(eachAssessor => {
+          assessorInformation.push(eachAssessor.assessorInformation)
+        })
+
+        result["assessorInformation"] = assessorInformation;
+
         return resolve({
           message: "List of assessors fetched successfully",
-          result: programDocument[0].assessorInformation
+          result: result
         })
 
       }
