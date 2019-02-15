@@ -408,37 +408,31 @@ module.exports = class Reports {
           });
         }
 
+        result.id = programDocument._id;
+        result.schoolId = [];
+
         programDocument.components.forEach(document => {
-          result.schoolId = document.schools;
-          result.id = programDocument._id;
+          result.schoolId.push(...document.schools);
         });
 
-        let schoolQueryObject = {
-          _id: { $in: Object.values(result.schoolId) }
-        };
-        let schoolDocument = await database.models.schools.find(
-          schoolQueryObject
-        );
-
-        let submissionQuery = {
-          programId: { $in: ObjectId(result.id) }
-        };
-
-        let submissionDocument = database.models.submissions.find(
-          submissionQuery,
+        let schoolDocument = database.models.schools.find(
           {
-            schoolId: 1,
-            status: 1,
-            completedDate: 1,
-            createdAt: 1
+            _id: { $in: result.schoolId }
           }
         ).exec();
 
-        let submissionEvidencesCount = database.models.submissions.aggregate(
+        let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
+            {
+              $match: { programId: result.id }
+            },
             {
               $project: {
                 schoolId: 1,
+                status: 1,
+                completedDate: 1,
+                createdAt: 1,
+                programExternalId:1,
                 submissionCount: {
                   $reduce: {
                     input: "$evidencesStatus",
@@ -456,8 +450,6 @@ module.exports = class Reports {
           ]
         ).exec();
 
-
-
         const fileName = `programSchoolsStatusByProgramId_${req.params._id}`;
 
         let fileStream = new FileStream(fileName);
@@ -471,25 +463,21 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([submissionDocument, submissionEvidencesCount]).then(submissionDocumentWithCount => {
-          let submissionDocument = submissionDocumentWithCount[0];
-          let submissionEvidencesCount = submissionDocumentWithCount[1];
+        Promise.all([schoolDocument,submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument=>{
+          let schoolDocument = submissionWithSchoolDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
           let schoolSubmission = {};
-          submissionDocument.forEach(submission => {
-
-            let evidencesStatus = submissionEvidencesCount.find(singleEvidenceCount => {
-              return singleEvidenceCount.schoolId.toString() == submission.schoolId.toString()
-            })
+          submissionDataWithEvidencesCount.forEach(submission => {
             schoolSubmission[submission.schoolId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
                 : "-",
               createdAt: this.gmtToIst(submission.createdAt),
-              submissionCount: evidencesStatus.submissionCount
+              submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDocument.length) {
+          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
