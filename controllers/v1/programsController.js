@@ -1,4 +1,16 @@
 module.exports = class Programs extends Abstract {
+  /**
+    * @apiDefine errorBody
+    * @apiError {String} status 4XX,5XX
+    * @apiError {String} message Error
+    */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
   constructor() {
     super(programsSchema);
   }
@@ -10,6 +22,16 @@ module.exports = class Programs extends Abstract {
   find(req) {
     return super.find(req);
   }
+
+
+  /**
+* @api {get} /assessment/api/v1/programs/list/ List all the programs
+* @apiVersion 0.0.1
+* @apiName Fetch Program List
+* @apiGroup Program
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async list(req) {
     return new Promise(async (resolve, reject) => {
@@ -89,6 +111,18 @@ module.exports = class Programs extends Abstract {
     let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocuments
   }
+
+  /**
+* @api {get} /assessment/api/v1/programs/schoolList/ Fetch School List
+* @apiVersion 0.0.1
+* @apiName Fetch School List 
+* @apiGroup Program
+* @apiParam {String} ProgramId Program ID.
+* @apiParam {String} Page Page.
+* @apiParam {String} Limit Limit.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async schoolList(req) {
     return new Promise(async (resolve, reject) => {
@@ -182,6 +216,18 @@ module.exports = class Programs extends Abstract {
       }
     })
   }
+
+  /**
+* @api {get} /assessment/api/v1/programs/userList/ Fetch User List
+* @apiVersion 0.0.1
+* @apiName Fetch User List 
+* @apiGroup Program
+* @apiParam {String} ProgramId Program ID.
+* @apiParam {String} Page Page.
+* @apiParam {String} Limit Limit.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async userList(req) {
     return new Promise(async (resolve, reject) => {
