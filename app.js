@@ -75,24 +75,29 @@ global.loggerExceptionObj = bunyan.createLogger({
 });
 
 app.all("*", (req, res, next) => {
-  loggerObj.info({
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    body: req.body
-  });
-  console.log("-------Request log starts here------------------");
-  console.log(
-    "%s %s on %s from ",
-    req.method,
-    req.url,
-    new Date(),
-    req.headers["user-agent"]
-  );
-  console.log("Request Headers: ", req.headers);
-  console.log("Request Body: ", req.body);
-  console.log("Request Files: ", req.files);
-  console.log("-------Request log ends here------------------");
+  if(ENABLE_BUNYAN_LOGGING === "ON") {
+    loggerObj.info({
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: req.body
+    });
+  }
+
+  if(ENABLE_CONSOLE_LOGGING === "ON") {
+    console.log("-------Request log starts here------------------");
+    console.log(
+      "%s %s on %s from ",
+      req.method,
+      req.url,
+      new Date(),
+      req.headers["user-agent"]
+    );
+    console.log("Request Headers: ", req.headers);
+    console.log("Request Body: ", req.body);
+    console.log("Request Files: ", req.files);
+    console.log("-------Request log ends here------------------");
+  }
   next();
 });
 
