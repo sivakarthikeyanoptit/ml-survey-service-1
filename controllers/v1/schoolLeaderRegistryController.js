@@ -1,7 +1,17 @@
 const csv = require("csvtojson");
 
 module.exports = class SchoolLeaderRegistry extends Abstract {
+    /**
+    * @apiDefine errorBody
+    * @apiError {String} status 4XX,5XX
+    * @apiError {String} message Error
+    */
 
+    /**
+       * @apiDefine successBody
+       *  @apiSuccess {String} status 200
+       * @apiSuccess {String} result Data
+       */
     constructor() {
         super(schoolLeaderRegistrySchema);
     }
@@ -10,6 +20,36 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
         return "schoolLeaderRegistry";
     }
 
+    /**
+    * @api {post} /assessment/api/v1/schoolLeaderRegistry/add School Leaders Registry add
+    * @apiVersion 0.0.1
+    * @apiName School Leaders Registry add
+    * @apiGroup schoolLeaderRegistry
+    * @apiParamExample {json} Request-Body:
+    *{
+    *	"schoolLeaders": [
+    *        {
+    *        "name": "",
+    *        "age": "",
+    *        "gender": "",
+    *        "description": "",
+    *        "experienceInEducationSector": "",
+    *        "experienceInCurrentSchool": "",
+    *        "experienceAsSchoolLeaders": "",
+    *        "dutiesOrResponsibility": "",
+    *        "timeOfDiscussion": "",
+    *        "nonTeachingHours": "",
+    *        "bestPart": "",
+    *        "challenges": "",
+    *        "schoolId": "",
+    *        "schoolName": "",
+    *        "programId": ""
+    *        }
+    *	]
+    *}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     add(req) {
 
@@ -42,6 +82,17 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
 
         })
     }
+
+    /**
+* @api {get} /assessment/api/v1/schoolLeaderRegistry/list/:schoolId School Leaders Registry list
+* @apiVersion 0.0.1
+* @apiName School Leaders Registry list
+* @apiGroup schoolLeaderRegistry
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schoolLeaderRegistry/list/5c62c2118b2b6f1fb4033f52
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
     list(req) {
 
@@ -81,6 +132,17 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
 
         })
     }
+
+    /**
+* @api {get} /assessment/api/v1/schoolLeaderRegistry/form School Leaders Registry form
+* @apiVersion 0.0.1
+* @apiName School Leaders Registry form
+* @apiGroup schoolLeaderRegistry
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schoolLeaderRegistry/form
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
     async form(req) {
         return new Promise(async function (resolve, reject) {
@@ -278,6 +340,16 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
         });
     }
 
+    /**
+    * @api {get} /assessment/api/v1/schoolLeaderRegistry/fetch/:schoolId School Leader Registry profile
+    * @apiVersion 0.0.1
+    * @apiName School Leader Registry Profile
+    * @apiGroup schoolLeaderRegistry
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/schoolLeaderRegistry/fetch/5c62c2118b2b6f1fb4033f52
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     async fetch(req) {
         return new Promise(async function (resolve, reject) {
@@ -455,6 +527,19 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
         });
     }
 
+    /**
+    * @api {post} /assessment/api/v1/schoolLeaderRegistry/update/:schoolLeaderRegistryId Update School Leader Information
+    * @apiVersion 0.0.1
+    * @apiName Update School Leader Information
+    * @apiGroup schoolLeaderRegistry
+    * @apiParamExample {json} Request-Body:
+    * 	{
+    *	        "name" : "",
+    *	        "gender" : "",
+    *   }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     async update(req) {
         return new Promise(async function (resolve, reject) {
