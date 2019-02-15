@@ -86,10 +86,6 @@ module.exports = class Programs extends Abstract {
       limitingValue = pageSize;
     }
 
-    // if (search !== "all") {
-
-    // }
-
     let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocuments
   }
@@ -112,9 +108,9 @@ module.exports = class Programs extends Abstract {
         let schoolName = {};
         let schoolExternalId = {};
 
-        if (req.searchText != undefined) {
-          schoolName['schoolInformation.name'] = new RegExp(decodeURI(req.searchText), "i");
-          schoolExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.searchText), "i");
+        if (req.searchText != "") {
+          schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
+          schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -168,9 +164,7 @@ module.exports = class Programs extends Abstract {
         let result = {};
         let schoolInformation = [];
 
-        programDocument[0].totalCount.forEach(eachCount => {
-          result["totalCount"] = eachCount.count;
-        })
+        result["totalCount"] = programDocument[0].totalCount[0].count;
 
         programDocument[0].schoolInformationData.forEach(eachSchoolData => {
           schoolInformation.push(eachSchoolData.schoolInformation)
@@ -208,9 +202,9 @@ module.exports = class Programs extends Abstract {
         let assessorName = {};
         let assessorExternalId = {};
 
-        if (req.searchText != undefined) {
-          assessorName["assessorInformation.name"] = new RegExp(decodeURI(req.searchText), "i");
-          assessorExternalId["assessorInformation.externalId"] = new RegExp(decodeURI(req.searchText), "i");
+        if (req.searchText != "") {
+          assessorName["assessorInformation.name"] = new RegExp((req.searchText), "i");
+          assessorExternalId["assessorInformation.externalId"] = new RegExp((req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -263,9 +257,7 @@ module.exports = class Programs extends Abstract {
         let result = {};
         let assessorInformation = [];
 
-        programDocument[0].totalCount.forEach(eachCount => {
-          result["totalCount"] = eachCount.count
-        })
+        result["totalCount"] = programDocument[0].totalCount[0].count;
 
         programDocument[0].assessorInformationData.forEach(eachAssessor => {
           assessorInformation.push(eachAssessor.assessorInformation)
