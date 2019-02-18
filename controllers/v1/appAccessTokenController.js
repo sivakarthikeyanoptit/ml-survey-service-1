@@ -15,7 +15,7 @@ module.exports = class AppAccessToken extends Abstract {
             try {
 
                 let tokenQueryObject = {
-                    userId: req.userDetails.userId,
+                    createdBy: req.userDetails.userId,
                     passcode: req.body.passcode,
                     isValid: true
                 }
@@ -85,7 +85,7 @@ module.exports = class AppAccessToken extends Abstract {
                 return resolve(response);
 
             }
-            catch(err){
+            catch(error){
 
                 return reject({
                     status:500,

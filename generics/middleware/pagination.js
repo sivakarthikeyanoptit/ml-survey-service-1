@@ -7,6 +7,9 @@ module.exports = (req, res, next) => {
         delete req.query.limit
         next();
         return;
+    }else{
+        next();
+        return;
     }
 }
 
