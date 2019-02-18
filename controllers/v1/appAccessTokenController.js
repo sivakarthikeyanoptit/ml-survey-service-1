@@ -15,7 +15,6 @@ module.exports = class AppAccessToken extends Abstract {
             try {
 
                 let tokenQueryObject = {
-                    createdBy: req.userDetails.userId,
                     passcode: req.body.passcode,
                     isValid: true
                 }
