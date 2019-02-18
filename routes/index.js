@@ -1,4 +1,5 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
+let pagination = require(ROOT_PATH + "/generics/middleware/pagination")
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -7,6 +8,7 @@ module.exports = function (app) {
   const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
 
   app.use(applicationBaseUrl, authenticator);
+  app.use(applicationBaseUrl, pagination);
 
   var router = async function (req, res, next) {
 

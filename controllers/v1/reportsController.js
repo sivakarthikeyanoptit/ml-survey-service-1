@@ -3,6 +3,17 @@ const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports {
+  /**
+   * @apiDefine errorBody
+   * @apiError {String} status 4XX,5XX
+   * @apiError {String} message Error
+   */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
   constructor() {
   }
 
@@ -29,6 +40,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for school
+ * @apiVersion 0.0.1
+ * @apiName Fetch submission reports for school
+ * @apiGroup Report
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async status(req) {
     return new Promise(async (resolve, reject) => {
@@ -143,6 +163,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/assessorSchools/ Fetch assessors reports for school
+* @apiVersion 0.0.1
+* @apiName Fetch assessors reports for school
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async assessorSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -241,6 +270,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/schoolAssessors/ Fetch school wise assessor reports
+ * @apiVersion 0.0.1
+ * @apiName Fetch school wise assessor reports
+ * @apiGroup Report
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async schoolAssessors(req) {
     return new Promise(async (resolve, reject) => {
@@ -341,6 +379,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
+* @apiVersion 0.0.1
+* @apiName Fetch school status based on program Id
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async programSchoolsStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -361,37 +408,31 @@ module.exports = class Reports {
           });
         }
 
+        result.id = programDocument._id;
+        result.schoolId = [];
+
         programDocument.components.forEach(document => {
-          result.schoolId = document.schools;
-          result.id = programDocument._id;
+          result.schoolId.push(...document.schools);
         });
 
-        let schoolQueryObject = {
-          _id: { $in: Object.values(result.schoolId) }
-        };
-        let schoolDocument = await database.models.schools.find(
-          schoolQueryObject
-        );
-
-        let submissionQuery = {
-          programId: { $in: ObjectId(result.id) }
-        };
-
-        let submissionDocument = database.models.submissions.find(
-          submissionQuery,
+        let schoolDocument = database.models.schools.find(
           {
-            schoolId: 1,
-            status: 1,
-            completedDate: 1,
-            createdAt: 1
+            _id: { $in: result.schoolId }
           }
         ).exec();
 
-        let submissionEvidencesCount = database.models.submissions.aggregate(
+        let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
+            {
+              $match: { programId: result.id }
+            },
             {
               $project: {
                 schoolId: 1,
+                status: 1,
+                completedDate: 1,
+                createdAt: 1,
+                programExternalId:1,
                 submissionCount: {
                   $reduce: {
                     input: "$evidencesStatus",
@@ -409,8 +450,6 @@ module.exports = class Reports {
           ]
         ).exec();
 
-
-
         const fileName = `programSchoolsStatusByProgramId_${req.params._id}`;
 
         let fileStream = new FileStream(fileName);
@@ -424,25 +463,21 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([submissionDocument, submissionEvidencesCount]).then(submissionDocumentWithCount => {
-          let submissionDocument = submissionDocumentWithCount[0];
-          let submissionEvidencesCount = submissionDocumentWithCount[1];
+        Promise.all([schoolDocument,submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument=>{
+          let schoolDocument = submissionWithSchoolDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
           let schoolSubmission = {};
-          submissionDocument.forEach(submission => {
-
-            let evidencesStatus = submissionEvidencesCount.find(singleEvidenceCount => {
-              return singleEvidenceCount.schoolId.toString() == submission.schoolId.toString()
-            })
+          submissionDataWithEvidencesCount.forEach(submission => {
             schoolSubmission[submission.schoolId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
                 : "-",
               createdAt: this.gmtToIst(submission.createdAt),
-              submissionCount: evidencesStatus.submissionCount
+              submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDocument.length) {
+          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
@@ -489,6 +524,16 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId Fetch program submission status
+* @apiVersion 0.0.1
+* @apiName Fetch program submission status
+* @apiGroup Report
+* @apiParam {String} evidenceId Evidence ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
@@ -734,6 +779,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
+* @apiVersion 0.0.1
+* @apiName Fetch criterias based on schoolId
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async generateCriteriasBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -828,6 +882,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
+* @apiVersion 0.0.1
+* @apiName Fetch school submission status
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async generateSubmissionReportsBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
@@ -1063,6 +1126,17 @@ module.exports = class Reports {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/parentRegistry/:programId Fetch Parent Registry
+  * @apiVersion 0.0.1
+  * @apiName Fetch Parent Registry
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -1192,6 +1266,17 @@ module.exports = class Reports {
     });
   }
 
+  /**
+ * @api {get} /assessment/api/v1/reports/teacherRegistry/:programId Fetch Teacher Registry
+ * @apiVersion 0.0.1
+ * @apiName Fetch Teacher Registry
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
   async teacherRegistry(req) {
     return (new Promise(async (resolve, reject) => {
       try {
@@ -1313,6 +1398,17 @@ module.exports = class Reports {
       }
     }))
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/schoolLeaderRegistry/:programId Fetch School Leader Information
+* @apiVersion 0.0.1
+* @apiName Fetch School Leader Registry Information
+* @apiGroup Report
+* @apiParam {String} fromDate From Date
+* @apiParam {String} toDate To Date
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async schoolLeaderRegistry(req) {
     return (new Promise(async (resolve, reject) => {
@@ -1436,6 +1532,15 @@ module.exports = class Reports {
     }))
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/schoolProfileInformation/:programId Fetch School Profile Information
+  * @apiVersion 0.0.1
+  * @apiName Fetch School Profile Information
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async schoolProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -1514,6 +1619,17 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
+ * @apiVersion 0.0.1
+ * @apiName Generate all ecm report by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
@@ -1789,6 +1905,17 @@ module.exports = class Reports {
 
     });
   }
+
+  /**
+  * @api {get} /assessment/api/v1/reports/submissionFeedback/:programId Generate feedback for the submissions
+  * @apiVersion 0.0.1
+  * @apiName Generate feedback for the submissions
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async submissionFeedback(req) {
     return new Promise(async (resolve, reject) => {

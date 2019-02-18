@@ -1,6 +1,18 @@
 module.exports = class Assessments {
 
     /**
+ * @apiDefine errorBody
+ * @apiError {String} status 4XX,5XX
+ * @apiError {String} message Error
+ */
+
+    /**
+       * @apiDefine successBody
+       *  @apiSuccess {String} status 200
+       * @apiSuccess {String} result Data
+       */
+
+    /**
     * @api {get} /assessment/api/v1/assessments/list?type={assessment}&subType={individual}&status={active} Individual assessment list
     * @apiVersion 0.0.1
     * @apiName Individual assessment list
@@ -10,8 +22,8 @@ module.exports = class Assessments {
     * @apiParam {String} status Status.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/assessments/list
-    * @apiSuccess {String} status 200
-    * @apiSuccess {String} result Data
+    * @apiUse successBody
+    * @apiUse errorBody
     */
 
     async list(req) {
@@ -79,8 +91,8 @@ module.exports = class Assessments {
     * @apiParam {String} assessmentId Assessment ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/assessments/details/:programID
-    * @apiSuccess {String} status 200
-    * @apiSuccess {String} result Data
+    * @apiUse successBody
+    * @apiUse errorBody
     */
 
     async details(req) {

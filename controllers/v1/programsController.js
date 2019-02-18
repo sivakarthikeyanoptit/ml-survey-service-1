@@ -1,4 +1,16 @@
 module.exports = class Programs extends Abstract {
+  /**
+    * @apiDefine errorBody
+    * @apiError {String} status 4XX,5XX
+    * @apiError {String} message Error
+    */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
   constructor() {
     super(programsSchema);
   }
@@ -10,6 +22,16 @@ module.exports = class Programs extends Abstract {
   find(req) {
     return super.find(req);
   }
+
+
+  /**
+* @api {get} /assessment/api/v1/programs/list/ List all the programs
+* @apiVersion 0.0.1
+* @apiName Fetch Program List
+* @apiGroup Program
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async list(req) {
     return new Promise(async (resolve, reject) => {
@@ -86,45 +108,43 @@ module.exports = class Programs extends Abstract {
       limitingValue = pageSize;
     }
 
-    // if (search !== "all") {
-
-    // }
-
     let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
     return programDocuments
   }
+
+  /**
+* @api {get} /assessment/api/v1/programs/schoolList/ Fetch School List
+* @apiVersion 0.0.1
+* @apiName Fetch School List 
+* @apiGroup Program
+* @apiParam {String} ProgramId Program ID.
+* @apiParam {String} Page Page.
+* @apiParam {String} Limit Limit.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async schoolList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let pageIndexValue = 0;
-        let limitingValue = 0;
-        let pageIndex = req.query.pageIndex;
-        let pageSize = req.query.pageSize;
-        let programId = req.query.programId
+        let programId = req.query.programId;
+        let componentId = req.query.componentId;
 
         if (!programId) {
           throw "Program id is missing"
         }
 
-        let componentId = req.query.componentId
-
         if (!componentId) {
           throw "Component Id is missing"
         }
 
-        if (pageIndex != 0 && pageSize !== 0) {
-          pageIndexValue = (pageIndex - 1) * pageSize;
-          limitingValue = parseInt(pageSize);
-        }
+        let schoolName = {};
+        let schoolExternalId = {};
 
-        let queryName = {};
-        let queryExternalId = {};
-
-        if (req.query.search != undefined) {
-          queryName['schoolInformation.name'] = new RegExp(decodeURI(req.query.search), "i");
-          queryExternalId['schoolInformation.externalId'] = new RegExp(decodeURI(req.query.search), "i");
+        if (req.searchText != "") {
+          schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
+          schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -157,15 +177,15 @@ module.exports = class Programs extends Abstract {
             }
           },
           { $unwind: "$schoolInformation" },
-          { $match: { $or: [queryName, queryExternalId] } },
+          { $match: { $or: [schoolName, schoolExternalId] } },
           {
             $facet: {
               "totalCount": [
                 { "$count": "count" }
               ],
               "schoolInformationData": [
-                { $skip: pageIndexValue },
-                { $limit: limitingValue }
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
               ],
             }
           }
@@ -178,9 +198,7 @@ module.exports = class Programs extends Abstract {
         let result = {};
         let schoolInformation = [];
 
-        programDocument[0].totalCount.forEach(eachCount => {
-          result["totalCount"] = eachCount.count;
-        })
+        result["totalCount"] = programDocument[0].totalCount[0].count;
 
         programDocument[0].schoolInformationData.forEach(eachSchoolData => {
           schoolInformation.push(eachSchoolData.schoolInformation)
@@ -199,6 +217,18 @@ module.exports = class Programs extends Abstract {
     })
   }
 
+  /**
+* @api {get} /assessment/api/v1/programs/userList/ Fetch User List
+* @apiVersion 0.0.1
+* @apiName Fetch User List 
+* @apiGroup Program
+* @apiParam {String} ProgramId Program ID.
+* @apiParam {String} Page Page.
+* @apiParam {String} Limit Limit.
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async userList(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -213,6 +243,14 @@ module.exports = class Programs extends Abstract {
 
         if (!componentId) {
           throw "Component id is missing"
+        }
+
+        let assessorName = {};
+        let assessorExternalId = {};
+
+        if (req.searchText != "") {
+          assessorName["assessorInformation.name"] = new RegExp((req.searchText), "i");
+          assessorExternalId["assessorInformation.externalId"] = new RegExp((req.searchText), "i");
         }
 
         let programDocument = await database.models.programs.aggregate([
@@ -242,16 +280,40 @@ module.exports = class Programs extends Abstract {
               "assessorInformation.schools": 0,
               "assessorInformation.deleted": 0
             }
-          }
+          },
+          { $unwind: "$assessorInformation" },
+          { $match: { $or: [assessorName, assessorExternalId] } },
+          {
+            $facet: {
+              "totalCount": [
+                { "$count": "count" }
+              ],
+              "assessorInformationData": [
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
+              ],
+            }
+          },
         ])
 
         if (!programDocument) {
           throw "Bad request"
         }
 
+        let result = {};
+        let assessorInformation = [];
+
+        result["totalCount"] = programDocument[0].totalCount[0].count;
+
+        programDocument[0].assessorInformationData.forEach(eachAssessor => {
+          assessorInformation.push(eachAssessor.assessorInformation)
+        })
+
+        result["assessorInformation"] = assessorInformation;
+
         return resolve({
           message: "List of assessors fetched successfully",
-          result: programDocument[0].assessorInformation
+          result: result
         })
 
       }
