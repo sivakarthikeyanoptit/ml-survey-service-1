@@ -68,7 +68,6 @@ module.exports = function(req, res, next) {
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
-  // console.log(!token, authorization);
   
   if(req.path.includes("reports") && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
     next();

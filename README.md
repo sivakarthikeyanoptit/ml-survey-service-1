@@ -70,5 +70,5 @@ NODE_ENV=qa node app.js
 ### development
 
 ```
-NODE_ENV=development node app.js
+NODE_ENV=development node app.js 1
 ```
