@@ -386,7 +386,6 @@ module.exports = class Assessors {
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
           let assessorSchoolArray = new Array
-          // finalResult = [await shikshalokam.checkUser(req.rspObj.userToken, assessor.externalId), await shikshalokam.checkUser(req.rspObj.userToken, assessor.parentId)]
           let userId = finalResult.find(user => user.externalId == assessor.externalId)
           assessor.schools.split(",").forEach(assessorSchool => {
             if (schoolsData[assessorSchool.trim()])
