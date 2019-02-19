@@ -1,5 +1,7 @@
 var http = require("https");
-var getUserInfo = function(token, userId) {
+const Request = require('./httpRequest');
+
+var getUserInfo = function (token, userId) {
   let options = {
     host: process.env.SHIKSHALOKAM_BASE_HOST,
     port: 443,
@@ -10,19 +12,20 @@ var getUserInfo = function(token, userId) {
       "x-authenticated-user-token": token
     }
   };
+
   let body = "";
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     try {
-      var httpreq = http.request(options, function(response) {
+      var httpreq = http.request(options, function (response) {
         response.setEncoding("utf8");
-        response.on("data", function(chunk) {
+        response.on("data", function (chunk) {
           body += chunk;
         });
-        response.on("end", function() {
+        response.on("end", function () {
           // console.log(response.headers["content-type"]);
           if (
             response.headers["content-type"] ==
-              "application/json; charset=utf-8" ||
+            "application/json; charset=utf-8" ||
             response.headers["content-type"] == "application/json"
           ) {
             body = JSON.parse(body);
@@ -37,6 +40,48 @@ var getUserInfo = function(token, userId) {
     }
   });
 };
+
+var getUserDetailByToken = function (token, userName) {
+  const reqObj = new Request()
+
+  let requestData = {
+    "request": {
+      "filters": {
+        "userName": userName
+      }
+    }
+  }
+
+  let url = "https://" + process.env.SHIKSHALOKAM_BASE_HOST + "/api/user/v1/search"
+  let options = {
+    headers: {
+      "content-type": "application/json",
+      authorization: process.env.AUTHORIZATION,
+      "x-authenticated-user-token": token
+    },
+    json: requestData
+  };
+
+  let returnResponse = {}
+  return new Promise((resolve, reject) => {
+    return resolve(reqObj.post(
+      url,
+      options
+    ));
+  }).then(result => {
+    let dataResponse = JSON.parse(result.data);
+    returnResponse = dataResponse.result.response.content
+    return returnResponse
+  }).catch((err) => {
+    returnResponse = {
+      success: false,
+      message: "Something went wrong !!"
+    }
+    return returnResponse
+  })
+}
+
 module.exports = {
-  userInfo: getUserInfo
+  userInfo: getUserInfo,
+  checkUser: getUserDetailByToken
 };

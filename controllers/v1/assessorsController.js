@@ -1,4 +1,7 @@
 const csv = require("csvtojson");
+let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+let uniqueUserIdArray = [];
+let userAndParentId = [];
 
 module.exports = class Assessors {
 
@@ -93,7 +96,6 @@ module.exports = class Assessors {
 
     });
   }
-
 
   async upload(req) {
 
@@ -308,6 +310,7 @@ module.exports = class Assessors {
           throw "Bad request"
         }
 
+
         let programController = new programsBaseController;
         let evaluationFrameworkController = new evaluationFrameworksBaseController
 
@@ -350,7 +353,7 @@ module.exports = class Assessors {
           externalId: { $in: Object.values(schoolQueryList) }
         }, {
             externalId: 1
-        });
+          });
 
         const schoolsData = schoolsDocument.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
@@ -369,9 +372,22 @@ module.exports = class Assessors {
         };
 
         const creatorId = req.userDetails.userId;
+        let finalResult;
+
+        let externalIds = [];
+        assessorData.forEach(assessor => {
+          if (!externalIds.includes(assessor.externalId)) externalIds.push(assessor.externalId)
+          if (!externalIds.includes(assessor.parentId)) externalIds.push(assessor.parentId)
+        })
+        await Promise.all(externalIds.map(async (singleExternalId) => {
+          finalResult = await this.generateUniqueUserId(req.rspObj.userToken, singleExternalId)
+        }))
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
+
           let assessorSchoolArray = new Array
+          // finalResult = [await shikshalokam.checkUser(req.rspObj.userToken, assessor.externalId), await shikshalokam.checkUser(req.rspObj.userToken, assessor.parentId)]
+          let userId = finalResult.find(user => user.externalId == assessor.externalId)
           assessor.schools.split(",").forEach(assessorSchool => {
             if (schoolsData[assessorSchool.trim()])
               assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
@@ -392,6 +408,10 @@ module.exports = class Assessors {
           })
 
           let updateObject;
+          if (fieldsWithOutSchool.parentId) {
+            let parentId = finalResult.find(user => user.externalId == fieldsWithOutSchool.parentId)
+            fieldsWithOutSchool.parentId = parentId.id
+          }
           if (assessor.schoolOperation == "OVERRIDE") {
             updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
           }
@@ -424,11 +444,11 @@ module.exports = class Assessors {
             assessorRole = roles[assessor.role];
 
             Object.keys(programFrameworkRoles).forEach(role => {
-              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userId.id);
 
               if (role === assessorRole) {
                 if (roleIndex < 0) {
-                  programFrameworkRoles[role].users.push(assessor.userId);
+                  programFrameworkRoles[role].users.push(userId.id);
                 }
               }
               else {
@@ -438,8 +458,8 @@ module.exports = class Assessors {
 
                 if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
 
-                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
-                  programFrameworkRoles[assessorRole].users.push(assessor.userId);
+                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userId.id))
+                  programFrameworkRoles[assessorRole].users.push(userId.id);
               }
 
             })
@@ -449,7 +469,7 @@ module.exports = class Assessors {
             programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
           }
 
-          return database.models.schoolAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
+          return database.models.schoolAssessors.findOneAndUpdate({ userId: userId.id }, updateObject,
             {
               upsert: true,
               new: true,
@@ -495,6 +515,20 @@ module.exports = class Assessors {
       }
 
     })
+  }
+
+  generateUniqueUserId(token, id) {
+    return new Promise(async (resolve, reject) => {
+      if (!(uniqueUserIdArray.includes(id))) {
+        uniqueUserIdArray.push(id);
+        let userId = await shikshalokam
+          .checkUser(token, id)
+
+        userAndParentId.push({ id: userId[0].id, externalId: id })
+      }
+      return resolve(userAndParentId);
+    })
+
   }
 
 };
