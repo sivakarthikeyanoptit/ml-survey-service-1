@@ -374,12 +374,14 @@ module.exports = class Assessors {
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
           let userIdByKeyCloakToken = await this.userIdByToken(req.rspObj.userToken, assessor.externalId)
+          let userIdFromKeyCloakToken = userIdByKeyCloakToken[assessor.externalId]
+          let parentIdFromKeyCloakToken = userIdByKeyCloakToken[assessor.parentId]
 
           if (assessor.parentId) {
             userIdByKeyCloakToken = await this.userIdByToken(req.rspObj.userToken, assessor.parentId)
           }
 
-          if (!(userIdByKeyCloakToken[assessor.externalId]) || (assessor.parentId !== "" && !(userIdByKeyCloakToken[assessor.parentId]))) {
+          if (!(userIdFromKeyCloakToken) || (assessor.parentId !== "" && !(parentIdFromKeyCloakToken))) {
             let errorMessage = `Skipped document of externalId ${assessor.externalId} where parent id is ${assessor.parentId}`
             errorMessageArray.push({ errorMessage })
           }
@@ -413,7 +415,7 @@ module.exports = class Assessors {
               fieldsWithOutSchool.externalId = fieldsWithOutSchool.externalId.toLowerCase();
             }
             if (fieldsWithOutSchool.parentId) {
-              fieldsWithOutSchool.parentId = userIdByKeyCloakToken[fieldsWithOutSchool.parentId].userId
+              fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
             }
 
             if (assessor.schoolOperation == "OVERRIDE") {
@@ -448,11 +450,11 @@ module.exports = class Assessors {
               assessorRole = roles[assessor.role];
 
               Object.keys(programFrameworkRoles).forEach(role => {
-                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdByKeyCloakToken[assessor.externalId].userId);
+                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
 
                 if (role === assessorRole) {
                   if (roleIndex < 0) {
-                    programFrameworkRoles[role].users.push(userIdByKeyCloakToken[assessor.externalId].userId);
+                    programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
                   }
                 }
                 else {
@@ -462,8 +464,8 @@ module.exports = class Assessors {
 
                   if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
 
-                  if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdByKeyCloakToken[assessor.externalId].userId))
-                    programFrameworkRoles[assessorRole].users.push(userIdByKeyCloakToken[assessor.externalId].userId);
+                  if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
+                    programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
                 }
               })
             }
@@ -472,7 +474,7 @@ module.exports = class Assessors {
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
             }
 
-            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdByKeyCloakToken[assessor.externalId].userId }, updateObject,
+            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject,
               {
                 upsert: true,
                 new: true,
