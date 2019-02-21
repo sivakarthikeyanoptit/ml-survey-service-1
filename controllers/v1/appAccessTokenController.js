@@ -85,7 +85,7 @@ module.exports = class AppAccessToken extends Abstract {
                 return resolve(response);
 
             }
-            catch(err){
+            catch(error){
 
                 return reject({
                     status:500,
