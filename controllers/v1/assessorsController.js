@@ -373,115 +373,122 @@ module.exports = class Assessors {
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
-          let userIdByKeyCloakToken = await this.userIdByToken(req.rspObj.userToken, assessor.externalId)
+          let userIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.externalId)
           let userIdFromKeyCloakToken = userIdByKeyCloakToken[assessor.externalId]
-          let parentIdFromKeyCloakToken = userIdByKeyCloakToken[assessor.parentId]
 
-          if (assessor.parentId) {
-            userIdByKeyCloakToken = await this.userIdByToken(req.rspObj.userToken, assessor.parentId)
-          }
-
-          if (!(userIdFromKeyCloakToken) || (assessor.parentId !== "" && !(parentIdFromKeyCloakToken))) {
-            let errorMessage = `Skipped document of externalId ${assessor.externalId} where parent id is ${assessor.parentId}`
+          if (!userIdFromKeyCloakToken) {
+            let errorMessage = `Skipped document of externalId ${assessor.externalId}`
             errorMessageArray.push({ errorMessage })
+            return
           }
 
-          else {
-            let assessorSchoolArray = new Array
+          let parentIdByKeyCloakToken
+          if (assessor.parentId) {
+            parentIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.parentId)
+          }
 
-            assessor.schools.split(",").forEach(assessorSchool => {
-              if (schoolsData[assessorSchool.trim()])
-                assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
+          let parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
+          if ((assessor.parentId !== "" && !(parentIdFromKeyCloakToken))) {
+            let errorMessage = `Skipped document of parentId ${assessor.parentId}`
+            errorMessageArray.push({ errorMessage })
+            return
+          }
+
+          let assessorSchoolArray = new Array
+
+          assessor.schools.split(",").forEach(assessorSchool => {
+            if (schoolsData[assessorSchool.trim()])
+              assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
+          })
+
+          assessor.schools = assessorSchoolArray
+
+          if (programsData[programId]) {
+            assessor.programId = programsData[programId]._id;
+          } else {
+            assessor.programId = null;
+            skippedDocumentCount += 1;
+          }
+
+          assessor.createdBy = assessor.updatedBy = creatorId
+
+          let fieldsWithOutSchool = {};
+          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
+            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+          })
+
+          let updateObject;
+          if (fieldsWithOutSchool.externalId == fieldsWithOutSchool.externalId.toUpperCase()) {
+            fieldsWithOutSchool.externalId = fieldsWithOutSchool.externalId.toLowerCase();
+          }
+          if (fieldsWithOutSchool.parentId) {
+            fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
+          }
+
+          if (assessor.schoolOperation == "OVERRIDE") {
+            updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
+          }
+
+          else if (assessor.schoolOperation == "APPEND") {
+            updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
+          }
+
+          else if (assessor.schoolOperation == "REMOVE") {
+            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
+          }
+          let assessorCsvDataProgramId
+
+          let programFrameworkRoles;
+          let assessorRole;
+          let assessorCsvDataEvaluationFrameworkId
+          let assessorProgramComponents
+          let indexOfComponents
+
+          assessorCsvDataProgramId = programId
+          assessorCsvDataEvaluationFrameworkId = componentId
+          assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
+
+          indexOfComponents = assessorProgramComponents.findIndex(component => {
+            return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
+          });
+
+          if (indexOfComponents >= 0) {
+            programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
+            assessorRole = roles[assessor.role];
+
+            Object.keys(programFrameworkRoles).forEach(role => {
+              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
+
+              if (role === assessorRole) {
+                if (roleIndex < 0) {
+                  programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
+                }
+              }
+              else {
+                if ((roleIndex >= 0)) {
+                  programFrameworkRoles[role].users.splice(roleIndex, 1);
+                }
+
+                if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
+
+                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
+                  programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
+              }
             })
+          }
 
-            assessor.schools = assessorSchoolArray
+          if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
+            programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
+          }
 
-            if (programsData[programId]) {
-              assessor.programId = programsData[programId]._id;
-            } else {
-              assessor.programId = null;
-              skippedDocumentCount += 1;
-            }
-
-            assessor.createdBy = assessor.updatedBy = creatorId
-
-            let fieldsWithOutSchool = {};
-            Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
-              if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
-            })
-
-            let updateObject;
-            if (fieldsWithOutSchool.externalId == fieldsWithOutSchool.externalId.toUpperCase()) {
-              fieldsWithOutSchool.externalId = fieldsWithOutSchool.externalId.toLowerCase();
-            }
-            if (fieldsWithOutSchool.parentId) {
-              fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
-            }
-
-            if (assessor.schoolOperation == "OVERRIDE") {
-              updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
-            }
-
-            else if (assessor.schoolOperation == "APPEND") {
-              updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
-            }
-
-            else if (assessor.schoolOperation == "REMOVE") {
-              updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
-            }
-            let assessorCsvDataProgramId
-
-            let programFrameworkRoles;
-            let assessorRole;
-            let assessorCsvDataEvaluationFrameworkId
-            let assessorProgramComponents
-            let indexOfComponents
-
-            assessorCsvDataProgramId = programId
-            assessorCsvDataEvaluationFrameworkId = componentId
-            assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
-
-            indexOfComponents = assessorProgramComponents.findIndex(component => {
-              return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
+          return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject,
+            {
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument: true
             });
 
-            if (indexOfComponents >= 0) {
-              programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
-              assessorRole = roles[assessor.role];
-
-              Object.keys(programFrameworkRoles).forEach(role => {
-                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
-
-                if (role === assessorRole) {
-                  if (roleIndex < 0) {
-                    programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
-                  }
-                }
-                else {
-                  if ((roleIndex >= 0)) {
-                    programFrameworkRoles[role].users.splice(roleIndex, 1);
-                  }
-
-                  if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
-
-                  if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
-                    programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
-                }
-              })
-            }
-
-            if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
-              programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
-            }
-
-            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject,
-              {
-                upsert: true,
-                new: true,
-                setDefaultsOnInsert: true,
-                returnNewDocument: true
-              });
-          }
         })).catch(error => {
           throw error
         });
@@ -526,22 +533,22 @@ module.exports = class Assessors {
     })
   }
 
-  userIdByToken(token, loginId) {
+  getInternalUserIdByExternalId(token, loginId) {
     return new Promise(async (resolve, reject) => {
-      if (!this.userIdByKeyCloakToken) {
-        this.userIdByKeyCloakToken = {}
+      if (!this.externalIdToUserIdMap) {
+        this.externalIdToUserIdMap = {}
       }
 
       let userId = await shikshalokam
-        .userIdByKeyCloakToken(token, loginId)
+        .getKeycloakUserIdByLoginId(token, loginId)
 
       if (userId.length) {
-        this.userIdByKeyCloakToken[loginId] = {
+        this.externalIdToUserIdMap[loginId] = {
           userId: userId[0].userLoginId
         }
       }
 
-      return resolve(this.userIdByKeyCloakToken);
+      return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
     })
 
   }

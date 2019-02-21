@@ -39,7 +39,7 @@ var getUserInfo = function (token, userId) {
   });
 };
 
-var userIdByKeyCloakToken = function (token, userName) {
+var getKeycloakUserIdByLoginId = function (token, userName) {
   const reqObj = new Request()
 
   let requestData = {
@@ -84,5 +84,5 @@ var userIdByKeyCloakToken = function (token, userName) {
 
 module.exports = {
   userInfo: getUserInfo,
-  userIdByKeyCloakToken: userIdByKeyCloakToken
+  getKeycloakUserIdByLoginId: getKeycloakUserIdByLoginId
 };
