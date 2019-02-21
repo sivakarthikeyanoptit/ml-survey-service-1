@@ -13,6 +13,7 @@ var getUserInfo = function (token, userId) {
     }
   };
 
+
   let body = "";
   return new Promise(function (resolve, reject) {
     try {

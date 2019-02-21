@@ -477,6 +477,7 @@ module.exports = class Assessors {
             })
           }
 
+
           if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
             programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
           }
