@@ -1655,7 +1655,7 @@ module.exports = class Reports {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
@@ -1899,8 +1899,10 @@ module.exports = class Reports {
               })
             }
 
-            while(input.readableBuffer.length > 20000) {
-              await sleep(2000)
+            if(input.readableBuffer && input.readableBuffer.length) {
+              while(input.readableBuffer.length > 20000) {
+                await sleep(2000)
+              }
             }
 
           }
