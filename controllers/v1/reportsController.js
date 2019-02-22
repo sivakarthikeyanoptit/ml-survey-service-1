@@ -1701,7 +1701,7 @@ module.exports = class Reports {
           });
         } else {
 
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 100)
 
           let submissionIds
           let submissionDocuments
@@ -1892,6 +1892,17 @@ module.exports = class Reports {
                 }
               })
             }));
+
+            function sleep(ms){
+              return new Promise(resolve=>{
+                  setTimeout(resolve,ms)
+              })
+            }
+
+            while(input.readableBuffer.length > 20000) {
+              await sleep(2000)
+            }
+
           }
 
         }
