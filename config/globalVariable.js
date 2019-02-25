@@ -28,6 +28,9 @@ module.exports = function () {
   global.ENABLE_CONSOLE_LOGGING = process.env.ENABLE_CONSOLE_LOGGING || "ON";
   global.ENABLE_BUNYAN_LOGGING = process.env.ENABLE_BUNYAN_LOGGING || "ON";
 
+
+  global.REQUEST_TIMEOUT_FOR_REPORTS = process.env.REQUEST_TIMEOUT_FOR_REPORTS || 120000;
+
   // boostrap all models
   global.models = requireAll({
     dirname: ROOT_PATH+ "/models",

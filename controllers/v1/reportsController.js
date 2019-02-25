@@ -1655,7 +1655,7 @@ module.exports = class Reports {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
@@ -1701,7 +1701,7 @@ module.exports = class Reports {
           });
         } else {
 
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 100)
 
           let submissionIds
           let submissionDocuments
@@ -1743,7 +1743,10 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null','');
+
+                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1757,7 +1760,7 @@ module.exports = class Reports {
                             "Question": singleAnswer.payload.question[0],
                             "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                             "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                            "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                            "Assessor Id": asssessorId,
                             "Remarks": singleAnswer.remarks || "",
                             "Start Time": this.gmtToIst(singleAnswer.startTime),
                             "End Time": this.gmtToIst(singleAnswer.endTime),
@@ -1807,7 +1810,7 @@ module.exports = class Reports {
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
-                                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                        "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
                                         "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
                                         "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
@@ -1889,6 +1892,19 @@ module.exports = class Reports {
                 }
               })
             }));
+
+            function sleep(ms){
+              return new Promise(resolve=>{
+                  setTimeout(resolve,ms)
+              })
+            }
+
+            if(input.readableBuffer && input.readableBuffer.length) {
+              while(input.readableBuffer.length > 20000) {
+                await sleep(2000)
+              }
+            }
+
           }
 
         }
