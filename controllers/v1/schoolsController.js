@@ -415,11 +415,15 @@ module.exports = class Schools extends Abstract {
           programQueryObject
         );
 
+
         if (!programDocument) {
           let responseMessage = 'No program found.';
           return resolve({ status: 400, message: responseMessage })
         }
-
+        let evaluationFrameworkQuery = {
+          _id: programDocument.components[0].id
+        }
+        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne(evaluationFrameworkQuery, { _id: 1, externalId: 1 })
         let accessability =
           programDocument.components[0].roles[
             await this.getRoll(req.userDetails.allRoles)
@@ -510,6 +514,8 @@ module.exports = class Schools extends Abstract {
           programId: programDocument._id,
           programExternalId: programDocument.externalId,
           schoolExternalId: schoolDocument.externalId,
+          evaluationFrameworkId: evaluationFrameworkDocument._id,
+          evaluationFrameworkExternalId: evaluationFrameworkDocument.externalId,
           programInformation: {
             name: programDocument.name,
             externalId: programDocument.externalId,

@@ -1549,28 +1549,14 @@ module.exports = class Reports {
         };
 
         const submissionIds = await database.models.submissions.find(queryParams, {
-          _id: 1, evaluationFrameworkId: 1
+          _id: 1
         })
 
-        let evaluationIds = [];
-        submissionIds.forEach(eachSubmission => {
-          evaluationIds.push(eachSubmission._doc.evaluationFrameworkId)
-        })
-
-        const programsDocument = await database.models.programs.find({
-          "components": {
-            $elemMatch: {
-              "id": { $in: evaluationIds }
-            }
-          }
+        const programsDocument = await database.models.programs.findOne({
+          externalId: req.params._id
         }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
 
-        let schoolProfileFields;
-        programsDocument.forEach(eachProgram => {
-          eachProgram.components.forEach(eachComponent => {
-            schoolProfileFields = this.getSchoolProfileFields(eachComponent.schoolProfileFieldsPerSchoolTypes)
-          })
-        })
+        let schoolProfileFields = await this.schoolProfileFieldsPerType(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
 
         const fileName = `schoolProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -1641,15 +1627,15 @@ module.exports = class Reports {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
-  * @apiVersion 0.0.1
-  * @apiName Generate all ecm report by date
-  * @apiGroup Report
-  * @apiParam {String} fromDate From Date
-  * @apiParam {String} toDate To Date
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
+ * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
+ * @apiVersion 0.0.1
+ * @apiName Generate all ecm report by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
@@ -1675,7 +1661,7 @@ module.exports = class Reports {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
@@ -1721,7 +1707,7 @@ module.exports = class Reports {
           });
         } else {
 
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 100)
 
           let submissionIds
           let submissionDocuments
@@ -1763,7 +1749,10 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
+
+                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1777,7 +1766,7 @@ module.exports = class Reports {
                             "Question": singleAnswer.payload.question[0],
                             "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                             "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                            "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                            "Assessor Id": asssessorId,
                             "Remarks": singleAnswer.remarks || "",
                             "Start Time": this.gmtToIst(singleAnswer.startTime),
                             "End Time": this.gmtToIst(singleAnswer.endTime),
@@ -1827,7 +1816,7 @@ module.exports = class Reports {
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
-                                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                        "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
                                         "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
                                         "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
@@ -1909,6 +1898,19 @@ module.exports = class Reports {
                 }
               })
             }));
+
+            function sleep(ms) {
+              return new Promise(resolve => {
+                setTimeout(resolve, ms)
+              })
+            }
+
+            if (input.readableBuffer && input.readableBuffer.length) {
+              while (input.readableBuffer.length > 20000) {
+                await sleep(2000)
+              }
+            }
+
           }
 
         }
@@ -2049,7 +2051,7 @@ module.exports = class Reports {
     return istStart;
   }
 
-  getSchoolProfileFields(arrayOfObjects) {
+  schoolProfileFieldsPerType(arrayOfObjects) {
     let schoolFieldArray = [];
 
     Object.values(arrayOfObjects).forEach(arrayFields => {
