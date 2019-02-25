@@ -59,11 +59,11 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
 
                 if (req.body.schoolLeaders) {
 
-                    let addTeachersQuery = await database.models.schoolLeaderRegistry.create(
+                    var schoolLeaderRegistryDocuments = await database.models.schoolLeaderRegistry.create(
                         req.body.schoolLeaders
                     );
 
-                    if (addTeachersQuery.length != req.body.schoolLeaders.length) {
+                    if (schoolLeaderRegistryDocuments.length != req.body.schoolLeaders.length) {
                         throw "School Leaders information was not inserted!"
                     }
 
@@ -73,7 +73,7 @@ module.exports = class SchoolLeaderRegistry extends Abstract {
 
                 let responseMessage = "School Leaders information added successfully."
 
-                let response = { message: responseMessage };
+                let response = { message: responseMessage, result: schoolLeaderRegistryDocuments };
 
                 return resolve(response);
             } catch (error) {

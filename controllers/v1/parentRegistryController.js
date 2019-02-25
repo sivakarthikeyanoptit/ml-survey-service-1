@@ -64,11 +64,11 @@ module.exports = class ParentRegistry extends Abstract {
             }
           })
 
-          let addParentsQuery = await database.models.parentRegistry.create(
+          var parentRegistryDocuments = await database.models.parentRegistry.create(
             req.body.parents
           );
 
-          if (addParentsQuery.length != req.body.parents.length) {
+          if(parentRegistryDocuments.length != req.body.parents.length) {
             throw "Some parent information was not inserted!"
           }
 
@@ -78,7 +78,7 @@ module.exports = class ParentRegistry extends Abstract {
 
         let responseMessage = "Parent information added successfully."
 
-        let response = { message: responseMessage };
+        let response = { message: responseMessage, result: parentRegistryDocuments};
 
         return resolve(response);
       } catch (error) {
