@@ -350,6 +350,7 @@ module.exports = class Submission extends Abstract {
               ["evidences." + req.body.evidence.externalId + ".endTime"]: req.body.evidence.endTime,
               ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: false,
               evidencesStatus: submissionDocument.evidencesStatus,
+              evaluationFrameworkId: submissionDocument.evaluationFrameworkId,
               status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
             }
           } else {
