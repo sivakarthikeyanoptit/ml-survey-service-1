@@ -25,22 +25,11 @@ module.exports = class Export {
                         component.roles[role]['users'] = [];
                     })
                 })
-    
-                let filePath = this.getFileName('Program');
-    
-                fs.writeFile(filePath, JSON.stringify(programDocument), 'utf8', function (error) {
-                    if (error) {
-                        return reject({
-                            status: 500,
-                            message: error,
-                            errorObject: error
-                        });
-                    }
-                    return resolve({
-                        isResponseAStream: true,
-                        fileNameWithPath: filePath
-                    });
-                });
+
+                let filePath = this.getFileName(`Program_${programId}`);
+
+                return resolve(this.returnFile(filePath,programDocument));
+                
             } catch (error) {
                 return reject({
                     status: 500,
@@ -62,22 +51,11 @@ module.exports = class Export {
                         message: "No evaluationFramework found for given params."
                     });
                 }
-    
-                let filePath = this.getFileName('EvaluationFramework');
-    
-                fs.writeFile(filePath, JSON.stringify(evaluationFrameworkIdDocument), 'utf8', function (error) {
-                    if (error) {
-                        return reject({
-                            status: 500,
-                            message: error,
-                            errorObject: error
-                        });
-                    }
-                    return resolve({
-                        isResponseAStream: true,
-                        fileNameWithPath: filePath
-                    });
-                });
+
+                let filePath = this.getFileName(`EvaluationFramework_${evaluationFrameworkId}`);
+                
+                return resolve(this.returnFile(filePath,evaluationFrameworkIdDocument));
+                
             } catch (error) {
                 return reject({
                     status: 500,
@@ -88,7 +66,7 @@ module.exports = class Export {
         })
     }
 
-    criteriaByEvaluationFrameworkId(req) {
+    criterias(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 let evaluationFrameworkId = req.params._id;
@@ -99,26 +77,12 @@ module.exports = class Export {
                         message: "No evaluationFramework found for given params."
                     });
                 }
-                let schoolsController = new schoolsBaseController;
-                let filePath = this.getFileName('Criteria');
-                let criteriaIds = schoolsController.getCriteriaIds(evaluationFrameworkDocument.themes);
-                let allCriteriaDocument = await Promise.all(criteriaIds.map(async (singleCriteria) => {
-                    return database.models.criterias.findOne({ _id: singleCriteria }).exec();
-                }))
-    
-                fs.writeFile(filePath, JSON.stringify(allCriteriaDocument), 'utf8', function (error) {
-                    if (error) {
-                        return reject({
-                            status: 500,
-                            message: error,
-                            errorObject: error
-                        });
-                    }
-                    return resolve({
-                        isResponseAStream: true,
-                        fileNameWithPath: filePath
-                    });
-                });
+                let filePath = this.getFileName(`Criteria_${evaluationFrameworkId}`);
+                let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
+                let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } });
+
+                return resolve(this.returnFile(filePath,allCriteriaDocument));
+                
             } catch (error) {
                 return reject({
                     status: 500,
@@ -128,8 +92,8 @@ module.exports = class Export {
             }
         })
     }
-    
-    questionsByEvaluationFrameworkId(req) {
+
+    questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 let evaluationFrameworkId = req.params._id;
@@ -141,39 +105,24 @@ module.exports = class Export {
                     });
                 }
                 
-                let schoolsController = new schoolsBaseController;
-                let filePath = this.getFileName('Question');
-                let criteriaIds = schoolsController.getCriteriaIds(evaluationFrameworkDocument.themes);
+                let filePath = this.getFileName(`Question_${evaluationFrameworkId}`);
+                let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
     
-                let allCriteriaDocument = await Promise.all(criteriaIds.map(async (singleCriteria) => {
-                    return database.models.criterias.findOne({ _id: singleCriteria }).exec();
-                }))
-    
-                let questionIds = [];
-                allCriteriaDocument.forEach(singleCriteria=>{
+                let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: {$in:criteriaIds} })
+
+                let allQuestions = [];
+                allCriteriaQuestionDocuments.forEach(singleCriteria=>{
                     singleCriteria.evidences.forEach(singleEvidence=>{
                         singleEvidence.sections.forEach(section=>{
-                            questionIds.push(section.questions)
+                            section.questions.forEach(question=>{
+                                allQuestions.push(question)
+                            })
                         })
                     })
                 })
-                let allQuestionsDocument = await Promise.all(questionIds.map(async (questionId) => {
-                    return database.models.questions.findOne({ _id: questionId }).exec();
-                }))
-    
-                fs.writeFile(filePath, JSON.stringify(allQuestionsDocument), 'utf8', function (error) {
-                    if (error) {
-                        return reject({
-                            status: 500,
-                            message: error,
-                            errorObject: error
-                        });
-                    }
-                    return resolve({
-                        isResponseAStream: true,
-                        fileNameWithPath: filePath
-                    });
-                });
+
+                return resolve(this.returnFile(filePath,allQuestions));
+
             } catch (error) {
                 return reject({
                     status: 500,
@@ -187,7 +136,25 @@ module.exports = class Export {
     getFileName(name) {
         let currentDate = new Date();
         let fileExtensionWithTime = moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".json";
-        return ROOT_PATH + '/public/reports/' + name + '_' + fileExtensionWithTime;
+        return ROOT_PATH + '/public/exportDocuments/' + name + '_' + fileExtensionWithTime;
+    }
+
+    returnFile(filePath,document){
+        return new Promise(async (resolve, reject) => {
+            fs.writeFile(filePath, JSON.stringify(document), 'utf8', function (error) {
+                if (error) {
+                    return reject({
+                        status: 500,
+                        message: error,
+                        errorObject: error
+                    });
+                }
+                return resolve({
+                    isResponseAStream: true,
+                    fileNameWithPath: filePath
+                });
+            });
+        })
     }
 
 

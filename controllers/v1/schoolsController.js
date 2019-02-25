@@ -559,7 +559,7 @@ module.exports = class Schools extends Abstract {
               let themeCriterias = new Array
 
               if (eachTheme.children) {
-                themeCriterias = this.getCriteriaIds(eachTheme.children)
+                themeCriterias = gen.utils.getCriteriaIds(eachTheme.children)
               } else {
                 themeCriterias = eachTheme.criteria
               }
@@ -815,19 +815,4 @@ module.exports = class Schools extends Abstract {
     };
   }
 
-  getCriteriaIds(arrayOfChildren) {
-    let allCriteriaIds = new Array
-    arrayOfChildren.forEach(eachChildren => {
-      let criteriaIdArray = new Array
-      if (eachChildren.children) {
-        criteriaIdArray = this.getCriteriaIds(eachChildren.children)
-      } else {
-        criteriaIdArray = eachChildren.criteria
-      }
-      criteriaIdArray.forEach(eachCriteriaId => {
-        allCriteriaIds.push(eachCriteriaId)
-      })
-    })
-    return allCriteriaIds
-  }
 };
