@@ -134,7 +134,7 @@ module.exports = class Assessments {
                 let themeCriterias = new Array
 
                 if (eachTheme.children) {
-                    themeCriterias = controllers.schoolsController.getCriteriaIds(eachTheme.children)
+                    themeCriterias = gen.utils.getCriteriaIds(eachTheme.children)
                 } else {
                     themeCriterias = eachTheme.criteria
                 }

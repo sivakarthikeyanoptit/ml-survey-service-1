@@ -10,37 +10,26 @@ module.exports = class Import {
     program(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let programDocument = JSON.parse(req.files.program.data.toString());
+                let programData = JSON.parse(req.files.program.data.toString());
                 //need to implement JOI to validate json
                 let queryObject = {
-                    _id: ObjectId(programDocument._id)
+                    _id: ObjectId(programData._id)
                 };
-                let updateObject = programDocument;
+
+                let programDocument = await database.models.programs.findOne(queryObject)
+
+                if(programDocument){
+                    return resolve({
+                        status: 400,
+                        message: "Program already exist"
+                    });
+                }
     
-                await database.models.programs.findOneAndUpdate(
-                    queryObject,
-                    updateObject,
-                    {
-                        upsert: true,
-                        returnNewDocument: true
-                    },
-                    function (error, result) {
-                        if (error) {
-                            return reject({
-                                status: 500,
-                                message: error,
-                                errorObject: error
-                            });
-                        }
-                        var responseMessage;
-                        if (result) {
-                            responseMessage = `Updated successfully.`;
-                        } else {
-                            responseMessage = `Inserted successfully.`;
-                        }
-                        return resolve({ status: 200, message: responseMessage })
-                    }
-                );
+                programDocument = await database.models.programs.create(programData)
+                return resolve({
+                    status: 200,
+                    message: "Inserted successfully."
+                });
             } catch (error) {
                 return reject({
                     status: 500,
@@ -54,38 +43,27 @@ module.exports = class Import {
     evaluationFramework(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let evaluationFrameworkDocument = JSON.parse(req.files.evaluationFramework.data.toString());
+                let evaluationFrameworkData = JSON.parse(req.files.evaluationFramework.data.toString());
                 //need to implement JOI to validate json
-                delete evaluationFrameworkDocument.__v
                 let queryObject = {
-                    _id: ObjectId(evaluationFrameworkDocument._id)
+                    _id: ObjectId(evaluationFrameworkData._id)
                 };
-                let updateObject = evaluationFrameworkDocument;
+
+                let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne(queryObject)
+
+                if(evaluationFrameworkDocument){
+                    return resolve({
+                        status: 400,
+                        message: "Framework already exist"
+                    });
+                }
     
-                await database.models.evaluationFrameworks.findOneAndUpdate(
-                    queryObject,
-                    updateObject,
-                    {
-                        upsert: true,
-                        returnNewDocument: true
-                    },
-                    function (error, result) {
-                        if (error) {
-                            return reject({
-                                status: 500,
-                                message: error,
-                                errorObject: error
-                            });
-                        }
-                        var responseMessage;
-                        if (result) {
-                            responseMessage = `Updated successfully.`;
-                        } else {
-                            responseMessage = `Inserted successfully.`;
-                        }
-                        return resolve({ status: 200, message: responseMessage })
-                    }
-                );
+                evaluationFrameworkDocument = await database.models.evaluationFrameworks.create(evaluationFrameworkData)
+                return resolve({
+                    status: 200,
+                    message: "Inserted successfully."
+                });
+
             } catch (error) {
                 return reject({
                     status: 500,
@@ -96,28 +74,13 @@ module.exports = class Import {
         })
     }
 
-    criteriaByEvaluationFrameworkId(req) {
+    criterias(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let criteriaDocuments = JSON.parse(req.files.criteria.data.toString());
+                let criteriaData = JSON.parse(req.files.criteria.data.toString());
                 //need to implement JOI to validate json
-                let result = await Promise.all(criteriaDocuments.map(async (criteriaDocument) => {
-                    delete criteriaDocument.__v;
-                    delete criteriaDocument.createdAt;
-                    let queryObject = {
-                        _id: ObjectId(criteriaDocument._id)
-                    };
-                    let updateObject = criteriaDocument;
-                    return database.models.criterias.findOneAndUpdate(
-                        queryObject,
-                        updateObject,
-                        {
-                            upsert: true,
-                            new: true,
-                            returnNewDocument: true
-                        }
-                    );
-                }))
+                await database.models.criterias.create(criteriaData);
+
                 let responseMessage = `Inserted successfully.`;
                 return resolve({ status: 200, message: responseMessage })
             } catch (error) {
@@ -130,30 +93,13 @@ module.exports = class Import {
         })
     }
 
-    questionsByEvaluationFrameworkId(req) {
+    questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let questionDocuments = JSON.parse(req.files.question.data.toString());
+                let questionData = JSON.parse(req.files.question.data.toString());
                 //need to implement JOI to validate json
-                let result = await Promise.all(questionDocuments.map(async (questionDocument) => {
-                    if (questionDocument) {
-                        if (questionDocument.__v) delete questionDocument.__v;
-                        if (questionDocument.createdAt) delete questionDocument.createdAt;
-                        let queryObject = {
-                            _id: ObjectId(questionDocument._id)
-                        };
-                        let updateObject = questionDocument;
-                        return database.models.questions.findOneAndUpdate(
-                            queryObject,
-                            updateObject,
-                            {
-                                upsert: true,
-                                new: true,
-                                returnNewDocument: true
-                            }
-                        );
-                    }
-                }))
+                await database.models.questions.create(questionData);
+                
                 let responseMessage = `Inserted successfully.`;
                 return resolve({ status: 200, message: responseMessage })
             }
