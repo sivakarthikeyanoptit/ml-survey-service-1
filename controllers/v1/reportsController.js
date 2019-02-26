@@ -2051,12 +2051,12 @@ module.exports = class Reports {
     return istStart;
   }
 
-  schoolProfileFieldsPerType(arrayOfObjects) {
+  schoolProfileFieldsPerType(schoolProfileFieldsPerSchoolTypes) {
     let schoolFieldArray = [];
 
-    Object.values(arrayOfObjects).forEach(arrayFields => {
-      arrayFields.forEach(eachArray => {
-        schoolFieldArray.push(eachArray)
+    Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
+      eachSchoolProfileFieldPerSchoolType.forEach(eachSchoolField => {
+        schoolFieldArray.push(eachSchoolField)
       })
     })
     return schoolFieldArray;
