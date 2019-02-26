@@ -944,6 +944,16 @@ module.exports = class Criterias extends Abstract {
         let criteriaData = await csv().fromString(req.files.criterias.data.toString())
 
         Promise.all(criteriaData.map(async criteria => {
+
+          let fieldsWithOutSchool = {};
+          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
+            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+          })
+          let criteriaStructure = {
+            owner: req.userDetails.id,
+            name: criteria.criteriaName,
+            description: criteria
+          };
           let findQuery = {
             externalId: criteria.criteriaID
           }
