@@ -61,7 +61,7 @@ module.exports = class Import {
                 evaluationFrameworkDocument = await database.models.evaluationFrameworks.create(evaluationFrameworkData)
                 return resolve({
                     status: 200,
-                    message: "Questions inserted successfully."
+                    message: "Framework inserted successfully."
                 });
 
             } catch (error) {
@@ -81,7 +81,7 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.criterias.create(criteriaData);
 
-                let responseMessage = `Criteria inserted successfully.`;
+                let responseMessage = `Criterias inserted successfully.`;
                 return resolve({ status: 200, message: responseMessage })
             } catch (error) {
                 return reject({
@@ -100,7 +100,7 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.questions.create(questionData);
                 
-                let responseMessage = `Inserted successfully.`;
+                let responseMessage = `Questions inserted successfully.`;
                 return resolve({ status: 200, message: responseMessage })
             }
             catch (error) {
