@@ -872,15 +872,11 @@ module.exports = class Criterias extends Abstract {
           counter++
         ) {
           let component = programsData[programId].components[counter];
+
           let evaluationFrameworkQueryObject = [
             { $match: { _id: ObjectId(component.id) } },
             {
-              $lookup: {
-                from: "criteriaQuestions",
-                localField: "themes.aoi.indicators.criteria",
-                foreignField: "_id",
-                as: "criteriaDocs"
-              }
+              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
             }
           ];
 
@@ -888,9 +884,17 @@ module.exports = class Criterias extends Abstract {
             "evaluationFrameworks"
           ].aggregate(evaluationFrameworkQueryObject);
 
-          evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
+          let criteriasIdArray = new Array
+          evaluationFrameworkDocument.forEach(eachEvaluation => {
+            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
+          });
+
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
+
+          criteriaQuestionDocument.forEach(criteria => {
+
             submissionDocumentCriterias.push(
-              _.omit(criteria, [
+              _.omit(criteria._doc, [
                 "resourceType",
                 "language",
                 "keywords",
@@ -905,9 +909,7 @@ module.exports = class Criterias extends Abstract {
         let updatedCriteriasObject = {}
 
         updatedCriteriasObject.$set = {
-          criterias: submissionDocumentCriterias,
-          programExternalId: programId,
-          "programInformation.externalId": programId
+          criterias: submissionDocumentCriterias
         }
 
         let updateSubmissions = await database.models.submissions.updateMany(
