@@ -934,5 +934,40 @@ module.exports = class Criterias extends Abstract {
     })
   }
 
+  async uploadCriterias(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.files || !req.files.criterias) {
+          throw "Csv file for criterias should be selected"
+        }
+
+        let criteriaData = await csv().fromString(req.files.criterias.data.toString())
+
+        Promise.all(criteriaData.map(async criteria => {
+          let findQuery = {
+            externalId: criteria.criteriaID
+          }
+          let updateQuery = { $set: { "name": criteria.criteriaName, "rubric.levels.L1.description": criteria.L1, "rubric.levels.L2.description": criteria.L2, "rubric.levels.L3.description": criteria.L3, "rubric.levels.L4.description": criteria.L4 } }
+          criteria = await database.models.criterias.findOneAndUpdate(
+            findQuery,
+            updateQuery
+          );
+          return criteria;
+        }))
+
+        let responseMessage = "Criteria levels updated successfully."
+        let response = { message: responseMessage };
+
+        return resolve(response)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    })
+  }
 
 };
