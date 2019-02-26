@@ -128,24 +128,13 @@ module.exports = class Assessments {
             assessment.description = frameWorkDocument.description;
             assessment.externalId = frameWorkDocument.externalId;
 
-            let criteriasIdArray = new Array
-            frameWorkDocument.themes.forEach(eachTheme => {
-
-                let themeCriterias = new Array
-
-                if (eachTheme.children) {
-                    themeCriterias = controllers.schoolsController.getCriteriaIds(eachTheme.children)
-                } else {
-                    themeCriterias = eachTheme.criteria
-                }
-
-                themeCriterias.forEach(themeCriteriaId => {
-                    criteriasIdArray.push(themeCriteriaId)
-                })
-            })
+            let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
 
             let submissionDocument = {};
 
+            submissionDocument.evaluationFrameworkId =  frameWorkDocument._id
+            submissionDocument.evaluationFrameworkExternalId =  frameWorkDocument.externalId
+  
             let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
             let evidenceMethodArray = {};
