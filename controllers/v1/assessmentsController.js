@@ -1,5 +1,31 @@
 module.exports = class Assessments {
 
+    /**
+ * @apiDefine errorBody
+ * @apiError {String} status 4XX,5XX
+ * @apiError {String} message Error
+ */
+
+    /**
+       * @apiDefine successBody
+       *  @apiSuccess {String} status 200
+       * @apiSuccess {String} result Data
+       */
+
+    /**
+    * @api {get} /assessment/api/v1/assessments/list?type={assessment}&subType={individual}&status={active} Individual assessment list
+    * @apiVersion 0.0.1
+    * @apiName Individual assessment list
+    * @apiGroup IndividualAssessments
+    * @apiParam {String} type Type.
+    * @apiParam {String} subType SubType.
+    * @apiParam {String} status Status.
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/assessments/list
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
     async list(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -57,6 +83,18 @@ module.exports = class Assessments {
 
     }
 
+    /**
+    * @api {get} /assessment/api/v1/assessments/details/{programID}?assessmentId={assessmentID} Detailed assessments
+    * @apiVersion 0.0.1
+    * @apiName Individual assessment details
+    * @apiGroup IndividualAssessments
+    * @apiParam {String} assessmentId Assessment ID.
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/assessments/details/:programID
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
     async details(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -79,7 +117,7 @@ module.exports = class Assessments {
 
             let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId });
 
-            if (!frameWorkDocument){
+            if (!frameWorkDocument) {
                 let responseMessage = 'No assessments found.';
                 return resolve({ status: 400, message: responseMessage })
             }
@@ -90,24 +128,13 @@ module.exports = class Assessments {
             assessment.description = frameWorkDocument.description;
             assessment.externalId = frameWorkDocument.externalId;
 
-            let criteriasIdArray = new Array
-            frameWorkDocument.themes.forEach(eachTheme => {
-
-                let themeCriterias = new Array
-
-                if (eachTheme.children) {
-                    themeCriterias = controllers.schoolsController.getCriteriaIds(eachTheme.children)
-                } else {
-                    themeCriterias = eachTheme.criteria
-                }
-
-                themeCriterias.forEach(themeCriteriaId => {
-                    criteriasIdArray.push(themeCriteriaId)
-                })
-            })
+            let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
 
             let submissionDocument = {};
 
+            submissionDocument.evaluationFrameworkId =  frameWorkDocument._id
+            submissionDocument.evaluationFrameworkExternalId =  frameWorkDocument.externalId
+  
             let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
             let evidenceMethodArray = {};
@@ -130,6 +157,7 @@ module.exports = class Assessments {
                     evidenceMethod.notApplicable = false;
                     evidenceMethod.canBeNotAllowed = true;
                     evidenceMethod.remarks = "";
+                    evidenceMethod.submissions = new Array;
                     submissionDocumentEvidences[evidenceMethod.externalId] = _.omit(
                         evidenceMethod,
                         ["sections"]

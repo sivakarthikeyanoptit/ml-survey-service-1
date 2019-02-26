@@ -1,6 +1,17 @@
 const csv = require("csvtojson");
 
 module.exports = class TeacherRegistry extends Abstract {
+    /**
+        * @apiDefine errorBody
+        * @apiError {String} status 4XX,5XX
+        * @apiError {String} message Error
+        */
+
+    /**
+       * @apiDefine successBody
+       *  @apiSuccess {String} status 200
+       * @apiSuccess {String} result Data
+       */
 
     constructor() {
         super(teacherRegistrySchema);
@@ -9,6 +20,29 @@ module.exports = class TeacherRegistry extends Abstract {
     static get name() {
         return "teacherRegistry";
     }
+
+    /**
+    * @api {post} /assessment/api/v1/teacherRegistry/add Teacher registry add
+    * @apiVersion 0.0.1
+    * @apiName Teacher Registry add
+    * @apiGroup TeacherRegistry
+    * @apiParamExample {json} Request-Body:
+    *{
+    *	"teachers": [
+    *       {
+    *        	"name": "",
+    *        	"qualifications": "",
+    *        	"yearsOfExperience": "",
+    *        	"yearsInCurrentSchool": "",
+    *        	"schoolId": "",
+    *        	"schoolName": "",
+    *        	"programId": ""
+    *        }
+    *	]
+    *}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
 
     add(req) {
@@ -19,11 +53,11 @@ module.exports = class TeacherRegistry extends Abstract {
 
                 if (req.body.teachers) {
 
-                    let addTeachersQuery = await database.models.teacherRegistry.create(
+                    var teacherRegistryDocuments = await database.models.teacherRegistry.create(
                         req.body.teachers
                     );
 
-                    if (addTeachersQuery.length != req.body.teachers.length) {
+                    if (teacherRegistryDocuments.length != req.body.teachers.length) {
                         throw "Some teachers information was not inserted!"
                     }
 
@@ -33,7 +67,7 @@ module.exports = class TeacherRegistry extends Abstract {
 
                 let responseMessage = "Teachers information added successfully."
 
-                let response = { message: responseMessage };
+                let response = { message: responseMessage,result: teacherRegistryDocuments };
 
                 return resolve(response);
             } catch (error) {
@@ -42,6 +76,17 @@ module.exports = class TeacherRegistry extends Abstract {
 
         })
     }
+
+    /**
+* @api {get} /assessment/api/v1/teacherRegistry/list/:schoolId Teacher Registry list
+* @apiVersion 0.0.1
+* @apiName Teacher Registry list
+* @apiGroup TeacherRegistry
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/teacherRegistry/list/5c533ae82ffa8f30d7d7e55e
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
     list(req) {
 
@@ -81,6 +126,18 @@ module.exports = class TeacherRegistry extends Abstract {
 
         })
     }
+
+
+    /**
+    * @api {get} /assessment/api/v1/teacherRegistry/form Teacher registry form
+    * @apiVersion 0.0.1
+    * @apiName Teacher Registry form
+    * @apiGroup TeacherRegistry
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/teacherRegistry/form
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     async form(req) {
         return new Promise(async function (resolve, reject) {
@@ -175,6 +232,16 @@ module.exports = class TeacherRegistry extends Abstract {
         });
     }
 
+    /**
+ * @api {get} /assessment/api/v1/teacherRegistry/fetch/:schoolId Teacher profile
+ * @apiVersion 0.0.1
+ * @apiName Teacher Registry profile
+ * @apiGroup TeacherRegistry
+ * @apiHeader {String} X-authenticated-user-token Authenticity token
+ * @apiSampleRequest /assessment/api/v1/teacherRegistry/fetch/5c533ae82ffa8f30d7d7e55e
+ * @apiUse successBody
+ * @apiUse errorBody 
+ */
 
     async fetch(req) {
         return new Promise(async function (resolve, reject) {
@@ -252,6 +319,19 @@ module.exports = class TeacherRegistry extends Abstract {
         });
     }
 
+    /**
+     * @api {post} /assessment/api/v1/teacherRegistry/update/:TeacherRegistryId Update Teacher Information
+     * @apiVersion 0.0.1
+     * @apiName Update teacher Information
+     * @apiGroup TeacherRegistry
+     * @apiParamExample {json} Request-Body:
+     * 	{
+     *	        "name" : "Name of the teacher",
+     *	        "gender" : "F",
+     *   }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
 
     async update(req) {
         return new Promise(async function (resolve, reject) {

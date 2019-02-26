@@ -2,6 +2,19 @@ const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 
 module.exports = class Submission extends Abstract {
+  /**
+     * @apiDefine errorBody
+     * @apiError {String} status 4XX,5XX
+     * @apiError {String} message Error
+     */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
+
   constructor() {
     super(submissionsSchema);
   }
@@ -63,6 +76,176 @@ module.exports = class Submission extends Abstract {
     };
   }
 
+  /**
+  * @api {post} /assessment/api/v1/submissions/make/{{submissionId}} 
+  * @apiVersion 0.0.1
+  * @apiName submissions added successfully
+  * @apiGroup submissions
+  * @apiParamExample {json} Request-Body:
+  * {
+  * 	"evidence": {
+  *                   "externalId" : "",
+  *                   "answers" : {
+  *                       "5be442149a14ba4b5038dce4" : {
+  *                           "qid" : "",
+  *                           "responseType":"",
+  *                           "value" : [ 
+  *                               {
+  *                                   "5be442dd9a14ba4b5038dce5" : {
+  *                                       "qid" : "",
+  *                                       "value" : "",
+  *                                       "remarks" : "",
+  *                                       "fileName" : [],
+  *                                       "payload" : {
+  *                                           "question" : [ 
+  *                                               "", 
+  *                                               ""
+  *                                           ],
+  *                                           "labels" : [ 
+  *                                               ""
+  *                                           ],
+  *                                           "responseType" : ""
+  *                                       },
+  *                                       "criteriaId" : ""
+  *                                   },
+  *                                   "5be52f5d9a14ba4b5038dd0c" : {
+  *                                       "qid" : "",
+  *                                       "value" : [ 
+  *                                           "String", 
+  *                                           "String"
+  *                                       ],
+  *                                       "remarks" : "",
+  *                                       "fileName" : [],
+  *                                       "payload" : {
+  *                                           "question" : [ 
+  *                                               "", 
+  *                                               ""
+  *                                           ],
+  *                                           "labels" : [ 
+  *                                              "String", 
+  *                                           "String"
+  *                                           ],
+  *                                           "responseType" : """
+  *                                       },
+  *                                       "criteriaId" : ""
+  *                                   }
+  *                               }
+  *                           ],
+  *                           "remarks" : "",
+  *                           "fileName" : [],
+  *                           "payload" : {
+  *                               "question" : [ 
+  *                                   "String"", 
+  *                                   "Stgring"
+  *                               ],
+  *                              "labels" : [ 
+  *                                   [ 
+  *                                       [ 
+  *                                           {
+  *                                               "_id" : "",
+  *                                               "question" : [ 
+  *                                                   "String", 
+  *                                                   "String"
+  *                                               ],
+  *                                               "options" : [ 
+  *                                                   {
+ *                                                       "value" : "",
+ *                                                       "label" : ""
+ *                                                   }
+ *                                               ],
+ *                                               "children" : [],
+ *                                               "questionGroup" : [ 
+ *                                                   ""
+ *                                               ],
+ *                                               "fileName" : [],
+ *                                               "instanceQuestions" : [],
+ *                                               "deleted" : Boolean,
+ *                                               "tip" : "",
+ *                                               "externalId" : "",
+ *                                               "visibleIf" : "",
+ *                                               "file" : "",
+ *                                               "responseType" : "",
+ *                                               "validation" : {
+ *                                                   "required" : Boolean
+ *                                               },
+ *                                               "showRemarks" : Boolean,
+ *                                               "isCompleted" : Boolean,
+ *                                               "remarks" : "",
+ *                                               "value" : "",
+ *                                               "canBeNotApplicable" : "Boolean",
+ *                                               "usedForScoring" : "",
+ *                                               "modeOfCollection" : "",
+ *                                               "questionType" : "",
+ *                                               "accessibility" : "",
+ *                                               "updatedAt" : "Date",
+ *                                               "createdAt" : "Date",
+ *                                               "__v" : 0,
+ *                                               "payload" : {
+ *                                                   "criteriaId" : ""
+ *                                               }
+ *                                           }, 
+ *                                           {
+ *                                               "_id" : "",
+ *                                               "question" : [ 
+ *                                                   "String", 
+ *                                                   "String"
+ *                                               ],
+ *                                               "options" : [ 
+ *                                                   {
+ *                                                       "value" : "",
+ *                                                       "label" : ""
+ *                                                   }
+ *                                               ],
+ *                                               "children" : [],
+ *                                               "questionGroup" : [ 
+ *                                                   "String"
+ *                                               ],
+ *                                               "fileName" : [],
+ *                                               "instanceQuestions" : [],
+ *                                               "deleted" : Boolean,
+ *                                               "tip" : "",
+ *                                               "externalId" : "",
+ *                                               "visibleIf" : "",
+ *                                               "file" : "",
+ *                                               "responseType" : "",
+ *                                               "validation" : {
+ *                                                   "required" : Boolean
+ *                                               },
+ *                                               "showRemarks" : Boolean,
+ *                                               "isCompleted" : Boolean,
+ *                                               "remarks" : "",
+ *                                               "value" : "",
+ *                                               "canBeNotApplicable" : "Boolean",
+ *                                               "usedForScoring" : "",
+ *                                               "modeOfCollection" : "",
+ *                                               "questionType" : "",
+ *                                               "accessibility" : "",
+ *                                               "updatedAt" : "Date",
+ *                                               "createdAt" : "Date",
+ *                                               "__v" : 0,
+ *                                               "payload" : {
+ *                                                   "criteriaId" : ""
+ *                                               }
+ *                                           }
+ *                                       ], 
+ *                                   ]
+ *                               ],
+ *                               "responseType" : ""
+ *                           },
+ *                           "criteriaId" : ""
+ *                       }
+ *                   },
+ *                   "startTime" : Date,
+ *                   "endTime" : Date,
+ *                   "gpsLocation" : "String,String",
+ *                   "submittedBy" : """,
+ *                   "isValid" : Boolean
+ *               }
+ * }
+ * @apiUse successBody
+ * @apiUse errorBody
+  */
+
   async make(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -100,7 +283,6 @@ module.exports = class Submission extends Abstract {
           req.body.evidence.submissionDate = new Date()
 
           let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == req.body.evidence.externalId);
-
           if (submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
             runUpdateQuery = true
             req.body.evidence.isValid = true
@@ -260,6 +442,16 @@ module.exports = class Submission extends Abstract {
 
     })
   }
+
+  /**
+* @api {post} /assessment/api/v1/submissions/completeParentInterview/:submissionId Complete parent interview
+* @apiVersion 0.0.1
+* @apiName Complete Parent Interview
+* @apiSampleRequest /assessment/api/v1/submissions/completeParentInterview/5c5147ae95743c5718445eff
+* @apiGroup submissions
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async completeParentInterview(req) {
     return new Promise(async (resolve, reject) => {
@@ -634,7 +826,7 @@ module.exports = class Submission extends Abstract {
         if (req.body.parentId && req.body.status && submissionDocument) {
 
           let parentInformation = await database.models.parentRegistry.findOne(
-            {_id:ObjectId(req.body.parentId)}
+            { _id: ObjectId(req.body.parentId) }
           );
 
           if (parentInformation) {
@@ -685,6 +877,16 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+  /**
+* @api {get} /assessment/api/v1/submissions/getParentInterviewResponse/:submissionId Fetch Parent interview
+* @apiVersion 0.0.1
+* @apiName Fetch Parent Interview
+* @apiGroup submissions
+* @apiParam {String} parentId Parent ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async getParentInterviewResponse(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -709,7 +911,7 @@ module.exports = class Submission extends Abstract {
         if (req.query.parentId && submissionDocument) {
 
           let parentInformation = await database.models.parentRegistry.findOne(
-            {_id:ObjectId(req.query.parentId)}
+            { _id: ObjectId(req.query.parentId) }
           );
 
           if (parentInformation) {
@@ -1028,7 +1230,15 @@ module.exports = class Submission extends Abstract {
     })
   }
 
-
+  /**
+* @api {get} /assessment/api/v1/submissions/isAllowed/:submissionId Fetch submissions
+* @apiVersion 0.0.1
+* @apiName Fetch submissions
+* @apiGroup submissions
+* @apiParam {String} evidenceId Evidence ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
   async isAllowed(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -1306,7 +1516,22 @@ module.exports = class Submission extends Abstract {
   //   });
   // }
 
-
+  /**
+   * @api {post} {{url}}/assessment/api/v1/submissions/feedback/:submissionId Submission feedback added
+   * @apiVersion 0.0.1
+   * @apiName Submission Feedback 
+   * @apiGroup submissions
+   * @apiParamExample {json} Request-Body:
+   * {
+	 * "feedback": {
+	 *       "q1" : "",
+	 *       "q2" : "",
+	 *       "q3" : ""     
+	 * }
+   *  }
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
   async feedback(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
@@ -1360,6 +1585,16 @@ module.exports = class Submission extends Abstract {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
+* @apiVersion 0.0.1
+* @apiName Fetch submission status
+* @apiGroup submissions
+* @apiSampleRequest /assessment/api/v1/submissions/status/5c5147ae95743c5718445eff
+* @apiParam {String} submissionId Submission ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async status(req) {
     return new Promise(async (resolve, reject) => {

@@ -1,4 +1,5 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
+let pagination = require(ROOT_PATH + "/generics/middleware/pagination")
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -7,6 +8,7 @@ module.exports = function (app) {
   const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
 
   app.use(applicationBaseUrl, authenticator);
+  app.use(applicationBaseUrl, pagination);
 
   var router = async function (req, res, next) {
 
@@ -59,10 +61,14 @@ module.exports = function (app) {
             failed: result.failed
           });
         }
-        loggerObj.info({ resp: result });
-        console.log('-------------------Response log starts here-------------------');
-        console.log(result);
-        console.log('-------------------Response log ends here-------------------');
+        if(ENABLE_BUNYAN_LOGGING === "ON") {
+          loggerObj.info({ resp: result });
+        }
+        if(ENABLE_CONSOLE_LOGGING === "ON") {
+          console.log('-------------------Response log starts here-------------------');
+          console.log(result);
+          console.log('-------------------Response log ends here-------------------');
+        }
       }
       catch (error) {
         res.status(error.status ? error.status : 400).json({

@@ -3,6 +3,17 @@ const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports {
+  /**
+   * @apiDefine errorBody
+   * @apiError {String} status 4XX,5XX
+   * @apiError {String} message Error
+   */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
   constructor() {
   }
 
@@ -29,6 +40,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for school
+ * @apiVersion 0.0.1
+ * @apiName Fetch submission reports for school
+ * @apiGroup Report
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async status(req) {
     return new Promise(async (resolve, reject) => {
@@ -143,6 +163,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/assessorSchools/ Fetch assessors reports for school
+* @apiVersion 0.0.1
+* @apiName Fetch assessors reports for school
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async assessorSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -241,6 +270,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/schoolAssessors/ Fetch school wise assessor reports
+ * @apiVersion 0.0.1
+ * @apiName Fetch school wise assessor reports
+ * @apiGroup Report
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async schoolAssessors(req) {
     return new Promise(async (resolve, reject) => {
@@ -341,6 +379,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
+* @apiVersion 0.0.1
+* @apiName Fetch school status based on program Id
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async programSchoolsStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -361,37 +408,31 @@ module.exports = class Reports {
           });
         }
 
+        result.id = programDocument._id;
+        result.schoolId = [];
+
         programDocument.components.forEach(document => {
-          result.schoolId = document.schools;
-          result.id = programDocument._id;
+          result.schoolId.push(...document.schools);
         });
 
-        let schoolQueryObject = {
-          _id: { $in: Object.values(result.schoolId) }
-        };
-        let schoolDocument = await database.models.schools.find(
-          schoolQueryObject
-        );
-
-        let submissionQuery = {
-          programId: { $in: ObjectId(result.id) }
-        };
-
-        let submissionDocument = database.models.submissions.find(
-          submissionQuery,
+        let schoolDocument = database.models.schools.find(
           {
-            schoolId: 1,
-            status: 1,
-            completedDate: 1,
-            createdAt: 1
+            _id: { $in: result.schoolId }
           }
         ).exec();
 
-        let submissionEvidencesCount = database.models.submissions.aggregate(
+        let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
+            {
+              $match: { programId: result.id }
+            },
             {
               $project: {
                 schoolId: 1,
+                status: 1,
+                completedDate: 1,
+                createdAt: 1,
+                programExternalId: 1,
                 submissionCount: {
                   $reduce: {
                     input: "$evidencesStatus",
@@ -409,8 +450,6 @@ module.exports = class Reports {
           ]
         ).exec();
 
-
-
         const fileName = `programSchoolsStatusByProgramId_${req.params._id}`;
 
         let fileStream = new FileStream(fileName);
@@ -424,25 +463,21 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([submissionDocument, submissionEvidencesCount]).then(submissionDocumentWithCount => {
-          let submissionDocument = submissionDocumentWithCount[0];
-          let submissionEvidencesCount = submissionDocumentWithCount[1];
+        Promise.all([schoolDocument, submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument => {
+          let schoolDocument = submissionWithSchoolDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
           let schoolSubmission = {};
-          submissionDocument.forEach(submission => {
-
-            let evidencesStatus = submissionEvidencesCount.find(singleEvidenceCount => {
-              return singleEvidenceCount.schoolId.toString() == submission.schoolId.toString()
-            })
+          submissionDataWithEvidencesCount.forEach(submission => {
             schoolSubmission[submission.schoolId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
                 : "-",
               createdAt: this.gmtToIst(submission.createdAt),
-              submissionCount: evidencesStatus.submissionCount
+              submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDocument.length) {
+          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
@@ -489,6 +524,16 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId Fetch program submission status
+* @apiVersion 0.0.1
+* @apiName Fetch program submission status
+* @apiGroup Report
+* @apiParam {String} evidenceId Evidence ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
@@ -734,6 +779,15 @@ module.exports = class Reports {
     });
   }
 
+  /**
+* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
+* @apiVersion 0.0.1
+* @apiName Fetch criterias based on schoolId
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   async generateCriteriasBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -828,6 +882,15 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
+* @apiVersion 0.0.1
+* @apiName Fetch school submission status
+* @apiGroup Report
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async generateSubmissionReportsBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
@@ -1063,6 +1126,17 @@ module.exports = class Reports {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/parentRegistry/:programId Fetch Parent Registry
+  * @apiVersion 0.0.1
+  * @apiName Fetch Parent Registry
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async parentRegistry(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -1192,6 +1266,17 @@ module.exports = class Reports {
     });
   }
 
+  /**
+ * @api {get} /assessment/api/v1/reports/teacherRegistry/:programId Fetch Teacher Registry
+ * @apiVersion 0.0.1
+ * @apiName Fetch Teacher Registry
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
   async teacherRegistry(req) {
     return (new Promise(async (resolve, reject) => {
       try {
@@ -1313,6 +1398,17 @@ module.exports = class Reports {
       }
     }))
   }
+
+  /**
+* @api {get} /assessment/api/v1/reports/schoolLeaderRegistry/:programId Fetch School Leader Information
+* @apiVersion 0.0.1
+* @apiName Fetch School Leader Registry Information
+* @apiGroup Report
+* @apiParam {String} fromDate From Date
+* @apiParam {String} toDate To Date
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async schoolLeaderRegistry(req) {
     return (new Promise(async (resolve, reject) => {
@@ -1436,6 +1532,15 @@ module.exports = class Reports {
     }))
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/schoolProfileInformation/:programId Fetch School Profile Information
+  * @apiVersion 0.0.1
+  * @apiName Fetch School Profile Information
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async schoolProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -1446,6 +1551,12 @@ module.exports = class Reports {
         const submissionIds = await database.models.submissions.find(queryParams, {
           _id: 1
         })
+
+        const programsDocument = await database.models.programs.findOne({
+          externalId: req.params._id
+        }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
+
+        let schoolProfileFields = await this.getSchoolProfileFields(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
 
         const fileName = `schoolProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -1489,15 +1600,15 @@ module.exports = class Reports {
               })
 
             await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
-              let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
+
+              let schoolProfile = _.omit(eachSchoolProfileSubmissionDocument.schoolProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
               if (schoolProfile) {
                 let schoolProfileObject = {};
                 schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
                 schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
-                Object.keys(schoolProfile).forEach(singleKey => {
-                  if (["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(singleKey) == -1) {
-                    schoolProfileObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolProfile[singleKey] || "";
-                  }
+
+                schoolProfileFields.forEach(eachSchoolField => {
+                  schoolProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = schoolProfile[eachSchoolField] ? schoolProfile[eachSchoolField] : ""
                 })
                 input.push(schoolProfileObject);
               }
@@ -1514,6 +1625,17 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
+ * @apiVersion 0.0.1
+ * @apiName Generate all ecm report by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
@@ -1539,7 +1661,7 @@ module.exports = class Reports {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
@@ -1585,7 +1707,7 @@ module.exports = class Reports {
           });
         } else {
 
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 100)
 
           let submissionIds
           let submissionDocuments
@@ -1627,7 +1749,10 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
+
+                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1641,7 +1766,7 @@ module.exports = class Reports {
                             "Question": singleAnswer.payload.question[0],
                             "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                             "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                            "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                            "Assessor Id": asssessorId,
                             "Remarks": singleAnswer.remarks || "",
                             "Start Time": this.gmtToIst(singleAnswer.startTime),
                             "End Time": this.gmtToIst(singleAnswer.endTime),
@@ -1691,7 +1816,7 @@ module.exports = class Reports {
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
-                                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                        "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
                                         "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
                                         "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
@@ -1740,13 +1865,19 @@ module.exports = class Reports {
                                           }
                                         );
 
-                                        eachInstanceChildQuestion.value.forEach(value => {
-                                          multiSelectResponseArray.push(
-                                            multiSelectResponse[value]
-                                          );
-                                        });
+                                        if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
-                                        eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                          eachInstanceChildQuestion.value.forEach(value => {
+                                            multiSelectResponseArray.push(
+                                              multiSelectResponse[value]
+                                            );
+                                          });
+
+                                          eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                        } else {
+                                          eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value
+                                        }
+
                                       }
                                       else {
                                         eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;
@@ -1767,6 +1898,19 @@ module.exports = class Reports {
                 }
               })
             }));
+
+            function sleep(ms) {
+              return new Promise(resolve => {
+                setTimeout(resolve, ms)
+              })
+            }
+
+            if (input.readableBuffer && input.readableBuffer.length) {
+              while (input.readableBuffer.length > 20000) {
+                await sleep(2000)
+              }
+            }
+
           }
 
         }
@@ -1784,6 +1928,118 @@ module.exports = class Reports {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/submissionFeedback/:programId Generate feedback for the submissions
+  * @apiVersion 0.0.1
+  * @apiName Generate feedback for the submissions
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async submissionFeedback(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let submissionQueryObject = {};
+        submissionQueryObject.programExternalId = req.params._id
+        submissionQueryObject["feedback.submissionDate"] = {}
+        submissionQueryObject["feedback.submissionDate"]["$gte"] = fromDate
+        submissionQueryObject["feedback.submissionDate"]["$lte"] = toDate
+
+        if (!req.params._id) {
+          throw "Program ID missing."
+        }
+
+        let submissionsIds = await database.models.submissions.find(
+          submissionQueryObject,
+          {
+            _id: 1
+          }
+        );
+
+        const fileName = `Generate Feedback For Submission`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionsIds.length) {
+          throw "No submission found for given params"
+        }
+
+        else {
+          let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
+          let submissionId
+          let submissionDocumentsArray
+
+
+          for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
+            submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
+              return submissionModel._id
+            });
+
+
+            submissionDocumentsArray = await database.models.submissions.find(
+              {
+                _id: {
+                  $in: submissionId
+                }
+              },
+              { feedback: 1, assessors: 1 }
+            )
+            await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
+              let result = {};
+              let assessorObject = {};
+
+              eachSubmission.assessors.forEach(eachAssessor => {
+                assessorObject[eachAssessor.userId] = { externalId: eachAssessor.externalId };
+              })
+
+              eachSubmission.feedback.forEach(eachFeedback => {
+                result["Q1"] = eachFeedback.q1;
+                result["Q2"] = eachFeedback.q2;
+                result["Q3"] = eachFeedback.q3;
+                result["Q4"] = eachFeedback.q4;
+                result["School Id"] = eachFeedback.schoolId;
+                result["School Name"] = eachFeedback.schoolName;
+                result["Program Id"] = eachFeedback.programId;
+                result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
+                result["Submission Date"] = eachFeedback.submissionDate;
+              });
+              input.push(result);
+            }))
+          }
+        }
+        input.push(null);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
   gmtToIst(gmtTime) {
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
@@ -1793,5 +2049,16 @@ module.exports = class Reports {
       istStart = "-";
     }
     return istStart;
+  }
+
+  getSchoolProfileFields(schoolProfileFieldsPerSchoolTypes) {
+    let schoolFieldArray = [];
+
+    Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
+      eachSchoolProfileFieldPerSchoolType.forEach(eachSchoolField => {
+        schoolFieldArray.push(eachSchoolField)
+      })
+    })
+    return schoolFieldArray;
   }
 };

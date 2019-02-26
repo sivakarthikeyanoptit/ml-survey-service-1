@@ -1,5 +1,18 @@
 const csv = require("csvtojson");
+
 module.exports = class Schools extends Abstract {
+  /**
+    * @apiDefine errorBody
+    * @apiError {String} status 4XX,5XX
+    * @apiError {String} message Error
+    */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
   constructor() {
     super(schoolsSchema);
     this.roles = {
@@ -170,10 +183,187 @@ module.exports = class Schools extends Abstract {
     });
   }
 
+  async uploadForPortal(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let schoolsData = await csv().fromString(
+          req.files.schools.data.toString()
+        );
+
+        const schoolsUploadCount = schoolsData.length;
+        let programController = new programsBaseController;
+        let evaluationFrameworkController = new evaluationFrameworksBaseController
+
+        let programId = req.query.programId
+
+        if (!programId) {
+          throw "Program Id is missing"
+        }
+
+        let componentId = req.query.componentId
+
+        if (!componentId) {
+          throw "Component Id is missing."
+        }
+
+        let programDocument = await programController.programDocument([programId])
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
+        let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument([componentId], ["_id"])
+
+        if (!evaluationFrameworkDocument) {
+          throw "Bad request"
+        }
+
+        const programsData = programDocument.reduce(
+          (ac, program) => ({ ...ac, [program._id]: program }),
+          {}
+        );
+
+        const evaluationFrameworksData = evaluationFrameworkDocument.reduce(
+          (ac, evaluationFramework) => ({
+            ...ac,
+            [evaluationFramework._id]: evaluationFramework._id
+          }),
+          {}
+        );
+
+        const schoolUploadedData = await Promise.all(
+          schoolsData.map(async school => {
+            school.schoolTypes = await school.schoolType.split(",");
+            school.createdBy = school.updatedBy = req.userDetails.id;
+            school.gpsLocation = "";
+            const schoolCreateObject = await database.models.schools.findOneAndUpdate(
+              { externalId: school.externalId },
+              school,
+              {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true,
+                returnNewDocument: true
+              }
+            );
+
+            return {
+              _id: schoolCreateObject._id,
+              externalId: school.externalId,
+              programId: programId,
+              frameworkId: componentId
+            };
+          })
+        );
+
+        if (schoolsUploadCount === schoolUploadedData.length) {
+          let schoolElement = new Object();
+          let indexOfEvaluationFrameworkInProgram;
+          let schoolProgramComponents = new Array();
+          let programFrameworkSchools = new Array();
+          let schoolCsvDataProgramId;
+          let schoolCsvDataEvaluationFrameworkId;
+
+          for (
+            let schoolIndexInData = 0;
+            schoolIndexInData < schoolUploadedData.length;
+            schoolIndexInData++
+          ) {
+            schoolElement = schoolUploadedData[schoolIndexInData];
+
+            schoolCsvDataProgramId = programId;
+            schoolCsvDataEvaluationFrameworkId =
+              componentId;
+            schoolProgramComponents =
+              programsData[schoolCsvDataProgramId].components;
+            indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
+              component =>
+                component.id.toString() ===
+                evaluationFrameworksData[
+                  schoolCsvDataEvaluationFrameworkId
+                ].toString()
+            );
+
+            if (indexOfEvaluationFrameworkInProgram >= 0) {
+              programFrameworkSchools =
+                schoolProgramComponents[indexOfEvaluationFrameworkInProgram]
+                  .schools;
+              if (
+                programFrameworkSchools.findIndex(
+                  school => school.toString() == schoolElement._id.toString()
+                ) < 0
+              ) {
+                programFrameworkSchools.push(
+                  ObjectId(schoolElement._id.toString())
+                );
+              }
+            }
+          }
+
+          await Promise.all(
+            Object.values(programsData).map(async program => {
+              let queryObject = {
+                _id: ObjectId(program._id.toString())
+              };
+              let updateObject = {};
+
+              updateObject.$set = {
+                ["components"]: program.components
+              };
+
+              await database.models.programs.findOneAndUpdate(
+                queryObject,
+                updateObject
+              );
+
+              return;
+            })
+          );
+        } else {
+          throw "Something went wrong, not all records were inserted/updated.";
+        }
+
+        let responseMessage = "School record created successfully.";
+
+        let response = { message: responseMessage };
+
+        return resolve(response);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+* @api {get} /assessment/api/v1/schools/find School find
+* @apiVersion 0.0.1
+* @apiName School find
+* @apiGroup School
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schools/find
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
   find(req) {
     req.query.fields = ["name", "externalId"];
     return super.find(req);
   }
+
+  /**
+* @api {get} /assessment/api/v1/schools/assessments/:schoolID School assessments
+* @apiVersion 0.0.1
+* @apiName School assessments
+* @apiGroup School
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/schools/assessments/5beaa888af0065f0e0a10515
+* @apiUse successBody
+* @apiUse errorBody
+*/
 
   async assessments(req) {
     return new Promise(async (resolve, reject) => {
@@ -225,11 +415,12 @@ module.exports = class Schools extends Abstract {
           programQueryObject
         );
 
+
         if (!programDocument) {
           let responseMessage = 'No program found.';
           return resolve({ status: 400, message: responseMessage })
         }
-
+        
         let accessability =
           programDocument.components[0].roles[
             await this.getRoll(req.userDetails.allRoles)
@@ -362,25 +553,16 @@ module.exports = class Schools extends Abstract {
           assessment.description = evaluationFrameworkDocument[0].description;
           assessment.externalId = evaluationFrameworkDocument[0].externalId;
 
+
+          submissionDocument.evaluationFrameworkId =  evaluationFrameworkDocument[0]._id
+          submissionDocument.evaluationFrameworkExternalId =  evaluationFrameworkDocument[0].externalId
+
           let criteriasIdArray = new Array
           evaluationFrameworkDocument.forEach(eachEvaluation => {
-            eachEvaluation.themes.forEach(eachTheme => {
-
-              let themeCriterias = new Array
-
-              if (eachTheme.children) {
-                themeCriterias = this.getCriteriaIds(eachTheme.children)
-              } else {
-                themeCriterias = eachTheme.criteria
-              }
-
-              themeCriterias.forEach(themeCriteriaId => {
-                criteriasIdArray.push(themeCriteriaId)
-              })
-            })
+            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
           });
 
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({})
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
@@ -625,19 +807,4 @@ module.exports = class Schools extends Abstract {
     };
   }
 
-  getCriteriaIds(arrayOfChildren) {
-    let allCriteriaIds = new Array
-    arrayOfChildren.forEach(eachChildren => {
-      let criteriaIdArray = new Array
-      if (eachChildren.children) {
-        criteriaIdArray = this.getCriteriaIds(eachChildren.children)
-      } else {
-        criteriaIdArray = eachChildren.criteria
-      }
-      criteriaIdArray.forEach(eachCriteriaId => {
-        allCriteriaIds.push(eachCriteriaId)
-      })
-    })
-    return allCriteriaIds
-  }
 };
