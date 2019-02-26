@@ -38,14 +38,14 @@ function generateRandomCharacters(numberOfChar) {
   return text;
 }
 
-function getCriteriaIds(arrayOfChildren) {
+function getCriteriaIds(themes) {
   let allCriteriaIds = [];
-  arrayOfChildren.forEach(eachChildren => {
+  themes.forEach(theme => {
     let criteriaIdArray = [];
-    if (eachChildren.children) {
-      criteriaIdArray = this.getCriteriaIds(eachChildren.children);
+    if (theme.children) {
+      criteriaIdArray = this.getCriteriaIds(theme.children);
     } else {
-      criteriaIdArray = eachChildren.criteria;
+      criteriaIdArray = theme.criteria;
     }
     criteriaIdArray.forEach(eachCriteriaId => {
       allCriteriaIds.push(eachCriteriaId);
