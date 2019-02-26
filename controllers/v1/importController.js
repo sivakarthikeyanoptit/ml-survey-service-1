@@ -28,7 +28,7 @@ module.exports = class Import {
                 programDocument = await database.models.programs.create(programData)
                 return resolve({
                     status: 200,
-                    message: "Inserted successfully."
+                    message: "Program inserted successfully."
                 });
             } catch (error) {
                 return reject({

@@ -136,7 +136,9 @@ module.exports = class Export {
     getFileName(name) {
         let currentDate = new Date();
         let fileExtensionWithTime = moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".json";
-        return ROOT_PATH + '/public/exportDocuments/' + name + '_' + fileExtensionWithTime;
+        let filePath = ROOT_PATH + '/public/exports';
+        if (!fs.existsSync(filePath)) fs.mkdirSync(filePath);
+        return filePath + name + '_' + fileExtensionWithTime;
     }
 
     returnFile(filePath,document){
