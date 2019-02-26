@@ -132,6 +132,9 @@ module.exports = class Assessments {
 
             let submissionDocument = {};
 
+            submissionDocument.evaluationFrameworkId =  frameWorkDocument._id
+            submissionDocument.evaluationFrameworkExternalId =  frameWorkDocument.externalId
+  
             let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
 
             let evidenceMethodArray = {};

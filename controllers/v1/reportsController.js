@@ -1556,7 +1556,7 @@ module.exports = class Reports {
           externalId: req.params._id
         }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
 
-        let schoolProfileFields = await this.schoolProfileFieldsPerType(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
+        let schoolProfileFields = await this.getSchoolProfileFields(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
 
         const fileName = `schoolProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -2051,7 +2051,7 @@ module.exports = class Reports {
     return istStart;
   }
 
-  schoolProfileFieldsPerType(schoolProfileFieldsPerSchoolTypes) {
+  getSchoolProfileFields(schoolProfileFieldsPerSchoolTypes) {
     let schoolFieldArray = [];
 
     Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
