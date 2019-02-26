@@ -21,7 +21,7 @@ module.exports = {
     generalQuestions: Object,
     parentInterviewResponses: Object,
     completedDate: Date,
-    isDataFixDone: false,
-    evaluationFrameworkId: String
+    evaluationFrameworkId: "ObjectId",
+    evaluationFrameworkExternalId: String
   }
 };
