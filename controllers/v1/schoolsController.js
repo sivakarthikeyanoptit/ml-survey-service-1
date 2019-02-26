@@ -554,20 +554,7 @@ module.exports = class Schools extends Abstract {
 
           let criteriasIdArray = new Array
           evaluationFrameworkDocument.forEach(eachEvaluation => {
-            eachEvaluation.themes.forEach(eachTheme => {
-
-              let themeCriterias = new Array
-
-              if (eachTheme.children) {
-                themeCriterias = gen.utils.getCriteriaIds(eachTheme.children)
-              } else {
-                themeCriterias = eachTheme.criteria
-              }
-
-              themeCriterias.forEach(themeCriteriaId => {
-                criteriasIdArray.push(themeCriteriaId)
-              })
-            })
+            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
           });
 
           let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })

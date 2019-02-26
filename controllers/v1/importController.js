@@ -16,7 +16,7 @@ module.exports = class Import {
                     _id: ObjectId(programData._id)
                 };
 
-                let programDocument = await database.models.programs.findOne(queryObject)
+                let programDocument = await database.models.programs.findOne(queryObject,{_id:1})
 
                 if(programDocument){
                     return resolve({
@@ -49,7 +49,7 @@ module.exports = class Import {
                     _id: ObjectId(evaluationFrameworkData._id)
                 };
 
-                let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne(queryObject)
+                let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne(queryObject,{_id:1})
 
                 if(evaluationFrameworkDocument){
                     return resolve({
@@ -61,7 +61,7 @@ module.exports = class Import {
                 evaluationFrameworkDocument = await database.models.evaluationFrameworks.create(evaluationFrameworkData)
                 return resolve({
                     status: 200,
-                    message: "Inserted successfully."
+                    message: "Questions inserted successfully."
                 });
 
             } catch (error) {
@@ -81,7 +81,7 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.criterias.create(criteriaData);
 
-                let responseMessage = `Inserted successfully.`;
+                let responseMessage = `Criteria inserted successfully.`;
                 return resolve({ status: 200, message: responseMessage })
             } catch (error) {
                 return reject({

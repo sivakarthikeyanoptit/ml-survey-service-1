@@ -128,21 +128,7 @@ module.exports = class Assessments {
             assessment.description = frameWorkDocument.description;
             assessment.externalId = frameWorkDocument.externalId;
 
-            let criteriasIdArray = new Array
-            frameWorkDocument.themes.forEach(eachTheme => {
-
-                let themeCriterias = new Array
-
-                if (eachTheme.children) {
-                    themeCriterias = gen.utils.getCriteriaIds(eachTheme.children)
-                } else {
-                    themeCriterias = eachTheme.criteria
-                }
-
-                themeCriterias.forEach(themeCriteriaId => {
-                    criteriasIdArray.push(themeCriteriaId)
-                })
-            })
+            let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
 
             let submissionDocument = {};
 
