@@ -515,7 +515,11 @@ module.exports = class Submission extends Abstract {
             if (parentInterviewResponse[1].status === "completed") {
               Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
                 if (evidenceSubmissionAnswerArray[answer[0]]) {
-                  evidenceSubmissionAnswerArray[answer[0]].value.push(answer[1].value)
+                  let tempValue = {}
+                  answer[1].value.forEach(individualValue => {
+                    tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
+                  })
+                  evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
                   if(answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
                     answer[1].payload.labels[0].forEach(instanceResponsePayload => {
                       evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
@@ -523,7 +527,13 @@ module.exports = class Submission extends Abstract {
                   }
                   evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
                 } else {
-                  evidenceSubmissionAnswerArray[answer[0]] = answer[1]
+                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1],"value")
+                  evidenceSubmissionAnswerArray[answer[0]].value = new Array
+                  let tempValue = {}
+                  answer[1].value.forEach(individualValue => {
+                    tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
+                  })
+                  evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
                 }
               })
             }
