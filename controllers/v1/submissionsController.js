@@ -499,11 +499,12 @@ module.exports = class Submission extends Abstract {
           let evidenceSubmission = {}
           evidenceSubmission.externalId = parentInterviewEvidenceMethod
           evidenceSubmission.submittedBy = req.userDetails.userId
-          evidenceSubmission.submittedByName = req.userDetails.name
+          evidenceSubmission.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
           evidenceSubmission.submittedByEmail = req.userDetails.email
           evidenceSubmission.submissionDate = new Date()
           evidenceSubmission.gpsLocation = "web"
           evidenceSubmission.isValid = true
+          evidenceSubmission.endTime = new Date();
 
           let evidenceSubmissionAnswerArray = {}
 
@@ -514,9 +515,11 @@ module.exports = class Submission extends Abstract {
             if (parentInterviewResponse[1].status === "completed") {
               Object.entries(parentInterviewResponse[1].answers).forEach(answer => {
                 if (evidenceSubmissionAnswerArray[answer[0]]) {
-                  answer[1].value.forEach(instanceResponse => {
-                    evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
+                  let tempValue = {}
+                  answer[1].value.forEach(individualValue => {
+                    tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
                   })
+                  evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
                   if(answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
                     answer[1].payload.labels[0].forEach(instanceResponsePayload => {
                       evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
@@ -524,7 +527,13 @@ module.exports = class Submission extends Abstract {
                   }
                   evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
                 } else {
-                  evidenceSubmissionAnswerArray[answer[0]] = answer[1]
+                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1],"value")
+                  evidenceSubmissionAnswerArray[answer[0]].value = new Array
+                  let tempValue = {}
+                  answer[1].value.forEach(individualValue => {
+                    tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
+                  })
+                  evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
                 }
               })
             }
@@ -836,6 +845,7 @@ module.exports = class Submission extends Abstract {
             parentInterview.parentInformation = parentInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
+            parentInterview.completedAt = new Date()
             if (submissionDocument.parentInterviewResponses) {
               submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
             } else {
