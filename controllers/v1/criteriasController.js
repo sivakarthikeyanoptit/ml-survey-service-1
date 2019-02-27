@@ -943,30 +943,124 @@ module.exports = class Criterias extends Abstract {
 
         let criteriaData = await csv().fromString(req.files.criterias.data.toString())
 
-        Promise.all(criteriaData.map(async criteria => {
-
-          let fieldsWithOutSchool = {};
-          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
-            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
-          })
+        let criteriaDocumentArray = criteriaData.map(criteria => {
           let criteriaStructure = {
             owner: req.userDetails.id,
             name: criteria.criteriaName,
-            description: criteria
+            description: criteria.criteriaName,
+            resourceType: [
+              "Program",
+              "Framework",
+              "Criteria"
+            ],
+            language: [
+              "English"
+            ],
+            keywords: [
+              "Keyword 1",
+              "Keyword 2"
+            ],
+            concepts: [
+              {
+                identifier: "LPD20100",
+                name: "Teacher_Performance",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              },
+              {
+                identifier: "LPD20400",
+                name: "Instructional_Programme",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              },
+              {
+                identifier: "LPD20200",
+                name: "Teacher_Empowerment",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              }
+            ],
+            createdFor: [
+              "0125747659358699520",
+              "0125748495625912324"
+            ],
+            evidences: [],
+            deleted: false,
+            externalId: criteria.criteriaID,
+            owner: req.userDetails.id,
+            timesUsed: 12,
+            weightage: 20,
+            aremarks: "",
+            name: criteria.criteriaName,
+            description: criteria.criteriaName,
+            criteriaType: "auto",
+            score: "",
+            flag: "",
+            rubric: {
+              name: criteria.criteriaName,
+              description: criteria.criteriaName,
+              type: "auto",
+              expressionVariables: {},
+              levels: {
+                L1: {
+                  level: "L1",
+                  label: "Level 1",
+                  description: criteria.L1,
+                  expression: ""
+                },
+                L2: {
+                  level: "L2",
+                  label: "Level 2",
+                  description: criteria.L2,
+                  expression: ""
+                },
+                L3: {
+                  level: "L3",
+                  label: "Level 3",
+                  description: criteria.L3,
+                  expression: ""
+                },
+                L4: {
+                  level: "L4",
+                  label: "Level 4",
+                  description: criteria.L4,
+                  expression: ""
+                }
+              }
+            }
           };
-          let findQuery = {
-            externalId: criteria.criteriaID
-          }
-          let updateQuery = { $set: { "name": criteria.criteriaName, "rubric.levels.L1.description": criteria.L1, "rubric.levels.L2.description": criteria.L2, "rubric.levels.L3.description": criteria.L3, "rubric.levels.L4.description": criteria.L4 } }
-          criteria = await database.models.criterias.findOneAndUpdate(
-            findQuery,
-            updateQuery
-          );
-          return criteria;
-        }))
 
+          return criteriaStructure;
+        })
+
+        let criteriaDocuments = await database.models.criterias.create(
+          criteriaDocumentArray
+        );
+
+        let result = _.mapValues(_.keyBy(criteriaDocuments, 'externalId'), '_id');
         let responseMessage = "Criteria levels updated successfully."
-        let response = { message: responseMessage };
+        let response = { message: responseMessage, result: result };
 
         return resolve(response)
       }
