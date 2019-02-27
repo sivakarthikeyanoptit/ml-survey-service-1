@@ -517,9 +517,11 @@ module.exports = class Submission extends Abstract {
                   answer[1].value.forEach(instanceResponse => {
                     evidenceSubmissionAnswerArray[answer[0]].value.push(instanceResponse)
                   })
-                  answer[1].payload.labels[0].forEach(instanceResponsePayload => {
-                    evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
-                  })
+                  if(answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
+                    answer[1].payload.labels[0].forEach(instanceResponsePayload => {
+                      evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
+                    })
+                  }
                   evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
                 } else {
                   evidenceSubmissionAnswerArray[answer[0]] = answer[1]
