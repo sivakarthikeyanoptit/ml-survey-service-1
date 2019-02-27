@@ -116,7 +116,7 @@ module.exports = class ParentRegistry extends Abstract {
 
           result = await database.models.parentRegistry.find(
             queryObject
-          );
+          ).lean();
 
           result = result.map(function (parent) {
 
@@ -155,7 +155,7 @@ module.exports = class ParentRegistry extends Abstract {
 
               })
 
-              parent.type = parentTypeLabelArray
+              parent.typeLabel = parentTypeLabelArray
 
             }
 
