@@ -127,7 +127,7 @@ module.exports = class ParentRegistry extends Abstract {
             }
           ).lean();
           
-          submissionParentInterviewResponses = (submissionParentInterviewResponses.parentInterviewResponses && Object.values(submissionParentInterviewResponses.parentInterviewResponses).length > 0) ? submissionParentInterviewResponses.parentInterviewResponses : {}
+          submissionParentInterviewResponses = (submissionParentInterviewResponses && submissionParentInterviewResponses.parentInterviewResponses && Object.values(submissionParentInterviewResponses.parentInterviewResponses).length > 0) ? submissionParentInterviewResponses.parentInterviewResponses : {}
           result = result.map(function (parent) {
 
             if (parent.type.length > 0) {
