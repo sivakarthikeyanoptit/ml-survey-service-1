@@ -118,6 +118,16 @@ module.exports = class ParentRegistry extends Abstract {
             queryObject
           ).lean();
 
+          let submissionParentInterviewResponses = await database.models.submissions.findOne(
+            {
+              schoolId : req.params._id
+            },
+            {
+              parentInterviewResponses : 1
+            }
+          ).lean();
+          
+          submissionParentInterviewResponses = (submissionParentInterviewResponses.parentInterviewResponses && Object.values(submissionParentInterviewResponses.parentInterviewResponses).length > 0) ? submissionParentInterviewResponses.parentInterviewResponses : {}
           result = result.map(function (parent) {
 
             if (parent.type.length > 0) {
@@ -183,6 +193,9 @@ module.exports = class ParentRegistry extends Abstract {
                 case "R7":
                   parentCallResponseLabel = "Completed"
                   break;
+                case "R00":
+                  parentCallResponseLabel = "Call Response Completed But Survey Not Completed."
+                  break;
                 default:
                   break;
               }
@@ -190,6 +203,7 @@ module.exports = class ParentRegistry extends Abstract {
               parent.callResponse = parentCallResponseLabel
             }
 
+            parent.submissionStatus = (submissionParentInterviewResponses[parent._id.toString()]) ? submissionParentInterviewResponses[parent._id.toString()].status : ""
             return parent;
           })
 
@@ -839,10 +853,6 @@ module.exports = class ParentRegistry extends Abstract {
             {
               value: "R6",
               label: "Call disconnected mid way"
-            },
-            {
-              value: "R7",
-              label: "Completed"
             }
           ],
           validation: {
