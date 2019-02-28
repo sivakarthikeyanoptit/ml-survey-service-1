@@ -38,8 +38,26 @@ function generateRandomCharacters(numberOfChar) {
   return text;
 }
 
+function getCriteriaIds(themes) {
+  let allCriteriaIds = [];
+  themes.forEach(theme => {
+    let criteriaIdArray = [];
+    if (theme.children) {
+      criteriaIdArray = this.getCriteriaIds(theme.children);
+    } else {
+      criteriaIdArray = theme.criteria;
+    }
+    criteriaIdArray.forEach(eachCriteriaId => {
+      allCriteriaIds.push(eachCriteriaId);
+    })
+  })
+  return allCriteriaIds;
+}
+
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
-  generateRandomCharacters: generateRandomCharacters
+  generateRandomCharacters: generateRandomCharacters,
+  getCriteriaIds: getCriteriaIds
 };

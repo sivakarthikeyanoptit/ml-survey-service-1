@@ -64,11 +64,11 @@ module.exports = class ParentRegistry extends Abstract {
             }
           })
 
-          let addParentsQuery = await database.models.parentRegistry.create(
+          var parentRegistryDocuments = await database.models.parentRegistry.create(
             req.body.parents
           );
 
-          if (addParentsQuery.length != req.body.parents.length) {
+          if(parentRegistryDocuments.length != req.body.parents.length) {
             throw "Some parent information was not inserted!"
           }
 
@@ -78,7 +78,7 @@ module.exports = class ParentRegistry extends Abstract {
 
         let responseMessage = "Parent information added successfully."
 
-        let response = { message: responseMessage };
+        let response = { message: responseMessage, result: parentRegistryDocuments};
 
         return resolve(response);
       } catch (error) {
@@ -116,7 +116,7 @@ module.exports = class ParentRegistry extends Abstract {
 
           result = await database.models.parentRegistry.find(
             queryObject
-          );
+          ).lean();
 
           result = result.map(function (parent) {
 
@@ -155,7 +155,7 @@ module.exports = class ParentRegistry extends Abstract {
 
               })
 
-              parent.type = parentTypeLabelArray
+              parent.typeLabel = parentTypeLabelArray
 
             }
 
@@ -379,51 +379,51 @@ module.exports = class ParentRegistry extends Abstract {
               label: "Kindergarten"
             },
             {
-              value: 1,
+              value: "1",
               label: 1
             },
             {
-              value: 2,
+              value: "2",
               label: 2
             },
             {
-              value: 3,
+              value: "3",
               label: 3
             },
             {
-              value: 4,
+              value: "4",
               label: 4
             },
             {
-              value: 5,
+              value: "5",
               label: 5
             },
             {
-              value: 6,
+              value: "6",
               label: 6
             },
             {
-              value: 7,
+              value: "7",
               label: 7
             },
             {
-              value: 8,
+              value: "8",
               label: 8
             },
             {
-              value: 9,
+              value: "9",
               label: 9
             },
             {
-              value: 10,
+              value: "10",
               label: 10
             },
             {
-              value: 11,
+              value: "11",
               label: 11
             },
             {
-              value: 12,
+              value: "12",
               label: 12
             }
           ],
@@ -708,51 +708,51 @@ module.exports = class ParentRegistry extends Abstract {
               label: "Kindergarten"
             },
             {
-              value: 1,
+              value: "1",
               label: 1
             },
             {
-              value: 2,
+              value: "2",
               label: 2
             },
             {
-              value: 3,
+              value: "3",
               label: 3
             },
             {
-              value: 4,
+              value: "4",
               label: 4
             },
             {
-              value: 5,
+              value: "5",
               label: 5
             },
             {
-              value: 6,
+              value: "6",
               label: 6
             },
             {
-              value: 7,
+              value: "7",
               label: 7
             },
             {
-              value: 8,
+              value: "8",
               label: 8
             },
             {
-              value: 9,
+              value: "9",
               label: 9
             },
             {
-              value: 10,
+              value: "10",
               label: 10
             },
             {
-              value: 11,
+              value: "11",
               label: 11
             },
             {
-              value: 12,
+              value: "12",
               label: 12
             }
           ],
