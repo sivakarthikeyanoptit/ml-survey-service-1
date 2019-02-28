@@ -944,6 +944,31 @@ module.exports = class Criterias extends Abstract {
         let criteriaData = await csv().fromString(req.files.criterias.data.toString())
 
         let criteriaDocumentArray = criteriaData.map(criteria => {
+
+          let rubric = {}
+          rubric.name = criteria.criteriaName
+          rubric.description = criteria.criteriaName
+          rubric.type = criteria.type
+          rubric.expressionVariables = {}
+          rubric.levels = {};
+          let countLabel = 1;
+
+          Object.keys(criteria).forEach(eachCriteriaKey => {
+
+            let regExpForLevels = /^L+[0-9]/
+            if (regExpForLevels.test(eachCriteriaKey)) {
+
+              let label = "Level " + countLabel++;
+
+              rubric.levels[eachCriteriaKey] = {
+                level: eachCriteriaKey,
+                label: label,
+                description: criteria[eachCriteriaKey],
+                expression: ""
+              }
+            }
+          })
+
           let criteriaStructure = {
             owner: req.userDetails.id,
             name: criteria.criteriaName,
@@ -1011,44 +1036,13 @@ module.exports = class Criterias extends Abstract {
             owner: req.userDetails.id,
             timesUsed: 12,
             weightage: 20,
-            aremarks: "",
+            remarks: "",
             name: criteria.criteriaName,
             description: criteria.criteriaName,
             criteriaType: "auto",
             score: "",
             flag: "",
-            rubric: {
-              name: criteria.criteriaName,
-              description: criteria.criteriaName,
-              type: "auto",
-              expressionVariables: {},
-              levels: {
-                L1: {
-                  level: "L1",
-                  label: "Level 1",
-                  description: criteria.L1,
-                  expression: ""
-                },
-                L2: {
-                  level: "L2",
-                  label: "Level 2",
-                  description: criteria.L2,
-                  expression: ""
-                },
-                L3: {
-                  level: "L3",
-                  label: "Level 3",
-                  description: criteria.L3,
-                  expression: ""
-                },
-                L4: {
-                  level: "L4",
-                  label: "Level 4",
-                  description: criteria.L4,
-                  expression: ""
-                }
-              }
-            }
+            rubric: rubric
           };
 
           return criteriaStructure;
