@@ -825,21 +825,21 @@ module.exports = class Reports {
           let evaluationNameObject = {};
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
-              singleTheme.aoi.forEach(singleAoi => {
-                singleAoi.indicators.forEach(singleIndicator => {
-                  singleIndicator.criteria.forEach(singleCriteria => {
+              singleTheme.children && singleTheme.children.forEach(subThemes=>{
+                subThemes.children && subThemes.children.forEach(singleSubTheme=>{
+                  singleSubTheme.criteria.forEach(singleCriteria => {
                     evaluationNameObject[singleCriteria.toString()] = {
                       themeName: singleTheme.name,
-                      aoiName: singleAoi.name,
-                      indicatorName: singleIndicator.name
+                      aoiName: subThemes.name,
+                      indicatorName: singleSubTheme.name
                     };
                   });
-                });
-              });
+                })
+              })
             });
           });
 
-          if (!submissionDocument[0].criterias.length) {
+          if (!submissionDocument && !submissionDocument[0].criterias.length) {
             return resolve({
               status: 404,
               message: "No submissions found for given params."
