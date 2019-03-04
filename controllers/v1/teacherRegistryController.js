@@ -53,11 +53,11 @@ module.exports = class TeacherRegistry extends Abstract {
 
                 if (req.body.teachers) {
 
-                    let addTeachersQuery = await database.models.teacherRegistry.create(
+                    var teacherRegistryDocuments = await database.models.teacherRegistry.create(
                         req.body.teachers
                     );
 
-                    if (addTeachersQuery.length != req.body.teachers.length) {
+                    if (teacherRegistryDocuments.length != req.body.teachers.length) {
                         throw "Some teachers information was not inserted!"
                     }
 
@@ -67,7 +67,7 @@ module.exports = class TeacherRegistry extends Abstract {
 
                 let responseMessage = "Teachers information added successfully."
 
-                let response = { message: responseMessage };
+                let response = { message: responseMessage,result: teacherRegistryDocuments };
 
                 return resolve(response);
             } catch (error) {

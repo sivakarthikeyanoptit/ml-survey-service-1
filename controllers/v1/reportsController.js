@@ -432,7 +432,7 @@ module.exports = class Reports {
                 status: 1,
                 completedDate: 1,
                 createdAt: 1,
-                programExternalId:1,
+                programExternalId: 1,
                 submissionCount: {
                   $reduce: {
                     input: "$evidencesStatus",
@@ -463,7 +463,7 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([schoolDocument,submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument=>{
+        Promise.all([schoolDocument, submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument => {
           let schoolDocument = submissionWithSchoolDocument[0];
           let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
           let schoolSubmission = {};
@@ -825,21 +825,21 @@ module.exports = class Reports {
           let evaluationNameObject = {};
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
-              singleTheme.aoi.forEach(singleAoi => {
-                singleAoi.indicators.forEach(singleIndicator => {
-                  singleIndicator.criteria.forEach(singleCriteria => {
+              singleTheme.children && singleTheme.children.forEach(subThemes=>{
+                subThemes.children && subThemes.children.forEach(singleSubTheme=>{
+                  singleSubTheme.criteria.forEach(singleCriteria => {
                     evaluationNameObject[singleCriteria.toString()] = {
                       themeName: singleTheme.name,
-                      aoiName: singleAoi.name,
-                      indicatorName: singleIndicator.name
+                      aoiName: subThemes.name,
+                      indicatorName: singleSubTheme.name
                     };
                   });
-                });
-              });
+                })
+              })
             });
           });
 
-          if (!submissionDocument[0].criterias.length) {
+          if (!submissionDocument && !submissionDocument[0].criterias.length) {
             return resolve({
               status: 404,
               message: "No submissions found for given params."
@@ -1552,6 +1552,12 @@ module.exports = class Reports {
           _id: 1
         })
 
+        const programsDocument = await database.models.programs.findOne({
+          externalId: req.params._id
+        }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
+
+        let schoolProfileFields = await this.getSchoolProfileFields(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
+
         const fileName = `schoolProfileInformation`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1594,15 +1600,15 @@ module.exports = class Reports {
               })
 
             await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
-              let schoolProfile = eachSchoolProfileSubmissionDocument.schoolProfile;
+
+              let schoolProfile = _.omit(eachSchoolProfileSubmissionDocument.schoolProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
               if (schoolProfile) {
                 let schoolProfileObject = {};
                 schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
                 schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
-                Object.keys(schoolProfile).forEach(singleKey => {
-                  if (["deleted", "_id", "__v", "createdAt", "updatedAt"].indexOf(singleKey) == -1) {
-                    schoolProfileObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolProfile[singleKey] || "";
-                  }
+
+                schoolProfileFields.forEach(eachSchoolField => {
+                  schoolProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = schoolProfile[eachSchoolField] ? schoolProfile[eachSchoolField] : ""
                 })
                 input.push(schoolProfileObject);
               }
@@ -1655,7 +1661,7 @@ module.exports = class Reports {
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programInformation.externalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
@@ -1701,7 +1707,7 @@ module.exports = class Reports {
           });
         } else {
 
-          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 10)
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 100)
 
           let submissionIds
           let submissionDocuments
@@ -1743,7 +1749,13 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if(!evidenceSubmission.submittedByName) {
+                      evidenceSubmission.submittedByName = ""
+                    }
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
+
+                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1757,7 +1769,7 @@ module.exports = class Reports {
                             "Question": singleAnswer.payload.question[0],
                             "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                             "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                            "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                            "Assessor Id": asssessorId,
                             "Remarks": singleAnswer.remarks || "",
                             "Start Time": this.gmtToIst(singleAnswer.startTime),
                             "End Time": this.gmtToIst(singleAnswer.endTime),
@@ -1807,7 +1819,7 @@ module.exports = class Reports {
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
-                                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                        "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
                                         "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
                                         "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
@@ -1856,19 +1868,19 @@ module.exports = class Reports {
                                           }
                                         );
 
-                                        if(typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
+                                        if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
                                           eachInstanceChildQuestion.value.forEach(value => {
                                             multiSelectResponseArray.push(
                                               multiSelectResponse[value]
                                             );
                                           });
-  
+
                                           eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
                                         } else {
                                           eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value
                                         }
-                                        
+
                                       }
                                       else {
                                         eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;
@@ -1889,6 +1901,19 @@ module.exports = class Reports {
                 }
               })
             }));
+
+            function sleep(ms) {
+              return new Promise(resolve => {
+                setTimeout(resolve, ms)
+              })
+            }
+
+            if (input.readableBuffer && input.readableBuffer.length) {
+              while (input.readableBuffer.length > 20000) {
+                await sleep(2000)
+              }
+            }
+
           }
 
         }
@@ -2027,5 +2052,16 @@ module.exports = class Reports {
       istStart = "-";
     }
     return istStart;
+  }
+
+  getSchoolProfileFields(schoolProfileFieldsPerSchoolTypes) {
+    let schoolFieldArray = [];
+
+    Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
+      eachSchoolProfileFieldPerSchoolType.forEach(eachSchoolField => {
+        schoolFieldArray.push(eachSchoolField)
+      })
+    })
+    return schoolFieldArray;
   }
 };

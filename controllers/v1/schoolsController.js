@@ -415,11 +415,12 @@ module.exports = class Schools extends Abstract {
           programQueryObject
         );
 
+
         if (!programDocument) {
           let responseMessage = 'No program found.';
           return resolve({ status: 400, message: responseMessage })
         }
-
+        
         let accessability =
           programDocument.components[0].roles[
             await this.getRoll(req.userDetails.allRoles)
@@ -552,22 +553,13 @@ module.exports = class Schools extends Abstract {
           assessment.description = evaluationFrameworkDocument[0].description;
           assessment.externalId = evaluationFrameworkDocument[0].externalId;
 
+
+          submissionDocument.evaluationFrameworkId =  evaluationFrameworkDocument[0]._id
+          submissionDocument.evaluationFrameworkExternalId =  evaluationFrameworkDocument[0].externalId
+
           let criteriasIdArray = new Array
           evaluationFrameworkDocument.forEach(eachEvaluation => {
-            eachEvaluation.themes.forEach(eachTheme => {
-
-              let themeCriterias = new Array
-
-              if (eachTheme.children) {
-                themeCriterias = this.getCriteriaIds(eachTheme.children)
-              } else {
-                themeCriterias = eachTheme.criteria
-              }
-
-              themeCriterias.forEach(themeCriteriaId => {
-                criteriasIdArray.push(themeCriteriaId)
-              })
-            })
+            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
           });
 
           let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
@@ -815,19 +807,4 @@ module.exports = class Schools extends Abstract {
     };
   }
 
-  getCriteriaIds(arrayOfChildren) {
-    let allCriteriaIds = new Array
-    arrayOfChildren.forEach(eachChildren => {
-      let criteriaIdArray = new Array
-      if (eachChildren.children) {
-        criteriaIdArray = this.getCriteriaIds(eachChildren.children)
-      } else {
-        criteriaIdArray = eachChildren.criteria
-      }
-      criteriaIdArray.forEach(eachCriteriaId => {
-        allCriteriaIds.push(eachCriteriaId)
-      })
-    })
-    return allCriteriaIds
-  }
 };
