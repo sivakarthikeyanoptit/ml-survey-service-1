@@ -825,8 +825,8 @@ module.exports = class Reports {
           let evaluationNameObject = {};
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
-              singleTheme.children && singleTheme.children.forEach(subThemes=>{
-                subThemes.children && subThemes.children.forEach(singleSubTheme=>{
+              singleTheme.children && singleTheme.children.forEach(subThemes => {
+                subThemes.children && subThemes.children.forEach(singleSubTheme => {
                   singleSubTheme.criteria.forEach(singleCriteria => {
                     evaluationNameObject[singleCriteria.toString()] = {
                       themeName: singleTheme.name,
@@ -1749,7 +1749,7 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if(!evidenceSubmission.submittedByName) {
+                    if (!evidenceSubmission.submittedByName) {
                       evidenceSubmission.submittedByName = ""
                     }
                     let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
@@ -2041,6 +2041,131 @@ module.exports = class Reports {
         });
       }
     });
+  }
+
+  async parentInterview(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+
+        }
+
+        let fetchRequiredSubmissionDocumentIdQueryObj = {};
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        // fet chRequiredSubmissionDocumentIdQueryObj["evidences.PAI.isSubmitted"] = true
+        // fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.isSubmitted"] = true
+        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"]["$lte"] = toDate
+        // let projection = {};
+        // projection["_id"] = 1;
+
+        const submissionDocumentIdsToProcess = await database.models.submissions.find(
+          fetchRequiredSubmissionDocumentIdQueryObj,
+          { _id: 1 }
+        ).lean()
+
+        // const parentRegistryDocument = await database.models["parentRegistry"].find({
+        //   programId:  submissionDocumentIdsToProcess.programId ,
+        //   schoolId: $in: submissionDocumentIdsToProcess.schoolId 
+        // }, { type: 1 })
+
+        if (!submissionDocumentIdsToProcess) {
+          throw "No submissions found"
+        }
+        else {
+          let fileName = `ParentInterviewReport`;
+          (fromDate) ? fileName += "from date _" + fromDate : "";
+          (toDate) ? fileName += "to date _" + toDate : new Date();
+
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 20)
+
+          let submissionIds
+          let submissionDocuments
+
+          for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
+
+            submissionIds = chunkOfSubmissionIds[pointerToSubmissionIdChunkArray].map(submissionModel => {
+              return submissionModel._id
+            });
+
+            submissionDocuments = await database.models.submissions.aggregate([
+              {
+                $match: {
+                  _id: {
+                    $in: submissionIds
+                  },
+                }
+              },
+              {
+                $lookup: {
+                  from: "parentRegistry",
+                  let: {
+                    firstUser: { "$toObjectId": "$programId" },
+                    secondUser: { "$toObjectId": "$schoolId" }
+                  },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $and: [
+                            {
+                              $eq: [
+                                "$programId",
+                                "$$firstUser"
+                              ]
+                            },
+                            {
+                              $eq: [
+                                "$schoolId",
+                                "$$secondUser"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ],
+                  as: "result"
+
+                }
+              }
+              // ,
+              // {
+              //   $project: {
+              //     programId: 1,
+              //     schoolId: 1
+              //   }
+              // }]
+            ]
+            )
+            console.log("Here")
+          }
+        }
+
+      } catch (error) {
+        console.log(error)
+      }
+    })
   }
 
   gmtToIst(gmtTime) {
