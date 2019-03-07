@@ -2043,9 +2043,10 @@ module.exports = class Reports {
     });
   }
 
-  async parentInterview(req) {
+  async getParentInterviewResponses(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
@@ -2055,52 +2056,55 @@ module.exports = class Reports {
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
-
         }
 
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
-        // fet chRequiredSubmissionDocumentIdQueryObj["evidences.PAI.isSubmitted"] = true
-        // fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.isSubmitted"] = true
-        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidences.PAI.submissions.submissionDate"]["$lte"] = toDate
-        // let projection = {};
-        // projection["_id"] = 1;
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
 
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
           { _id: 1 }
         ).lean()
 
-        // const parentRegistryDocument = await database.models["parentRegistry"].find({
-        //   programId:  submissionDocumentIdsToProcess.programId ,
-        //   schoolId: $in: submissionDocumentIdsToProcess.schoolId 
-        // }, { type: 1 })
+        let fileName = `ParentInterviewReport`;
+        (fromDate) ? fileName += "from date _" + fromDate : "";
+        (toDate) ? fileName += "to date _" + toDate : new Date();
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
 
         if (!submissionDocumentIdsToProcess) {
           throw "No submissions found"
         }
         else {
-          let fileName = `ParentInterviewReport`;
-          (fromDate) ? fileName += "from date _" + fromDate : "";
-          (toDate) ? fileName += "to date _" + toDate : new Date();
 
-          let fileStream = new FileStream(fileName);
-          let input = fileStream.initStream();
-
-          (async function () {
-            await fileStream.getProcessorPromise();
-            return resolve({
-              isResponseAStream: true,
-              fileNameWithPath: fileStream.fileNameWithPath()
-            });
-          }());
 
           const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 20)
 
           let submissionIds
           let submissionDocuments
+
+          let parentTypeObject = {
+            "P1": "Parent only",
+            "P2": "SMC Parent Member",
+            "P3": "Safety Committee Member",
+            "P4": "EWS-DG Parent",
+            "P5": "Social Worker",
+            "P6": "Elected Representative Nominee"
+          }
+
 
           for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
 
@@ -2108,59 +2112,59 @@ module.exports = class Reports {
               return submissionModel._id
             });
 
-            submissionDocuments = await database.models.submissions.aggregate([
-              {
-                $match: {
-                  _id: {
-                    $in: submissionIds
-                  },
-                }
-              },
-              {
-                $lookup: {
-                  from: "parentRegistry",
-                  let: {
-                    firstUser: { "$toObjectId": "$programId" },
-                    secondUser: { "$toObjectId": "$schoolId" }
-                  },
-                  pipeline: [
-                    {
-                      $match: {
-                        $expr: {
-                          $and: [
-                            {
-                              $eq: [
-                                "$programId",
-                                "$$firstUser"
-                              ]
-                            },
-                            {
-                              $eq: [
-                                "$schoolId",
-                                "$$secondUser"
-                              ]
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ],
-                  as: "result"
-
-                }
+            submissionDocuments = await database.models.submissions.find({
+              _id: { $in: submissionIds }
+            }, {
+                "schoolInformation.name": 1,
+                "schoolInformation.externalId": 1,
+                "schoolInformation.schoolTypes": 1,
+                "schoolInformation.administration": 1,
+                "parentInterviewResponsesFieldArray": 1
               }
-              // ,
-              // {
-              //   $project: {
-              //     programId: 1,
-              //     schoolId: 1
-              //   }
-              // }]
-            ]
-            )
-            console.log("Here")
+            ).lean()
+
+            await Promise.all(submissionDocuments.map(async (eachSubmission) => {
+              let result = {}
+              let countForP1 = 0;
+              let countForP2 = 0;
+              let countForP3 = 0;
+              let countForP4 = 0;
+              let countForP5 = 0;
+              let countForP6 = 0;
+
+              result["schoolId"] = eachSubmission.schoolInformation.externalId;
+              result["schoolName"] = eachSubmission.schoolInformation.name;
+              result["School (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.schoolInformation.administration;
+
+              eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
+                if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
+                  eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
+                    (eachParentType == "P1") ? result[parentTypeObject[eachParentType]] = ++countForP1
+                      : result[parentTypeObject["P1"]] = countForP1;
+
+                    (eachParentType == "P2") ? result[parentTypeObject[eachParentType]] = ++countForP2
+                      : result[parentTypeObject["P2"]] = countForP2;
+
+                    (eachParentType == "P3") ? result[parentTypeObject[eachParentType]] = ++countForP3
+                      : result[parentTypeObject["P3"]] = countForP3;
+                    (eachParentType == "P4") ? result[parentTypeObject[eachParentType]] = ++countForP4
+                      : result[parentTypeObject["P4"]] = countForP4;
+
+                    (eachParentType == "P5") ? result[parentTypeObject[eachParentType]] = ++countForP5
+                      : result[parentTypeObject["P5"]] = countForP5;
+
+                    (eachParentType == "P6") ? result[parentTypeObject[eachParentType]] = ++countForP6
+                      : result[parentTypeObject["P6"]] = countForP6;
+                  })
+                }
+              })
+              input.push(result);
+            }))
+
+
           }
         }
+        input.push(null)
 
       } catch (error) {
         console.log(error)
