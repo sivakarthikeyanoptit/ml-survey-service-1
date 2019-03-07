@@ -2070,7 +2070,7 @@ module.exports = class Reports {
           { _id: 1 }
         ).lean()
 
-        let fileName = `ParentInterviewReport`;
+        let fileName = `ParentInterviewResponsesReport `;
         (fromDate) ? fileName += "from date _" + fromDate : "";
         (toDate) ? fileName += "to date _" + toDate : new Date();
 
@@ -2167,7 +2167,101 @@ module.exports = class Reports {
         input.push(null)
 
       } catch (error) {
-        console.log(error)
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
+  async parentInterviewCallResponses(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let fetchRequiredSubmissionDocumentIdQueryObj = {};
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
+
+        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1 }).lean()
+
+        let fileName = `ParentInterviewCallResponseReport`;
+        (fromDate) ? fileName += "from date _" + fromDate : "";
+        (toDate) ? fileName += "to date _" + toDate : new Date();
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionDocumentIds) {
+          throw "No submissions found"
+        }
+        else {
+
+          const chunkOfSubmissionDocumentIds = _.chunk(submissionDocumentIds, 20)
+
+          let submissionIds
+          let submissionDocuments
+
+          for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionDocumentIds.length; pointerToSubmissionIdChunkArray++) {
+
+            submissionIds = chunkOfSubmissionDocumentIds[pointerToSubmissionIdChunkArray].map(submissionModel => {
+              return submissionModel._id
+            });
+
+            submissionDocuments = await database.models.submissions.find({
+              _id: { $in: submissionIds }
+            }, {
+                "schoolInformation.name": 1,
+                "schoolInformation.externalId": 1,
+                "parentInterviewResponsesFieldArray.parentInformation": 1
+              }
+            ).lean()
+
+            await Promise.all(submissionDocuments.map(async (eachSubmission) => {
+              eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
+                if (eachParentInterviewResponse.parentInformation.callResponse && eachParentInterviewResponse.parentInformation.callResponse == "R2") {
+                  let result = {}
+                  result["School Name"] = eachSubmission.schoolInformation.name
+                  result["School Id"] = eachSubmission.schoolInformation.externalId
+                  result["Parents Name"] = eachParentInterviewResponse.parentInformation.name
+                  result["Mobile number"] = eachParentInterviewResponse.parentInformation.phone1
+                  input.push(result)
+                }
+              })
+
+            }))
+          }
+        }
+        input.push(null)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
       }
     })
   }
