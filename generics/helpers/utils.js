@@ -20,12 +20,12 @@ function camelCaseToTitleCase(in_camelCaseString) {
 }
 
 function checkIfStringIsUrl(str) {
-  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-  '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|'+ // domain name
-  '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-  '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-  '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-  '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
   return pattern.test(str);
 }
 
@@ -54,10 +54,36 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+function getUserRole(req,caseSensitive=false) {
+  if (req.userDetails && req.userDetails.allRoles.length) {
+    _.pull(req.userDetails.allRoles, 'PUBLIC');
+    let role = req.userDetails.allRoles[0];
+    if(caseSensitive==true){
+      return changeRoleCase(role)
+    }
+    return req.userDetails.allRoles[0];
+  } else {
+    return
+  }
+}
+
+function changeRoleCase(role) {
+  let rolesObject = {
+    ASSESSOR: "assessors",
+    LEAD_ASSESSOR: "leadAssessors",
+    PROJECT_MANAGER: "projectManagers",
+    PROGRAM_MANAGER: "programManagers"
+  }
+  return rolesObject[role];
+
+}
+
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
-  getCriteriaIds: getCriteriaIds
+  getCriteriaIds: getCriteriaIds,
+  getUserRole: getUserRole,
+  changeRoleCase: changeRoleCase
 };
