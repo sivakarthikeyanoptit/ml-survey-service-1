@@ -379,7 +379,7 @@ module.exports = class Reports {
     });
   }
 
-  /**
+  /**generateEcmReportBy
 * @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
 * @apiVersion 0.0.1
 * @apiName Fetch school status based on program Id
@@ -2071,8 +2071,8 @@ module.exports = class Reports {
         ).lean()
 
         let fileName = `ParentInterviewResponsesReport `;
-        (fromDate) ? fileName += "from date _" + fromDate : "";
-        (toDate) ? fileName += "to date _" + toDate : new Date();
+        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2090,20 +2090,9 @@ module.exports = class Reports {
         }
         else {
 
-
           const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 20)
-
           let submissionIds
           let submissionDocuments
-
-          let parentTypeObject = {
-            "P1": "Parent only",
-            "P2": "SMC Parent Member",
-            "P3": "Safety Committee Member",
-            "P4": "EWS-DG Parent",
-            "P5": "Social Worker",
-            "P6": "Elected Representative Nominee"
-          }
 
 
           for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
@@ -2117,20 +2106,41 @@ module.exports = class Reports {
             }, {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
-                "schoolInformation.schoolTypes": 1,
                 "schoolInformation.administration": 1,
-                "parentInterviewResponsesFieldArray": 1
+                "parentInterviewResponsesFieldArray.completedAt": 1,
+                "parentInterviewResponsesFieldArray.parentInformation.type": 1,
               }
             ).lean()
 
             await Promise.all(submissionDocuments.map(async (eachSubmission) => {
               let result = {}
-              let countForP1 = 0;
-              let countForP2 = 0;
-              let countForP3 = 0;
-              let countForP4 = 0;
-              let countForP5 = 0;
-              let countForP6 = 0;
+
+              let parentTypeObject = {
+                "P1": {
+                  name: "Parent only",
+                  count: 0
+                },
+                "P2": {
+                  name: "SMC Parent Member",
+                  count: 0
+                },
+                "P3": {
+                  name: "Safety Committee Member",
+                  count: 0
+                },
+                "P4": {
+                  name: "EWS-DG Parent",
+                  count: 0
+                },
+                "P5": {
+                  name: "Social Worker",
+                  count: 0
+                },
+                "P6": {
+                  name: "Elected Representative Nominee",
+                  count: 0
+                }
+              }
 
               result["schoolId"] = eachSubmission.schoolInformation.externalId;
               result["schoolName"] = eachSubmission.schoolInformation.name;
@@ -2139,22 +2149,24 @@ module.exports = class Reports {
               eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
                 if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
                   eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
-                    (eachParentType == "P1") ? result[parentTypeObject[eachParentType]] = ++countForP1
-                      : result[parentTypeObject["P1"]] = countForP1;
 
-                    (eachParentType == "P2") ? result[parentTypeObject[eachParentType]] = ++countForP2
-                      : result[parentTypeObject["P2"]] = countForP2;
+                    (eachParentType == "P1") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P1.name] = parentTypeObject.P1.count;
 
-                    (eachParentType == "P3") ? result[parentTypeObject[eachParentType]] = ++countForP3
-                      : result[parentTypeObject["P3"]] = countForP3;
-                    (eachParentType == "P4") ? result[parentTypeObject[eachParentType]] = ++countForP4
-                      : result[parentTypeObject["P4"]] = countForP4;
+                    (eachParentType == "P2") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P2.name] = parentTypeObject.P2.count;
 
-                    (eachParentType == "P5") ? result[parentTypeObject[eachParentType]] = ++countForP5
-                      : result[parentTypeObject["P5"]] = countForP5;
+                    (eachParentType == "P3") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P3.name] = parentTypeObject.P3.count;
 
-                    (eachParentType == "P6") ? result[parentTypeObject[eachParentType]] = ++countForP6
-                      : result[parentTypeObject["P6"]] = countForP6;
+                    (eachParentType == "P4") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P4.name] = parentTypeObject.P4.count;
+
+                    (eachParentType == "P5") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P5.name] = parentTypeObject.P5.count;
+
+                    (eachParentType == "P6") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+                      : result[parentTypeObject.P6.name] = parentTypeObject.P6.count;
                   })
                 }
               })
@@ -2200,8 +2212,8 @@ module.exports = class Reports {
         let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1 }).lean()
 
         let fileName = `ParentInterviewCallResponseReport`;
-        (fromDate) ? fileName += "from date _" + fromDate : "";
-        (toDate) ? fileName += "to date _" + toDate : new Date();
+        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2235,7 +2247,8 @@ module.exports = class Reports {
             }, {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
-                "parentInterviewResponsesFieldArray.parentInformation": 1
+                "parentInterviewResponsesFieldArray.parentInformation.name": 1,
+                "parentInterviewResponsesFieldArray.parentInformation.phone1": 1
               }
             ).lean()
 
@@ -2262,6 +2275,94 @@ module.exports = class Reports {
           message: "Oops! Something went wrong!",
           errorObject: error
         });
+      }
+    })
+  }
+
+  async parentInterviewCall(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let fetchRequiredSubmissionDocumentIdQueryObj = {};
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
+
+        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1, "parentInterviewResponsesFieldArray.completedAt": 1, "parentInterviewResponsesFieldArray.parentInformation.callResponse": 1 }).lean()
+
+        let fileName = `ParentInterviewCallReport`;
+        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionDocumentIds) {
+          throw "No submissions found"
+        }
+        else {
+
+          let arrayOfDate = [];
+
+          await Promise.all(submissionDocumentIds.map(async (eachSubmission) => {
+
+            eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentResponseField => {
+              if (eachParentResponseField.parentInformation.callResponse) {
+                arrayOfDate.push({
+                  date: moment(eachParentResponseField.completedAt).format('DD-MM-YYYY'),
+                  callResponse: eachParentResponseField.parentInformation.callResponse
+                })
+              }
+            })
+
+          }))
+          let groupByDate = _.groupBy(arrayOfDate, 'date')
+
+          Object.values(groupByDate).forEach(eachGroupDate => {
+            let result = {}
+            result["date"] = eachGroupDate[0].date;
+            let callResponseForEachGroupDate = _.groupBy(eachGroupDate, 'callResponse')
+            result["Call not initiated"] = callResponseForEachGroupDate["R1"] ? callResponseForEachGroupDate["R1"].length : 0
+            result["Did not pick up"] = callResponseForEachGroupDate["R2"] ? callResponseForEachGroupDate["R2"].length : 0
+            result["Not reachable"] = callResponseForEachGroupDate["R3"] ? callResponseForEachGroupDate["R3"].length : 0
+            result["Call back later"] = callResponseForEachGroupDate["R4"] ? callResponseForEachGroupDate["R4"].length : 0
+            result["Wrong number"] = callResponseForEachGroupDate["R5"] ? callResponseForEachGroupDate["R5"].length : 0
+            result["Call disconnected mid way"] = callResponseForEachGroupDate["R6"] ? callResponseForEachGroupDate["R6"].length : 0
+            result["Completed"] = callResponseForEachGroupDate["R7"] ? callResponseForEachGroupDate["R7"].length : 0
+            result["Call Response Completed But Survey Not Completed."] = callResponseForEachGroupDate["R00"] ? callResponseForEachGroupDate["R00"].length : 0
+            input.push(result)
+          })
+
+        }
+        input.push(null)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        })
       }
     })
   }
