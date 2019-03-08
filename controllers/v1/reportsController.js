@@ -2146,27 +2146,14 @@ module.exports = class Reports {
               result["schoolName"] = eachSubmission.schoolInformation.name;
               result["School (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.schoolInformation.administration;
 
+              Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
+
               eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
                 if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
                   eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
 
-                    (eachParentType == "P1") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P1.name] = parentTypeObject.P1.count;
+                    if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
 
-                    (eachParentType == "P2") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P2.name] = parentTypeObject.P2.count;
-
-                    (eachParentType == "P3") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P3.name] = parentTypeObject.P3.count;
-
-                    (eachParentType == "P4") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P4.name] = parentTypeObject.P4.count;
-
-                    (eachParentType == "P5") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P5.name] = parentTypeObject.P5.count;
-
-                    (eachParentType == "P6") ? result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
-                      : result[parentTypeObject.P6.name] = parentTypeObject.P6.count;
                   })
                 }
               })
