@@ -2050,8 +2050,8 @@ module.exports = class Reports {
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        let fromDate = gen.utils.getFromDate(req.query.fromDate)
+        let toDate = gen.utils.getFromDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2071,8 +2071,8 @@ module.exports = class Reports {
         ).lean()
 
         let fileName = `ParentInterviewResponsesReport `;
-        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2181,8 +2181,8 @@ module.exports = class Reports {
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        let fromDate = gen.utils.getFromDate(req.query.fromDate)
+        let toDate = gen.utils.getFromDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2199,8 +2199,8 @@ module.exports = class Reports {
         let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1 }).lean()
 
         let fileName = `ParentInterviewCallResponseReport`;
-        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2273,8 +2273,8 @@ module.exports = class Reports {
           throw "From Date is mandatory"
         }
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        let fromDate = gen.utils.getFromDate(req.query.fromDate)
+        let toDate = gen.utils.getFromDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2291,8 +2291,8 @@ module.exports = class Reports {
         let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1, "parentInterviewResponsesFieldArray.completedAt": 1, "parentInterviewResponsesFieldArray.parentInformation.callResponse": 1 }).lean()
 
         let fileName = `ParentInterviewCallReport`;
-        (fromDate) ? fileName += "from date _" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "to date _" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2312,35 +2312,61 @@ module.exports = class Reports {
 
           let arrayOfDate = [];
 
+          let callResponseObj = {
+            "R1": {
+              name: "Call not initiated"
+            },
+            "R2": {
+              name: "Did not pick up"
+            },
+            "R3": {
+              name: "Not reachable"
+            },
+            "R4": {
+              name: "Call back later"
+            },
+            "R5": {
+              name: "Wrong number"
+            },
+            "R6": {
+              name: "Call disconnected mid way"
+            },
+            "R7": {
+              name: "Completed"
+            },
+            "R00": {
+              name: "Call Response Completed But Survey Not Completed."
+            }
+          }
+
           await Promise.all(submissionDocumentIds.map(async (eachSubmission) => {
 
             eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentResponseField => {
-              if (eachParentResponseField.parentInformation.callResponse) {
+              if (eachParentResponseField.completedAt >= fromDate && eachParentResponseField.completedAt < toDate && eachParentResponseField.parentInformation.callResponse) {
                 arrayOfDate.push({
-                  date: moment(eachParentResponseField.completedAt).format('DD-MM-YYYY'),
+                  date: moment(eachParentResponseField.completedAt).format('YYYY-MM-DD'),
                   callResponse: eachParentResponseField.parentInformation.callResponse
                 })
               }
             })
 
           }))
-          let groupByDate = _.groupBy(arrayOfDate, 'date')
+
+          let groupByDate = _.mapValues(_.groupBy(arrayOfDate, "date"), v => _.sortBy(v, "date"))
 
           Object.values(groupByDate).forEach(eachGroupDate => {
             let result = {}
             result["date"] = eachGroupDate[0].date;
-            let callResponseForEachGroupDate = _.groupBy(eachGroupDate, 'callResponse')
-            result["Call not initiated"] = callResponseForEachGroupDate["R1"] ? callResponseForEachGroupDate["R1"].length : 0
-            result["Did not pick up"] = callResponseForEachGroupDate["R2"] ? callResponseForEachGroupDate["R2"].length : 0
-            result["Not reachable"] = callResponseForEachGroupDate["R3"] ? callResponseForEachGroupDate["R3"].length : 0
-            result["Call back later"] = callResponseForEachGroupDate["R4"] ? callResponseForEachGroupDate["R4"].length : 0
-            result["Wrong number"] = callResponseForEachGroupDate["R5"] ? callResponseForEachGroupDate["R5"].length : 0
-            result["Call disconnected mid way"] = callResponseForEachGroupDate["R6"] ? callResponseForEachGroupDate["R6"].length : 0
-            result["Completed"] = callResponseForEachGroupDate["R7"] ? callResponseForEachGroupDate["R7"].length : 0
-            result["Call Response Completed But Survey Not Completed."] = callResponseForEachGroupDate["R00"] ? callResponseForEachGroupDate["R00"].length : 0
+
+            Object.values(callResponseObj).forEach(type => result[type.name] = 0)
+            let callResponseForEachGroupDate = _.countBy(eachGroupDate, 'callResponse')
+
+            Object.keys(callResponseForEachGroupDate).forEach(eachCallResponse => {
+              result[callResponseObj[eachCallResponse].name] = callResponseForEachGroupDate[eachCallResponse]
+            })
+
             input.push(result)
           })
-
         }
         input.push(null)
       }
