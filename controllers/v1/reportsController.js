@@ -2061,9 +2061,9 @@ module.exports = class Reports {
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
 
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
@@ -2107,8 +2107,8 @@ module.exports = class Reports {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
                 "schoolInformation.administration": 1,
-                "parentInterviewResponsesFieldArray.completedAt": 1,
-                "parentInterviewResponsesFieldArray.parentInformation.type": 1,
+                "parentInterviewResponsesStatus.completedAt": 1,
+                "parentInterviewResponsesStatus.parentInformation.type": 1,
               }
             ).lean()
 
@@ -2148,8 +2148,8 @@ module.exports = class Reports {
 
               Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
 
-              eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
-                if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
+              eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
+                if ((eachParentInterviewResponse.status == 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
                   eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
 
                     if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
@@ -2192,9 +2192,9 @@ module.exports = class Reports {
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
 
         let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1 }).lean()
 
@@ -2234,20 +2234,22 @@ module.exports = class Reports {
             }, {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
-                "parentInterviewResponsesFieldArray.parentInformation.name": 1,
-                "parentInterviewResponsesFieldArray.parentInformation.phone1": 1
+                "parentInterviewResponsesStatus.parentInformation.name": 1,
+                "parentInterviewResponsesStatus.parentInformation.phone1": 1
               }
             ).lean()
 
             await Promise.all(submissionDocuments.map(async (eachSubmission) => {
-              eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentInterviewResponse => {
-                if (eachParentInterviewResponse.parentInformation.callResponse && eachParentInterviewResponse.parentInformation.callResponse == "R2") {
-                  let result = {}
-                  result["School Name"] = eachSubmission.schoolInformation.name
-                  result["School Id"] = eachSubmission.schoolInformation.externalId
-                  result["Parents Name"] = eachParentInterviewResponse.parentInformation.name
-                  result["Mobile number"] = eachParentInterviewResponse.parentInformation.phone1
-                  input.push(result)
+              eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
+                if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
+                  if (eachParentInterviewResponse.parentInformation.callResponse && eachParentInterviewResponse.parentInformation.callResponse == "R2" && eachParentInterviewResponse.status == 'completed') {
+                    let result = {}
+                    result["School Name"] = eachSubmission.schoolInformation.name
+                    result["School Id"] = eachSubmission.schoolInformation.externalId
+                    result["Parents Name"] = eachParentInterviewResponse.parentInformation.name
+                    result["Mobile number"] = eachParentInterviewResponse.parentInformation.phone1
+                    input.push(result)
+                  }
                 }
               })
 
@@ -2284,11 +2286,11 @@ module.exports = class Reports {
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesFieldArray.completedAt"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
 
-        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1, "parentInterviewResponsesFieldArray.completedAt": 1, "parentInterviewResponsesFieldArray.parentInformation.callResponse": 1 }).lean()
+        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1, "parentInterviewResponsesStatus.completedAt": 1, "parentInterviewResponsesStatus.parentInformation.callResponse": 1 }).lean()
 
         let fileName = `ParentInterviewCallReport`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
@@ -2341,7 +2343,7 @@ module.exports = class Reports {
 
           await Promise.all(submissionDocumentIds.map(async (eachSubmission) => {
 
-            eachSubmission.parentInterviewResponsesFieldArray.forEach(eachParentResponseField => {
+            eachSubmission.parentInterviewResponsesStatus.forEach(eachParentResponseField => {
               if (eachParentResponseField.completedAt >= fromDate && eachParentResponseField.completedAt < toDate && eachParentResponseField.parentInformation.callResponse) {
                 arrayOfDate.push({
                   date: moment(eachParentResponseField.completedAt).format('YYYY-MM-DD'),

@@ -20,12 +20,12 @@ function camelCaseToTitleCase(in_camelCaseString) {
 }
 
 function checkIfStringIsUrl(str) {
-  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-  '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|'+ // domain name
-  '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-  '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-  '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-  '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
   return pattern.test(str);
 }
 
@@ -54,10 +54,19 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+function getFromDate(fromDate) {
+  return new Date(fromDate.split("-").reverse().join("-"))
+}
+
+function getToDate(toDate) {
+  return req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+}
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
-  getCriteriaIds: getCriteriaIds
+  getCriteriaIds: getCriteriaIds,
+  getFromDate: getFromDate,
+  getToDate: getToDate
 };
