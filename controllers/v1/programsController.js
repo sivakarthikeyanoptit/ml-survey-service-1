@@ -420,7 +420,7 @@ module.exports = class Programs extends Abstract {
 
         let assessorIds = programDocument.components[0].roles[roleToBeChecked].users;
 
-        let assessorDetails = await database.models.schoolAssessors.find({ userId: { $in: assessorIds } }, { schools: 1, name: 1 }).lean();
+        let assessorDetails = await database.models.schoolAssessors.find({ userId: { $in: assessorIds } }, { schools: 1, name: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
 
         let schoolDataByAssessors = assessorDetails.map(assessor => {
           return database.models.submissions.find({ schoolId: { $in: assessor.schools } }, { status: 1 }).lean().exec()
@@ -432,10 +432,12 @@ module.exports = class Programs extends Abstract {
           let assessorsReports = [];
           assessorDetails.forEach((assessor, index) => {
             let schoolData = _.countBy(data[index], 'status')
+            let schoolAssigned = data[index].length;
             assessorsReports.push({
               name: assessor.name || null,
-              schoolsInporgress: schoolData.inprogress || null,
-              schoolsCompleted: schoolData.completed || null
+              schoolsAssigned: schoolAssigned || null,
+              schoolsCompleted: schoolData.completed || null,
+              schoolsCompletedPercent: (schoolData.completed/schoolAssigned) ? ((schoolData.completed/schoolAssigned)*100).toFixed(2)+'%' || null : null
             })
           })
           result.assessorsReport = assessorsReports;
@@ -480,7 +482,7 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let schoolDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1, "schoolInformation.name": 1 }).lean();
+        let schoolDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1, "schoolInformation.name": 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
 
         let result = {};
 
