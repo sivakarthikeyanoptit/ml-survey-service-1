@@ -2040,6 +2040,88 @@ module.exports = class Reports {
     });
   }
 
+  async ecmSubmissionByDate(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          return resolve({
+            status: 400,
+            message: "From Date cannot be greater than to date !!!"
+          })
+        }
+
+        const fileName = `ecmSubmissionByDate`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        let schoolProfileSubmissionDocuments = await database.models.submissions.aggregate([
+          {
+            $match: { programExternalId: req.params._id }
+          },
+          {
+            $project: { 'schoolId': 1, 'evidencesStatus': 1, 'schoolName': '$schoolInformation.name', schoolExternalId: 1 }
+          },
+          {
+            $unwind: "$evidencesStatus"
+          },
+          {
+            $unwind: "$evidencesStatus.submissions"
+          },
+          {
+            $project: { 'schoolName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', schoolExternalId: 1 }
+          },
+          {
+            $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
+          }
+        ]);
+
+        await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
+          let schoolProfileObject = {};
+          schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
+          schoolProfileObject['School Name'] = eachSchoolProfileSubmissionDocument.schoolName;
+          schoolProfileObject['ECM Name'] = eachSchoolProfileSubmissionDocument.ecmName;
+          schoolProfileObject['ECM External Id'] = eachSchoolProfileSubmissionDocument.ecmExternalId;
+          schoolProfileObject['Submmission Date'] = moment(eachSchoolProfileSubmissionDocument.submmissionDate).format('MM-DD-YYYY');
+          input.push(schoolProfileObject);
+
+          function sleep(ms) {
+            return new Promise(resolve => {
+              setTimeout(resolve, ms)
+            })
+          }
+
+          if (input.readableBuffer && input.readableBuffer.length) {
+            while (input.readableBuffer.length > 20000) {
+              await sleep(2000)
+            }
+          }
+
+        }))
+        input.push(null);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
   gmtToIst(gmtTime) {
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
