@@ -2107,6 +2107,7 @@ module.exports = class Reports {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
                 "schoolInformation.administration": 1,
+                "parentInterviewResponsesStatus.status": 1,
                 "parentInterviewResponsesStatus.completedAt": 1,
                 "parentInterviewResponsesStatus.parentInformation.type": 1,
               }
@@ -2150,8 +2151,8 @@ module.exports = class Reports {
 
               eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
                 if ((eachParentInterviewResponse.status == 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
+                  result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
                   eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
-
                     if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
 
                   })
@@ -2235,6 +2236,9 @@ module.exports = class Reports {
                 "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
                 "parentInterviewResponsesStatus.parentInformation.name": 1,
+                "parentInterviewResponsesStatus.completedAt": 1,
+                "parentInterviewResponsesStatus.status": 1,
+                "parentInterviewResponsesStatus.parentInformation.callResponse": 1,
                 "parentInterviewResponsesStatus.parentInformation.phone1": 1
               }
             ).lean()
@@ -2244,6 +2248,7 @@ module.exports = class Reports {
                 if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
                   if (eachParentInterviewResponse.parentInformation.callResponse && eachParentInterviewResponse.parentInformation.callResponse == "R2" && eachParentInterviewResponse.status == 'completed') {
                     let result = {}
+                    result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY')
                     result["School Name"] = eachSubmission.schoolInformation.name
                     result["School Id"] = eachSubmission.schoolInformation.externalId
                     result["Parents Name"] = eachParentInterviewResponse.parentInformation.name
