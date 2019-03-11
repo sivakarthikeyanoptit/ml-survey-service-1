@@ -379,7 +379,7 @@ module.exports = class Reports {
     });
   }
 
-  /**generateEcmReportBy
+  /**
 * @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
 * @apiVersion 0.0.1
 * @apiName Fetch school status based on program Id
@@ -2051,7 +2051,7 @@ module.exports = class Reports {
           throw "From Date is mandatory"
         }
         let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getFromDate(req.query.toDate)
+        let toDate = gen.utils.getToDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2183,7 +2183,7 @@ module.exports = class Reports {
           throw "From Date is mandatory"
         }
         let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getFromDate(req.query.toDate)
+        let toDate = gen.utils.getToDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2281,7 +2281,7 @@ module.exports = class Reports {
         }
 
         let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getFromDate(req.query.toDate)
+        let toDate = gen.utils.getToDate(req.query.toDate)
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
