@@ -379,7 +379,7 @@ module.exports = class Reports {
     });
   }
 
-  /**generateEcmReportBy
+  /**
 * @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
 * @apiVersion 0.0.1
 * @apiName Fetch school status based on program Id
