@@ -2052,6 +2052,7 @@ module.exports = class Reports {
         }
         let fromDate = gen.utils.getFromDate(req.query.fromDate)
         let toDate = gen.utils.getToDate(req.query.toDate)
+
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
