@@ -2089,20 +2089,25 @@ module.exports = class Reports {
           }
         ]);
 
-        await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
-          let schoolProfileObject = {};
-          schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
-          schoolProfileObject['School Name'] = eachSchoolProfileSubmissionDocument.schoolName;
-          schoolProfileObject['ECM Name'] = eachSchoolProfileSubmissionDocument.ecmName;
-          schoolProfileObject['ECM External Id'] = eachSchoolProfileSubmissionDocument.ecmExternalId;
-          schoolProfileObject['Submmission Date'] = moment(eachSchoolProfileSubmissionDocument.submmissionDate).format('MM-DD-YYYY');
-          input.push(schoolProfileObject);
+        function sleep(ms) {
+          return new Promise(resolve => {
+            setTimeout(resolve, ms)
+          })
+        }
 
-          function sleep(ms) {
-            return new Promise(resolve => {
-              setTimeout(resolve, ms)
-            })
-          }
+        for (
+          let counter = 0;
+          counter < schoolProfileSubmissionDocuments.length;
+          counter++
+        ) {
+
+          let schoolProfileObject = {};
+          schoolProfileObject['School External Id'] = schoolProfileSubmissionDocuments[counter].schoolExternalId;
+          schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
+          schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
+          schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
+          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('MM-DD-YYYY');
+          input.push(schoolProfileObject);
 
           if (input.readableBuffer && input.readableBuffer.length) {
             while (input.readableBuffer.length > 20000) {
@@ -2110,8 +2115,9 @@ module.exports = class Reports {
             }
           }
 
-        }))
+        }
         input.push(null);
+        
       } catch (error) {
         return reject({
           status: 500,
