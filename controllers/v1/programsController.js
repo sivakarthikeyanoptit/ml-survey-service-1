@@ -405,7 +405,7 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let userRole = 'leadAssessors' || gen.utils.getUserRole(req, true);
+        let userRole = gen.utils.getUserRole(req, true);
 
         let roleToBeChecked;
 
