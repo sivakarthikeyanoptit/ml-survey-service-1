@@ -2040,9 +2040,26 @@ module.exports = class Reports {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
+  * @apiVersion 0.0.1
+  * @apiName Generate ECM submissions By date
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   async ecmSubmissionByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
+        if(!req.params._id){
+          return resolve({
+            status: 400,
+            message: "Please provide program id."
+          })
+        }
 
         let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
@@ -2088,6 +2105,13 @@ module.exports = class Reports {
             $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
           }
         ]);
+
+        if(!schoolProfileSubmissionDocuments.length){
+          return resolve({
+            status: 200,
+            message: "No data found for given params."
+          })
+        }
 
         function sleep(ms) {
           return new Promise(resolve => {
