@@ -405,12 +405,12 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let userRole = gen.utils.getUserRole(req, true);
+        let userRole = 'leadAssessors' || gen.utils.getUserRole(req, true);
 
         let roleToBeChecked;
 
-        if (userRole == 'leadAssessors') { roleToBeChecked = 'assessors' } 
-        else if (userRole == 'programManagers') { roleToBeChecked = 'leadAssessors' } 
+        if (userRole == 'leadAssessors') { roleToBeChecked = 'assessors' }
+        else if (userRole == 'programManagers') { roleToBeChecked = 'leadAssessors' }
         else {
           return resolve({
             status: 400,
@@ -422,22 +422,39 @@ module.exports = class Programs extends Abstract {
 
         let assessorDetails = await database.models.schoolAssessors.find({ userId: { $in: assessorIds } }, { schools: 1, name: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
 
-        let schoolDataByAssessors = assessorDetails.map(assessor => {
-          return database.models.submissions.find({ schoolId: { $in: assessor.schools } }, { status: 1 }).lean().exec()
+        let submissionDataByAssessors = assessorDetails.map(assessor => {
+          return database.models.submissions.find({ schoolId: { $in: assessor.schools } }, { status: 1, createdAt: 1, completedDate: 1 }).lean().exec()
         })
+
+
+        function getAverageTimeTaken(submissionData) {
+          let result = submissionData.filter(data => data.status == 'completed');
+          if (result.length) {
+            let dayDifference = []
+            result.forEach(singleResult => {
+              let startedDate = moment(singleResult.createdAt);
+              let completedDate = moment(singleResult.completedDate);
+              dayDifference.push(completedDate.diff(startedDate, 'days'))
+            })
+            return dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+          } else {
+            return 'N/A'
+          }
+        }
 
         let result = {};
 
-        await Promise.all(schoolDataByAssessors).then(data => {
+        await Promise.all(submissionDataByAssessors).then(submissionData => {
           let assessorsReports = [];
           assessorDetails.forEach((assessor, index) => {
-            let schoolData = _.countBy(data[index], 'status')
-            let schoolAssigned = data[index].length;
+            let schoolData = _.countBy(submissionData[index], 'status')
+            let schoolAssigned = submissionData[index].length;
             assessorsReports.push({
               name: assessor.name || null,
               schoolsAssigned: schoolAssigned || null,
               schoolsCompleted: schoolData.completed || null,
-              schoolsCompletedPercent: (schoolData.completed/schoolAssigned) ? ((schoolData.completed/schoolAssigned)*100).toFixed(2)+'%' || null : null
+              schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || null : null,
+              averageTimeTaken: getAverageTimeTaken(submissionData[index])
             })
           })
           result.assessorsReport = assessorsReports;
@@ -482,7 +499,7 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let schoolDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1, "schoolInformation.name": 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
+        let schoolDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
 
         let result = {};
 
@@ -493,13 +510,19 @@ module.exports = class Programs extends Abstract {
           started: 'Started'
         }
 
-        schoolDocuments.forEach(singleSchoolDocument => {
-          singleSchoolDocument.status = schoolStatusObject[singleSchoolDocument.status] || singleSchoolDocument.status;
-          singleSchoolDocument.name = singleSchoolDocument.schoolInformation.name;
-          delete singleSchoolDocument.schoolInformation;
-        })
+        function getAssessmentCompletionPercentage(evidencesStatus) {
+          let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
+          return Math.ceil((isSubmittedArray.length / evidencesStatus.length) * 100).toString() + '%';
+        }
 
-        result.schoolsReport = schoolDocuments;
+        result.schoolsReport = schoolDocuments.map(singleSchoolDocument => {
+          let resultObject = {};
+          resultObject.status = schoolStatusObject[singleSchoolDocument.status] || singleSchoolDocument.status;
+          resultObject.name = singleSchoolDocument.schoolInformation.name;
+          resultObject.daysElapsed = moment().diff(moment(singleSchoolDocument.createdAt), 'days');
+          resultObject.assessmentCompletionPercent = getAssessmentCompletionPercentage(singleSchoolDocument.evidencesStatus);
+          return resultObject;
+        })
 
         return resolve({ result: result })
 
@@ -545,19 +568,153 @@ module.exports = class Programs extends Abstract {
 
         let result = {};
 
+        result.managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+
         let schoolDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1 }).lean();
 
         let schoolDocumentByStatus = _.countBy(schoolDocuments, 'status');
 
         result.schoolsAssigned = schoolIds.length;
-        result.managerName = "";
         result.createdDate = moment().format('DD-MM-YYYY');
         result.schoolsInporgress = schoolDocumentByStatus.inprogress || 0;
         result.schoolsCompleted = schoolDocumentByStatus.completed || 0;
-        result.schoolsNotYetStarted = schoolIds.length - (schoolDocumentByStatus.blocked || 0 + schoolDocumentByStatus.started || 0 + schoolDocumentByStatus.completed || 0 + schoolDocumentByStatus.inprogress || 0);
+        result.schoolsNotYetStarted = schoolIds.length - (schoolDocumentByStatus.blocked + schoolDocumentByStatus.started + schoolDocumentByStatus.completed + schoolDocumentByStatus.inprogress);
 
         return resolve({
           message: 'School details fetched successfully.',
+          result: result
+        })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
+  async operationReport(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programExternalId = req.params._id;
+
+        let result = {};
+
+        let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
+          name: 1,
+          "components.schools": 1,
+          "components.roles": 1
+        }).lean();
+
+        if (!programDocument) {
+          return resolve({
+            status: 400,
+            message: 'Program not found for given params.'
+          })
+        }
+
+        let schoolIds = programDocument.components[0].schools;
+
+        if (!schoolIds.length) {
+          return resolve({
+            status: 400,
+            message: 'No schools found for given program id.'
+          })
+        }
+
+        let userRole = 'leadAssessors' || gen.utils.getUserRole(req, true);
+
+        let roleToBeChecked;
+
+        if (userRole == 'leadAssessors') { roleToBeChecked = 'assessors' }
+        else if (userRole == 'programManagers') { roleToBeChecked = 'leadAssessors' }
+        else {
+          return resolve({
+            status: 400,
+            message: "You are not authorized to take this report."
+          });
+        }
+
+        let assessorIds = programDocument.components[0].roles[roleToBeChecked].users;
+
+        let assessorDetails = await database.models.schoolAssessors.find({ userId: { $in: assessorIds } }, { schools: 1, name: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
+
+        let submissionDataByAssessors = assessorDetails.map(assessor => {
+          return database.models.submissions.find({ schoolId: { $in: assessor.schools } }, { status: 1, createdAt: 1, completedDate: 1 }).lean().exec()
+        })
+
+        function getAverageTimeTaken(submissionData) {
+          let result = submissionData.filter(data => data.status == 'completed');
+          if (result.length) {
+            let dayDifference = []
+            result.forEach(singleResult => {
+              let startedDate = moment(singleResult.createdAt);
+              let completedDate = moment(singleResult.completedDate);
+              dayDifference.push(completedDate.diff(startedDate, 'days'))
+            })
+            return dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+          } else {
+            return 'N/A'
+          }
+        }
+
+        result.managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+
+        let schoolDocuments = database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
+
+        function getAssessmentCompletionPercentage(evidencesStatus) {
+          let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
+          return Math.ceil((isSubmittedArray.length / evidencesStatus.length) * 100).toString() + '%';
+        }
+        
+        await Promise.all([schoolDocuments, ...submissionDataByAssessors]).then(submissionData => {
+          
+          let schoolDocumentByStatus = _.countBy(submissionData[0], 'status');
+
+          result.schoolsAssigned = schoolIds.length;
+          result.createdDate = moment().format('DD-MM-YYYY');
+          result.schoolsInporgress = schoolDocumentByStatus.inprogress || 0;
+          result.schoolsCompleted = schoolDocumentByStatus.completed || 0;
+          result.schoolsNotYetStarted = schoolIds.length - (schoolDocumentByStatus.blocked + schoolDocumentByStatus.started + schoolDocumentByStatus.completed + schoolDocumentByStatus.inprogress);
+
+          let schoolStatusObject = {
+            inprogress: 'In Progress',
+            completed: 'Complete',
+            blocked: 'Blocked',
+            started: 'Started'
+          }
+
+          result.schoolsReport = submissionData[0].map(singleSchoolDocument => {
+            let resultObject = {};
+            resultObject.status = schoolStatusObject[singleSchoolDocument.status] || singleSchoolDocument.status;
+            resultObject.name = singleSchoolDocument.schoolInformation.name;
+            resultObject.daysElapsed = moment().diff(moment(singleSchoolDocument.createdAt), 'days');
+            resultObject.assessmentCompletionPercent = getAssessmentCompletionPercentage(singleSchoolDocument.evidencesStatus);
+            return resultObject;
+          })
+          submissionData.shift();
+
+          let assessorsReports = [];
+          assessorDetails.forEach((assessor, index) => {
+            let schoolData = _.countBy(submissionData[index], 'status')
+            let schoolAssigned = submissionData[index].length;
+            assessorsReports.push({
+              name: assessor.name || null,
+              schoolsAssigned: schoolAssigned || null,
+              schoolsCompleted: schoolData.completed || null,
+              schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || null : null,
+              averageTimeTaken: getAverageTimeTaken(submissionData[index])
+            })
+          })
+          result.assessorsReport = assessorsReports;
+          return resolve({ result: result })
+        })
+
+        return resolve({
+          message: 'Operation report fetched successfully.',
           result: result
         })
 
