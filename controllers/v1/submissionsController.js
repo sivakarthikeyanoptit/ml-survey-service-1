@@ -403,13 +403,15 @@ module.exports = class Submission extends Abstract {
           let { ratingsEnabled } = canRatingsBeEnabled
 
           if (ratingsEnabled) {
-            updateObject.$set = {
+            let updateStatusObject = {}
+            updateStatusObject.$set = {}
+            updateStatusObject.$set = {
               status: "completed",
               completedDate: new Date()
             }
             updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
               queryObject,
-              updateObject,
+              updateStatusObject,
               queryOptions
             );
           }
