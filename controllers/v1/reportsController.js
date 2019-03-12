@@ -2058,7 +2058,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if(!req.params._id){
+        if (!req.params._id) {
           return resolve({
             status: 400,
             message: "Please provide program id."
@@ -2110,7 +2110,7 @@ module.exports = class Reports {
           }
         ]);
 
-        if(!schoolProfileSubmissionDocuments.length){
+        if (!schoolProfileSubmissionDocuments.length) {
           return resolve({
             status: 200,
             message: "No data found for given params."
@@ -2145,7 +2145,7 @@ module.exports = class Reports {
 
         }
         input.push(null);
-        
+
       } catch (error) {
         return reject({
           status: 500,
@@ -2164,9 +2164,9 @@ module.exports = class Reports {
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
-        let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getToDate(req.query.toDate)
 
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
@@ -2224,7 +2224,7 @@ module.exports = class Reports {
                 "schoolInformation.administration": 1,
                 "parentInterviewResponsesStatus.status": 1,
                 "parentInterviewResponsesStatus.completedAt": 1,
-                "parentInterviewResponsesStatus.parentInformation.type": 1,
+                "parentInterviewResponsesStatus.parentType": 1,
               }
             ).lean()
 
@@ -2267,7 +2267,7 @@ module.exports = class Reports {
               eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
                 if ((eachParentInterviewResponse.status == 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
                   result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
-                  eachParentInterviewResponse.parentInformation.type.forEach(eachParentType => {
+                  eachParentInterviewResponse.parentType.forEach(eachParentType => {
                     if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
 
                   })
@@ -2294,25 +2294,48 @@ module.exports = class Reports {
   async parentInterviewCallResponses(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
-        let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getToDate(req.query.toDate)
+
+        const programQueryParams = {
+          externalId: req.params._id
+        };
+
+        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No program document was found for given parameters."
+          });
+        }
+
+        let schoolExternalId = {}
+        let schoolDocument = await database.models.schools.find({}, { externalId: 1 })
+        schoolDocument.forEach(eachSchool => {
+          schoolExternalId[eachSchool._id.toString()] = {
+            externalId: eachSchool.externalId
+          }
+        })
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
         }
 
-        let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
+        let parentRegistryQueryParams = {}
 
-        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1 }).lean()
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
+        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+
+        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 }).lean()
 
         let fileName = `ParentInterviewCallResponseReport`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
@@ -2329,50 +2352,46 @@ module.exports = class Reports {
           });
         }());
 
-        if (!submissionDocumentIds) {
+        if (!parentRegistryIdsArray) {
           throw "No submissions found"
         }
         else {
 
-          const chunkOfSubmissionDocumentIds = _.chunk(submissionDocumentIds, 20)
+          const chunkOfParentRegistryDocumentIds = _.chunk(parentRegistryIdsArray, 20)
 
-          let submissionIds
-          let submissionDocuments
+          let parentIds
+          let parentRegistryDocuments
 
-          for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionDocumentIds.length; pointerToSubmissionIdChunkArray++) {
+          for (let pointerToParentIdChunkArray = 0; pointerToParentIdChunkArray < chunkOfParentRegistryDocumentIds.length; pointerToParentIdChunkArray++) {
 
-            submissionIds = chunkOfSubmissionDocumentIds[pointerToSubmissionIdChunkArray].map(submissionModel => {
-              return submissionModel._id
+            parentIds = chunkOfParentRegistryDocumentIds[pointerToParentIdChunkArray].map(parentModel => {
+              return parentModel._id
             });
 
-            submissionDocuments = await database.models.submissions.find({
-              _id: { $in: submissionIds }
+            parentRegistryDocuments = await database.models.parentRegistry.find({
+              _id: { $in: parentIds }
             }, {
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
-                "parentInterviewResponsesStatus.parentInformation.name": 1,
-                "parentInterviewResponsesStatus.completedAt": 1,
-                "parentInterviewResponsesStatus.status": 1,
-                "parentInterviewResponsesStatus.parentInformation.callResponse": 1,
-                "parentInterviewResponsesStatus.parentInformation.phone1": 1
+                callResponseUpdatedTime: 1,
+                name: 1,
+                callResponse: 1,
+                phone1: 1,
+                schoolName: 1,
+                schoolId: 1
               }
             ).lean()
 
-            await Promise.all(submissionDocuments.map(async (eachSubmission) => {
-              eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
-                if ((eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
-                  if (eachParentInterviewResponse.parentInformation.callResponse && eachParentInterviewResponse.parentInformation.callResponse == "R2" && eachParentInterviewResponse.status == 'completed') {
-                    let result = {}
-                    result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY')
-                    result["School Name"] = eachSubmission.schoolInformation.name
-                    result["School Id"] = eachSubmission.schoolInformation.externalId
-                    result["Parents Name"] = eachParentInterviewResponse.parentInformation.name
-                    result["Mobile number"] = eachParentInterviewResponse.parentInformation.phone1
-                    input.push(result)
-                  }
+            await Promise.all(parentRegistryDocuments.map(async (eachParentRegistry) => {
+              if ((eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime < toDate)) {
+                if (eachParentRegistry.callResponse && eachParentRegistry.callResponse == "R2") {
+                  let result = {}
+                  result["Date"] = moment(eachParentRegistry.callResponseUpdatedTime).format('DD-MM-YYYY')
+                  result["School Name"] = eachParentRegistry.schoolName
+                  result["School Id"] = schoolExternalId[eachParentRegistry.schoolId].externalId
+                  result["Parents Name"] = eachParentRegistry.name
+                  result["Mobile number"] = eachParentRegistry.phone1
+                  input.push(result)
                 }
-              })
-
+              }
             }))
           }
         }
@@ -2395,22 +2414,35 @@ module.exports = class Reports {
           throw "From Date is mandatory"
         }
 
-        let fromDate = gen.utils.getFromDate(req.query.fromDate)
-        let toDate = gen.utils.getToDate(req.query.toDate)
+        const programQueryParams = {
+          externalId: req.params._id
+        };
+
+        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No program document was found for given parameters."
+          });
+        }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
         toDate.setHours(23, 59, 59)
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
         }
 
-        let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
+        let parentRegistryQueryParams = {}
 
-        let submissionDocumentIds = await database.models.submissions.find(fetchRequiredSubmissionDocumentIdQueryObj, { _id: 1, "parentInterviewResponsesStatus.completedAt": 1, "parentInterviewResponsesStatus.parentInformation.callResponse": 1 }).lean()
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
+        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+
+        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { callResponse: 1, callResponseUpdatedTime: 1 }).lean()
 
         let fileName = `ParentInterviewCallReport`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
@@ -2427,7 +2459,7 @@ module.exports = class Reports {
           });
         }());
 
-        if (!submissionDocumentIds) {
+        if (!parentRegistryIdsArray) {
           throw "No submissions found"
         }
         else {
@@ -2461,16 +2493,13 @@ module.exports = class Reports {
             }
           }
 
-          await Promise.all(submissionDocumentIds.map(async (eachSubmission) => {
-
-            eachSubmission.parentInterviewResponsesStatus.forEach(eachParentResponseField => {
-              if (eachParentResponseField.completedAt >= fromDate && eachParentResponseField.completedAt < toDate && eachParentResponseField.parentInformation.callResponse) {
-                arrayOfDate.push({
-                  date: moment(eachParentResponseField.completedAt).format('YYYY-MM-DD'),
-                  callResponse: eachParentResponseField.parentInformation.callResponse
-                })
-              }
-            })
+          await Promise.all(parentRegistryIdsArray.map(async (eachParentRegistry) => {
+            if (eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime < toDate && eachParentRegistry.callResponse) {
+              arrayOfDate.push({
+                date: moment(eachParentRegistry.callResponseUpdatedTime).format('YYYY-MM-DD'),
+                callResponse: eachParentRegistry.callResponse
+              })
+            }
 
           }))
 
