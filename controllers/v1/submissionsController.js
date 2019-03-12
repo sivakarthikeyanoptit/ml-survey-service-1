@@ -1,5 +1,6 @@
 const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const csv = require("csvtojson");
 
 module.exports = class Submission extends Abstract {
   /**
@@ -520,14 +521,14 @@ module.exports = class Submission extends Abstract {
                     tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
                   })
                   evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
-                  if(answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
+                  if (answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
                     answer[1].payload.labels[0].forEach(instanceResponsePayload => {
                       evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
                     })
                   }
                   evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
                 } else {
-                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1],"value")
+                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1], "value")
                   evidenceSubmissionAnswerArray[answer[0]].value = new Array
                   let tempValue = {}
                   answer[1].value.forEach(individualValue => {
@@ -1647,6 +1648,40 @@ module.exports = class Submission extends Abstract {
 
     return result;
 
+  }
+
+  async uploadQuestions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let qciData = await csv().fromString(req.files.qci.data.toString())
+
+        let questionCode = []
+
+        qciData.forEach(eachQciData => {
+          questionCode.push(eachQciData["Question Code"])
+        })
+
+        let questionId = {}
+        let questionDocument = await database.models.questions.find({
+          externalId: { $in: questionCode }
+        }, { _id: 1, externalId: 1 }).lean();
+
+        questionDocument.forEach(eachQuestionData => {
+          questionId[eachQuestionData.externalId] = {
+            id: eachQuestionData._id.toString()
+          }
+        })
+
+        qciData = await Promise.all(qciData.map(async (eachQci) => {
+          let submissionDocument = await database.models.submissions.findOne({ _id: eachQci.schoolID })
+        }))
+
+        console.log("Here")
+      }
+      catch (error) {
+        console.log(error)
+      }
+    })
   }
 
   // Commented out the rating flow
