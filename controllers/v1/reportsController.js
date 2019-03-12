@@ -2043,6 +2043,118 @@ module.exports = class Reports {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
+  * @apiVersion 0.0.1
+  * @apiName Generate ECM submissions By date
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async ecmSubmissionByDate(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if(!req.params._id){
+          return resolve({
+            status: 400,
+            message: "Please provide program id."
+          })
+        }
+
+        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          return resolve({
+            status: 400,
+            message: "From Date cannot be greater than to date !!!"
+          })
+        }
+
+        const fileName = `ecmSubmissionByDate`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        let schoolProfileSubmissionDocuments = await database.models.submissions.aggregate([
+          {
+            $match: { programExternalId: req.params._id }
+          },
+          {
+            $project: { 'schoolId': 1, 'evidencesStatus': 1, 'schoolName': '$schoolInformation.name', schoolExternalId: 1 }
+          },
+          {
+            $unwind: "$evidencesStatus"
+          },
+          {
+            $unwind: "$evidencesStatus.submissions"
+          },
+          {
+            $project: { 'schoolName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', schoolExternalId: 1 }
+          },
+          {
+            $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
+          }
+        ]);
+
+        if(!schoolProfileSubmissionDocuments.length){
+          return resolve({
+            status: 200,
+            message: "No data found for given params."
+          })
+        }
+
+        function sleep(ms) {
+          return new Promise(resolve => {
+            setTimeout(resolve, ms)
+          })
+        }
+
+        for (
+          let counter = 0;
+          counter < schoolProfileSubmissionDocuments.length;
+          counter++
+        ) {
+
+          let schoolProfileObject = {};
+          schoolProfileObject['School External Id'] = schoolProfileSubmissionDocuments[counter].schoolExternalId;
+          schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
+          schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
+          schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
+          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('MM-DD-YYYY');
+          input.push(schoolProfileObject);
+
+          if (input.readableBuffer && input.readableBuffer.length) {
+            while (input.readableBuffer.length > 20000) {
+              await sleep(2000)
+            }
+          }
+
+        }
+        input.push(null);
+        
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
   gmtToIst(gmtTime) {
     let istStart = moment(gmtTime)
       .tz("Asia/Kolkata")
