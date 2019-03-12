@@ -2156,6 +2156,16 @@ module.exports = class Reports {
     })
   }
 
+  /**
+ * @api {get} /assessment/api/v1/reports/getParentInterviewResponses/:programId Generate all parent report by date
+ * @apiVersion 0.0.1
+ * @apiName Generate all parent report by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
 
   async getParentInterviewResponses(req) {
     return new Promise(async (resolve, reject) => {
@@ -2291,6 +2301,18 @@ module.exports = class Reports {
     })
   }
 
+
+  /**
+ * @api {get} /assessment/api/v1/reports/parentInterviewCallResponses/:programId Generate report whose parent did not pick up the call
+ * @apiVersion 0.0.1
+ * @apiName Generate report only for parent who did not pick up the call 
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
   async parentInterviewCallResponses(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -2407,6 +2429,17 @@ module.exports = class Reports {
     })
   }
 
+
+  /**
+ * @api {get} /assessment/api/v1/reports/parentInterviewCall/:programId Generate report for the parent whose callResponse is present.
+ * @apiVersion 0.0.1
+ * @apiName Generate report for the parent whose callResponse is present.
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
   async parentInterviewCall(req) {
     return new Promise(async (resolve, reject) => {
       try {
