@@ -2275,7 +2275,8 @@ module.exports = class Reports {
               Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
 
               eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
-                if ((eachParentInterviewResponse.status == 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt < toDate)) {
+                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt <= toDate)) {
+
                   result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
                   eachParentInterviewResponse.parentType.forEach(eachParentType => {
                     if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
@@ -2283,7 +2284,7 @@ module.exports = class Reports {
                   })
                 }
               })
-              input.push(result);
+              if (result["Date"] && result["Date"] != "") input.push(result);
             }))
 
 
@@ -2527,7 +2528,7 @@ module.exports = class Reports {
           }
 
           await Promise.all(parentRegistryIdsArray.map(async (eachParentRegistry) => {
-            if (eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime < toDate && eachParentRegistry.callResponse) {
+            if (eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime <= toDate && eachParentRegistry.callResponse) {
               arrayOfDate.push({
                 date: moment(eachParentRegistry.callResponseUpdatedTime).format('YYYY-MM-DD'),
                 callResponse: eachParentRegistry.callResponse
