@@ -403,13 +403,15 @@ module.exports = class Submission extends Abstract {
           let { ratingsEnabled } = canRatingsBeEnabled
 
           if (ratingsEnabled) {
-            updateObject.$set = {
+            let updateStatusObject = {}
+            updateStatusObject.$set = {}
+            updateStatusObject.$set = {
               status: "completed",
               completedDate: new Date()
             }
             updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
               queryObject,
-              updateObject,
+              updateStatusObject,
               queryOptions
             );
           }
@@ -845,17 +847,39 @@ module.exports = class Submission extends Abstract {
             parentInterview.parentInformation = parentInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
-            parentInterview.completedAt = new Date()
+            if(req.body.status == "completed") {
+              parentInterview.completedAt = new Date()
+            } else if (req.body.status == "started") {
+              parentInterview.startedAt = (submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? submissionDocument.parentInterviewResponses[req.body.parentId].startedAt : new Date()
+            }
             if (submissionDocument.parentInterviewResponses) {
-              submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
+              submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId],parentInterview)
             } else {
               submissionDocument.parentInterviewResponses = {}
               submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
             }
+
+            let parentInterviewResponseStatus = _.omit(submissionDocument.parentInterviewResponses[req.body.parentId], ["parentInformation","answers"])
+            parentInterviewResponseStatus.parentId = parentInformation._id
+            parentInterviewResponseStatus.parentType = parentInterview.parentInformation.type
+
+            if (submissionDocument.parentInterviewResponsesStatus) {
+              let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString())
+              if(parentInterviewReponseStatusElementIndex >= 0) {
+                submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus
+              } else {
+                submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+              }
+            } else {
+              submissionDocument.parentInterviewResponsesStatus = new Array
+              submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+            }
+
             let updateObject = {}
             updateObject.$set = {}
             updateObject.$set.parentInterviewResponses = {}
             updateObject.$set.parentInterviewResponses = submissionDocument.parentInterviewResponses
+            updateObject.$set.parentInterviewResponsesStatus = submissionDocument.parentInterviewResponsesStatus
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
               { _id: ObjectId(submissionDocument._id) },
