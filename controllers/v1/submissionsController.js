@@ -850,7 +850,7 @@ module.exports = class Submission extends Abstract {
             if(req.body.status == "completed") {
               parentInterview.completedAt = new Date()
             } else if (req.body.status == "started") {
-              parentInterview.startedAt = (submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? submissionDocument.parentInterviewResponses[req.body.parentId].startedAt : new Date()
+              parentInterview.startedAt = (submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? submissionDocument.parentInterviewResponses[req.body.parentId].startedAt : new Date()
             }
             if (submissionDocument.parentInterviewResponses) {
               submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId],parentInterview)
