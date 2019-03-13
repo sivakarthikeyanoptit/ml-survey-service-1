@@ -1035,7 +1035,7 @@ module.exports = class Submission extends Abstract {
               //default varibale builder
               Object.keys(criteria.rubric.expressionVariables).forEach(defaultVariables => {
                 if (defaultVariables.includes("DEFAULT")) {
-                  let variable = defaultVariables.split("_")
+                  let variable = defaultVariables.split("-")
                   if (!criteria.rubric.expressionVariables.default) criteria.rubric.expressionVariables.default = "";
                   criteria.rubric.expressionVariables.default = { [variable[0]]: criteria.rubric.expressionVariables[defaultVariables] };
                   delete criteria.rubric.expressionVariables[defaultVariables];
