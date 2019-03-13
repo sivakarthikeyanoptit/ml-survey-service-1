@@ -1,5 +1,6 @@
 const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 
 module.exports = class Submission extends Abstract {
@@ -1655,31 +1656,111 @@ module.exports = class Submission extends Abstract {
       try {
         let qciData = await csv().fromString(req.files.qci.data.toString())
 
-        let questionCode = []
+        let evaluationFrameworkExternalID = [];
+        let questionCodeIds = []
 
         qciData.forEach(eachQciData => {
-          questionCode.push(eachQciData["Question Code"])
+          questionCodeIds.push(eachQciData.questionCode)
+          evaluationFrameworkExternalID.push(eachQciData.EvaluationFrameworkId)
         })
 
-        let questionId = {}
+        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({ externalId: { $in: evaluationFrameworkExternalID } }, { themes: 1 })
+        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
+
+        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 });
+        let questionIds = []
+
+        allCriteriaDocument.forEach(eachCriteria => {
+          eachCriteria.evidences.forEach(eachEvidence => {
+            eachEvidence.sections.forEach(eachSection => {
+              eachSection.questions.forEach(eachQuestion => {
+                questionIds.push(eachQuestion)
+              })
+            })
+          })
+        })
+
+        let questionExternalId = {}
         let questionDocument = await database.models.questions.find({
-          externalId: { $in: questionCode }
+          _id: { $in: questionIds },
+          externalId: { $in: questionCodeIds }
         }, { _id: 1, externalId: 1 }).lean();
 
         questionDocument.forEach(eachQuestionData => {
-          questionId[eachQuestionData.externalId] = {
+          questionExternalId[eachQuestionData.externalId] = {
             id: eachQuestionData._id.toString()
           }
         })
 
-        qciData = await Promise.all(qciData.map(async (eachQci) => {
-          let submissionDocument = await database.models.submissions.findOne({ _id: eachQci.schoolID })
-        }))
+        const fileName = `updated submission`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
 
-        console.log("Here")
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        await Promise.all(qciData.map(async (eachQci) => {
+
+          let result = { ...eachQci }
+
+          let csvUpdateHistory = []
+          let ecmByCsv = "evidences." + eachQci.ECM + ".submissions.0.answers." + questionExternalId[eachQci.questionCode].id
+          let answers = "answers." + questionExternalId[eachQci.questionCode].id
+          let responseType = ecmByCsv + ".responseType"
+          csvUpdateHistory.push(new Date())
+
+          let checkSubmission = await database.models.submissions.findOne({
+            schoolExternalId: eachQci.schoolID,
+            [ecmByCsv]: { $exists: true },
+            [answers]: { $exists: true },
+            [responseType]: {
+              $ne: {
+                $or: [
+                  "matrix", "date", "multiselect"
+                ]
+              }
+            }
+          }).lean()
+
+
+
+          if (checkSubmission != null) {
+            let findQuery = { schoolExternalId: eachQci.schoolID }
+
+            let updateQuery = {
+              $set: {
+                "csvUpdatedHistory": csvUpdateHistory,
+                [answers + ".oldValue"]: eachQci.oldResponse, [answers + ".value"]: eachQci.newResponse, [answers + ".submittedBy"]: eachQci.assessorID,
+                [ecmByCsv + ".oldValue"]: eachQci.oldResponse, [ecmByCsv + ".value"]: eachQci.newResponse, [ecmByCsv + ".submittedBy"]: eachQci.assessorID
+              }
+            }
+
+            database.models.submissions.findOneAndUpdate(findQuery, updateQuery, {
+              upsert: true
+            })
+
+
+            result["status"] = "Done"
+          }
+          else {
+            result["status"] = "Not Done"
+          }
+
+          input.push(result)
+        })).catch(error => {
+          console.log(error)
+        })
+        input.push(null)
       }
       catch (error) {
-        console.log(error)
+        reject({
+          status: 500
+        })
       }
     })
   }
