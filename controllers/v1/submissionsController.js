@@ -1727,8 +1727,6 @@ module.exports = class Submission extends Abstract {
             }
           }).lean()
 
-
-
           if (checkSubmission != null) {
             let findQuery = { schoolExternalId: eachQci.schoolID }
 

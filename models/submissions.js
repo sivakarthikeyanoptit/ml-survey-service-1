@@ -22,6 +22,7 @@ module.exports = {
     parentInterviewResponses: Object,
     completedDate: Date,
     evaluationFrameworkId: "ObjectId",
-    evaluationFrameworkExternalId: String
+    evaluationFrameworkExternalId: String,
+    csvUpdatedHistory: Array
   }
 };
