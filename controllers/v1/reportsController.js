@@ -2157,9 +2157,9 @@ module.exports = class Reports {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/getParentInterviewResponses/:programId Generate all parent report by date
+ * @api {get} /assessment/api/v1/reports/completedParentInterviewsByDate/:programId Generate all parent report by date
  * @apiVersion 0.0.1
- * @apiName Generate all parent report by date
+ * @apiName Generate all parent interview completed report by date
  * @apiGroup Report
  * @apiParam {String} fromDate From Date
  * @apiParam {String} toDate To Date
@@ -2167,7 +2167,7 @@ module.exports = class Reports {
  * @apiUse errorBody
  */
 
-  async getParentInterviewResponses(req) {
+  async completedParentInterviewsByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -2195,7 +2195,7 @@ module.exports = class Reports {
           { _id: 1 }
         ).lean()
 
-        let fileName = `ParentInterviewResponsesReport `;
+        let fileName = `ParentInterview-Completed`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
         (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
@@ -2304,9 +2304,9 @@ module.exports = class Reports {
 
 
   /**
- * @api {get} /assessment/api/v1/reports/parentInterviewCallResponses/:programId Generate report whose parent did not pick up the call
+ * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:programId Generate report whose parent did not pick up the call
  * @apiVersion 0.0.1
- * @apiName Generate report only for parent who did not pick up the call 
+ * @apiName Generate report of all the call responses recorded for parents by date
  * @apiGroup Report
  * @apiParam {String} fromDate From Date
  * @apiParam {String} toDate To Date
@@ -2314,7 +2314,7 @@ module.exports = class Reports {
  * @apiUse errorBody
  */
 
-  async parentInterviewCallResponses(req) {
+  async parentInterviewCallDidNotPickupReportByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -2354,13 +2354,14 @@ module.exports = class Reports {
         let parentRegistryQueryParams = {}
 
         parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams["callResponse"] = "R2"
         parentRegistryQueryParams['callResponseUpdatedTime'] = {}
         parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
         parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
 
         const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 }).lean()
 
-        let fileName = `ParentInterviewCallResponseReport`;
+        let fileName = `ParentInterview-CallNotPickedupReport`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
         (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
@@ -2404,17 +2405,13 @@ module.exports = class Reports {
             ).lean()
 
             await Promise.all(parentRegistryDocuments.map(async (eachParentRegistry) => {
-              if ((eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime < toDate)) {
-                if (eachParentRegistry.callResponse && eachParentRegistry.callResponse == "R2") {
-                  let result = {}
-                  result["Date"] = moment(eachParentRegistry.callResponseUpdatedTime).format('DD-MM-YYYY')
-                  result["School Name"] = eachParentRegistry.schoolName
-                  result["School Id"] = schoolExternalId[eachParentRegistry.schoolId].externalId
-                  result["Parents Name"] = eachParentRegistry.name
-                  result["Mobile number"] = eachParentRegistry.phone1
-                  input.push(result)
-                }
-              }
+              let result = {}
+              result["Date"] = moment(eachParentRegistry.callResponseUpdatedTime).format('DD-MM-YYYY')
+              result["School Name"] = eachParentRegistry.schoolName
+              result["School Id"] = schoolExternalId[eachParentRegistry.schoolId].externalId
+              result["Parents Name"] = eachParentRegistry.name
+              result["Mobile number"] = eachParentRegistry.phone1
+              input.push(result)
             }))
           }
         }
@@ -2432,7 +2429,7 @@ module.exports = class Reports {
 
 
   /**
- * @api {get} /assessment/api/v1/reports/parentInterviewCall/:programId Generate report for the parent whose callResponse is present.
+ * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:programId Generate report for the parent whose callResponse is present.
  * @apiVersion 0.0.1
  * @apiName Generate report for the parent whose callResponse is present.
  * @apiGroup Report
@@ -2441,7 +2438,7 @@ module.exports = class Reports {
  * @apiUse successBody
  * @apiUse errorBody
  */
-  async parentInterviewCall(req) {
+  async parentInterviewCallResponseByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.query.fromDate) {
@@ -2478,7 +2475,7 @@ module.exports = class Reports {
 
         const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { callResponse: 1, callResponseUpdatedTime: 1 }).lean()
 
-        let fileName = `ParentInterviewCallReport`;
+        let fileName = `ParentInterview-CallResponsesReport`;
         (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
         (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
