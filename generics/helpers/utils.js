@@ -54,19 +54,9 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
-function getFromDate(fromDate) {
-  return new Date(fromDate.split("-").reverse().join("-"))
-}
-
-function getToDate(toDate) {
-  return req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-}
-
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
-  getCriteriaIds: getCriteriaIds,
-  getFromDate: getFromDate,
-  getToDate: getToDate
+  getCriteriaIds: getCriteriaIds
 };
