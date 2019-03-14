@@ -1026,14 +1026,6 @@ module.exports = class Submission extends Abstract {
 
         let allSubmittedEvidence = submissionDocument.evidencesStatus.every(this.allSubmission)
 
-        function getDefaultVarValues(variable,arrayOfAllExpressionVariables){
-          if(Object.keys(arrayOfAllExpressionVariables).includes(`${variable}-DEFAULT`)){
-            return arrayOfAllExpressionVariables[`${variable}-DEFAULT`];
-          }else{
-            return 'NA';
-          }
-        }
-
         if (allSubmittedEvidence) {
           let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
 
@@ -1074,9 +1066,7 @@ module.exports = class Submission extends Abstract {
               Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                 if (variable != "default") {
                   expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
-
-                  expressionVariables[variable] = (expressionVariables[variable] === "NA" && getDefaultVarValues(variable,criteria.rubric.expressionVariables) != "NA") ? getDefaultVarValues(variable,criteria.rubric.expressionVariables) : expressionVariables[variable];
-
+                  expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                   if (expressionVariables[variable] === "NA") {
                     allValuesAvailable = false;
                   }

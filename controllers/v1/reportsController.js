@@ -916,11 +916,6 @@ module.exports = class Reports {
           { evidences: 1, name: 1 }
         ).lean().exec();
 
-        let allQuestionWithOptions = database.models.questions.find(
-          { responseType: { $in: ["radio", "multiselect"] } },
-          { options: 1 }
-        ).lean().exec();
-
         let schoolSubmissionDocument = database.models.submissions.find(
           schoolSubmissionQuery,
           {
@@ -941,11 +936,10 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([allCriterias, allQuestionWithOptions, schoolSubmissionDocument]).then(documents => {
+        Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
 
           let allCriterias = documents[0];
-          let allQuestionWithOptions = documents[1];
-          let schoolSubmissionDocument = documents[2];
+          let schoolSubmissionDocument = documents[1];
           let criteriaQuestionDetailsObject = {};
           let criteriaScoreObject = {};
           let questionOptionObject = {};
@@ -963,6 +957,13 @@ module.exports = class Reports {
               });
             });
           });
+
+          let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
+
+          let allQuestionWithOptions = await database.models.questions.find(
+            { _id: { $in: questionIds }, responseType: { $in: ["radio", "multiselect"] } },
+            { options: 1 }
+          ).lean();
 
           allQuestionWithOptions.forEach(question => {
             if (question.options.length > 0) {
