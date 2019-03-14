@@ -901,11 +901,79 @@ module.exports = class ParentRegistry extends Abstract {
     return new Promise(async function (resolve, reject) {
 
       try {
+
+        const parentDocument = await database.models.parentRegistry.findOne(
+          { _id: ObjectId(req.params._id) }
+        );
+        
+        if(!parentDocument) throw "No such parent found"
+        
+        let updateSubmissionDocument = false
+        if(req.body.updateFromParentPortal === true ) {
+          if(req.body.callResponse && req.body.callResponse != "" && (!parentDocument.callResponse || (parentDocument.callResponse != req.body.callResponse) )) {
+            req.body.callResponseUpdatedTime = new Date()
+          }
+          updateSubmissionDocument = true
+        }
+
         let parentInformation = await database.models.parentRegistry.findOneAndUpdate(
           { _id: ObjectId(req.params._id) },
           req.body,
           { new: true }
         );
+
+        if(updateSubmissionDocument) {
+
+          let queryObject = {
+            schoolId: ObjectId(parentInformation.schoolId)
+          }
+          
+          let submissionDocument = await database.models.submissions.findOne(
+            queryObject,
+            {["parentInterviewResponses."+parentInformation._id.toString()] : 1, parentInterviewResponsesStatus : 1}
+          );
+
+          let updateObject = {}
+          updateObject.$set = {}
+          let parentInterviewResponse = {}
+          if(submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[parentInformation._id.toString()]) {
+            parentInterviewResponse = submissionDocument.parentInterviewResponses[parentInformation._id.toString()]
+            parentInterviewResponse.parentInformation = parentInformation
+          } else {
+            parentInterviewResponse = {
+              parentInformation : parentInformation,
+              status: "started",
+              startedAt : new Date()
+            }
+          }
+
+          updateObject.$set = {
+            ["parentInterviewResponses."+parentInformation._id.toString()] : parentInterviewResponse
+          }
+
+          let parentInterviewResponseStatus = _.omit(parentInterviewResponse, ["parentInformation","answers"])
+          parentInterviewResponseStatus.parentId = parentInformation._id
+          parentInterviewResponseStatus.parentType = parentInformation.type
+
+          if (submissionDocument.parentInterviewResponsesStatus) {
+            let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString())
+            if(parentInterviewReponseStatusElementIndex >= 0) {
+              submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus
+            } else {
+              submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+            }
+          } else {
+            submissionDocument.parentInterviewResponsesStatus = new Array
+            submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+          }
+
+          updateObject.$set.parentInterviewResponsesStatus = submissionDocument.parentInterviewResponsesStatus
+
+          const submissionDocumentUpdate = await database.models.submissions.findOneAndUpdate(
+            { _id: submissionDocument._id},
+            updateObject
+          );
+        }
 
         let responseMessage = "Parent information updated successfully."
 
