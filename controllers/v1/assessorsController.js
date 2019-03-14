@@ -540,16 +540,22 @@ module.exports = class Assessors {
         this.externalIdToUserIdMap = {}
       }
 
-      let userId = await shikshalokam
-        .getKeycloakUserIdByLoginId(token, loginId)
-
-      if (userId.length) {
-        this.externalIdToUserIdMap[loginId] = {
-          userId: userId[0].userLoginId
-        }
+      if (Object.keys(this.externalIdToUserIdMap).includes(loginId)) {
+        return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
       }
 
-      return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+      else {
+        let userId = await shikshalokam
+          .getKeycloakUserIdByLoginId(token, loginId)
+
+        if (userId.length) {
+          this.externalIdToUserIdMap[loginId] = {
+            userId: userId[0].userLoginId
+          }
+        }
+        return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+      }
+
     })
 
   }
