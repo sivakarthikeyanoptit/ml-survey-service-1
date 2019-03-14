@@ -1405,15 +1405,15 @@ module.exports = class Submission extends Abstract {
       try {
         let qciData = await csv().fromString(req.files.qci.data.toString())
 
-        let evaluationFrameworkExternalID = [];
         let questionCodeIds = []
 
         qciData.forEach(eachQciData => {
           questionCodeIds.push(eachQciData.questionCode)
-          evaluationFrameworkExternalID.push(eachQciData.EvaluationFrameworkId)
         })
 
-        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({ externalId: { $in: evaluationFrameworkExternalID } }, { themes: 1 }).lean()
+        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
+          externalId: qciData[0].evaluationFrameworkId
+        }, { themes: 1 }).lean()
         let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
 
         let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
@@ -1465,13 +1465,13 @@ module.exports = class Submission extends Abstract {
               csvUpdateHistory.push(new Date())
 
               let checkSubmission = await database.models.submissions.findOne({
-                schoolExternalId: eachQci.schoolID,
+                schoolExternalId: eachQci.schoolId,
                 [ecmByCsv]: { $exists: true },
                 [answers]: { $exists: true }
               }).lean()
 
               if (checkSubmission != null) {
-                let findQuery = { schoolExternalId: eachQci.schoolID }
+                let findQuery = { schoolExternalId: eachQci.schoolId }
 
                 let updateQuery = {
                   $set: {
