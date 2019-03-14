@@ -825,8 +825,8 @@ module.exports = class Reports {
           let evaluationNameObject = {};
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
-              singleTheme.children && singleTheme.children.forEach(subThemes=>{
-                subThemes.children && subThemes.children.forEach(singleSubTheme=>{
+              singleTheme.children && singleTheme.children.forEach(subThemes => {
+                subThemes.children && subThemes.children.forEach(singleSubTheme => {
                   singleSubTheme.criteria.forEach(singleCriteria => {
                     evaluationNameObject[singleCriteria.toString()] = {
                       themeName: singleTheme.name,
@@ -1760,7 +1760,7 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if(!evidenceSubmission.submittedByName) {
+                    if (!evidenceSubmission.submittedByName) {
                       evidenceSubmission.submittedByName = ""
                     }
                     let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
@@ -2054,6 +2054,7 @@ module.exports = class Reports {
     });
   }
 
+
   /**
   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
   * @apiVersion 0.0.1
@@ -2068,7 +2069,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if(!req.params._id){
+        if (!req.params._id) {
           return resolve({
             status: 400,
             message: "Please provide program id."
@@ -2120,7 +2121,7 @@ module.exports = class Reports {
           }
         ]);
 
-        if(!schoolProfileSubmissionDocuments.length){
+        if (!schoolProfileSubmissionDocuments.length) {
           return resolve({
             status: 200,
             message: "No data found for given params."
@@ -2155,13 +2156,419 @@ module.exports = class Reports {
 
         }
         input.push(null);
-        
+
       } catch (error) {
         return reject({
           status: 500,
           message: "Oops! Something went wrong!",
           errorObject: error
         });
+      }
+    })
+  }
+
+  /**
+ * @api {get} /assessment/api/v1/reports/completedParentInterviewsByDate/:programId Generate all parent report by date
+ * @apiVersion 0.0.1
+ * @apiName Generate all parent interview completed report by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
+  async completedParentInterviewsByDate(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let fetchRequiredSubmissionDocumentIdQueryObj = {};
+        fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
+
+        const submissionDocumentIdsToProcess = await database.models.submissions.find(
+          fetchRequiredSubmissionDocumentIdQueryObj,
+          { _id: 1 }
+        ).lean()
+
+        let fileName = `ParentInterview-Completed`;
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionDocumentIdsToProcess) {
+          throw "No submissions found"
+        }
+        else {
+
+          const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 20)
+          let submissionIds
+          let submissionDocuments
+
+
+          for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
+
+            submissionIds = chunkOfSubmissionIds[pointerToSubmissionIdChunkArray].map(submissionModel => {
+              return submissionModel._id
+            });
+
+            submissionDocuments = await database.models.submissions.find({
+              _id: { $in: submissionIds }
+            }, {
+                "schoolInformation.name": 1,
+                "schoolInformation.externalId": 1,
+                "schoolInformation.administration": 1,
+                "parentInterviewResponsesStatus.status": 1,
+                "parentInterviewResponsesStatus.completedAt": 1,
+                "parentInterviewResponsesStatus.parentType": 1,
+              }
+            ).lean()
+
+            await Promise.all(submissionDocuments.map(async (eachSubmission) => {
+              let result = {}
+
+              let parentTypeObject = {
+                "P1": {
+                  name: "Parent only",
+                  count: 0
+                },
+                "P2": {
+                  name: "SMC Parent Member",
+                  count: 0
+                },
+                "P3": {
+                  name: "Safety Committee Member",
+                  count: 0
+                },
+                "P4": {
+                  name: "EWS-DG Parent",
+                  count: 0
+                },
+                "P5": {
+                  name: "Social Worker",
+                  count: 0
+                },
+                "P6": {
+                  name: "Elected Representative Nominee",
+                  count: 0
+                }
+              }
+
+              result["schoolId"] = eachSubmission.schoolInformation.externalId;
+              result["schoolName"] = eachSubmission.schoolInformation.name;
+              result["School (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.schoolInformation.administration;
+
+              Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
+
+              eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
+                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt <= toDate)) {
+
+                  result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
+                  eachParentInterviewResponse.parentType.forEach(eachParentType => {
+                    if (Object.keys(parentTypeObject).includes(eachParentType)) result[parentTypeObject[eachParentType].name] = ++parentTypeObject[eachParentType].count
+
+                  })
+                }
+              })
+              if (result["Date"] && result["Date"] != "") input.push(result);
+            }))
+
+
+          }
+        }
+        input.push(null)
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+  /**
+ * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:programId Generate report whose parent did not pick up the call
+ * @apiVersion 0.0.1
+ * @apiName Generate report of all the call responses recorded for parents by date
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
+  async parentInterviewCallDidNotPickupReportByDate(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+
+        const programQueryParams = {
+          externalId: req.params._id
+        };
+
+        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No program document was found for given parameters."
+          });
+        }
+
+        let schoolExternalId = {}
+        let schoolDocument = await database.models.schools.find({}, { externalId: 1 })
+        schoolDocument.forEach(eachSchool => {
+          schoolExternalId[eachSchool._id.toString()] = {
+            externalId: eachSchool.externalId
+          }
+        })
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let parentRegistryQueryParams = {}
+
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams["callResponse"] = "R2"
+        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
+        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+
+        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 }).lean()
+
+        let fileName = `ParentInterview-CallNotPickedupReport`;
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!parentRegistryIdsArray) {
+          throw "No submissions found"
+        }
+        else {
+
+          const chunkOfParentRegistryDocumentIds = _.chunk(parentRegistryIdsArray, 20)
+
+          let parentIds
+          let parentRegistryDocuments
+
+          for (let pointerToParentIdChunkArray = 0; pointerToParentIdChunkArray < chunkOfParentRegistryDocumentIds.length; pointerToParentIdChunkArray++) {
+
+            parentIds = chunkOfParentRegistryDocumentIds[pointerToParentIdChunkArray].map(parentModel => {
+              return parentModel._id
+            });
+
+            parentRegistryDocuments = await database.models.parentRegistry.find({
+              _id: { $in: parentIds }
+            }, {
+                callResponseUpdatedTime: 1,
+                name: 1,
+                callResponse: 1,
+                phone1: 1,
+                schoolName: 1,
+                schoolId: 1
+              }
+            ).lean()
+
+            await Promise.all(parentRegistryDocuments.map(async (eachParentRegistry) => {
+              let result = {}
+              result["Date"] = moment(eachParentRegistry.callResponseUpdatedTime).format('DD-MM-YYYY')
+              result["School Name"] = eachParentRegistry.schoolName
+              result["School Id"] = schoolExternalId[eachParentRegistry.schoolId].externalId
+              result["Parents Name"] = eachParentRegistry.name
+              result["Mobile number"] = eachParentRegistry.phone1
+              input.push(result)
+            }))
+          }
+        }
+        input.push(null)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+  /**
+ * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:programId Generate report for the parent whose callResponse is present.
+ * @apiVersion 0.0.1
+ * @apiName Generate report for the parent whose callResponse is present.
+ * @apiGroup Report
+ * @apiParam {String} fromDate From Date
+ * @apiParam {String} toDate To Date
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+  async parentInterviewCallResponseByDate(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.query.fromDate) {
+          throw "From Date is mandatory"
+        }
+
+        const programQueryParams = {
+          externalId: req.params._id
+        };
+
+        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+
+        if (!programsDocumentIds.length) {
+          return resolve({
+            status: 404,
+            message: "No program document was found for given parameters."
+          });
+        }
+
+        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
+        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        toDate.setHours(23, 59, 59)
+
+        if (fromDate > toDate) {
+          throw "From date cannot be greater than to date."
+        }
+
+        let parentRegistryQueryParams = {}
+
+        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
+        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+
+        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { callResponse: 1, callResponseUpdatedTime: 1 }).lean()
+
+        let fileName = `ParentInterview-CallResponsesReport`;
+        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!parentRegistryIdsArray) {
+          throw "No submissions found"
+        }
+        else {
+
+          let arrayOfDate = [];
+
+          let callResponseObj = {
+            "R1": {
+              name: "Call not initiated"
+            },
+            "R2": {
+              name: "Did not pick up"
+            },
+            "R3": {
+              name: "Not reachable"
+            },
+            "R4": {
+              name: "Call back later"
+            },
+            "R5": {
+              name: "Wrong number"
+            },
+            "R6": {
+              name: "Call disconnected mid way"
+            },
+            "R7": {
+              name: "Completed"
+            },
+            "R00": {
+              name: "Call Response Completed But Survey Not Completed."
+            }
+          }
+
+          await Promise.all(parentRegistryIdsArray.map(async (eachParentRegistry) => {
+            if (eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime <= toDate && eachParentRegistry.callResponse) {
+              arrayOfDate.push({
+                date: moment(eachParentRegistry.callResponseUpdatedTime).format('YYYY-MM-DD'),
+                callResponse: eachParentRegistry.callResponse
+              })
+            }
+
+          }))
+
+          let groupByDate = _.mapValues(_.groupBy(arrayOfDate, "date"), v => _.sortBy(v, "date"))
+
+          Object.values(groupByDate).forEach(eachGroupDate => {
+            let result = {}
+            result["date"] = eachGroupDate[0].date;
+
+            Object.values(callResponseObj).forEach(type => result[type.name] = 0)
+            let callResponseForEachGroupDate = _.countBy(eachGroupDate, 'callResponse')
+
+            Object.keys(callResponseForEachGroupDate).forEach(eachCallResponse => {
+              result[callResponseObj[eachCallResponse].name] = callResponseForEachGroupDate[eachCallResponse]
+            })
+
+            input.push(result)
+          })
+        }
+        input.push(null)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        })
       }
     })
   }
