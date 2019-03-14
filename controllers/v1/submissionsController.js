@@ -1040,23 +1040,15 @@ module.exports = class Submission extends Abstract {
                 submissionAnswers.push(submissionDocument.answers[questionArray[0]])
                 let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                 let result;
-                if (questionArray[1] === "mode") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
-                    result = submissionDocument.answers[questionArray[0]].value;
-                  } else {
-                    result = "NA";
-                  }
-                }else{
-                  inputTypes.forEach(inputType => {
-                    if (questionArray[1] === inputType) {
-                      if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
-                        result = submissionDocument.answers[questionArray[0]][inputType];
-                      } else {
-                        result = "NA";
-                      }
+                inputTypes.forEach(inputType => {
+                  if (questionArray[1] === inputType) {
+                    if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                      result = submissionDocument.answers[questionArray[0]][inputType];
+                    } else {
+                      result = "NA";
                     }
-                  })
-                }
+                  }
+                })
                 return result;
               }
               let expressionVariables = {};
