@@ -1707,8 +1707,7 @@ module.exports = class Submission extends Abstract {
         let questionExternalId = {}
         questionDocument.forEach(eachQuestionData => {
           questionExternalId[eachQuestionData.externalId] = {
-            id: eachQuestionData._id.toString(),
-            responseType: eachQuestionData.responseType
+            id: eachQuestionData._id.toString()
           }
         })
 
@@ -1727,7 +1726,7 @@ module.exports = class Submission extends Abstract {
         const chunkOfsubmissionUpdateData = _.chunk(submissionUpdateData, 10)
 
         const skipQuestionTypes = ["matrix", "date", "multiselect", "radio"]
-        let schoolId = []
+        let schoolHistoryUpdatedArray = []
 
         for (let pointerTosubmissionUpdateData = 0; pointerTosubmissionUpdateData < chunkOfsubmissionUpdateData.length; pointerTosubmissionUpdateData++) {
 
@@ -1736,7 +1735,7 @@ module.exports = class Submission extends Abstract {
 
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
-            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+            } else if (skipQuestionTypes.includes(eachQuestionRow.questionType)) {
               eachQuestionRow["status"] = "Invalid question type"
             } else {
 
@@ -1745,20 +1744,15 @@ module.exports = class Submission extends Abstract {
               let submissionDate = "evidences." + eachQuestionRow.ECM + ".submissions.0.submissionDate"
               let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
 
-              if (!schoolId.includes(eachQuestionRow.schoolId)) {
-                schoolId.push(eachQuestionRow.schoolId)
-                csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
-              }
-
               let checkSubmission = await database.models.submissions.findOne({
                 schoolExternalId: eachQuestionRow.schoolId,
                 programExternalId: eachQuestionRow.programId,
                 [ecmByCsv]: { $exists: true },
                 [answers]: { $exists: true }
-              }).lean()
+              }, { _id: 1 }).lean()
 
               if (checkSubmission != null) {
-                let findQuery = { schoolExternalId: eachQuestionRow.schoolId, "evidencesStatus.externalId": eachQuestionRow.ECM }
+                let findQuery = { _id: checkSubmission._ids, "evidencesStatus.externalId": eachQuestionRow.ECM }
 
                 let updateQuery = {
                   $set: {
@@ -1770,7 +1764,11 @@ module.exports = class Submission extends Abstract {
                     [submissionDate]: new Date(),
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
                   },
-                  $addToSet: { "csvUpdatedHistory": csvUpdateHistory }
+                }
+                if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
+                  schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
+                  csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
+                  updateQuery.$set["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
                 }
 
                 await database.models.submissions.findOneAndUpdate(findQuery, updateQuery)
