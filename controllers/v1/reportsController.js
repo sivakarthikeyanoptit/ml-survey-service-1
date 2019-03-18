@@ -140,10 +140,10 @@ module.exports = class Reports {
 
               let totalEcmsSubmittedCount = 0
               eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
-                if ((evidenceMethod.isSubmitted) && (evidenceMethod.notApplicable != true) && (evidenceMethod.canBeNotApplicable != true)) {
+                if ((evidenceMethod.isSubmitted) && (evidenceMethod.notApplicable != true)) {
                   totalEcmsSubmittedCount += 1
                 }
-                _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) && (evidenceMethod.notApplicable != true) && (evidenceMethod.canBeNotApplicable != true) ? true : "NA" })
+                _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) ? (evidenceMethod.notApplicable != true) ? true : "NA" : false })
                 _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
               })
 
