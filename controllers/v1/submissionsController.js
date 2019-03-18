@@ -1702,13 +1702,14 @@ module.exports = class Submission extends Abstract {
         let questionDocument = await database.models.questions.find({
           _id: { $in: questionIds },
           externalId: { $in: questionCodeIds }
-        }, { _id: 1, externalId: 1, responseType: 1 }).lean();
+        }, { _id: 1, externalId: 1, responseType: 1, options: 1 }).lean();
 
         let questionExternalId = {}
         questionDocument.forEach(eachQuestionData => {
           questionExternalId[eachQuestionData.externalId] = {
             id: eachQuestionData._id.toString(),
-            responseType: eachQuestionData.responseType
+            responseType: eachQuestionData.responseType,
+            options: eachQuestionData.options
           }
         })
 
@@ -1737,9 +1738,11 @@ module.exports = class Submission extends Abstract {
 
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
-            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
-              eachQuestionRow["status"] = "Invalid question type"
+
+              // } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+              //   eachQuestionRow["status"] = "Invalid question type"
             } else {
+
 
               let csvUpdateHistory = []
               let ecmByCsv = "evidences." + eachQuestionRow.ECM + ".submissions.0.answers." + questionExternalId[eachQuestionRow.questionCode].id
@@ -1754,24 +1757,35 @@ module.exports = class Submission extends Abstract {
               }, { _id: 1 }).lean()
 
               if (checkSubmission != null) {
+
                 let findQuery = { _id: checkSubmission._ids, "evidencesStatus.externalId": eachQuestionRow.ECM }
 
                 let updateQuery = {
                   $set: {
-                    [answers + ".oldValue"]: eachQuestionRow.oldResponse,
-                    [answers + ".value"]: eachQuestionRow.newResponse,
                     [answers + ".submittedBy"]: eachQuestionRow.assessorID,
-                    [ecmByCsv + ".oldValue"]: eachQuestionRow.oldResponse,
-                    [ecmByCsv + ".value"]: eachQuestionRow.newResponse,
                     [submissionDate]: new Date(),
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
                   },
                 }
+
+                if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+                  let questionValueConversion = this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
+                  updateQuery[answers + ".oldValue"] = questionValueConversion.oldValue;
+                  updateQuery[answers + ".value"] = questionValueConversion.newValue;
+                  updateQuery[ecmByCsv + ".oldValue"] = eachQuestionRow.oldResponse;
+                  updateQuery[ecmByCsv + ".value"] = eachQuestionRow.newResponse;
+                }
+
                 if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
                   schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
                   csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
                   updateQuery.$set["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
                 }
+
+                updateQuery[answers + ".oldValue"] = eachQuestionRow.oldResponse;
+                updateQuery[answers + ".value"] = eachQuestionRow.newResponse;
+                updateQuery[ecmByCsv + ".oldValue"] = eachQuestionRow.oldResponse;
+                updateQuery[ecmByCsv + ".value"] = eachQuestionRow.newResponse;
 
                 await database.models.submissions.findOneAndUpdate(findQuery, updateQuery)
 
@@ -1798,5 +1812,38 @@ module.exports = class Submission extends Abstract {
 
   allSubmission(allSubmission) {
     return allSubmission.isSubmitted
+  }
+
+  questionValueConversion(qType, oldResponse, newResponse) {
+    let result = {}
+
+    if (qType.responseType == "date") {
+      result["oldValue"] = oldResponse.split("/").reverse().join("-")
+      result["newValue"] = newResponse.split("/").reverse().join("-")
+    }
+
+    if (qType.responseType == "radio") {
+      qType.options.forEach(eachOption => {
+        if (eachOption.label == oldResponse) {
+          result["oldValue"] = eachOption.value
+        }
+        if (eachOption.label == newResponse) {
+          result["newValue"] = eachOption.value
+        }
+      })
+    }
+
+    if (qType.responseType == "multiselect") {
+      qType.options.forEach(eachOption => {
+        if (eachOption.label.trim() === oldResponse) {
+          result["oldValue"] = [eachOption.value]
+        }
+        if (eachOption.label.trim().toUpperCase() === newResponse.toUpperCase()) {
+          result["newValue"] = [eachOption.value]
+        }
+      })
+    }
+
+    return result
   }
 };
