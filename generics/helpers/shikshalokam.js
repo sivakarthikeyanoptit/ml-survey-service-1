@@ -13,6 +13,7 @@ var getUserInfo = function (token, userId) {
     }
   };
 
+
   let body = "";
   return new Promise(function (resolve, reject) {
     try {
@@ -22,7 +23,6 @@ var getUserInfo = function (token, userId) {
           body += chunk;
         });
         response.on("end", function () {
-          // console.log(response.headers["content-type"]);
           if (
             response.headers["content-type"] ==
             "application/json; charset=utf-8" ||
@@ -30,7 +30,6 @@ var getUserInfo = function (token, userId) {
           ) {
             body = JSON.parse(body);
             return resolve(body);
-            // console.log(body);
           }
         });
       });
@@ -41,13 +40,13 @@ var getUserInfo = function (token, userId) {
   });
 };
 
-var getUserDetailByToken = function (token, userName) {
+var getKeycloakUserIdByLoginId = function (token, userName) {
   const reqObj = new Request()
 
   let requestData = {
     "request": {
       "filters": {
-        "userName": userName
+        "userName": userName.toLowerCase()
       }
     }
   }
@@ -62,7 +61,7 @@ var getUserDetailByToken = function (token, userName) {
     json: requestData
   };
 
-  let returnResponse = {}
+  let returnResponse = []
   return new Promise((resolve, reject) => {
     return resolve(reqObj.post(
       url,
@@ -70,7 +69,10 @@ var getUserDetailByToken = function (token, userName) {
     ));
   }).then(result => {
     let dataResponse = JSON.parse(result.data);
-    returnResponse = dataResponse.result.response.content
+    dataResponse.result.response.content.forEach(eachContent => {
+      returnResponse.push({ userLoginId: eachContent.id })
+    });
+
     return returnResponse
   }).catch((err) => {
     returnResponse = {
@@ -83,5 +85,5 @@ var getUserDetailByToken = function (token, userName) {
 
 module.exports = {
   userInfo: getUserInfo,
-  checkUser: getUserDetailByToken
+  getKeycloakUserIdByLoginId: getKeycloakUserIdByLoginId
 };
