@@ -1739,8 +1739,6 @@ module.exports = class Submission extends Abstract {
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
 
-              // } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
-              //   eachQuestionRow["status"] = "Invalid question type"
             } else {
 
 
