@@ -418,9 +418,7 @@ module.exports = class Assessors {
           })
 
           let updateObject;
-          if (fieldsWithOutSchool.externalId == fieldsWithOutSchool.externalId.toUpperCase()) {
-            fieldsWithOutSchool.externalId = fieldsWithOutSchool.externalId.toLowerCase();
-          }
+          
           if (fieldsWithOutSchool.parentId) {
             fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
           }
