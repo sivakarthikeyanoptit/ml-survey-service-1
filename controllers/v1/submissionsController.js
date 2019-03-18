@@ -847,42 +847,26 @@ module.exports = class Submission extends Abstract {
             parentInterview.parentInformation = parentInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
-<<<<<<< HEAD
             if (req.body.status == "completed") {
-=======
-            if(req.body.status == "completed") {
->>>>>>> ddfa1c1a9c7cb380c0920d0e07b84db72ce9ce8d
               parentInterview.completedAt = new Date()
               parentInterview.startedAt = (!submissionDocument.parentInterviewResponses || !submissionDocument.parentInterviewResponses[req.body.parentId] || !submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? new Date() : submissionDocument.parentInterviewResponses[req.body.parentId].startedAt
             } else if (req.body.status == "started") {
               parentInterview.startedAt = (submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[req.body.parentId] && submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? submissionDocument.parentInterviewResponses[req.body.parentId].startedAt : new Date()
             }
             if (submissionDocument.parentInterviewResponses) {
-<<<<<<< HEAD
               submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId], parentInterview)
-=======
-              submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId],parentInterview)
->>>>>>> ddfa1c1a9c7cb380c0920d0e07b84db72ce9ce8d
             } else {
               submissionDocument.parentInterviewResponses = {}
               submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
             }
 
-<<<<<<< HEAD
             let parentInterviewResponseStatus = _.omit(submissionDocument.parentInterviewResponses[req.body.parentId], ["parentInformation", "answers"])
-=======
-            let parentInterviewResponseStatus = _.omit(submissionDocument.parentInterviewResponses[req.body.parentId], ["parentInformation","answers"])
->>>>>>> ddfa1c1a9c7cb380c0920d0e07b84db72ce9ce8d
             parentInterviewResponseStatus.parentId = parentInformation._id
             parentInterviewResponseStatus.parentType = parentInterview.parentInformation.type
 
             if (submissionDocument.parentInterviewResponsesStatus) {
               let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString())
-<<<<<<< HEAD
               if (parentInterviewReponseStatusElementIndex >= 0) {
-=======
-              if(parentInterviewReponseStatusElementIndex >= 0) {
->>>>>>> ddfa1c1a9c7cb380c0920d0e07b84db72ce9ce8d
                 submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus
               } else {
                 submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
@@ -1805,5 +1789,4 @@ module.exports = class Submission extends Abstract {
   allSubmission(allSubmission) {
     return allSubmission.isSubmitted
   }
-
 };
