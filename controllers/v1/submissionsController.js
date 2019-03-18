@@ -1414,6 +1414,7 @@ module.exports = class Submission extends Abstract {
         let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
           externalId: qciData[0].evaluationFrameworkId
         }, { themes: 1 }).lean()
+
         let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
 
         let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
