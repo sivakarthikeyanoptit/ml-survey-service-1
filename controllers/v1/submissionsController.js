@@ -1707,7 +1707,8 @@ module.exports = class Submission extends Abstract {
         let questionExternalId = {}
         questionDocument.forEach(eachQuestionData => {
           questionExternalId[eachQuestionData.externalId] = {
-            id: eachQuestionData._id.toString()
+            id: eachQuestionData._id.toString(),
+            responseType: eachQuestionData.responseType
           }
         })
 
@@ -1732,10 +1733,11 @@ module.exports = class Submission extends Abstract {
 
           await Promise.all(chunkOfsubmissionUpdateData[pointerTosubmissionUpdateData].map(async (eachQuestionRow) => {
 
+            eachQuestionRow["questionType"] = questionExternalId[eachQuestionRow.questionCode].responseType
 
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
-            } else if (skipQuestionTypes.includes(eachQuestionRow.questionType)) {
+            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
               eachQuestionRow["status"] = "Invalid question type"
             } else {
 
