@@ -1677,19 +1677,19 @@ module.exports = class Submission extends Abstract {
 
   }
 
-  async uploadQuestions(req) {
+  async modifyByCsvUpload(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let qciData = await csv().fromString(req.files.qci.data.toString())
+        const submissionUpdateData = await csv().fromString(req.files.questions.data.toString())
 
         let questionCodeIds = []
 
-        qciData.forEach(eachQciData => {
-          questionCodeIds.push(eachQciData.questionCode)
+        submissionUpdateData.forEach(eachsubmissionUpdateData => {
+          questionCodeIds.push(eachsubmissionUpdateData.questionCode)
         })
 
         let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
-          externalId: qciData[0].evaluationFrameworkId
+          externalId: submissionUpdateData[0].evaluationFrameworkId
         }, { themes: 1 }).lean()
 
         let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
@@ -1710,7 +1710,7 @@ module.exports = class Submission extends Abstract {
           }
         })
 
-        const fileName = `Updated-Submission`;
+        const fileName = `Modify-Submission-Result`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1722,57 +1722,58 @@ module.exports = class Submission extends Abstract {
           });
         }());
 
-        const chunkOfQciData = _.chunk(qciData, 10)
+        const chunkOfsubmissionUpdateData = _.chunk(submissionUpdateData, 10)
 
-        for (let pointerToQciData = 0; pointerToQciData < chunkOfQciData.length; pointerToQciData++) {
+        const skipQuestionTypes = ["matrix", "date", "multiselect", "radio"]
 
-          await Promise.all(chunkOfQciData[pointerToQciData].map(async (eachQci) => {
+        for (let pointerTosubmissionUpdateData = 0; pointerTosubmissionUpdateData < chunkOfsubmissionUpdateData.length; pointerTosubmissionUpdateData++) {
 
-            let result = eachQci;
-            let arrayOfresponseType = ["matrix", "date", "multiselect"]
+          await Promise.all(chunkOfsubmissionUpdateData[pointerTosubmissionUpdateData].map(async (eachQuestionRow) => {
 
-            if (!questionExternalId[eachQci.questionCode] || arrayOfresponseType.includes(questionExternalId[eachQci.questionCode].responseType)) {
-              result["status"] = "Response type error or question is not found in particular evaluation framework id"
-            }
 
-            else {
+            if (!questionExternalId[eachQuestionRow.questionCode]) {
+              result["status"] = "Invalid question id"
+            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+              result["status"] = "Invalid question type"
+            } else {
 
               let csvUpdateHistory = []
-              let ecmByCsv = "evidences." + eachQci.ECM + ".submissions.0.answers." + questionExternalId[eachQci.questionCode].id
-              let answers = "answers." + questionExternalId[eachQci.questionCode].id
+              let ecmByCsv = "evidences." + eachQuestionRow.ECM + ".submissions.0.answers." + questionExternalId[eachQuestionRow.questionCode].id
+              let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
               csvUpdateHistory.push(new Date())
 
               let checkSubmission = await database.models.submissions.findOne({
-                schoolExternalId: eachQci.schoolId,
+                schoolExternalId: eachQuestionRow.schoolId,
+                programExternalId: eachQuestionRow.programId,
                 [ecmByCsv]: { $exists: true },
                 [answers]: { $exists: true }
               }).lean()
 
               if (checkSubmission != null) {
-                let findQuery = { schoolExternalId: eachQci.schoolId }
+                let findQuery = { schoolExternalId: eachQuestionRow.schoolId }
 
                 let updateQuery = {
                   $set: {
                     "csvUpdatedHistory": csvUpdateHistory,
-                    [answers + ".oldValue"]: eachQci.oldResponse,
-                    [answers + ".value"]: eachQci.newResponse,
-                    [answers + ".submittedBy"]: eachQci.assessorID,
-                    [ecmByCsv + ".oldValue"]: eachQci.oldResponse,
-                    [ecmByCsv + ".value"]: eachQci.newResponse,
-                    [ecmByCsv + ".submittedBy"]: eachQci.assessorID
+                    [answers + ".oldValue"]: eachQuestionRow.oldResponse,
+                    [answers + ".value"]: eachQuestionRow.newResponse,
+                    [answers + ".submittedBy"]: eachQuestionRow.assessorID,
+                    [ecmByCsv + ".oldValue"]: eachQuestionRow.oldResponse,
+                    [ecmByCsv + ".value"]: eachQuestionRow.newResponse,
+                    [ecmByCsv + ".submittedBy"]: eachQuestionRow.assessorID
                   }
                 }
 
                 await database.models.submissions.findOneAndUpdate(findQuery, updateQuery)
 
-                result["status"] = "Done"
+                eachQuestionRow["status"] = "Done"
               }
               else {
-                result["status"] = "Not Done"
+                eachQuestionRow["status"] = "Not Done"
               }
             }
 
-            input.push(result)
+            input.push(eachQuestionRow)
           }))
         }
         input.push(null)
