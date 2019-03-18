@@ -5,9 +5,10 @@ module.exports = (req, res, next) => {
         req.searchText = (req.query.search && req.query.search != "") ? decodeURI(req.query.search) : ""
         delete req.query.page
         delete req.query.limit
-        next();
-        return;
     }
+
+    next();
+    return;
 }
 
 

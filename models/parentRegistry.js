@@ -12,6 +12,7 @@ module.exports = {
     schoolId: "String",
     schoolName: "String",
     programId: "String",
-    callResponse:"String"
+    callResponse:"String",
+    callResponseUpdatedTime: Date
   }
 };

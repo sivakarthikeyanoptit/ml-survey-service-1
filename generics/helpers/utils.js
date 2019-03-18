@@ -20,12 +20,12 @@ function camelCaseToTitleCase(in_camelCaseString) {
 }
 
 function checkIfStringIsUrl(str) {
-  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-  '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|'+ // domain name
-  '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-  '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-  '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-  '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
   return pattern.test(str);
 }
 
@@ -38,8 +38,25 @@ function generateRandomCharacters(numberOfChar) {
   return text;
 }
 
+function getCriteriaIds(themes) {
+  let allCriteriaIds = [];
+  themes.forEach(theme => {
+    let criteriaIdArray = [];
+    if (theme.children) {
+      criteriaIdArray = this.getCriteriaIds(theme.children);
+    } else {
+      criteriaIdArray = theme.criteria;
+    }
+    criteriaIdArray.forEach(eachCriteriaId => {
+      allCriteriaIds.push(eachCriteriaId);
+    })
+  })
+  return allCriteriaIds;
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
-  generateRandomCharacters: generateRandomCharacters
+  generateRandomCharacters: generateRandomCharacters,
+  getCriteriaIds: getCriteriaIds
 };

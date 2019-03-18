@@ -233,7 +233,7 @@ math.import({
     date2.setMinutes(0)
     date2.setSeconds(0)
 
-    return Math.ceil((date1.getTime() - date2.getTime()) / (1000 * 3600 * 24))
+    return Math.abs(Math.ceil((date1.getTime() - date2.getTime()) / (1000 * 3600 * 24)))
   }
 })
 

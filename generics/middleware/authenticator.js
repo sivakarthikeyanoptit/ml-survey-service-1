@@ -70,6 +70,7 @@ module.exports = function(req, res, next) {
   var rspObj = req.rspObj;
   
   if(req.path.includes("reports") && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
+    req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
     next();
     return
   }

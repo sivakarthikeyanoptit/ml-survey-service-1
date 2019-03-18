@@ -810,8 +810,14 @@ module.exports = class Criterias extends Abstract {
           let expressionVariables = {}
           let expressionVariablesArray = criteria.expressionVariables.split(",")
           expressionVariablesArray.forEach(expressionVariable => {
-            let expressionVariableArray = expressionVariable.split("=")
-            expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+            let expressionVariableArray = expressionVariable.split("=");
+            let defaultVariableArray = expressionVariableArray[0].split("-")
+            if(defaultVariableArray.length>1){
+              if(!expressionVariables.default) expressionVariables.default = {};
+              expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
+            }else{
+              expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+            }
           })
           let rubric = {
             name: existingCriteria.name,
@@ -872,15 +878,11 @@ module.exports = class Criterias extends Abstract {
           counter++
         ) {
           let component = programsData[programId].components[counter];
+
           let evaluationFrameworkQueryObject = [
             { $match: { _id: ObjectId(component.id) } },
             {
-              $lookup: {
-                from: "criteriaQuestions",
-                localField: "themes.aoi.indicators.criteria",
-                foreignField: "_id",
-                as: "criteriaDocs"
-              }
+              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
             }
           ];
 
@@ -888,9 +890,17 @@ module.exports = class Criterias extends Abstract {
             "evaluationFrameworks"
           ].aggregate(evaluationFrameworkQueryObject);
 
-          evaluationFrameworkDocument[0].criteriaDocs.forEach(criteria => {
+          let criteriasIdArray = new Array
+          evaluationFrameworkDocument.forEach(eachEvaluation => {
+            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
+          });
+
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
+
+          criteriaQuestionDocument.forEach(criteria => {
+
             submissionDocumentCriterias.push(
-              _.omit(criteria, [
+              _.omit(criteria._doc, [
                 "resourceType",
                 "language",
                 "keywords",
@@ -905,9 +915,7 @@ module.exports = class Criterias extends Abstract {
         let updatedCriteriasObject = {}
 
         updatedCriteriasObject.$set = {
-          criterias: submissionDocumentCriterias,
-          programExternalId: programId,
-          "programInformation.externalId": programId
+          criterias: submissionDocumentCriterias
         }
 
         let updateSubmissions = await database.models.submissions.updateMany(
@@ -932,5 +940,138 @@ module.exports = class Criterias extends Abstract {
     })
   }
 
+  async uploadCriterias(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!req.files || !req.files.criterias) {
+          throw "Csv file for criterias should be selected"
+        }
+
+        let criteriaData = await csv().fromString(req.files.criterias.data.toString())
+
+        let criteriaDocumentArray = criteriaData.map(criteria => {
+
+          let rubric = {}
+          rubric.name = criteria.criteriaName
+          rubric.description = criteria.criteriaName
+          rubric.type = criteria.type
+          rubric.expressionVariables = {}
+          rubric.levels = {};
+          let countLabel = 1;
+
+          Object.keys(criteria).forEach(eachCriteriaKey => {
+
+            let regExpForLevels = /^L+[0-9]/
+            if (regExpForLevels.test(eachCriteriaKey)) {
+
+              let label = "Level " + countLabel++;
+
+              rubric.levels[eachCriteriaKey] = {
+                level: eachCriteriaKey,
+                label: label,
+                description: criteria[eachCriteriaKey],
+                expression: ""
+              }
+            }
+          })
+
+          let criteriaStructure = {
+            owner: req.userDetails.id,
+            name: criteria.criteriaName,
+            description: criteria.criteriaName,
+            resourceType: [
+              "Program",
+              "Framework",
+              "Criteria"
+            ],
+            language: [
+              "English"
+            ],
+            keywords: [
+              "Keyword 1",
+              "Keyword 2"
+            ],
+            concepts: [
+              {
+                identifier: "LPD20100",
+                name: "Teacher_Performance",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              },
+              {
+                identifier: "LPD20400",
+                name: "Instructional_Programme",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              },
+              {
+                identifier: "LPD20200",
+                name: "Teacher_Empowerment",
+                objectType: "Concept",
+                relation: "associatedTo",
+                description: null,
+                index: null,
+                status: null,
+                depth: null,
+                mimeType: null,
+                visibility: null,
+                compatibilityLevel: null
+              }
+            ],
+            createdFor: [
+              "0125747659358699520",
+              "0125748495625912324"
+            ],
+            evidences: [],
+            deleted: false,
+            externalId: criteria.criteriaID,
+            owner: req.userDetails.id,
+            timesUsed: 12,
+            weightage: 20,
+            remarks: "",
+            name: criteria.criteriaName,
+            description: criteria.criteriaName,
+            criteriaType: "auto",
+            score: "",
+            flag: "",
+            rubric: rubric
+          };
+
+          return criteriaStructure;
+        })
+
+        let criteriaDocuments = await database.models.criterias.create(
+          criteriaDocumentArray
+        );
+
+        let result = _.mapValues(_.keyBy(criteriaDocuments, 'externalId'), '_id');
+        let responseMessage = "Criteria levels updated successfully."
+        let response = { message: responseMessage, result: result };
+
+        return resolve(response)
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    })
+  }
 
 };

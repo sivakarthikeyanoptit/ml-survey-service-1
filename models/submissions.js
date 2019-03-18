@@ -3,11 +3,11 @@ module.exports = {
   schema: {
     schoolId: "ObjectId",
     programId: "ObjectId",
-    assessors:Array,
+    assessors: Array,
     status: "String",
-    evidencesStatus:Array,
-    evidences:Object,
-    criterias:Array,
+    evidencesStatus: Array,
+    evidences: Object,
+    criterias: Array,
     answers: Object,
     schoolExternalId: "String",
     schoolInformation: Object,
@@ -17,10 +17,12 @@ module.exports = {
     ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,
     ratings: Object,
-    feedback:Array,
-    generalQuestions:Object,
-    parentInterviewResponses:Object,
+    feedback: Array,
+    generalQuestions: Object,
+    parentInterviewResponsesStatus: Array,
+    parentInterviewResponses: Object,
     completedDate: Date,
-    isDataFixDone: false
+    evaluationFrameworkId: "ObjectId",
+    evaluationFrameworkExternalId: String
   }
 };
