@@ -810,8 +810,14 @@ module.exports = class Criterias extends Abstract {
           let expressionVariables = {}
           let expressionVariablesArray = criteria.expressionVariables.split(",")
           expressionVariablesArray.forEach(expressionVariable => {
-            let expressionVariableArray = expressionVariable.split("=")
-            expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+            let expressionVariableArray = expressionVariable.split("=");
+            let defaultVariableArray = expressionVariableArray[0].split("-")
+            if(defaultVariableArray.length>1){
+              if(!expressionVariables.default) expressionVariables.default = {};
+              expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
+            }else{
+              expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+            }
           })
           let rubric = {
             name: existingCriteria.name,
