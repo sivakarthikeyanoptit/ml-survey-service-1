@@ -54,6 +54,7 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+<<<<<<< HEAD
 function getAllQuestionId(criteria) {
   let questionIds = [];
   criteria.forEach(eachCriteria => {
@@ -69,6 +70,8 @@ function getAllQuestionId(criteria) {
 }
 
 
+=======
+>>>>>>> development
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,

@@ -19,6 +19,7 @@ module.exports = {
     ratings: Object,
     feedback: Array,
     generalQuestions: Object,
+    parentInterviewResponsesStatus: Array,
     parentInterviewResponses: Object,
     completedDate: Date,
     evaluationFrameworkId: "ObjectId",
