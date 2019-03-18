@@ -1008,13 +1008,13 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let queryObject = {
-          "schoolInformation.externalId": req.params._id
+          "schoolExternalId": req.params._id
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolInformation: 1, programInformation: 1 }
-        );
+          { answers: 1, criterias: 1, evidencesStatus: 1, "schoolInformation.name": 1, "programInformation.externalId": 1 }
+        ).lean();
 
         if (!submissionDocument._id) {
           throw "Couldn't find the submission document"
@@ -1033,67 +1033,34 @@ module.exports = class Submission extends Abstract {
             result[criteria.externalId].criteriaName = criteria.name
             result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-            // criteria.externalId == "SS/I/c3" && 
             if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
               let submissionAnswers = new Array
               const questionValueExtractor = function (question) {
                 const questionArray = question.split('.')
                 submissionAnswers.push(submissionDocument.answers[questionArray[0]])
-                // if(question == "5be6d08c9a14ba4b5038dd7e.value" || question == "5be6d0c59a14ba4b5038dd7f.value") {
-                //   console.log(question)
-                //   console.log(questionArray[0])
-                //   console.log(questionArray[1])
-                //   console.log(submissionDocument.answers[questionArray[0]])
-                //   console.log(submissionDocument.answers[questionArray[0]].value)
-                // }
-                if (questionArray[1] === "value") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
-                    return submissionDocument.answers[questionArray[0]].value
-                  } else {
-                    return "NA"
+                let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                let result;
+                inputTypes.forEach(inputType => {
+                  if (questionArray[1] === inputType) {
+                    if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                      result = submissionDocument.answers[questionArray[0]][inputType];
+                    } else {
+                      result = "NA";
+                    }
                   }
-                } else if (questionArray[1] === "mode") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
-                    return submissionDocument.answers[questionArray[0]].value
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "instanceResponses") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].instanceResponses) {
-                    return submissionDocument.answers[questionArray[0]].instanceResponses
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "endTime") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].endTime) {
-                    return submissionDocument.answers[questionArray[0]].endTime
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "startTime") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].startTime) {
-                    return submissionDocument.answers[questionArray[0]].startTime
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "countOfInstances") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
-                    return submissionDocument.answers[questionArray[0]].countOfInstances
-                  } else {
-                    return "NA"
-                  }
-                }
+                })
+                return result;
               }
-              let expressionVariables = {}
-              let expressionResult = {}
-              let allValuesAvailable = true
+              let expressionVariables = {};
+              let expressionResult = {};
+              let allValuesAvailable = true;
 
               Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                 if (variable != "default") {
-                  expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable])
+                  expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
                   expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                   if (expressionVariables[variable] === "NA") {
-                    allValuesAvailable = false
+                    allValuesAvailable = false;
                   }
                 }
               })
@@ -1105,16 +1072,6 @@ module.exports = class Submission extends Abstract {
 
               if (allValuesAvailable) {
                 Object.keys(criteria.rubric.levels).forEach(level => {
-
-                  // if(level == "L3") {
-                  //   console.log("Debugging new functions starts")
-                  //   console.log(expressionVariables)
-                  //   console.log(math.eval("(compareTextValues(PR1, 'R1') == 0)",expressionVariables))
-                  //   console.log(math.eval("(checkIfPresent('R2||R3',PR2) >= 0)",expressionVariables))
-                  //   console.log(math.eval("(compareTextValues(PR3, 'R1') == 0)",expressionVariables))
-                  //   console.log(math.eval("(compareTextValues(PR4, 'R3||R4') == 0)",expressionVariables))
-                  //   console.log("Debugging new functions ends")
-                  // }
 
                   if (criteria.rubric.levels[level].expression != "") {
                     try {
@@ -1171,9 +1128,6 @@ module.exports = class Submission extends Abstract {
                   score = "No Level Matched"
                 }
               }
-              // const parser = math.parser()
-              // create a string
-              // console.log(math.compareText("hello", "hello"))                      // String, "hello"
 
               result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
               result[criteria.externalId].expressionVariables = expressionVariables
