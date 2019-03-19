@@ -75,9 +75,21 @@ function changeRoleCase(role) {
     PROGRAM_MANAGER: "programManagers"
   }
   return rolesObject[role];
-
 }
 
+function getAllQuestionId(criteria) {
+  let questionIds = [];
+  criteria.forEach(eachCriteria => {
+    eachCriteria.evidences.forEach(eachEvidence => {
+      eachEvidence.sections.forEach(eachSection => {
+        eachSection.questions.forEach(eachQuestion => {
+          questionIds.push(eachQuestion)
+        })
+      })
+    })
+  })
+  return questionIds
+}
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
@@ -85,5 +97,6 @@ module.exports = {
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
-  changeRoleCase: changeRoleCase
+  changeRoleCase: changeRoleCase,
+  getAllQuestionId: getAllQuestionId
 };
