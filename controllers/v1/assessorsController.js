@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
 module.exports = class Assessors {
 
@@ -93,7 +94,6 @@ module.exports = class Assessors {
 
     });
   }
-
 
   async upload(req) {
 
@@ -350,7 +350,7 @@ module.exports = class Assessors {
           externalId: { $in: Object.values(schoolQueryList) }
         }, {
             externalId: 1
-        });
+          });
 
         const schoolsData = schoolsDocument.reduce(
           (ac, school) => ({ ...ac, [school.externalId]: school._id }), {})
@@ -369,21 +369,47 @@ module.exports = class Assessors {
         };
 
         const creatorId = req.userDetails.userId;
+        let errorMessageArray = [];
 
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
+
+          let userIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.externalId)
+          let userIdFromKeyCloakToken = userIdByKeyCloakToken[assessor.externalId]
+
+          if (!userIdFromKeyCloakToken) {
+            let errorMessage = `Skipped document of externalId ${assessor.externalId}`
+            errorMessageArray.push({ errorMessage })
+            return
+          }
+
+          let parentIdByKeyCloakToken
+          if (assessor.parentId) {
+            parentIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.parentId)
+          }
+
+          let parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
+          if ((assessor.parentId !== "" && !(parentIdFromKeyCloakToken))) {
+            let errorMessage = `Skipped document of parentId ${assessor.parentId}`
+            errorMessageArray.push({ errorMessage })
+            return
+          }
+
           let assessorSchoolArray = new Array
+
           assessor.schools.split(",").forEach(assessorSchool => {
             if (schoolsData[assessorSchool.trim()])
               assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
 
           assessor.schools = assessorSchoolArray
+
           if (programsData[programId]) {
             assessor.programId = programsData[programId]._id;
           } else {
             assessor.programId = null;
             skippedDocumentCount += 1;
           }
+
           assessor.createdBy = assessor.updatedBy = creatorId
 
           let fieldsWithOutSchool = {};
@@ -392,6 +418,11 @@ module.exports = class Assessors {
           })
 
           let updateObject;
+          
+          if (fieldsWithOutSchool.parentId) {
+            fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
+          }
+
           if (assessor.schoolOperation == "OVERRIDE") {
             updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
           }
@@ -424,11 +455,11 @@ module.exports = class Assessors {
             assessorRole = roles[assessor.role];
 
             Object.keys(programFrameworkRoles).forEach(role => {
-              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === assessor.userId);
+              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
 
               if (role === assessorRole) {
                 if (roleIndex < 0) {
-                  programFrameworkRoles[role].users.push(assessor.userId);
+                  programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
                 }
               }
               else {
@@ -438,18 +469,18 @@ module.exports = class Assessors {
 
                 if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
 
-                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(assessor.userId))
-                  programFrameworkRoles[assessorRole].users.push(assessor.userId);
+                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
+                  programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
               }
-
             })
           }
+
 
           if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
             programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
           }
 
-          return database.models.schoolAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
+          return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject,
             {
               upsert: true,
               new: true,
@@ -474,14 +505,18 @@ module.exports = class Assessors {
           throw error
         })
 
-
         let responseMessage = "Assessor record created successfully."
 
         let response = { message: responseMessage };
 
         if (skippedDocumentCount > 0) {
-          let responseMessage = `Not all records were inserted/updated.`;
+          let responseMessage = `Not all records were inserted/ updated.`;
           return resolve({ status: 400, message: responseMessage })
+        }
+
+        if (errorMessageArray.length > 0) {
+          let result = { message: responseMessage, failed: errorMessageArray }
+          return resolve(result)
         }
 
         return resolve(response);
@@ -495,6 +530,32 @@ module.exports = class Assessors {
       }
 
     })
+  }
+
+  getInternalUserIdByExternalId(token, loginId) {
+    return new Promise(async (resolve, reject) => {
+      if (!this.externalIdToUserIdMap) {
+        this.externalIdToUserIdMap = {}
+      }
+
+      if (Object.keys(this.externalIdToUserIdMap).includes(loginId)) {
+        return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+      }
+
+      else {
+        let userId = await shikshalokam
+          .getKeycloakUserIdByLoginId(token, loginId)
+
+        if (userId.length) {
+          this.externalIdToUserIdMap[loginId] = {
+            userId: userId[0].userLoginId
+          }
+        }
+        return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+      }
+
+    })
+
   }
 
 };
