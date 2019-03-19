@@ -1735,13 +1735,13 @@ module.exports = class Submission extends Abstract {
           await Promise.all(chunkOfsubmissionUpdateData[pointerTosubmissionUpdateData].map(async (eachQuestionRow) => {
 
             eachQuestionRow["questionType"] = (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].responseType != "") ? questionExternalId[eachQuestionRow.questionCode].responseType : "Question Not Found"
- 
+
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
 
-            }  else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
-               eachQuestionRow["status"] = "Invalid question type"
-            
+            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+              eachQuestionRow["status"] = "Invalid question type"
+
             } else {
 
               let csvUpdateHistory = []
@@ -1749,25 +1749,28 @@ module.exports = class Submission extends Abstract {
               let submissionDate = "evidences." + eachQuestionRow.ECM + ".submissions.0.submissionDate"
               let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
 
-              let checkSubmission = await database.models.submissions.findOne({
+              let findQuery = {
                 schoolExternalId: eachQuestionRow.schoolId,
                 programExternalId: eachQuestionRow.programId,
                 [ecmByCsv]: { $exists: true },
-                [answers]: { $exists: true }
-              }, { _id: 1 }).lean()
+                [answers]: { $exists: true },
+                "evidencesStatus.externalId": eachQuestionRow.ECM
+              }
 
-              if (checkSubmission != null) {
-                let findQuery = { _id: checkSubmission._id, "evidencesStatus.externalId": eachQuestionRow.ECM }
+              let questionValueConversion = await this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
 
-                let questionValueConversion = await this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
+              if (questionValueConversion.oldValue == "Not Done" || questionValueConversion.newValue == "Not Done") {
+                eachQuestionRow["status"] = "Not Done"
+              }
 
+              else {
                 let updateQuery = {
                   $set: {
-                    [answers + ".oldValue"]: questionValueConversion.oldResponse,
-                    [answers + ".value"]: questionValueConversion.newResponse,
+                    [answers + ".oldValue"]: questionValueConversion.oldValue,
+                    [answers + ".value"]: questionValueConversion.newValue,
                     [answers + ".submittedBy"]: eachQuestionRow.assessorID,
-                    [ecmByCsv + ".oldValue"]: questionValueConversion.oldResponse,
-                    [ecmByCsv + ".value"]: questionValueConversion.newResponse,
+                    [ecmByCsv + ".oldValue"]: questionValueConversion.oldValue,
+                    [ecmByCsv + ".value"]: questionValueConversion.newValue,
                     [ecmByCsv + ".submittedBy"]: eachQuestionRow.assessorID,
                     [submissionDate]: new Date(),
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
@@ -1779,13 +1782,15 @@ module.exports = class Submission extends Abstract {
                   updateQuery["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
                 }
 
-                await database.models.submissions.findOneAndUpdate(findQuery, updateQuery)
+                let submissionCheck = await database.models.submissions.findOneAndUpdate(findQuery, updateQuery).lean()
 
                 eachQuestionRow["status"] = "Done"
-              } else {
-                eachQuestionRow["status"] = "Not Done"
-              }
+                // } else {
+                if (submissionCheck == null) {
+                  eachQuestionRow["status"] = "Not Done"
+                }
 
+              }
             }
 
             input.push(eachQuestionRow)
@@ -1810,35 +1815,69 @@ module.exports = class Submission extends Abstract {
     let result = {}
 
     if (question.responseType == "date") {
+
       let oldResponseArray = oldResponse.split("/")
-      if(oldResponseArray.length > 2) {
+
+      if (oldResponseArray.length > 2) {
         [oldResponseArray[0], oldResponseArray[1]] = [oldResponseArray[1], oldResponseArray[0]];
       }
+
       let newResponseArray = newResponse.split("/")
-      if(newResponseArray.length > 2) {
+
+      if (newResponseArray.length > 2) {
         [newResponseArray[0], newResponseArray[1]] = [newResponseArray[1], newResponseArray[0]];
       }
-      result["oldValue"] = oldResponseArray.map(value => (value < 10) ? "0"+value : value).reverse().join("-")
-      result["newValue"] = newResponseArray.map(value => (value < 10) ? "0"+value : value).reverse().join("-")
+
+      result["oldValue"] = oldResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
+      result["newValue"] = newResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
+
     } else if (question.responseType == "radio") {
+
+      let oldFlag = false
+      let newFlag = false
+
       question.options.forEach(eachOption => {
-        if (eachOption.label.replace(/\s/g,'').toLowerCase() == oldResponse.replace(/\s/g,'').toLowerCase()) {
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() == oldResponse.replace(/\s/g, '').toLowerCase()) {
           result["oldValue"] = eachOption.value
+          oldFlag = true
         }
-        if (eachOption.label.replace(/\s/g,'').toLowerCase() == newResponse.replace(/\s/g,'').toLowerCase()) {
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() == newResponse.replace(/\s/g, '').toLowerCase()) {
           result["newValue"] = eachOption.value
+          newFlag = true
         }
       })
+
+      if (!(oldFlag && newFlag)) {
+        result["oldValue"] = "Not Done"
+        result["newValue"] = "Not Done"
+      }
+
     } else if (question.responseType == "multiselect") {
+      let oldFlag = false
+      let newFlag = false
+
       question.options.forEach(eachOption => {
-        if (eachOption.label.replace(/\s/g,'').toLowerCase() === oldResponse.replace(/\s/g,'').toLowerCase()) {
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() === oldResponse.replace(/\s/g, '').toLowerCase()) {
           result["oldValue"] = [eachOption.value]
+          oldFlag = true
         }
-        if (eachOption.label.replace(/\s/g,'').toLowerCase() === newResponse.replace(/\s/g,'').toLowerCase()) {
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() === newResponse.replace(/\s/g, '').toLowerCase()) {
           result["newValue"] = [eachOption.value]
+          newFlag = true
         }
       })
+
+      if (!(oldFlag && newFlag)) {
+        result["oldValue"] = "Not Done"
+        result["newValue"] = "Not Done"
+      }
+
     } else {
+
       result["oldValue"] = oldResponse
       result["newValue"] = newResponse
     }
