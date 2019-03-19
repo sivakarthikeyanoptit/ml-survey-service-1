@@ -54,11 +54,11 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
-function getUserRole(req,caseSensitive=false) {
+function getUserRole(req, caseSensitive = false) {
   if (req.userDetails && req.userDetails.allRoles.length) {
     _.pull(req.userDetails.allRoles, 'PUBLIC');
     let role = req.userDetails.allRoles[0];
-    if(caseSensitive==true){
+    if (caseSensitive == true) {
       return changeRoleCase(role)
     }
     return req.userDetails.allRoles[0];
