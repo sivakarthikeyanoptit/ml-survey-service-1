@@ -1,5 +1,7 @@
 const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const csv = require("csvtojson");
 
 module.exports = class Submission extends Abstract {
   /**
@@ -520,14 +522,14 @@ module.exports = class Submission extends Abstract {
                     tempValue[Object.values(individualValue)[0].qid] = Object.values(individualValue)[0]
                   })
                   evidenceSubmissionAnswerArray[answer[0]].value.push(tempValue)
-                  if(answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
+                  if (answer[1].payload && answer[1].payload.labels && answer[1].payload.labels.length > 0) {
                     answer[1].payload.labels[0].forEach(instanceResponsePayload => {
                       evidenceSubmissionAnswerArray[answer[0]].payload.labels[0].push(instanceResponsePayload)
                     })
                   }
                   evidenceSubmissionAnswerArray[answer[0]].countOfInstances = evidenceSubmissionAnswerArray[answer[0]].value.length
                 } else {
-                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1],"value")
+                  evidenceSubmissionAnswerArray[answer[0]] = _.omit(answer[1], "value")
                   evidenceSubmissionAnswerArray[answer[0]].value = new Array
                   let tempValue = {}
                   answer[1].value.forEach(individualValue => {
@@ -847,26 +849,26 @@ module.exports = class Submission extends Abstract {
             parentInterview.parentInformation = parentInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
-            if(req.body.status == "completed") {
+            if (req.body.status == "completed") {
               parentInterview.completedAt = new Date()
               parentInterview.startedAt = (!submissionDocument.parentInterviewResponses || !submissionDocument.parentInterviewResponses[req.body.parentId] || !submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? new Date() : submissionDocument.parentInterviewResponses[req.body.parentId].startedAt
             } else if (req.body.status == "started") {
               parentInterview.startedAt = (submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[req.body.parentId] && submissionDocument.parentInterviewResponses[req.body.parentId].startedAt) ? submissionDocument.parentInterviewResponses[req.body.parentId].startedAt : new Date()
             }
             if (submissionDocument.parentInterviewResponses) {
-              submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId],parentInterview)
+              submissionDocument.parentInterviewResponses[req.body.parentId] = _.merge(submissionDocument.parentInterviewResponses[req.body.parentId], parentInterview)
             } else {
               submissionDocument.parentInterviewResponses = {}
               submissionDocument.parentInterviewResponses[req.body.parentId] = parentInterview
             }
 
-            let parentInterviewResponseStatus = _.omit(submissionDocument.parentInterviewResponses[req.body.parentId], ["parentInformation","answers"])
+            let parentInterviewResponseStatus = _.omit(submissionDocument.parentInterviewResponses[req.body.parentId], ["parentInformation", "answers"])
             parentInterviewResponseStatus.parentId = parentInformation._id
             parentInterviewResponseStatus.parentType = parentInterview.parentInformation.type
 
             if (submissionDocument.parentInterviewResponsesStatus) {
               let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString())
-              if(parentInterviewReponseStatusElementIndex >= 0) {
+              if (parentInterviewReponseStatusElementIndex >= 0) {
                 submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus
               } else {
                 submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
@@ -1008,13 +1010,13 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let queryObject = {
-          "schoolInformation.externalId": req.params._id
+          "schoolExternalId": req.params._id
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolInformation: 1, programInformation: 1 }
-        );
+          { answers: 1, criterias: 1, evidencesStatus: 1, "schoolInformation.name": 1, "programInformation.externalId": 1 }
+        ).lean();
 
         if (!submissionDocument._id) {
           throw "Couldn't find the submission document"
@@ -1033,67 +1035,34 @@ module.exports = class Submission extends Abstract {
             result[criteria.externalId].criteriaName = criteria.name
             result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-            // criteria.externalId == "SS/I/c3" && 
             if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
               let submissionAnswers = new Array
               const questionValueExtractor = function (question) {
                 const questionArray = question.split('.')
                 submissionAnswers.push(submissionDocument.answers[questionArray[0]])
-                // if(question == "5be6d08c9a14ba4b5038dd7e.value" || question == "5be6d0c59a14ba4b5038dd7f.value") {
-                //   console.log(question)
-                //   console.log(questionArray[0])
-                //   console.log(questionArray[1])
-                //   console.log(submissionDocument.answers[questionArray[0]])
-                //   console.log(submissionDocument.answers[questionArray[0]].value)
-                // }
-                if (questionArray[1] === "value") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
-                    return submissionDocument.answers[questionArray[0]].value
-                  } else {
-                    return "NA"
+                let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                let result;
+                inputTypes.forEach(inputType => {
+                  if (questionArray[1] === inputType) {
+                    if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                      result = submissionDocument.answers[questionArray[0]][inputType];
+                    } else {
+                      result = "NA";
+                    }
                   }
-                } else if (questionArray[1] === "mode") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].value) {
-                    return submissionDocument.answers[questionArray[0]].value
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "instanceResponses") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].instanceResponses) {
-                    return submissionDocument.answers[questionArray[0]].instanceResponses
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "endTime") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].endTime) {
-                    return submissionDocument.answers[questionArray[0]].endTime
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "startTime") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].startTime) {
-                    return submissionDocument.answers[questionArray[0]].startTime
-                  } else {
-                    return "NA"
-                  }
-                } else if (questionArray[1] === "countOfInstances") {
-                  if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]].countOfInstances) {
-                    return submissionDocument.answers[questionArray[0]].countOfInstances
-                  } else {
-                    return "NA"
-                  }
-                }
+                })
+                return result;
               }
-              let expressionVariables = {}
-              let expressionResult = {}
-              let allValuesAvailable = true
+              let expressionVariables = {};
+              let expressionResult = {};
+              let allValuesAvailable = true;
 
               Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                 if (variable != "default") {
-                  expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable])
+                  expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
                   expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                   if (expressionVariables[variable] === "NA") {
-                    allValuesAvailable = false
+                    allValuesAvailable = false;
                   }
                 }
               })
@@ -1105,16 +1074,6 @@ module.exports = class Submission extends Abstract {
 
               if (allValuesAvailable) {
                 Object.keys(criteria.rubric.levels).forEach(level => {
-
-                  // if(level == "L3") {
-                  //   console.log("Debugging new functions starts")
-                  //   console.log(expressionVariables)
-                  //   console.log(math.eval("(compareTextValues(PR1, 'R1') == 0)",expressionVariables))
-                  //   console.log(math.eval("(checkIfPresent('R2||R3',PR2) >= 0)",expressionVariables))
-                  //   console.log(math.eval("(compareTextValues(PR3, 'R1') == 0)",expressionVariables))
-                  //   console.log(math.eval("(compareTextValues(PR4, 'R3||R4') == 0)",expressionVariables))
-                  //   console.log("Debugging new functions ends")
-                  // }
 
                   if (criteria.rubric.levels[level].expression != "") {
                     try {
@@ -1171,9 +1130,6 @@ module.exports = class Submission extends Abstract {
                   score = "No Level Matched"
                 }
               }
-              // const parser = math.parser()
-              // create a string
-              // console.log(math.compareText("hello", "hello"))                      // String, "hello"
 
               result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
               result[criteria.externalId].expressionVariables = expressionVariables
@@ -1723,7 +1679,202 @@ module.exports = class Submission extends Abstract {
 
   }
 
+  async modifyByCsvUpload(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const submissionUpdateData = await csv().fromString(req.files.questions.data.toString())
+
+        let questionCodeIds = []
+
+        submissionUpdateData.forEach(eachsubmissionUpdateData => {
+          questionCodeIds.push(eachsubmissionUpdateData.questionCode)
+        })
+
+        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
+          externalId: submissionUpdateData[0].evaluationFrameworkId
+        }, { themes: 1 }).lean()
+
+        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
+
+        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
+        let questionIds = gen.utils.getAllQuestionId(allCriteriaDocument)
+
+        let questionDocument = await database.models.questions.find({
+          _id: { $in: questionIds },
+          externalId: { $in: questionCodeIds }
+        }, { _id: 1, externalId: 1, responseType: 1, options: 1 }).lean();
+
+        let questionExternalId = {}
+        questionDocument.forEach(eachQuestionData => {
+          questionExternalId[eachQuestionData.externalId] = {
+            id: eachQuestionData._id.toString(),
+            responseType: eachQuestionData.responseType,
+            options: eachQuestionData.options
+          }
+        })
+
+        const fileName = `Modify-Submission-Result`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        const chunkOfsubmissionUpdateData = _.chunk(submissionUpdateData, 10)
+
+        const skipQuestionTypes = ["matrix"]
+        let schoolHistoryUpdatedArray = []
+
+        for (let pointerTosubmissionUpdateData = 0; pointerTosubmissionUpdateData < chunkOfsubmissionUpdateData.length; pointerTosubmissionUpdateData++) {
+
+          await Promise.all(chunkOfsubmissionUpdateData[pointerTosubmissionUpdateData].map(async (eachQuestionRow) => {
+
+            eachQuestionRow["questionType"] = (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].responseType != "") ? questionExternalId[eachQuestionRow.questionCode].responseType : "Question Not Found"
+
+            eachQuestionRow["optionValues"] = ""
+            if(questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
+              questionExternalId[eachQuestionRow.questionCode].options.forEach(option => {
+                eachQuestionRow["optionValues"] += option.label+", "
+              })
+            }
+
+            if (!questionExternalId[eachQuestionRow.questionCode]) {
+              eachQuestionRow["status"] = "Invalid question id"
+
+            } else if (skipQuestionTypes.includes(questionExternalId[eachQuestionRow.questionCode].responseType)) {
+              eachQuestionRow["status"] = "Invalid question type"
+
+            } else {
+
+              let csvUpdateHistory = []
+              let ecmByCsv = "evidences." + eachQuestionRow.ECM + ".submissions.0.answers." + questionExternalId[eachQuestionRow.questionCode].id
+              let submissionDate = "evidences." + eachQuestionRow.ECM + ".submissions.0.submissionDate"
+              let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
+
+              let findQuery = {
+                schoolExternalId: eachQuestionRow.schoolId,
+                programExternalId: eachQuestionRow.programId,
+                [ecmByCsv]: { $exists: true },
+                [answers]: { $exists: true },
+                "evidencesStatus.externalId": eachQuestionRow.ECM
+              }
+
+              let questionValueConversion = await this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
+
+              if (!questionValueConversion.oldValue || !questionValueConversion.newValue || questionValueConversion.oldValue == "" || questionValueConversion.newValue == "") {
+                eachQuestionRow["status"] = "Invalid new or old response!"
+              }
+
+              else {
+                let updateQuery = {
+                  $set: {
+                    [answers + ".oldValue"]: questionValueConversion.oldValue,
+                    [answers + ".value"]: questionValueConversion.newValue,
+                    [answers + ".submittedBy"]: eachQuestionRow.assessorID,
+                    [ecmByCsv + ".oldValue"]: questionValueConversion.oldValue,
+                    [ecmByCsv + ".value"]: questionValueConversion.newValue,
+                    [ecmByCsv + ".submittedBy"]: eachQuestionRow.assessorID,
+                    [submissionDate]: new Date(),
+                    "evidencesStatus.$.submissions.0.submissionDate": new Date()
+                  }
+                }
+                if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
+                  schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
+                  csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
+                  updateQuery["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
+                }
+
+                let submissionCheck = await database.models.submissions.findOneAndUpdate(findQuery, updateQuery).lean()
+
+                eachQuestionRow["status"] = "Done"
+                if (submissionCheck == null) {
+                  eachQuestionRow["status"] = "Not Done"
+                }
+
+              }
+            }
+
+            input.push(eachQuestionRow)
+          }))
+        }
+        input.push(null)
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error
+        })
+      }
+    })
+  }
+
   allSubmission(allSubmission) {
     return allSubmission.isSubmitted
+  }
+
+  questionValueConversion(question, oldResponse, newResponse) {
+    let result = {}
+
+    if (question.responseType == "date") {
+
+      let oldResponseArray = oldResponse.split("/")
+
+      if (oldResponseArray.length > 2) {
+        [oldResponseArray[0], oldResponseArray[1]] = [oldResponseArray[1], oldResponseArray[0]];
+      }
+
+      let newResponseArray = newResponse.split("/")
+
+      if (newResponseArray.length > 2) {
+        [newResponseArray[0], newResponseArray[1]] = [newResponseArray[1], newResponseArray[0]];
+      }
+
+      result["oldValue"] = oldResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
+      result["newValue"] = newResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
+
+    } else if (question.responseType == "radio") {
+
+      question.options.forEach(eachOption => {
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() == oldResponse.replace(/\s/g, '').toLowerCase()) {
+          result["oldValue"] = eachOption.value
+        }
+
+        if (eachOption.label.replace(/\s/g, '').toLowerCase() == newResponse.replace(/\s/g, '').toLowerCase()) {
+          result["newValue"] = eachOption.value
+        }
+      })
+
+    } else if (question.responseType == "multiselect") {
+
+      result["oldValue"] = result["newValue"] = new Array
+      let oldResponseArray = oldResponse.split(",")
+      let newResponseArray = newResponse.split(",")
+      oldResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
+      newResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
+      
+      question.options.forEach(eachOption => {
+
+        if (oldResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
+          result["oldValue"].push(eachOption.value)
+        }
+
+        if (newResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
+          result["newValue"].push(eachOption.value)
+        }
+      })
+
+    } else {
+
+      result["oldValue"] = oldResponse
+      result["newValue"] = newResponse
+    }
+
+    return result
   }
 };

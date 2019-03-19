@@ -113,7 +113,10 @@ module.exports = class Reports {
                 "schoolId": 1,
                 "programId": 1,
                 "status": 1,
-                "evidencesStatus": 1
+                "evidencesStatus.isSubmitted": 1,
+                "evidencesStatus.hasConflicts": 1,
+                "evidencesStatus.externalId": 1,
+                "evidencesStatus.notApplicable": 1
               }
             )
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
@@ -137,10 +140,10 @@ module.exports = class Reports {
 
               let totalEcmsSubmittedCount = 0
               eachSubmissionDocument.evidencesStatus.forEach(evidenceMethod => {
-                if (evidenceMethod.isSubmitted) {
+                if ((evidenceMethod.isSubmitted) && (evidenceMethod.notApplicable != true)) {
                   totalEcmsSubmittedCount += 1
                 }
-                _.merge(result, { [evidenceMethod.externalId]: evidenceMethod.isSubmitted })
+                _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) ? (evidenceMethod.notApplicable != true) ? true : "NA" : false })
                 _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
               })
 
@@ -896,19 +899,25 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let allCriterias = database.models.criterias.find(
-          {},
-          { evidences: 1, name: 1 }
-        ).exec();
-
-        let allQuestionWithOptions = database.models.questions.find(
-          { responseType: { $in: ["radio", "multiselect"] } },
-          { options: 1 }
-        ).exec();
-
         let schoolSubmissionQuery = {
-          ["schoolInformation.externalId"]: req.params._id
+          ["schoolExternalId"]: req.params._id
         };
+
+        let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
+          schoolSubmissionQuery,
+          {
+            evaluationFrameworkId: 1
+          }
+        ).lean();
+
+        let evaluationFrameworkThemes = await database.models.evaluationFrameworks.findOne({ _id: submissionForEvaluationFrameworkId.evaluationFrameworkId }, { themes: 1 }).lean();
+
+        let criteriaIdsByFramework = gen.utils.getCriteriaIds(evaluationFrameworkThemes.themes);
+
+        let allCriterias = database.models.criterias.find(
+          { _id: { $in: criteriaIdsByFramework } },
+          { evidences: 1, name: 1 }
+        ).lean().exec();
 
         let schoolSubmissionDocument = database.models.submissions.find(
           schoolSubmissionQuery,
@@ -916,7 +925,7 @@ module.exports = class Reports {
             answers: 1,
             criterias: 1
           }
-        ).exec();
+        ).lean().exec();
 
         const fileName = `generateSubmissionReportsBySchoolId_${req.params._id}`;
         let fileStream = new FileStream(fileName);
@@ -930,11 +939,10 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([allCriterias, allQuestionWithOptions, schoolSubmissionDocument]).then(documents => {
+        Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
 
           let allCriterias = documents[0];
-          let allQuestionWithOptions = documents[1];
-          let schoolSubmissionDocument = documents[2];
+          let schoolSubmissionDocument = documents[1];
           let criteriaQuestionDetailsObject = {};
           let criteriaScoreObject = {};
           let questionOptionObject = {};
@@ -952,6 +960,13 @@ module.exports = class Reports {
               });
             });
           });
+
+          let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
+
+          let allQuestionWithOptions = await database.models.questions.find(
+            { _id: { $in: questionIds }, responseType: { $in: ["radio", "multiselect"] } },
+            { options: 1 }
+          ).lean();
 
           allQuestionWithOptions.forEach(question => {
             if (question.options.length > 0) {

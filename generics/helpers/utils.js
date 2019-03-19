@@ -54,9 +54,25 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+function getAllQuestionId(criteria) {
+  let questionIds = [];
+  criteria.forEach(eachCriteria => {
+    eachCriteria.evidences.forEach(eachEvidence => {
+      eachEvidence.sections.forEach(eachSection => {
+        eachSection.questions.forEach(eachQuestion => {
+          questionIds.push(eachQuestion)
+        })
+      })
+    })
+  })
+  return questionIds
+}
+
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
-  getCriteriaIds: getCriteriaIds
+  getCriteriaIds: getCriteriaIds,
+  getAllQuestionId: getAllQuestionId
 };
