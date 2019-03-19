@@ -1763,11 +1763,12 @@ module.exports = class Submission extends Abstract {
 
                 let updateQuery = {
                   $set: {
-                    [answers + ".oldValue"]: eachQuestionRow.oldResponse,
-                    [answers + ".value"]: eachQuestionRow.newResponse,
+                    [answers + ".oldValue"]: questionValueConversion.oldResponse,
+                    [answers + ".value"]: questionValueConversion.newResponse,
                     [answers + ".submittedBy"]: eachQuestionRow.assessorID,
-                    [ecmByCsv + ".oldValue"]: eachQuestionRow.oldResponse,
-                    [ecmByCsv + ".value"]: eachQuestionRow.newResponse,
+                    [ecmByCsv + ".oldValue"]: questionValueConversion.oldResponse,
+                    [ecmByCsv + ".value"]: questionValueConversion.newResponse,
+                    [ecmByCsv + ".submittedBy"]: eachQuestionRow.assessorID,
                     [submissionDate]: new Date(),
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
                   }
@@ -1775,7 +1776,7 @@ module.exports = class Submission extends Abstract {
                 if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
                   schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
                   csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
-                  updateQuery.$set["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
+                  updateQuery["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
                 }
 
                 await database.models.submissions.findOneAndUpdate(findQuery, updateQuery)
