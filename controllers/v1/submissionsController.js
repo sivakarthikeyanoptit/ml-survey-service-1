@@ -1737,12 +1737,12 @@ module.exports = class Submission extends Abstract {
             eachQuestionRow["questionType"] = (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].responseType != "") ? questionExternalId[eachQuestionRow.questionCode].responseType : "Question Not Found"
 
             eachQuestionRow["optionValues"] = ""
-            if(questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
+            if(questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
               questionExternalId[eachQuestionRow.questionCode].options.forEach(option => {
                 eachQuestionRow["optionValues"] += option.label+", "
               })
             }
-            
+
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
 
