@@ -1737,9 +1737,9 @@ module.exports = class Submission extends Abstract {
             eachQuestionRow["questionType"] = (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].responseType != "") ? questionExternalId[eachQuestionRow.questionCode].responseType : "Question Not Found"
 
             eachQuestionRow["optionValues"] = ""
-            if(questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
+            if (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
               questionExternalId[eachQuestionRow.questionCode].options.forEach(option => {
-                eachQuestionRow["optionValues"] += option.label+", "
+                eachQuestionRow["optionValues"] += option.label + ", "
               })
             }
 
@@ -1853,11 +1853,9 @@ module.exports = class Submission extends Abstract {
     } else if (question.responseType == "multiselect") {
 
       result["oldValue"] = result["newValue"] = new Array
-      let oldResponseArray = oldResponse.split(",")
-      let newResponseArray = newResponse.split(",")
-      oldResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
-      newResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
-      
+      let oldResponseArray = oldResponse.split(",").map((value) => { return value.replace(/\s/g, '').toLowerCase() })
+      let newResponseArray = newResponse.split(",").map((value) => { return value.replace(/\s/g, '').toLowerCase() })
+
       question.options.forEach(eachOption => {
 
         if (oldResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
