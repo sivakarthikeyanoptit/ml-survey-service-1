@@ -424,8 +424,8 @@ module.exports = class Programs extends Abstract {
         }
 
         let queryObject = [
-          {$project:{userId:1,parentId:1,name: 1,schools: 1,role:1,programId:1}},
-          { $match: { userId:req.userDetails.id, programId: programDocument._id } },
+          { $project: { userId: 1, parentId: 1, name: 1, schools: 1, role: 1, programId: 1 } },
+          { $match: { userId: req.userDetails.id, programId: programDocument._id } },
           {
             $graphLookup: {
               from: 'schoolAssessors',
@@ -621,8 +621,8 @@ module.exports = class Programs extends Abstract {
       } catch (error) {
 
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
           errorObject: error
         });
 
@@ -663,8 +663,8 @@ module.exports = class Programs extends Abstract {
       } catch (error) {
 
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
           errorObject: error
         });
 
@@ -718,8 +718,8 @@ module.exports = class Programs extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
           errorObject: error
         });
       }
@@ -735,22 +735,16 @@ module.exports = class Programs extends Abstract {
         }).lean();
 
         if (!programDocument) {
-          return resolve({
-            status: 400,
-            message: 'Program not found for given params.'
-          })
+          throw { status: 400, message: 'Program not found for given params.' };
         }
 
-        if (gen.utils.getUserRole(req, true) == 'assessors') {
-          return resolve({
-            status: 400,
-            message: "You are not authorized to take this report."
-          });
+        if (gen.utils.getUserRole(req, true) == 'assessor') {
+          throw { status: 400, message: "You are not authorized to take this report." };
         }
 
         let queryObject = [
-          { $project: { userId: 1, parentId: 1, name: 1, schools: 1,programId: 1 } },
-          { $match: { userId: req.userDetails.id, programId: programDocument._id } },
+          { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1 } },
+          { $match: { userId: "32172a5c-8bfe-4520-9089-355de77aac71", programId: programDocument._id } },
           {
             $graphLookup: {
               from: 'schoolAssessors',
@@ -769,10 +763,7 @@ module.exports = class Programs extends Abstract {
         let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
 
         if (!schoolsAssessorDocuments.length) {
-          return resolve({
-            status: 400,
-            message: 'No documents found for given params.'
-          })
+          throw { status: 400, message: 'No documents found for given params.' };
         }
 
         let schoolIds = [];
@@ -800,6 +791,7 @@ module.exports = class Programs extends Abstract {
         if (req.query.administration) schoolQueryObject["administration"] = req.query.administration;
         if (req.query.schoolId) schoolQueryObject["externalId"] = req.query.schoolId;
         if (req.query.address) schoolQueryObject["$or"] = [{ addressLine1: new RegExp(req.query.address, 'i') }, { addressLine2: new RegExp(req.query.address, 'i') }];
+        if (req.query.search) schoolQueryObject["name"] = new RegExp(req.query.search, 'i');
 
         let filteredSchoolDocument = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
 
@@ -809,8 +801,8 @@ module.exports = class Programs extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
           errorObject: error
         });
       }
