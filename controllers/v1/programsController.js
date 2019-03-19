@@ -738,13 +738,13 @@ module.exports = class Programs extends Abstract {
           throw { status: 400, message: 'Program not found for given params.' };
         }
 
-        if (gen.utils.getUserRole(req, true) == 'assessor') {
+        if (gen.utils.getUserRole(req, true) == 'assessors') {
           throw { status: 400, message: "You are not authorized to take this report." };
         }
 
         let queryObject = [
           { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1 } },
-          { $match: { userId: "32172a5c-8bfe-4520-9089-355de77aac71", programId: programDocument._id } },
+          { $match: { userId: req.userDetails.id, programId: programDocument._id } },
           {
             $graphLookup: {
               from: 'schoolAssessors',
