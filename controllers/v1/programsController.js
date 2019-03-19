@@ -501,16 +501,16 @@ module.exports = class Programs extends Abstract {
               averageTimeTaken: getAverageTimeTaken(submissionData[index])
             }
             assessorsReports.push(assessorResult)
-            if (req.query.csv == "true"){
+            if (req.query.csv == "true") {
               input.push(assessorResult)
-  
+
               if (input.readableBuffer && input.readableBuffer.length) {
                 while (input.readableBuffer.length > 20000) {
                   await this.sleep(2000)
                 }
               }
 
-            } 
+            }
           })
           if (req.query.csv == "true") {
             input.push(null);
@@ -590,7 +590,7 @@ module.exports = class Programs extends Abstract {
           return Math.ceil((isSubmittedArray.length / evidencesStatus.length) * 100).toString() + '%';
         }
 
-        result.schoolsReport=[];
+        result.schoolsReport = [];
         schoolDocuments.forEach(async (singleSchoolDocument) => {
           let resultObject = {};
           resultObject.status = schoolStatusObject[singleSchoolDocument.status] || singleSchoolDocument.status;
@@ -600,13 +600,13 @@ module.exports = class Programs extends Abstract {
 
           if (req.query.csv == "true") {
             input.push(resultObject)
-            
+
             if (input.readableBuffer && input.readableBuffer.length) {
               while (input.readableBuffer.length > 20000) {
                 await this.sleep(2000)
               }
             }
-          }else{
+          } else {
             result.schoolsReport.push(resultObject)
           }
 
@@ -696,17 +696,17 @@ module.exports = class Programs extends Abstract {
           let schoolTypes = _.compact(types[0]);
           let administrationTypes = _.compact(types[1]);
 
-          result.schoolTypes = schoolTypes.map(schoolType=>{
+          result.schoolTypes = schoolTypes.map(schoolType => {
             return {
-              key:schoolType,
-              value:schoolType
+              key: schoolType,
+              value: schoolType
             }
           })
-          
-          result.administrationTypes = administrationTypes.map(administrationType=>{
+
+          result.administrationTypes = administrationTypes.map(administrationType => {
             return {
-              key:administrationType,
-              value:administrationType
+              key: administrationType,
+              value: administrationType
             }
           })
 
@@ -726,8 +726,8 @@ module.exports = class Programs extends Abstract {
     })
   }
 
-  async getSchoolIdsByProgramId(req){
-    return new Promise(async (resolve,reject)=>{
+  async getSchoolIdsByProgramId(req) {
+    return new Promise(async (resolve, reject) => {
       try {
 
         let programDocument = await database.models.programs.findOne({ externalId: req.params._id }, {
@@ -794,8 +794,19 @@ module.exports = class Programs extends Abstract {
 
         let schoolObjectIds = schoolIds.map(schoolId => ObjectId(schoolId));
 
-        return resolve(schoolObjectIds);
-        
+        let schoolQueryObject = {};
+        schoolQueryObject._id = { $in: schoolObjectIds };
+        if (req.query.type) schoolQueryObject["schoolTypes"] = req.query.type;
+        if (req.query.administration) schoolQueryObject["administration"] = req.query.administration;
+        if (req.query.schoolId) schoolQueryObject["externalId"] = req.query.schoolId;
+        if (req.query.address) schoolQueryObject["$or"] = [{ addressLine1: new RegExp(req.query.address, 'i') }, { addressLine2: new RegExp(req.query.address, 'i') }];
+
+        let filteredSchoolDocument = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
+
+        let schoolDocumentFilteredObjectIds = filteredSchoolDocument.map(school => school._id);
+
+        return resolve(schoolDocumentFilteredObjectIds);
+
       } catch (error) {
         return reject({
           status: 500,
