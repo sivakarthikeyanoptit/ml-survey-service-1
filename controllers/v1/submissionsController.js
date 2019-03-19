@@ -1736,6 +1736,13 @@ module.exports = class Submission extends Abstract {
 
             eachQuestionRow["questionType"] = (questionExternalId[eachQuestionRow.questionCode] && questionExternalId[eachQuestionRow.questionCode].responseType != "") ? questionExternalId[eachQuestionRow.questionCode].responseType : "Question Not Found"
 
+            eachQuestionRow["optionValues"] = ""
+            if(questionExternalId[eachQuestionRow.questionCode].options && questionExternalId[eachQuestionRow.questionCode].options.length > 0) {
+              questionExternalId[eachQuestionRow.questionCode].options.forEach(option => {
+                eachQuestionRow["optionValues"] += option.label+", "
+              })
+            }
+            
             if (!questionExternalId[eachQuestionRow.questionCode]) {
               eachQuestionRow["status"] = "Invalid question id"
 
@@ -1759,8 +1766,8 @@ module.exports = class Submission extends Abstract {
 
               let questionValueConversion = await this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
 
-              if (questionValueConversion.oldValue == "Not Done" || questionValueConversion.newValue == "Not Done") {
-                eachQuestionRow["status"] = "Not Done"
+              if (!questionValueConversion.oldValue || !questionValueConversion.newValue || questionValueConversion.oldValue == "" || questionValueConversion.newValue == "") {
+                eachQuestionRow["status"] = "Invalid new or old response!"
               }
 
               else {
@@ -1785,7 +1792,6 @@ module.exports = class Submission extends Abstract {
                 let submissionCheck = await database.models.submissions.findOneAndUpdate(findQuery, updateQuery).lean()
 
                 eachQuestionRow["status"] = "Done"
-                // } else {
                 if (submissionCheck == null) {
                   eachQuestionRow["status"] = "Not Done"
                 }
@@ -1833,48 +1839,35 @@ module.exports = class Submission extends Abstract {
 
     } else if (question.responseType == "radio") {
 
-      let oldFlag = false
-      let newFlag = false
-
       question.options.forEach(eachOption => {
 
         if (eachOption.label.replace(/\s/g, '').toLowerCase() == oldResponse.replace(/\s/g, '').toLowerCase()) {
           result["oldValue"] = eachOption.value
-          oldFlag = true
         }
 
         if (eachOption.label.replace(/\s/g, '').toLowerCase() == newResponse.replace(/\s/g, '').toLowerCase()) {
           result["newValue"] = eachOption.value
-          newFlag = true
         }
       })
-
-      if (!(oldFlag && newFlag)) {
-        result["oldValue"] = "Not Done"
-        result["newValue"] = "Not Done"
-      }
 
     } else if (question.responseType == "multiselect") {
-      let oldFlag = false
-      let newFlag = false
 
+      result["oldValue"] = result["newValue"] = new Array
+      let oldResponseArray = oldResponse.split(",")
+      let newResponseArray = newResponse.split(",")
+      oldResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
+      newResponseArray.map((value) => {return value.replace(/\s/g, '').toLowerCase()})
+      
       question.options.forEach(eachOption => {
 
-        if (eachOption.label.replace(/\s/g, '').toLowerCase() === oldResponse.replace(/\s/g, '').toLowerCase()) {
-          result["oldValue"] = [eachOption.value]
-          oldFlag = true
+        if (oldResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
+          result["oldValue"].push(eachOption.value)
         }
 
-        if (eachOption.label.replace(/\s/g, '').toLowerCase() === newResponse.replace(/\s/g, '').toLowerCase()) {
-          result["newValue"] = [eachOption.value]
-          newFlag = true
+        if (newResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
+          result["newValue"].push(eachOption.value)
         }
       })
-
-      if (!(oldFlag && newFlag)) {
-        result["oldValue"] = "Not Done"
-        result["newValue"] = "Not Done"
-      }
 
     } else {
 
