@@ -105,35 +105,17 @@ module.exports = class ProgramOperations {
                     })
                 }
 
-                let userRole = gen.utils.getUserRole(req, false);
-
-                let roleToBeChecked;
-
-                if (userRole == 'LEAD_ASSESSOR') { roleToBeChecked = 'ASSESSOR' }
-                else if (userRole == 'PROGRAM_MANAGER') { roleToBeChecked = 'LEAD_ASSESSOR' }
-
-                let queryObject = [
-                    { $project: { userId: 1, parentId: 1, name: 1, schools: 1, role: 1, programId: 1 } },
-                    { $match: { userId: req.userDetails.id, programId: programDocument._id } },
-                    {
-                        $graphLookup: {
-                            from: 'schoolAssessors',
-                            startWith: '$userId',
-                            connectFromField: 'userId',
-                            connectToField: 'parentId',
-                            maxDepth: 2,
-                            as: 'children'
-                        }
-                    },
-                    { $unwind: "$children" },
-                    { $match: { "children.role": roleToBeChecked } },
-                    { $project: { "userId": "$children.userId", name: "$children.name", schools: "$children.schools" } }
-                ];
+                let assessorDetails;
+                let assessorQueryObject = {};
+                
+                assessorQueryObject["parentId"] = req.userDetails.id;
+                if(req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
+                
                 if (req.query.csv == "true") {
                     const fileName = `assessorReport`;
                     var fileStream = new FileStream(fileName);
                     var input = fileStream.initStream();
-
+                    
                     (async function () {
                         await fileStream.getProcessorPromise();
                         return resolve({
@@ -141,16 +123,27 @@ module.exports = class ProgramOperations {
                             fileNameWithPath: fileStream.fileNameWithPath()
                         });
                     }());
+                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).lean();
                 } else {
-                    queryObject.push({ $skip: req.pageSize * (req.pageNo - 1) })
-                    queryObject.push({ $limit: req.pageSize })
+                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
                 }
 
-                let assessorDetails = await database.models.schoolAssessors.aggregate(queryObject);
+                let schoolQueryObject = {};
+
+                if (req.query.type) schoolQueryObject["schoolTypes"] = req.query.type;
+                if (req.query.administration) schoolQueryObject["administration"] = req.query.administration;
+                if (req.query.schoolId) schoolQueryObject["externalId"] = req.query.schoolId;
+                if (req.query.address) schoolQueryObject["$or"] = [{ addressLine1: new RegExp(req.query.address, 'i') }, { addressLine2: new RegExp(req.query.address, 'i') }];
+                if (req.query.search) schoolQueryObject["name"] = new RegExp(req.query.search, 'i');
+
+                let filteredSchools = await Promise.all(assessorDetails.map(assessor => {
+                    schoolQueryObject._id = { $in: assessor.schools };
+                    return database.models.schools.find(schoolQueryObject, { _id: 1 }).lean().exec();
+                }))
 
                 let submissionQueryObject = {};
-                let submissionDataByAssessors = assessorDetails.map(assessor => {
-                    submissionQueryObject.schoolId = { $in: assessor.schools };
+                let submissionDataByAssessors = assessorDetails.map((assessor, index) => {
+                    submissionQueryObject.schoolId = { $in: filteredSchools[index] };
                     return database.models.submissions.find(submissionQueryObject, { status: 1, createdAt: 1, completedDate: 1 }).lean().exec()
                 })
 
@@ -228,7 +221,7 @@ module.exports = class ProgramOperations {
             try {
                 let programExternalId = req.params._id;
 
-                let schoolObjectIds = await this.getSchoolIdsByProgramId(req);
+                let schoolObjectIds = await this.getSchools(req);
 
                 if (!schoolObjectIds.length) {
                     return resolve({
@@ -331,7 +324,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let schoolObjectIds = await this.getSchoolIdsByProgramId(req);
+                let schoolObjectIds = await this.getSchools(req);
 
                 if (!schoolObjectIds.length) {
                     return resolve({
@@ -432,7 +425,7 @@ module.exports = class ProgramOperations {
         })
     }
 
-    async getSchoolIdsByProgramId(req) {
+    async getSchools(req) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -453,26 +446,12 @@ module.exports = class ProgramOperations {
                             startWith: '$userId',
                             connectFromField: 'userId',
                             connectToField: 'parentId',
-                            maxDepth: 2,
+                            maxDepth: 20,
                             as: 'children'
                         }
                     },
                     {
                         $project: { schools: 1, updatedAt: 1, "children.schools": 1, "children.updatedAt": 1 }
-                    },
-                    {
-                        $unwind: "$children"
-                    },
-                    {
-                        $match: { "children.updatedAt": { "$gte": req.query.fromDate, "$lte": req.query.toDate } }
-                    },
-                    {
-                        "$group": {
-                            "_id": "$_id",
-                            "schools": { "$first": "$schools" },
-                            "updatedAt": { "$first": "$updatedAt" },
-                            "children": { "$push": "$children" }
-                        }
                     }
                 ];
 
@@ -484,12 +463,9 @@ module.exports = class ProgramOperations {
 
                 let schoolIds = [];
 
-                let updatedAt = moment(schoolsAssessorDocuments[0].updatedAt);
-                if(updatedAt >= req.query.fromDate && updatedAt <= req.query.toDate){
-                    schoolsAssessorDocuments[0].schools.forEach(school => {
-                        schoolIds.push(school.toString());
-                    })
-                }
+                schoolsAssessorDocuments[0].schools.forEach(school => {
+                    schoolIds.push(school.toString());
+                })
 
                 schoolsAssessorDocuments[0].children.forEach(child => {
                     child.schools.forEach(school => {
