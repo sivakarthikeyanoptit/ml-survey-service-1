@@ -1105,13 +1105,17 @@ module.exports = class Reports {
                                     }
                                   );
 
-                                  eachInstanceChildQuestion.value.forEach(value => {
-                                    multiSelectResponseArray.push(
-                                      multiSelectResponse[value]
-                                    );
-                                  });
+                                  if(eachInstanceChildQuestion.value != "") {
+                                    eachInstanceChildQuestion.value.forEach(value => {
+                                      multiSelectResponseArray.push(
+                                        multiSelectResponse[value]
+                                      );
+                                    });
+                                    eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                  } else {
+                                    eachInstanceChildRecord["Answer"] = "No value given";
+                                  }
 
-                                  eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
                                 }
 
                                 input.push(eachInstanceChildRecord);
