@@ -26,6 +26,13 @@ module.exports = function (app) {
 
       try {
 
+        if (req.path.includes("programOperations")) {
+          let userRole = gen.utils.getUserRole(req, true);
+          if (userRole == "assessors" || userRole == "projectManagers") {
+            throw { status: 400, message: "You are not authorized to take this report." };
+          }
+        }
+        
         var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
         if (result.isResponseAStream == true) {
