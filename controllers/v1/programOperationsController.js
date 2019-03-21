@@ -425,6 +425,53 @@ module.exports = class ProgramOperations {
         })
     }
 
+    /**
+    * @api {get} /assessment/api/v1/programOperations/searchSchool 
+    * @apiVersion 0.0.1
+    * @apiName Fetch Filters(Autocomplete contents) for Reports
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    //searchSchool is for program operation search school autocomplete
+    async searchSchool(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let programExternalId = req.params._id;
+
+                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
+                    "components.schools": 1
+                }).lean();
+
+                if (!programDocument) {
+                    throw {status:400, message:'Program not found for given params.'}
+                }
+
+                let schoolIdAndName = await database.models.schools.find({
+                    externalId: new RegExp(req.query.id, 'i')
+                },{externalId:1,name:1}).limit(5).lean();//autocomplete needs only 5 dataset
+                
+                if(!schoolIdAndName.length){
+                    throw {status:400, message:'No schools found for given params.'}
+                }
+
+                return resolve({
+                    status:200,
+                    result:schoolIdAndName
+                })
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+    //sub function to get schools based on program and current user role
     async getSchools(req) {
         return new Promise(async (resolve, reject) => {
             try {
