@@ -173,10 +173,10 @@ module.exports = class ProgramOperations {
                         let schoolData = _.countBy(submissionData[index], 'status')
                         let schoolAssigned = submissionData[index].length;
                         let assessorResult = {
-                            name: assessor.name || null,
-                            schoolsAssigned: schoolAssigned || null,
-                            schoolsCompleted: schoolData.completed || null,
-                            schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || null : null,
+                            name: assessor.name || "",
+                            schoolsAssigned: schoolAssigned || 0,
+                            schoolsCompleted: schoolData.completed || 0,
+                            schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || 0 : 0,
                             averageTimeTaken: getAverageTimeTaken(submissionData[index])
                         }
                         assessorsReports.push(assessorResult)
