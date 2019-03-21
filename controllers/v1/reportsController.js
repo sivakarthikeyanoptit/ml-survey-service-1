@@ -795,7 +795,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolId = {
-          ["schoolInformation.externalId"]: req.params._id
+          "schoolInformation.externalId": req.params._id
         };
 
         let submissionDocument = database.models.submissions.find(
@@ -826,21 +826,24 @@ module.exports = class Reports {
           let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
           let evaluationNameObject = {};
+
           evaluationFrameworksDocuments.forEach(singleDocument => {
             singleDocument.themes.forEach(singleTheme => {
-              singleTheme.children && singleTheme.children.forEach(subThemes => {
-                subThemes.children && subThemes.children.forEach(singleSubTheme => {
-                  singleSubTheme.criteria.forEach(singleCriteria => {
-                    evaluationNameObject[singleCriteria.toString()] = {
-                      themeName: singleTheme.name,
-                      aoiName: subThemes.name,
-                      indicatorName: singleSubTheme.name
-                    };
-                  });
+
+              if (singleTheme.children) {
+                evaluationNameObject = this.getCriteriaDynamic(singleTheme.children, singleTheme.name)
+              }
+
+              else {
+                singleTheme.criteria.forEach(eachCriteria => {
+                  evaluationNameObject[eachCriteria._id.toString()] = {
+                    pathToCriteria: singleTheme.name
+                  }
                 })
-              })
-            });
-          });
+              }
+
+            })
+          })
 
           if (!submissionDocument && !submissionDocument[0].criterias.length) {
             return resolve({
@@ -854,12 +857,7 @@ module.exports = class Reports {
 
               if (submissionCriterias._id) {
                 let criteriaReportObject = {
-                  "Theme Name": evaluationNameObject[submissionCriterias._id]
-                    ? evaluationNameObject[submissionCriterias._id].themeName
-                    : "",
-                  "AoI Name": evaluationNameObject[submissionCriterias._id]
-                    ? evaluationNameObject[submissionCriterias._id].aoiName
-                    : "",
+                  "Path To Criteria": evaluationNameObject[submissionCriterias._id] ? evaluationNameObject[submissionCriterias._id].pathToCriteria : "",
                   "Level 1": levels.find(level => level.level == "L1").description,
                   "Level 2": levels.find(level => level.level == "L2").description,
                   "Level 3": levels.find(level => level.level == "L3").description,
@@ -2058,7 +2056,6 @@ module.exports = class Reports {
     });
   }
 
-
   /**
   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
   * @apiVersion 0.0.1
@@ -2317,7 +2314,6 @@ module.exports = class Reports {
     })
   }
 
-
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:programId Generate report whose parent did not pick up the call
  * @apiVersion 0.0.1
@@ -2441,7 +2437,6 @@ module.exports = class Reports {
       }
     })
   }
-
 
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:programId Generate report for the parent whose callResponse is present.
@@ -2597,5 +2592,31 @@ module.exports = class Reports {
       })
     })
     return schoolFieldArray;
+  }
+
+  getCriteriaDynamic(singleTheme, themeName) {
+
+    if (!this.evaluationNameObject) {
+      this.evaluationNameObject = {}
+    }
+
+
+    for (let counter = 0; counter < singleTheme.length; counter++) {
+
+      if (singleTheme[counter].children) {
+        this.getCriteriaDynamic(singleTheme[counter].children, themeName + "->" + singleTheme[counter].name)
+      }
+
+      else {
+        singleTheme[counter].criteria.forEach(singleCriteria => {
+          this.evaluationNameObject[singleCriteria.toString()] = {
+            pathToCriteria: themeName + "->" + singleTheme[counter].name
+          }
+        })
+
+      }
+    }
+
+    return this.evaluationNameObject
   }
 };
