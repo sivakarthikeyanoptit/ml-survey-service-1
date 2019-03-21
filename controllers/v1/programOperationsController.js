@@ -107,15 +107,15 @@ module.exports = class ProgramOperations {
 
                 let assessorDetails;
                 let assessorQueryObject = {};
-                
+
                 assessorQueryObject["parentId"] = req.userDetails.id;
-                if(req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
-                
+                if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
+
                 if (req.query.csv == "true") {
                     const fileName = `assessorReport`;
                     var fileStream = new FileStream(fileName);
                     var input = fileStream.initStream();
-                    
+
                     (async function () {
                         await fileStream.getProcessorPromise();
                         return resolve({
@@ -123,10 +123,12 @@ module.exports = class ProgramOperations {
                             fileNameWithPath: fileStream.fileNameWithPath()
                         });
                     }());
-                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).lean();
+                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).lean().exec();
                 } else {
-                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
+                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 }
+                let totalCount = database.models.schoolAssessors.find(assessorQueryObject).count().exec();
+                [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
                 let schoolQueryObject = {};
 
@@ -193,7 +195,7 @@ module.exports = class ProgramOperations {
                         input.push(null);
                     } else {
                         result.assessorsReport = assessorsReports;
-                        return resolve({ result: result })
+                        return resolve({ result: _.merge(result, { totalCount: totalCount }) })
                     }
                 })
 
@@ -248,14 +250,12 @@ module.exports = class ProgramOperations {
                             fileNameWithPath: fileStream.fileNameWithPath()
                         });
                     }());
-
-                    schoolDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).lean();
-
+                    schoolDocuments = database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).lean().exec();
                 } else {
-
-                    schoolDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean();
-
+                    schoolDocuments = database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 }
+                let totalCount = database.models.submissions.find(submissionQueryObject).count().exec();
+                [schoolDocuments, totalCount] = await Promise.all([schoolDocuments, totalCount])
 
                 let result = {};
 
@@ -296,7 +296,7 @@ module.exports = class ProgramOperations {
                 if (req.query.csv == "true") {
                     input.push(null)
                 } else {
-                    return resolve({ result: result })
+                    return resolve({ result: _.merge(result, { totalCount: totalCount }) })
                 }
 
             } catch (error) {
@@ -445,20 +445,20 @@ module.exports = class ProgramOperations {
                 }).lean();
 
                 if (!programDocument) {
-                    throw {status:400, message:'Program not found for given params.'}
+                    throw { status: 400, message: 'Program not found for given params.' }
                 }
 
                 let schoolIdAndName = await database.models.schools.find({
                     externalId: new RegExp(req.query.id, 'i')
-                },{externalId:1,name:1}).limit(5).lean();//autocomplete needs only 5 dataset
-                
-                if(!schoolIdAndName.length){
-                    throw {status:400, message:'No schools found for given params.'}
+                }, { externalId: 1, name: 1 }).limit(5).lean();//autocomplete needs only 5 dataset
+
+                if (!schoolIdAndName.length) {
+                    throw { status: 400, message: 'No schools found for given params.' }
                 }
 
                 return resolve({
-                    status:200,
-                    result:schoolIdAndName
+                    status: 200,
+                    result: schoolIdAndName
                 })
 
             } catch (error) {
