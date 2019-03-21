@@ -36,14 +36,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programQuery = {
-                    $or: [
-                        { "components.roles.assessors.users": req.userDetails.id },
-                        { "components.roles.leadAssessors.users": req.userDetails.id },
-                        { "components.roles.projectManagers.users": req.userDetails.id },
-                        { "components.roles.programManagers.users": req.userDetails.id }
-                    ]
-                }
+                let userRole = gen.utils.getUserRole(req.userDetails, true);
 
                 let programProject = {
                     externalId: 1,
@@ -51,7 +44,7 @@ module.exports = class ProgramOperations {
                     description: 1,
                 };
 
-                let programDocuments = await database.models.programs.find(programQuery, programProject).lean();
+                let programDocuments = await database.models.programs.find({ [`components.roles.${userRole}.users`]: req.userDetails.id }, programProject).lean();
                 let responseMessage;
                 let response;
 
@@ -140,13 +133,7 @@ module.exports = class ProgramOperations {
                 let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
-                let schoolQueryObject = {};
-
-                if (req.query.type) schoolQueryObject["schoolTypes"] = req.query.type;
-                if (req.query.administration) schoolQueryObject["administration"] = req.query.administration;
-                if (req.query.schoolId) schoolQueryObject["externalId"] = req.query.schoolId;
-                if (req.query.address) schoolQueryObject["$or"] = [{ addressLine1: new RegExp(req.query.address, 'i') }, { addressLine2: new RegExp(req.query.address, 'i') }];
-                if (req.query.search) schoolQueryObject["name"] = new RegExp(req.query.search, 'i');
+                let schoolQueryObject = this.getQueryObject(req.query);
 
                 let filteredSchools = await Promise.all(assessorDetails.map(assessor => {
                     schoolQueryObject._id = { $in: assessor.schools };
@@ -402,30 +389,121 @@ module.exports = class ProgramOperations {
 
                 let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
                 let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
-                await Promise.all([schoolTypes, administrationTypes]).then(types => {
+                let types = await Promise.all([schoolTypes, administrationTypes]);
 
-                    let result = {};
-                    let schoolTypes = _.compact(types[0]);
-                    let administrationTypes = _.compact(types[1]);
+                schoolTypes = _.compact(types[0]);
+                administrationTypes = _.compact(types[1]);
 
-                    result.schoolTypes = schoolTypes.map(schoolType => {
-                        return {
-                            key: schoolType,
-                            value: schoolType
-                        }
-                    })
+                schoolTypes = schoolTypes.map(schoolType => {
+                    return {
+                        key: schoolType,
+                        value: schoolType
+                    }
+                })
 
-                    result.administrationTypes = administrationTypes.map(administrationType => {
-                        return {
-                            key: administrationType,
-                            value: administrationType
-                        }
-                    })
+                administrationTypes = administrationTypes.map(administrationType => {
+                    return {
+                        key: administrationType,
+                        value: administrationType
+                    }
+                })
 
-                    return resolve({
-                        message: 'Reports filter fetched successfully.',
-                        result: result
-                    })
+                let result = [
+                    {
+                        field: "fromDate",
+                        label: "start date",
+                        value: "",
+                        visible: false,//there is no date calculation right now
+                        editable: true,
+                        input: "date",
+                        visibleIf: "",
+                        validation: {
+                            required: false
+                        },
+                        min: new Date(0),
+                        max: new Date()
+                    },
+                    {
+                        field: "toDate",
+                        label: "end date",
+                        value: "",
+                        visible: false,//there is no date calculation right now
+                        editable: true,
+                        input: "date",
+                        visibleIf: "",
+                        validation: {
+                            required: false
+                        },
+                        min: new Date(0),
+                        max: new Date()
+                    },
+                    {
+                        field: "schoolTypes",
+                        label: "school type",
+                        value: "",
+                        visible: true,
+                        editable: true,
+                        input: "dropdown",
+                        remarks: "",
+                        children: [],
+                        visibleIf: "",
+                        options: schoolTypes,
+                        validation: {
+                            required: false
+                        },
+                        min: "",
+                        max: ""
+                    },
+                    {
+                        field: "area",
+                        label: "school area",
+                        value: "",
+                        visible: true,
+                        editable: true,
+                        input: "text",
+                        visibleIf: "",
+                        validation: {
+                            required: false
+                        },
+                        min: "",
+                        max: ""
+                    },
+                    {
+                        field: "administration",
+                        label: "school administration",
+                        value: "",
+                        visible: true,
+                        editable: true,
+                        input: "dropdown",
+                        showRemarks: true,
+                        remarks: "",
+                        children: [],
+                        visibleIf: "",
+                        options: administrationTypes,
+                        validation: {
+                            required: false
+                        },
+                        min: "",
+                        max: ""
+                    },
+                    {
+                        field: "externalId",
+                        label: "school Id",
+                        value: "",
+                        visible: true,
+                        editable: true,
+                        input: "autocomplete",
+                        visibleIf: "",
+                        validation: {
+                            required: false
+                        },
+                        min: "",
+                        max: ""
+                    }
+                ];
+                return resolve({
+                    message: 'Reports filter fetched successfully.',
+                    result: result
                 })
 
             } catch (error) {
@@ -542,11 +620,8 @@ module.exports = class ProgramOperations {
 
                 let schoolQueryObject = {};
                 schoolQueryObject._id = { $in: schoolObjectIds };
-                if (req.query.type) schoolQueryObject["schoolTypes"] = req.query.type;
-                if (req.query.administration) schoolQueryObject["administration"] = req.query.administration;
-                if (req.query.schoolId) schoolQueryObject["externalId"] = req.query.schoolId;
-                if (req.query.address) schoolQueryObject["$or"] = [{ addressLine1: new RegExp(req.query.address, 'i') }, { addressLine2: new RegExp(req.query.address, 'i') }];
-                if (req.query.search) schoolQueryObject["name"] = new RegExp(req.query.search, 'i');
+
+                _.merge(schoolQueryObject,this.getQueryObject(req.query))
 
                 let filteredSchoolDocument = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
 
@@ -568,5 +643,22 @@ module.exports = class ProgramOperations {
         return new Promise((resolve) => {
             setTimeout(resolve, ms)
         })
+    }
+
+    getQueryObject(requestQuery) {
+        let queryObject = {}
+        let queries = Object.keys(requestQuery);
+        let filteredQueries = _.pullAll(queries, ['csv']);
+
+        filteredQueries.forEach(query => {
+            if (query == "area") {
+                queryObject["$or"] = [{ addressLine1: new RegExp(requestQuery.area, 'i') }, { addressLine2: new RegExp(requestQuery.area, 'i') }];
+            } else if (query == "schoolName") {
+                queryObject["name"] = new RegExp(requestQuery.schoolName, 'i')
+            } else {
+                if (requestQuery[query]) queryObject[query] = requestQuery[query];
+            }
+        })
+        return queryObject;
     }
 };
