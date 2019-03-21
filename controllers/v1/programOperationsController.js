@@ -447,6 +447,10 @@ module.exports = class ProgramOperations {
                 if (!programDocument) {
                     throw { status: 400, message: 'Program not found for given params.' }
                 }
+                
+                if (!req.query.id) {
+                    throw { status: 400, message: 'Bad request.' }
+                }
 
                 let schoolIdAndName = await database.models.schools.find({
                     externalId: new RegExp(req.query.id, 'i')
