@@ -1,6 +1,15 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
+
+    checkUserAuthorization(userDetails) {
+        let userRole = gen.utils.getUserRole(userDetails, true);
+        if (userRole == "assessors") {
+            throw { status: 400, message: "You are not authorized to take this report." };
+        }
+        return
+    }
+
     /**
       * @apiDefine errorBody
       * @apiError {String} status 4XX,5XX
@@ -82,6 +91,7 @@ module.exports = class ProgramOperations {
   */
 
     async assessorReport(req) {
+        this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -127,7 +137,7 @@ module.exports = class ProgramOperations {
                 } else {
                     assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 }
-                let totalCount = database.models.schoolAssessors.find(assessorQueryObject).count().exec();
+                let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
                 let schoolQueryObject = {};
@@ -219,6 +229,7 @@ module.exports = class ProgramOperations {
     */
 
     async schoolReport(req) {
+        this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
                 let programExternalId = req.params._id;
@@ -254,7 +265,7 @@ module.exports = class ProgramOperations {
                 } else {
                     schoolDocuments = database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 }
-                let totalCount = database.models.submissions.find(submissionQueryObject).count().exec();
+                let totalCount = database.models.submissions.countDocuments(submissionQueryObject).exec();
                 [schoolDocuments, totalCount] = await Promise.all([schoolDocuments, totalCount])
 
                 let result = {};
@@ -321,6 +332,7 @@ module.exports = class ProgramOperations {
     */
 
     async schoolSummary(req) {
+        this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -372,6 +384,7 @@ module.exports = class ProgramOperations {
     */
 
     async reportFilters(req) {
+        this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
                 let programExternalId = req.params._id;
@@ -436,6 +449,7 @@ module.exports = class ProgramOperations {
 
     //searchSchool is for program operation search school autocomplete
     async searchSchool(req) {
+        this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
                 let programExternalId = req.params._id;
@@ -447,7 +461,7 @@ module.exports = class ProgramOperations {
                 if (!programDocument) {
                     throw { status: 400, message: 'Program not found for given params.' }
                 }
-                
+
                 if (!req.query.id) {
                     throw { status: 400, message: 'Bad request.' }
                 }

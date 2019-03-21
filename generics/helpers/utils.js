@@ -54,20 +54,20 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
-function getUserRole(req, caseSensitive = false) {
-  if (req.userDetails && req.userDetails.allRoles.length) {
-    _.pull(req.userDetails.allRoles, 'PUBLIC');
-    let role = req.userDetails.allRoles[0];
+function getUserRole(userDetails, caseSensitive = false) {
+  if (userDetails && userDetails.allRoles.length) {
+    _.pull(userDetails.allRoles, 'PUBLIC');
+    let role = userDetails.allRoles[0];
     if (caseSensitive == true) {
-      return changeRoleCase(role)
+      return mapUserRole(role)
     }
-    return req.userDetails.allRoles[0];
+    return userDetails.allRoles[0];
   } else {
     return
   }
 }
 
-function changeRoleCase(role) {
+function mapUserRole(role) {
   let rolesObject = {
     ASSESSOR: "assessors",
     LEAD_ASSESSOR: "leadAssessors",
@@ -97,6 +97,6 @@ module.exports = {
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
-  changeRoleCase: changeRoleCase,
+  mapUserRole: mapUserRole,
   getAllQuestionId: getAllQuestionId
 };
