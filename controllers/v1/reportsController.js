@@ -995,7 +995,7 @@ module.exports = class Reports {
             else {
               Object.values(singleSchoolSubmission.answers).forEach(
                 singleAnswer => {
-                  if (singleAnswer.payload) {
+                  if (singleAnswer.payload && criteriaScoreObject[singleAnswer.criteriaId]) {
                     let singleAnswerRecord = {
                       "Criteria Name":
                         criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
