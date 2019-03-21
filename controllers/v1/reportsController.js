@@ -795,7 +795,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolId = {
-          "schoolInformation.externalId": req.params._id
+          ["schoolInformation.externalId"]: req.params._id
         };
 
         let submissionDocument = database.models.submissions.find(
@@ -831,7 +831,7 @@ module.exports = class Reports {
             singleDocument.themes.forEach(singleTheme => {
 
               if (singleTheme.children) {
-                evaluationNameObject = this.getCriteriaDynamic(singleTheme.children, singleTheme.name)
+                evaluationNameObject = this.generatePathToCriteria(singleTheme.children, singleTheme.name)
               }
 
               else {
@@ -841,7 +841,6 @@ module.exports = class Reports {
                   }
                 })
               }
-
             })
           })
 
@@ -2594,17 +2593,16 @@ module.exports = class Reports {
     return schoolFieldArray;
   }
 
-  getCriteriaDynamic(singleTheme, themeName) {
+  generatePathToCriteria(singleTheme, themeName) {
 
     if (!this.evaluationNameObject) {
       this.evaluationNameObject = {}
     }
 
-
     for (let counter = 0; counter < singleTheme.length; counter++) {
 
       if (singleTheme[counter].children) {
-        this.getCriteriaDynamic(singleTheme[counter].children, themeName + "->" + singleTheme[counter].name)
+        this.generatePathToCriteria(singleTheme[counter].children, themeName + "->" + singleTheme[counter].name)
       }
 
       else {
