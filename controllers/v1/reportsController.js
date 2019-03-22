@@ -1104,12 +1104,13 @@ module.exports = class Reports {
                                         option.label;
                                     }
                                   );
-
-                                  eachInstanceChildQuestion.value.forEach(value => {
-                                    multiSelectResponseArray.push(
-                                      multiSelectResponse[value]
-                                    );
-                                  });
+                                  if (eachInstanceChildQuestion.value) {
+                                    eachInstanceChildQuestion.value.forEach(value => {
+                                      multiSelectResponseArray.push(
+                                        multiSelectResponse[value]
+                                      );
+                                    });
+                                  }
 
                                   eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
                                 }
