@@ -825,24 +825,7 @@ module.exports = class Reports {
           let submissionDocument = submissionAndEvaluationFrameworksDocuments[0];
           let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
-          let evaluationNameObject = {};
-
-          evaluationFrameworksDocuments.forEach(singleDocument => {
-            singleDocument.themes.forEach(singleTheme => {
-
-              if (singleTheme.children) {
-                evaluationNameObject = this.generatePathToCriteria(singleTheme.children, singleTheme.name)
-              }
-
-              else {
-                singleTheme.criteria.forEach(eachCriteria => {
-                  evaluationNameObject[eachCriteria._id.toString()] = {
-                    pathToCriteria: singleTheme.name
-                  }
-                })
-              }
-            })
-          })
+          let evaluationNameObject = this.evaluationFrameworkDocument(evaluationFrameworksDocuments)
 
           if (!submissionDocument && !submissionDocument[0].criterias.length) {
             return resolve({
@@ -2591,6 +2574,28 @@ module.exports = class Reports {
       })
     })
     return schoolFieldArray;
+  }
+
+  evaluationFrameworkDocument(evaluationFrameworksDocuments) {
+    let evaluationNameObject = {};
+
+    evaluationFrameworksDocuments.forEach(singleDocument => {
+      singleDocument.themes.forEach(singleTheme => {
+
+        if (singleTheme.children) {
+          evaluationNameObject = this.generatePathToCriteria(singleTheme.children, singleTheme.name)
+        }
+
+        else {
+          singleTheme.criteria.forEach(eachCriteria => {
+            evaluationNameObject[eachCriteria._id.toString()] = {
+              pathToCriteria: singleTheme.name
+            }
+          })
+        }
+      })
+    })
+    return evaluationNameObject
   }
 
   generatePathToCriteria(singleTheme, themeName) {
