@@ -1689,20 +1689,21 @@ module.exports = class Reports {
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
           { _id: 1 }
-        )
+        ).lean();
 
         let questionIdObject = {}
-        const questionDocument = await database.models.questions.find({}, { externalId: 1 })
+        const questionDocument = await database.models.questions.find({}, { externalId: 1, options: 1 }).lean();
 
         questionDocument.forEach(eachQuestionId => {
           questionIdObject[eachQuestionId._id] = {
-            questionExternalId: eachQuestionId.externalId
+            questionExternalId: eachQuestionId.externalId,
+            questionOptions: eachQuestionId.options
           }
         })
 
         let fileName = `EcmReport`;
-        (fromDate) ? fileName += "from date _" + fromDate : "";
-        (toDate) ? fileName += "to date _" + toDate : new Date();
+        (fromDate) ? fileName += moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "-" + moment(toDate).format('DD-MM-YYYY') : moment(fromDate).format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1747,7 +1748,7 @@ module.exports = class Reports {
                 "evidences": 1,
                 status: 1,
               }
-            )
+            ).lean()
 
 
             await Promise.all(submissionDocuments.map(async (submission) => {
@@ -1764,10 +1765,7 @@ module.exports = class Reports {
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if (!evidenceSubmission.submittedByName) {
-                      evidenceSubmission.submittedByName = ""
-                    }
-                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
 
                     // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
                     if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
@@ -1809,29 +1807,61 @@ module.exports = class Reports {
 
                             if (singleAnswer.responseType != "matrix") {
 
-                              singleAnswerRecord.Answer = singleAnswer.payload[
-                                "labels"
-                              ].toString();
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (
+                                singleAnswer.responseType == "radio"
+                              ) {
+                                questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                  option => {
+                                    radioResponse[option.value] = option.label;
+                                  }
+                                );
+                                singleAnswerRecord.Answer =
+                                  radioResponse[singleAnswer.value];
+                              }
+                              else if (singleAnswer.responseType == "multiselect") {
+
+                                questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                  option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  }
+                                );
+
+                                if (singleAnswer.value) {
+                                  singleAnswer.value.forEach(value => {
+                                    multiSelectResponseArray.push(
+                                      multiSelectResponse[value]
+                                    );
+                                  });
+                                }
+                                singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                              } else {
+                                singleAnswerRecord.Answer = singleAnswer.value;
+                              }
                               input.push(singleAnswerRecord)
                             } else {
 
                               singleAnswerRecord.Answer = "Instance Question";
                               input.push(singleAnswerRecord)
 
-                              if (singleAnswer.payload.labels[0]) {
+                              if (singleAnswer.value.length) {
                                 for (
                                   let instance = 0;
-                                  instance < singleAnswer.payload.labels[0].length;
+                                  instance < singleAnswer.value.length;
                                   instance++
                                 ) {
 
-                                  singleAnswer.payload.labels[0][instance].forEach(
+                                  Object.values(singleAnswer.value[instance]).forEach(
                                     eachInstanceChildQuestion => {
                                       let eachInstanceChildRecord = {
                                         "School Name": submission.schoolInformation.name,
                                         "School Id": submission.schoolInformation.externalId,
-                                        "Question": eachInstanceChildQuestion.question[0],
-                                        "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
+                                        "Question": eachInstanceChildQuestion.payload ? eachInstanceChildQuestion.payload.question[0] : '',
+                                        "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": asssessorId,
@@ -1842,14 +1872,14 @@ module.exports = class Reports {
                                         "ECM": evidenceSubmission.externalId
                                       };
 
-                                      if (eachInstanceChildQuestion.fileName.length > 0) {
+                                      if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
                                         eachInstanceChildQuestion.fileName.forEach(
                                           file => {
-                                            if (file.split('/').length == 1) {
-                                              file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                            if (file.sourcePath.split('/').length == 1) {
+                                              file.sourcePath = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file.name
                                             }
                                             eachInstanceChildRecord.Files +=
-                                              imageBaseUrl + file + ",";
+                                              imageBaseUrl + file.sourcePath + ",";
                                           }
                                         );
                                         eachInstanceChildRecord.Files = eachInstanceChildRecord.Files.replace(
@@ -1865,7 +1895,7 @@ module.exports = class Reports {
                                       if (
                                         eachInstanceChildQuestion.responseType == "radio"
                                       ) {
-                                        eachInstanceChildQuestion.options.forEach(
+                                        (questionIdObject[eachInstanceChildQuestion.qid]).questionOptions.forEach(
                                           option => {
                                             radioResponse[option.value] = option.label;
                                           }
@@ -1876,7 +1906,7 @@ module.exports = class Reports {
                                         eachInstanceChildQuestion.responseType ==
                                         "multiselect"
                                       ) {
-                                        eachInstanceChildQuestion.options.forEach(
+                                        (questionIdObject[eachInstanceChildQuestion.qid]).questionOptions.forEach(
                                           option => {
                                             multiSelectResponse[option.value] =
                                               option.label;
@@ -1885,11 +1915,13 @@ module.exports = class Reports {
 
                                         if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
-                                          eachInstanceChildQuestion.value.forEach(value => {
-                                            multiSelectResponseArray.push(
-                                              multiSelectResponse[value]
-                                            );
-                                          });
+                                          if (eachInstanceChildQuestion.value) {
+                                            eachInstanceChildQuestion.value.forEach(value => {
+                                              multiSelectResponseArray.push(
+                                                multiSelectResponse[value]
+                                              );
+                                            });
+                                          }
 
                                           eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
                                         } else {
