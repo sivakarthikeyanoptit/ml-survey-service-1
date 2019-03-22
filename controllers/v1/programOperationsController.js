@@ -90,9 +90,6 @@ module.exports = class ProgramOperations {
 
                 let programExternalId = req.params._id;
 
-                if (!req.query.csv)
-                    throw { status: 400, message: 'Bad request.' }
-
                 let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
                     _id: 1,
                 }).lean();
@@ -110,7 +107,7 @@ module.exports = class ProgramOperations {
                 assessorQueryObject["parentId"] = req.userDetails.id;
                 if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
 
-                if (req.query.csv == "true") {
+                if (req.query.csv && req.query.csv == "true") {
                     const fileName = `assessorReport`;
                     var fileStream = new FileStream(fileName);
                     var input = fileStream.initStream();
@@ -122,10 +119,13 @@ module.exports = class ProgramOperations {
                             fileNameWithPath: fileStream.fileNameWithPath()
                         });
                     }());
-                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).lean().exec();
-                } else {
-                    assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 }
+
+                let limitValue = (!req.query.csv) ? "" : req.pageSize ;
+                let skipValue = (!req.query.csv) ? "" : (req.pageSize * (req.pageNo - 1)) ;
+
+                assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
+
                 let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
@@ -177,7 +177,7 @@ module.exports = class ProgramOperations {
                             averageTimeTaken: getAverageTimeTaken(submissionData[index])
                         }
                         assessorsReports.push(assessorResult)
-                        if (req.query.csv == "true") {
+                        if (req.query.csv && req.query.csv == "true") {
                             input.push(assessorResult)
 
                             if (input.readableBuffer && input.readableBuffer.length) {
@@ -188,7 +188,7 @@ module.exports = class ProgramOperations {
 
                         }
                     })
-                    if (req.query.csv == "true") {
+                    if (req.query.csv && req.query.csv == "true") {
                         input.push(null);
                     } else {
                         result.assessorsReport = assessorsReports;
@@ -221,9 +221,6 @@ module.exports = class ProgramOperations {
             try {
                 let programExternalId = req.params._id;
 
-                if (!req.query.csv)
-                    throw { status: 400, message: 'Bad request.' }
-
                 let isCSV = req.query.csv;
                 let schoolDocuments = await this.getSchools(req, (isCSV && isCSV=="false"));
 
@@ -242,7 +239,7 @@ module.exports = class ProgramOperations {
                 submissionQueryObject.schoolId = { $in: schoolObjectIds };
                 submissionQueryObject.programExternalId = programExternalId;
 
-                if (isCSV == "true") {
+                if (isCSV && isCSV == "true") {
 
                     const fileName = `schoolReport`;
                     var fileStream = new FileStream(fileName);
@@ -428,7 +425,6 @@ module.exports = class ProgramOperations {
                         visible: false,//there is no date calculation right now
                         editable: true,
                         input: "date",
-                        visibleIf: "",
                         validation: {
                             required: false
                         },
@@ -442,7 +438,6 @@ module.exports = class ProgramOperations {
                         visible: false,//there is no date calculation right now
                         editable: true,
                         input: "date",
-                        visibleIf: "",
                         validation: {
                             required: false
                         },
@@ -455,14 +450,12 @@ module.exports = class ProgramOperations {
                         value: "",
                         visible: true,
                         editable: true,
-                        input: "dropdown",
-                        remarks: "",
-                        children: [],
-                        visibleIf: "",
+                        input: "select",
                         options: schoolTypes,
                         validation: {
                             required: false
                         },
+                        autocomplete: false,
                         min: "",
                         max: ""
                     },
@@ -473,10 +466,10 @@ module.exports = class ProgramOperations {
                         visible: true,
                         editable: true,
                         input: "text",
-                        visibleIf: "",
                         validation: {
                             required: false
                         },
+                        autocomplete: false,
                         min: "",
                         max: ""
                     },
@@ -486,15 +479,13 @@ module.exports = class ProgramOperations {
                         value: "",
                         visible: true,
                         editable: true,
-                        input: "dropdown",
+                        input: "select",
                         showRemarks: true,
-                        remarks: "",
-                        children: [],
-                        visibleIf: "",
                         options: administrationTypes,
                         validation: {
                             required: false
                         },
+                        autocomplete: false,
                         min: "",
                         max: ""
                     },
@@ -504,11 +495,11 @@ module.exports = class ProgramOperations {
                         value: "",
                         visible: true,
                         editable: true,
-                        input: "autocomplete",
-                        visibleIf: "",
+                        input: "text",
                         validation: {
                             required: false
                         },
+                        autocomplete: true,
                         min: "",
                         max: ""
                     }
