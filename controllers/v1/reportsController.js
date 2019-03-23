@@ -1076,8 +1076,6 @@ module.exports = class Reports {
 
                     if (!singleAnswer.notApplicable) {
                       if (singleAnswer.responseType != "matrix") {
-
-
                         let radioResponse = {};
                         let multiSelectResponse = {};
                         let multiSelectResponseArray = [];
@@ -1118,10 +1116,11 @@ module.exports = class Reports {
 
                       } else {
                         singleAnswerRecord["Answer"] = "Instance Question";
+                        input.push(singleAnswerRecord)
 
                         if (singleAnswer.value.length) {
                           
-                          for (let instance = 0;instance < singleAnswer.value.length.length;instance++) {
+                          for (let instance = 0;instance < singleAnswer.value.length;instance++) {
                             singleAnswer.value[instance].forEach(
                               eachInstanceChildQuestion => {
                                 let eachInstanceChildRecord = {
