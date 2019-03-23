@@ -804,6 +804,7 @@ module.exports = class Reports {
                         }
 
                       }
+                      input.push(singleAnswerRecord);
                     }
                   })
                 }
