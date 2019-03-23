@@ -1817,6 +1817,7 @@ module.exports = class Reports {
                               ) {
                                 questionIdObject[singleAnswer.qid].questionOptions.forEach(
                                   option => {
+                                    
                                     radioResponse[option.value] = option.label;
                                   }
                                 );
