@@ -1,5 +1,5 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
-let pagination = require(ROOT_PATH + "/generics/middleware/pagination")
+let pagination = require(ROOT_PATH + "/generics/middleware/pagination");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -23,7 +23,7 @@ module.exports = function (app) {
     else {
 
       try {
-
+        
         var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
         if (result.isResponseAStream == true) {

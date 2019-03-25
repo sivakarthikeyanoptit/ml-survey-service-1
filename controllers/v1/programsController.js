@@ -23,65 +23,6 @@ module.exports = class Programs extends Abstract {
     return super.find(req);
   }
 
-
-  /**
-* @api {get} /assessment/api/v1/programs/listByUser List all the programs which is part of the current user
-* @apiVersion 0.0.1
-* @apiName Fetch Program List By User
-* @apiGroup Program
-* @apiUse successBody
-* @apiUse errorBody
-*/
-
-  async listByUser(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let programQuery = {
-          $or: [
-            { "components.roles.assessors.users": req.userDetails.id },
-            { "components.roles.leadAssessors.users": req.userDetails.id },
-            { "components.roles.projectManagers.users": req.userDetails.id },
-            { "components.roles.programManagers.users": req.userDetails.id }
-          ]
-        }
-
-        let programProject = {
-          externalId: 1,
-          name: 1,
-          description: 1,
-        };
-
-        let programDocuments = await database.models.programs.find(programQuery, programProject).lean();
-        let responseMessage;
-        let response;
-
-        if (!programDocuments.length) {
-
-          responseMessage = "No programs data found for given params.";
-          response = { status: 404, message: responseMessage };
-
-        } else {
-
-          responseMessage = "Program information list fetched successfully.";
-          response = { message: responseMessage, result: programDocuments };
-
-        }
-
-        return resolve(response);
-
-      } catch (error) {
-
-        return reject({
-          status: 500,
-          message: error,
-          errorObject: error
-        });
-
-      }
-    });
-  }
-
   /**
 * @api {get} /assessment/api/v1/programs/list/ List all the programs
 * @apiVersion 0.0.1
@@ -385,5 +326,3 @@ module.exports = class Programs extends Abstract {
   }
 
 };
-
-
