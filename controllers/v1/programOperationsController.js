@@ -121,8 +121,8 @@ module.exports = class ProgramOperations {
                     }());
                 }
 
-                let limitValue = (!req.query.csv) ? "" : req.pageSize ;
-                let skipValue = (!req.query.csv) ? "" : (req.pageSize * (req.pageNo - 1)) ;
+                let limitValue = (!req.query.csv) ? "" : req.pageSize;
+                let skipValue = (!req.query.csv) ? "" : (req.pageSize * (req.pageNo - 1));
 
                 assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
@@ -132,19 +132,17 @@ module.exports = class ProgramOperations {
                 let schoolQueryObject = this.getQueryObject(req.query);
 
                 let filteredSchools;
+                
+                let assessorSchoolIds = assessorDetails.map(school => school.schools).flat(1)
 
-                if(!_.isEmpty(schoolQueryObject)){
-                    filteredSchools = await Promise.all(assessorDetails.map(assessor => {
-                        schoolQueryObject._id = { $in: assessor.schools };
-                        return database.models.schools.find(schoolQueryObject, { _id: 1 }).lean().exec();
-                    }))
+                if (!_.isEmpty(schoolQueryObject)) {
+                    schoolQueryObject._id = { $in: assessorSchoolIds };
+                    filteredSchools = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
                 }
 
-                let submissionQueryObject = {};
-                let submissionDataByAssessors = assessorDetails.map((assessor, index) => {
-                    submissionQueryObject.schoolId = { $in: filteredSchools ? filteredSchools[index] : assessor.schools };
-                    return database.models.submissions.find(submissionQueryObject, { status: 1, createdAt: 1, completedDate: 1 }).lean().exec()
-                })
+                let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
+                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: !_.isEmpty(schoolQueryObject) ? filteredSchools : assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
+                let schoolSubmissionMap = _.keyBy(submissionDocuments,'schoolId');
 
 
                 function getAverageTimeTaken(submissionData) {
@@ -162,39 +160,47 @@ module.exports = class ProgramOperations {
                     }
                 }
 
+                function getSubmissionByAssessor(assessorId){
+                    let assessorSchools = assessorSchoolMap[assessorId].schools;
+                    let schoolSubmissions=[];
+                    assessorSchools.forEach(schoolId=>{
+                        schoolSubmissions.push(schoolSubmissionMap[schoolId.toString()])
+                    });
+                    return _.compact(schoolSubmissions);
+                }
+
                 let result = {};
 
-                await Promise.all(submissionDataByAssessors).then(async (submissionData) => {
-                    let assessorsReports = [];
-                    assessorDetails.forEach(async (assessor, index) => {
-                        let schoolData = _.countBy(submissionData[index], 'status')
-                        let schoolAssigned = submissionData[index].length;
-                        let assessorResult = {
-                            name: assessor.name || "",
-                            schoolsAssigned: schoolAssigned || 0,
-                            schoolsCompleted: schoolData.completed || 0,
-                            schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || 0 : 0,
-                            averageTimeTaken: getAverageTimeTaken(submissionData[index])
-                        }
-                        assessorsReports.push(assessorResult)
-                        if (req.query.csv && req.query.csv == "true") {
-                            input.push(assessorResult)
-
-                            if (input.readableBuffer && input.readableBuffer.length) {
-                                while (input.readableBuffer.length > 20000) {
-                                    await this.sleep(2000)
-                                }
-                            }
-
-                        }
-                    })
+                let assessorsReports = [];
+                assessorDetails.forEach(async (assessor, index) => {
+                    let schoolsByAssessor = getSubmissionByAssessor(assessor.userId);
+                    let schoolData = _.countBy(schoolsByAssessor, 'status')
+                    let schoolAssigned = schoolsByAssessor.length;
+                    let assessorResult = {
+                        name: assessor.name || "",
+                        schoolsAssigned: schoolAssigned || 0,
+                        schoolsCompleted: schoolData.completed || 0,
+                        schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || 0 : 0,
+                        averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
+                    }
+                    assessorsReports.push(assessorResult)
                     if (req.query.csv && req.query.csv == "true") {
-                        input.push(null);
-                    } else {
-                        result.assessorsReport = assessorsReports;
-                        return resolve({ result: _.merge(result, { totalCount: totalCount }) })
+                        input.push(assessorResult)
+
+                        if (input.readableBuffer && input.readableBuffer.length) {
+                            while (input.readableBuffer.length > 20000) {
+                                await this.sleep(2000)
+                            }
+                        }
+
                     }
                 })
+                if (req.query.csv && req.query.csv == "true") {
+                    input.push(null);
+                } else {
+                    result.assessorsReport = assessorsReports;
+                    return resolve({ result: _.merge(result, { totalCount: totalCount }) })
+                }
 
             } catch (error) {
                 return reject({
@@ -222,7 +228,7 @@ module.exports = class ProgramOperations {
                 let programExternalId = req.params._id;
 
                 let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (isCSV && isCSV=="false"));
+                let schoolDocuments = await this.getSchools(req, (isCSV && isCSV == "false"));
 
                 let schoolObjects = schoolDocuments.result;
                 let totalCount = schoolDocuments.totalCount;
@@ -233,9 +239,9 @@ module.exports = class ProgramOperations {
                         message: 'No schools found for given program id.'
                     })
                 }
-                
+
                 let submissionQueryObject = {};
-                let schoolObjectIds = schoolObjects.map(school=> school.id)
+                let schoolObjectIds = schoolObjects.map(school => school.id)
                 submissionQueryObject.schoolId = { $in: schoolObjectIds };
                 submissionQueryObject.programExternalId = programExternalId;
 
@@ -252,11 +258,11 @@ module.exports = class ProgramOperations {
                             fileNameWithPath: fileStream.fileNameWithPath()
                         });
                     }());
-                } 
-                
-                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1,schoolExternalId:1 }).lean();
-                
-                submissionDocuments = _.keyBy(submissionDocuments,'schoolExternalId')
+                }
+
+                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, schoolExternalId: 1 }).lean();
+
+                submissionDocuments = _.keyBy(submissionDocuments, 'schoolExternalId')
 
                 let result = {};
 
@@ -327,7 +333,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let schoolObjects = await this.getSchools(req,false);
+                let schoolObjects = await this.getSchools(req, false);
 
                 if (!schoolObjects.result.length) {
                     return resolve({
@@ -338,7 +344,7 @@ module.exports = class ProgramOperations {
 
                 let schoolDocuments = schoolObjects.result;
 
-                let schoolIds = schoolDocuments.map(school=> school.id);
+                let schoolIds = schoolDocuments.map(school => school.id);
 
                 let result = {};
 
@@ -571,7 +577,7 @@ module.exports = class ProgramOperations {
     }
 
     //sub function to get schools based on program and current user role
-    async getSchools(req, pagination=false) {
+    async getSchools(req, pagination = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -624,26 +630,26 @@ module.exports = class ProgramOperations {
                 let schoolQueryObject = {};
                 schoolQueryObject._id = { $in: schoolObjectIds };
 
-                _.merge(schoolQueryObject,this.getQueryObject(req.query))
+                _.merge(schoolQueryObject, this.getQueryObject(req.query))
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
-                if(pagination==true){
-                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name:1, externalId:1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
-                }else{
-                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name:1, externalId:1 }).lean().exec();
+                if (pagination == true) {
+                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
+                } else {
+                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).lean().exec();
                 }
 
-                [filteredSchoolDocument,totalCount] = await Promise.all([filteredSchoolDocument,totalCount])
+                [filteredSchoolDocument, totalCount] = await Promise.all([filteredSchoolDocument, totalCount])
 
-                let schoolDocumentFilteredObject = filteredSchoolDocument.map(school =>{
-                     return {
-                         id:school._id,
-                         name:school.name,
-                         externalId:school.externalId
-                        }
-                    });
+                let schoolDocumentFilteredObject = filteredSchoolDocument.map(school => {
+                    return {
+                        id: school._id,
+                        name: school.name,
+                        externalId: school.externalId
+                    }
+                });
 
-                return resolve({result: schoolDocumentFilteredObject,totalCount: totalCount});
+                return resolve({ result: schoolDocumentFilteredObject, totalCount: totalCount });
 
             } catch (error) {
                 return reject({
