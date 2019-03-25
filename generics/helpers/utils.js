@@ -54,6 +54,29 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+function getUserRole(userDetails, caseSensitive = false) {
+  if (userDetails && userDetails.allRoles.length) {
+    _.pull(userDetails.allRoles, 'PUBLIC');
+    let role = userDetails.allRoles[0];
+    if (caseSensitive == true) {
+      return mapUserRole(role)
+    }
+    return userDetails.allRoles[0];
+  } else {
+    return
+  }
+}
+
+function mapUserRole(role) {
+  let rolesObject = {
+    ASSESSOR: "assessors",
+    LEAD_ASSESSOR: "leadAssessors",
+    PROJECT_MANAGER: "projectManagers",
+    PROGRAM_MANAGER: "programManagers"
+  }
+  return rolesObject[role];
+}
+
 function getAllQuestionId(criteria) {
   let questionIds = [];
   criteria.forEach(eachCriteria => {
@@ -68,11 +91,12 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
-
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
+  getUserRole: getUserRole,
+  mapUserRole: mapUserRole,
   getAllQuestionId: getAllQuestionId
 };
