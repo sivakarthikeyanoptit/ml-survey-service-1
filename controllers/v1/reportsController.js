@@ -1047,6 +1047,7 @@ module.exports = class Reports {
             else {
              Object.values(singleSchoolSubmission.answers).forEach(
                 singleAnswer => {
+                  if (criteriaScoreObject[singleAnswer.criteriaId]) {
                     let singleAnswerRecord = {
                       "Criteria Name":
                         criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
@@ -1158,9 +1159,7 @@ module.exports = class Reports {
                                 let multiSelectResponse = {};
                                 let multiSelectResponseArray = [];
 
-                                if (
-                                  eachInstanceChildQuestion.responseType == "radio"
-                                ) {
+                                if (eachInstanceChildQuestion.responseType == "radio") {
 
                                   questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                     option => {
@@ -1169,10 +1168,8 @@ module.exports = class Reports {
                                   );
                                   eachInstanceChildRecord["Answer"] =
                                     radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
-                                } else if (
-                                  eachInstanceChildQuestion.responseType ==
-                                  "multiselect"
-                                ) {
+                                } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                                  
                                   questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                     option => {
                                       multiSelectResponse[option.value] =
@@ -1180,29 +1177,30 @@ module.exports = class Reports {
                                     }
                                   );
 
-                                  if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
+                                  if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
+                                    eachInstanceChildQuestion.value.forEach(value => {
+                                      multiSelectResponseArray.push(
+                                        multiSelectResponse[value]
+                                      );
+                                    });
+                                    eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                  } else {
+                                    eachInstanceChildRecord["Answer"] = "No value given";
+                                  }
 
-                                    if (eachInstanceChildQuestion.value) {
-                                      eachInstanceChildQuestion.value.forEach(value => {
-                                        multiSelectResponseArray.push(
-                                          multiSelectResponse[value]
-                                        );
-                                      });
-                                    }
-
-                                  eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
                                 }
+
+                                input.push(eachInstanceChildRecord);
+                                
                               }
 
-                              input.push(eachInstanceChildRecord);
-                              }
                             );
                           }
                         }
                       }
                     }
                     input.push(singleAnswerRecord);
-                  
+                  }
                 }
               );
             }
