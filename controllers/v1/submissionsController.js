@@ -1629,31 +1629,31 @@ module.exports = class Submission extends Abstract {
   }
 
   // Commented out the rating flow
-  // extractCriteriaQuestionsOfSubmission(submissionDocument, requestingUserRoles) {
+  extractCriteriaQuestionsOfSubmission(submissionDocument, requestingUserRoles) {
 
-  //   let result = {}
-  //   let criteriaResponses = {}
-  //   submissionDocument.criterias.forEach(criteria => {
-  //     if (criteria.criteriaType === 'manual') {
-  //       criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
-  //       criteriaResponses[criteria._id].questions = []
-  //     }
-  //   })
+    let result = {}
+    let criteriaResponses = {}
+    submissionDocument.criterias.forEach(criteria => {
+      if (criteria.criteriaType === 'manual') {
+        criteriaResponses[criteria._id] = _.pick(criteria, ['_id', 'name', 'externalId', 'description', 'score', 'rubric', 'remarks'])
+        criteriaResponses[criteria._id].questions = []
+      }
+    })
 
-  //   if(submissionDocument.answers) {
-  //     Object.entries(submissionDocument.answers).forEach(answer => {
-  //       if(criteriaResponses[answer[1].criteriaId] != undefined) {
-  //         criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
-  //       }
-  //     });
-  //   }
+    if(submissionDocument.answers) {
+      Object.entries(submissionDocument.answers).forEach(answer => {
+        if(criteriaResponses[answer[1].criteriaId] != undefined) {
+          criteriaResponses[answer[1].criteriaId].questions.push(answer[1])
+        }
+      });
+    }
 
-  //   result.isEditable = (_.includes(requestingUserRoles,"ASSESSOR")) ? false : true
-  //   result.criterias = _.values(criteriaResponses)
+    result.isEditable = (_.includes(requestingUserRoles,"ASSESSOR")) ? false : true
+    result.criterias = _.values(criteriaResponses)
 
-  //   return result;
+    return result;
 
-  // }
+  }
 
   canEnableRatingQuestionsOfSubmission(submissionDocument) {
 
