@@ -91,7 +91,7 @@ module.exports = class ProgramOperations {
                 let programExternalId = req.params._id;
 
                 let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    _id: 1,
+                    _id: 1,name:1
                 }).lean();
 
                 if (!programDocument) {
@@ -198,8 +198,8 @@ module.exports = class ProgramOperations {
                 if (req.query.csv && req.query.csv == "true") {
                     input.push(null);
                 } else {
-                    result.assessorsReport = assessorsReports;
-                    return resolve({ result: _.merge(result, { totalCount: totalCount }) })
+                    result = await this.constructResultObject('programOperationAssessorReports',assessorsReports,totalCount,req.userDetails,programDocument.name);
+                    return resolve({ result: result })
                 }
 
             } catch (error) {
@@ -304,19 +304,55 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    return resolve({ result: _.merge(result, { totalCount: totalCount }) })
+                    let program = await database.models.programs.findOne({externalId:programExternalId},{name:1})
+                    result = await this.constructResultObject('programOperationSchoolReports',result.schoolsReport,totalCount,req.userDetails,program.name)
+                    return resolve({ result: result })
                 }
-
+                
             } catch (error) {
-
+                
                 return reject({
                     status: error.status || 500,
                     message: error.message || "Oops! Something went wrong!",
                     errorObject: error
                 });
-
+                
             }
         })
+    }
+    
+    constructResultObject(graphName,value,totalCount,userDetails,programName){
+        return new Promise(async (resolve,reject)=>{
+            let summary =  [
+                {
+                    "label": "Name of the Manager",
+                    "value": (userDetails.firstName + " " + userDetails.lastName).trim()
+                },
+                {
+                    "label": "Name of the Program",
+                    "value": programName
+                },
+                {
+                    "label": "Date of report generation",
+                    "value": moment().format('DD-MM-YYYY')
+                }
+            ]
+            let reportOptions = await database.models.reportOptions.findOne({name:graphName}).lean();
+            let headers = reportOptions.results.sections[0].tabularData.headers.map(header=> header.name)
+            let data = value.map(singleValue=>{
+                let resultObject = {}
+                headers.forEach(singleHeader=>{
+                    resultObject[singleHeader] = singleValue[singleHeader] ;
+                })
+                return resultObject;
+            })
+            reportOptions.results.sections[0].data = data;
+            reportOptions.results.sections[0].totalCount = totalCount;
+            reportOptions.results.summary = summary;
+            reportOptions.results.title = `Program Operations Report for ${programName}`;
+            return resolve(reportOptions.results);
+        })
+
     }
 
     /**
@@ -411,14 +447,14 @@ module.exports = class ProgramOperations {
 
                 schoolTypes = schoolTypes.map(schoolType => {
                     return {
-                        key: schoolType,
+                        label: schoolType,
                         value: schoolType
                     }
                 })
 
                 administrationTypes = administrationTypes.map(administrationType => {
                     return {
-                        key: administrationType,
+                        label: administrationType,
                         value: administrationType
                     }
                 })
@@ -506,6 +542,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
+                        url:`${gen.utils.getHostName(process.env.NODE_ENV)}/assessment/api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }

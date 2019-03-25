@@ -91,6 +91,24 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function getHostName(env) {
+  let hostName;
+  switch (env) {
+    case 'production':
+    hostName = 'https://community.shikshalokam.org'
+    break;
+    case 'staging':
+    hostName = 'https://staging.shikshalokam.org'
+    break;
+    case 'development':
+    hostName = 'https://dev.shikshalokam.org'
+      break;
+    default:
+      break;
+  }
+  return hostName;
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
@@ -98,5 +116,6 @@ module.exports = {
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   mapUserRole: mapUserRole,
-  getAllQuestionId: getAllQuestionId
+  getAllQuestionId: getAllQuestionId,
+  getHostName: getHostName
 };
