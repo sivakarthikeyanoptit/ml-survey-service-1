@@ -1118,7 +1118,6 @@ module.exports = class Reports {
 
                       } else {
                         singleAnswerRecord["Answer"] = "Instance Question";
-                        input.push(singleAnswerRecord)
 
                         if (singleAnswer.value.length) {
                           
@@ -1924,7 +1923,6 @@ module.exports = class Reports {
                             } else {
 
                               singleAnswerRecord.Answer = "Instance Question";
-                              input.push(singleAnswerRecord)
 
                               if (singleAnswer.value && singleAnswer.value.length) {
                                 for (
