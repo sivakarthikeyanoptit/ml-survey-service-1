@@ -557,14 +557,16 @@ module.exports = class Reports {
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
           { _id: 1 }
-        )
+        ).lean()
 
         let questionIdObject = {}
-        const questionDocument = await database.models.questions.find({}, { externalId: 1 })
+        const questionDocument = await database.models.questions.find({}, { externalId: 1,options:1,question:1 }).lean()
 
         questionDocument.forEach(eachQuestionId => {
           questionIdObject[eachQuestionId._id] = {
-            questionExternalId: eachQuestionId.externalId
+            questionExternalId: eachQuestionId.externalId,
+            questionOptions: eachQuestionId.options,
+            questionName:eachQuestionId.question
           }
         })
 
@@ -618,7 +620,7 @@ module.exports = class Reports {
                 [pathToSubmissionSubmittedBy]: 1,
                 [pathToSubmissionisValid]: 1
               }
-            )
+            ).lean()
 
 
             await Promise.all(submissionDocuments.map(async (submission) => {
@@ -632,28 +634,27 @@ module.exports = class Reports {
               });
 
               submission.evidences[evidenceIdFromRequestParam].submissions.forEach(evidenceSubmission => {
-
-                if (assessors[evidenceSubmission.submittedBy.toString()] && evidenceSubmission.isValid === true) {
-
+                  
+                let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
+                
+                if ((evidenceSubmission.isValid === true)){
                   Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
-
-
-                    if (singleAnswer.payload) {
-
-                      let singleAnswerRecord = {
+                      if(singleAnswer.value !== "NA"){
+                        let singleAnswerRecord = {
                         "School Name": submission.schoolInformation.name,
                         "School Id": submission.schoolInformation.externalId,
-                        "Question": singleAnswer.payload.question[0],
+                        "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                         "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                        "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                        "Assessor Id": asssessorId,
                         "Remarks": singleAnswer.remarks || "",
                         "Start Time": this.gmtToIst(singleAnswer.startTime),
                         "End Time": this.gmtToIst(singleAnswer.endTime),
                         "Files": "",
-                      }
+                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                        }
 
-                      if (singleAnswer.fileName.length > 0) {
+                        if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
                         singleAnswer.fileName.forEach(file => {
                           singleAnswerRecord.Files +=
                             imageBaseUrl + file.sourcePath + ",";
@@ -662,51 +663,87 @@ module.exports = class Reports {
                           /,\s*$/,
                           ""
                         );
-                      }
+                        }
 
+                        if (!singleAnswer.notApplicable) {
 
-                      if (!singleAnswer.notApplicable) {
+                          if (singleAnswer.responseType != "matrix") {
 
-                        if (singleAnswer.responseType != "matrix") {
+                            let radioResponse = {};
+                            let multiSelectResponse = {};
+                            let multiSelectResponseArray = [];
 
-                          singleAnswerRecord.Answer = singleAnswer.payload[
-                            "labels"
-                          ].toString();
+                            if (
+                              singleAnswer.responseType == "radio"
+                            ) {
+                              questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                option => {
 
+                                  radioResponse[option.value] = option.label;
+                                }
+                              );
+                              singleAnswerRecord.Answer =
+                              radioResponse[singleAnswer.value];
+                          }
+                            else if (singleAnswer.responseType == "multiselect") {
+
+                              questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                option => {
+                                  multiSelectResponse[option.value] =
+                                    option.label;
+                                }
+                              );
+
+                              if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                                if (singleAnswer.value) {
+                                singleAnswer.value.forEach(value => {
+                                  multiSelectResponseArray.push(
+                                    multiSelectResponse[value]
+                                  );
+                                });
+                              }
+                            }
+                              singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                          } else {
+                              singleAnswerRecord.Answer = singleAnswer.value;
+                          }
+                            input.push(singleAnswerRecord)
                         } else {
 
                           singleAnswerRecord.Answer = "Instance Question";
+                          input.push(singleAnswerRecord)
 
-                          if (singleAnswer.payload.labels[0]) {
+                          if (singleAnswer.value.length) {
                             for (
                               let instance = 0;
-                              instance < singleAnswer.payload.labels[0].length;
+                              instance < singleAnswer.value.length;
                               instance++
                             ) {
 
-                              singleAnswer.payload.labels[0][instance].forEach(
+                              Object.values(singleAnswer.value[instance]).forEach(
                                 eachInstanceChildQuestion => {
                                   let eachInstanceChildRecord = {
                                     "School Name": submission.schoolInformation.name,
                                     "School Id": submission.schoolInformation.externalId,
-                                    "Question": eachInstanceChildQuestion.question[0],
-                                    "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
+                                    "Question": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
+                                    "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
+                                    "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                     "Answer": "",
-                                    "Assessor Id": assessors[evidenceSubmission.submittedBy.toString()].externalId,
+                                    "Assessor Id": asssessorId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
                                     "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
                                     "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
-                                    "Files": "",
+                                    "Files": ""
                                   };
 
-                                  if (eachInstanceChildQuestion.fileName.length > 0) {
+                                  if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
                                     eachInstanceChildQuestion.fileName.forEach(
                                       file => {
-                                        if (file.split('/').length == 1) {
-                                          file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                        if (file.sourcePath.split('/').length == 1) {
+                                          file.sourcePath = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file.name
                                         }
                                         eachInstanceChildRecord.Files +=
-                                          imageBaseUrl + file + ",";
+                                          imageBaseUrl + file.sourcePath + ",";
                                       }
                                     );
                                     eachInstanceChildRecord.Files = eachInstanceChildRecord.Files.replace(
@@ -722,7 +759,7 @@ module.exports = class Reports {
                                   if (
                                     eachInstanceChildQuestion.responseType == "radio"
                                   ) {
-                                    eachInstanceChildQuestion.options.forEach(
+                                    (questionIdObject[eachInstanceChildQuestion.qid]).questionOptions.forEach(
                                       option => {
                                         radioResponse[option.value] = option.label;
                                       }
@@ -733,20 +770,28 @@ module.exports = class Reports {
                                     eachInstanceChildQuestion.responseType ==
                                     "multiselect"
                                   ) {
-                                    eachInstanceChildQuestion.options.forEach(
+                                    (questionIdObject[eachInstanceChildQuestion.qid]).questionOptions.forEach(
                                       option => {
                                         multiSelectResponse[option.value] =
                                           option.label;
                                       }
                                     );
 
-                                    eachInstanceChildQuestion.value.forEach(value => {
-                                      multiSelectResponseArray.push(
-                                        multiSelectResponse[value]
-                                      );
-                                    });
+                                    if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
-                                    eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                      if (eachInstanceChildQuestion.value) {
+                                        eachInstanceChildQuestion.value.forEach(value => {
+                                          multiSelectResponseArray.push(
+                                            multiSelectResponse[value]
+                                          );
+                                        });
+                                      }
+
+                                      eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
+                                    } else {
+                                      eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value
+                                    }
+
                                   }
                                   else {
                                     eachInstanceChildRecord.Answer = eachInstanceChildQuestion.value;
@@ -758,11 +803,13 @@ module.exports = class Reports {
                             }
                           }
                         }
-                        input.push(singleAnswerRecord)
+
                       }
-                    }
+                      input.push(singleAnswerRecord);
+                    } 
                   })
                 }
+
               });
             }));
           }
@@ -964,8 +1011,8 @@ module.exports = class Reports {
           let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
 
           let allQuestionWithOptions = await database.models.questions.find(
-            { _id: { $in: questionIds }, responseType: { $in: ["radio", "multiselect"] } },
-            { options: 1 }
+            { _id: { $in: questionIds }},
+            { options: 1,question:1 }
           ).lean();
 
           allQuestionWithOptions.forEach(question => {
@@ -975,7 +1022,12 @@ module.exports = class Reports {
                 optionString += option.label + ",";
               });
               optionString = optionString.replace(/,\s*$/, "");
-              questionOptionObject[question._id.toString()] = optionString;
+
+              questionOptionObject[question._id.toString()] = {
+                questionOptions:question.options,
+                questionOptionString:optionString,
+                questionName:question.question
+              };
             }
           });
 
@@ -993,27 +1045,27 @@ module.exports = class Reports {
               });
             }
             else {
-              Object.values(singleSchoolSubmission.answers).forEach(
+             Object.values(singleSchoolSubmission.answers).forEach(
                 singleAnswer => {
-                  if (singleAnswer.payload && criteriaScoreObject[singleAnswer.criteriaId]) {
+                  if (criteriaScoreObject[singleAnswer.criteriaId]) {
                     let singleAnswerRecord = {
                       "Criteria Name":
                         criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
                           ? " Question Deleted Post Submission"
                           : criteriaQuestionDetailsObject[singleAnswer.qid]
                             .criteriaName,
-                      "Question": singleAnswer.payload.question[0],
+                      "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                       "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                       "Options":
                         questionOptionObject[singleAnswer.qid] == undefined
                           ? " No Options"
-                          : questionOptionObject[singleAnswer.qid],
-                      "Score": criteriaScoreObject[singleAnswer.criteriaId].score,
+                          : questionOptionObject[singleAnswer.qid].questionOptionString,
+                      "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                       "Remarks": singleAnswer.remarks || "",
                       "Files": "",
                     };
 
-                    if (singleAnswer.fileName.length > 0) {
+                    if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
                       singleAnswer.fileName.forEach(file => {
                         singleAnswerRecord.Files +=
                           imageBaseUrl + file.sourcePath + ",";
@@ -1026,48 +1078,71 @@ module.exports = class Reports {
 
                     if (!singleAnswer.notApplicable) {
                       if (singleAnswer.responseType != "matrix") {
-                        singleAnswerRecord["Answer"] = singleAnswer.payload[
-                          "labels"
-                        ].toString();
+                        let radioResponse = {};
+                        let multiSelectResponse = {};
+                        let multiSelectResponseArray = [];
+
+                        if (
+                          singleAnswer.responseType == "radio"
+                        ) {
+                          questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                            option => {
+
+                              radioResponse[option.value] = option.label;
+                            }
+                          );
+                          singleAnswerRecord.Answer =
+                            radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                        }
+                        else if (singleAnswer.responseType == "multiselect") {
+
+                          questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                            option => {
+                              multiSelectResponse[option.value] =
+                                option.label;
+                            }
+                          );
+                          if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                            if (singleAnswer.value) {
+                              singleAnswer.value.forEach(value => {
+                                multiSelectResponseArray.push(
+                                  multiSelectResponse[value]
+                              );
+                            });
+                          }
+                        }
+                          singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                        } else {
+                          singleAnswerRecord.Answer = singleAnswer.value
+                        }
+                        input.push(singleAnswerRecord)
+
                       } else {
                         singleAnswerRecord["Answer"] = "Instance Question";
 
-                        if (singleAnswer.payload.labels[0]) {
-                          for (
-                            let instance = 0;
-                            instance < singleAnswer.payload.labels[0].length;
-                            instance++
-                          ) {
-                            singleAnswer.payload.labels[0][instance].forEach(
+                        if (singleAnswer.value.length) {
+                          
+                          for (let instance = 0;instance < singleAnswer.value.length;instance++) {
+
+                            Object.values(singleAnswer.value[instance]).forEach(
                               eachInstanceChildQuestion => {
                                 let eachInstanceChildRecord = {
-                                  "Criteria Name":
-                                    criteriaQuestionDetailsObject[
-                                      eachInstanceChildQuestion._id
-                                    ] == undefined
+                                  "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined
                                       ? " Question Deleted Post Submission"
                                       : criteriaQuestionDetailsObject[
                                         eachInstanceChildQuestion._id
                                       ].criteriaName,
-                                  "Question": eachInstanceChildQuestion.question[0],
+                                  "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                                   "Answer": eachInstanceChildQuestion.value,
-                                  "Options":
-                                    questionOptionObject[
-                                      eachInstanceChildQuestion._id
-                                    ] == undefined
+                                  "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                       ? " No Options"
-                                      : questionOptionObject[
-                                      eachInstanceChildQuestion._id
-                                      ],
-                                  "Score":
-                                    criteriaScoreObject[
-                                      eachInstanceChildQuestion.payload.criteriaId
-                                    ].score,
+                                      : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                  "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
                                   "Remarks": eachInstanceChildQuestion.remarks || "",
                                   "Files": "",
                                 };
 
-                                if (eachInstanceChildQuestion.fileName.length > 0) {
+                                if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
                                   eachInstanceChildQuestion.fileName.forEach(
                                     file => {
                                       eachInstanceChildRecord["Files"] +=
@@ -1084,28 +1159,25 @@ module.exports = class Reports {
                                 let multiSelectResponse = {};
                                 let multiSelectResponseArray = [];
 
-                                if (
-                                  eachInstanceChildQuestion.responseType == "radio"
-                                ) {
-                                  eachInstanceChildQuestion.options.forEach(
+                                if (eachInstanceChildQuestion.responseType == "radio") {
+
+                                  questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                     option => {
                                       radioResponse[option.value] = option.label;
                                     }
                                   );
                                   eachInstanceChildRecord["Answer"] =
-                                    radioResponse[eachInstanceChildQuestion.value];
-                                } else if (
-                                  eachInstanceChildQuestion.responseType ==
-                                  "multiselect"
-                                ) {
-                                  eachInstanceChildQuestion.options.forEach(
+                                    radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                                } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                                  
+                                  questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                     option => {
                                       multiSelectResponse[option.value] =
                                         option.label;
                                     }
                                   );
 
-                                  if(eachInstanceChildQuestion.value != "") {
+                                  if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
                                     eachInstanceChildQuestion.value.forEach(value => {
                                       multiSelectResponseArray.push(
                                         multiSelectResponse[value]
@@ -1119,7 +1191,9 @@ module.exports = class Reports {
                                 }
 
                                 input.push(eachInstanceChildRecord);
+                                
                               }
+
                             );
                           }
                         }
@@ -1658,9 +1732,7 @@ module.exports = class Reports {
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
-
         if (!req.query.fromDate) {
           return resolve({
             status: 404,
@@ -1693,20 +1765,22 @@ module.exports = class Reports {
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
           { _id: 1 }
-        )
+        ).lean();
 
         let questionIdObject = {}
-        const questionDocument = await database.models.questions.find({}, { externalId: 1 })
+        const questionDocument = await database.models.questions.find({}, { externalId: 1, options: 1,question:1 }).lean();
 
         questionDocument.forEach(eachQuestionId => {
           questionIdObject[eachQuestionId._id] = {
-            questionExternalId: eachQuestionId.externalId
+            questionExternalId: eachQuestionId.externalId,
+            questionOptions: eachQuestionId.options,
+            questionName:eachQuestionId.question
           }
         })
 
         let fileName = `EcmReport`;
-        (fromDate) ? fileName += "from date _" + fromDate : "";
-        (toDate) ? fileName += "to date _" + toDate : new Date();
+        (fromDate) ? fileName += moment(fromDate).format('DD-MM-YYYY') : "";
+        (toDate) ? fileName += "-" + moment(toDate).format('DD-MM-YYYY') : moment(fromDate).format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1751,7 +1825,7 @@ module.exports = class Reports {
                 "evidences": 1,
                 status: 1,
               }
-            )
+            ).lean()
 
 
             await Promise.all(submissionDocuments.map(async (submission) => {
@@ -1766,76 +1840,102 @@ module.exports = class Reports {
 
               Object.values(submission.evidences).forEach(singleEvidence => {
                 if (singleEvidence.submissions) {
-                  singleEvidence.submissions.forEach(evidenceSubmission => {
+                  singleEvidence.submissions && singleEvidence.submissions.forEach(evidenceSubmission => {
 
-                    if (!evidenceSubmission.submittedByName) {
-                      evidenceSubmission.submittedByName = ""
-                    }
-                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : evidenceSubmission.submittedByName.replace(' null', '');
-
-                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
+ 
                     if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
-
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
 
+                              let singleAnswerRecord = {
+                                "School Name": submission.schoolInformation.name,
+                                "School Id": submission.schoolInformation.externalId,
+                                "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
+                                "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
+                                "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                                "Assessor Id": asssessorId,
+                                "Remarks": singleAnswer.remarks || "",
+                                "Start Time": this.gmtToIst(singleAnswer.startTime),
+                                "End Time": this.gmtToIst(singleAnswer.endTime),
+                                "Files": "",
+                                "ECM": evidenceSubmission.externalId,
+                                "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                            }
 
-                        if (singleAnswer.payload) {
-
-                          let singleAnswerRecord = {
-                            "School Name": submission.schoolInformation.name,
-                            "School Id": submission.schoolInformation.externalId,
-                            "Question": singleAnswer.payload.question[0],
-                            "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
-                            "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                            "Assessor Id": asssessorId,
-                            "Remarks": singleAnswer.remarks || "",
-                            "Start Time": this.gmtToIst(singleAnswer.startTime),
-                            "End Time": this.gmtToIst(singleAnswer.endTime),
-                            "Files": "",
-                            "ECM": evidenceSubmission.externalId,
-                            "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
-                          }
-
-                          if (singleAnswer.fileName.length > 0) {
-                            singleAnswer.fileName.forEach(file => {
-                              singleAnswerRecord.Files +=
-                                imageBaseUrl + file.sourcePath + ",";
-                            });
-                            singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
-                              /,\s*$/,
-                              ""
-                            );
-                          }
-
+                            if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
+                              singleAnswer.fileName.forEach(file => {
+                                singleAnswerRecord.Files +=
+                                  imageBaseUrl + file.sourcePath + ",";
+                              });
+                              singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                                /,\s*$/,
+                                ""
+                              );
+                            }
 
                           if (!singleAnswer.notApplicable) {
 
                             if (singleAnswer.responseType != "matrix") {
 
-                              singleAnswerRecord.Answer = singleAnswer.payload[
-                                "labels"
-                              ].toString();
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (
+                                singleAnswer.responseType == "radio"
+                              ) {
+                                questionIdObject[singleAnswer.qid] && questionIdObject[singleAnswer.qid].questionOptions && questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                  option => {
+
+                                    radioResponse[option.value] = option.label;
+                                  }
+                                );
+                                singleAnswerRecord.Answer =
+                                  radioResponse[singleAnswer.value];
+                              }
+                              else if (singleAnswer.responseType == "multiselect") {
+
+                                questionIdObject[singleAnswer.qid].questionOptions.forEach(
+                                  option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  }
+                                );
+
+
+                                if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                                  if (singleAnswer.value) {
+                                  singleAnswer.value.forEach(value => {
+                                    multiSelectResponseArray.push(
+                                      multiSelectResponse[value]
+                                    );
+                                  });
+                                }
+                              }
+                                singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                              } else {
+                                singleAnswerRecord.Answer = singleAnswer.value;
+                              }
                               input.push(singleAnswerRecord)
                             } else {
 
                               singleAnswerRecord.Answer = "Instance Question";
-                              input.push(singleAnswerRecord)
 
-                              if (singleAnswer.payload.labels[0]) {
+                              if (singleAnswer.value && singleAnswer.value.length) {
                                 for (
                                   let instance = 0;
-                                  instance < singleAnswer.payload.labels[0].length;
+                                  instance < singleAnswer.value.length;
                                   instance++
                                 ) {
 
-                                  singleAnswer.payload.labels[0][instance].forEach(
+                                  Object.values(singleAnswer.value[instance]).forEach(
                                     eachInstanceChildQuestion => {
                                       let eachInstanceChildRecord = {
                                         "School Name": submission.schoolInformation.name,
                                         "School Id": submission.schoolInformation.externalId,
-                                        "Question": eachInstanceChildQuestion.question[0],
-                                        "Question Id": (questionIdObject[eachInstanceChildQuestion._id]) ? questionIdObject[eachInstanceChildQuestion._id].questionExternalId : "",
+                                        "Question":(questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
+                                        "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": asssessorId,
@@ -1846,14 +1946,14 @@ module.exports = class Reports {
                                         "ECM": evidenceSubmission.externalId
                                       };
 
-                                      if (eachInstanceChildQuestion.fileName.length > 0) {
+                                      if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
                                         eachInstanceChildQuestion.fileName.forEach(
                                           file => {
-                                            if (file.split('/').length == 1) {
-                                              file = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file
+                                            if (file.sourcePath.split('/').length == 1) {
+                                              file.sourcePath = submission._id.toString() + "/" + evidenceSubmission.submittedBy + "/" + file.name
                                             }
                                             eachInstanceChildRecord.Files +=
-                                              imageBaseUrl + file + ",";
+                                              imageBaseUrl + file.sourcePath + ",";
                                           }
                                         );
                                         eachInstanceChildRecord.Files = eachInstanceChildRecord.Files.replace(
@@ -1869,7 +1969,7 @@ module.exports = class Reports {
                                       if (
                                         eachInstanceChildQuestion.responseType == "radio"
                                       ) {
-                                        eachInstanceChildQuestion.options.forEach(
+                                        questionIdObject[eachInstanceChildQuestion.qid] && questionIdObject[eachInstanceChildQuestion.qid].questionOptions && questionIdObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                           option => {
                                             radioResponse[option.value] = option.label;
                                           }
@@ -1880,7 +1980,7 @@ module.exports = class Reports {
                                         eachInstanceChildQuestion.responseType ==
                                         "multiselect"
                                       ) {
-                                        eachInstanceChildQuestion.options.forEach(
+                                        (questionIdObject[eachInstanceChildQuestion.qid]).questionOptions.forEach(
                                           option => {
                                             multiSelectResponse[option.value] =
                                               option.label;
@@ -1889,11 +1989,13 @@ module.exports = class Reports {
 
                                         if (typeof eachInstanceChildQuestion.value == "object" || typeof eachInstanceChildQuestion.value == "array") {
 
-                                          eachInstanceChildQuestion.value.forEach(value => {
-                                            multiSelectResponseArray.push(
-                                              multiSelectResponse[value]
-                                            );
-                                          });
+                                          if (eachInstanceChildQuestion.value) {
+                                            eachInstanceChildQuestion.value.forEach(value => {
+                                              multiSelectResponseArray.push(
+                                                multiSelectResponse[value]
+                                              );
+                                            });
+                                          }
 
                                           eachInstanceChildRecord.Answer = multiSelectResponseArray.toString();
                                         } else {
@@ -1911,9 +2013,7 @@ module.exports = class Reports {
                                 }
                               }
                             }
-
                           }
-                        }
                       })
                     }
                   });
