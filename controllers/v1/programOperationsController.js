@@ -133,7 +133,8 @@ module.exports = class ProgramOperations {
 
                 let filteredSchools;
                 
-                let assessorSchoolIds = assessorDetails.map(school => school.schools).flat(1)
+                let assessorSchoolIds = assessorDetails.map(school => school.schools);
+                assessorSchoolIds = (assessorSchoolIds.length) ? assessorSchoolIds.flat(1) : null
 
                 if (!_.isEmpty(schoolQueryObject)) {
                     schoolQueryObject._id = { $in: assessorSchoolIds };
