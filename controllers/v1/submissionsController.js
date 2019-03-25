@@ -1248,7 +1248,7 @@ module.exports = class Submission extends Abstract {
 
         let result = {}
         result.runUpdateQuery = true
-        let rubricLevels = ["L1", "L2", "L3", "L4"]
+        let rubricLevels = ["L1", "L2", "L3", "L4", "NA"]
 
         if (true) {
           let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {

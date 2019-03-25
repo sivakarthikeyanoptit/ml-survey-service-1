@@ -105,25 +105,30 @@ module.exports = class Insights extends Abstract {
             let themeScore = 0
             let criteriaLevelCount = {}
             for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
+            let criteriaScoreNotAvailable = false
 
             theme.children.forEach(subTheme => {
-              if(subTheme.score) {
-                themeScore += (subTheme.weightage * subTheme.score / 100 )
-              }
-              if(subTheme.criteriaLevelCount) {
-                Object.keys(subTheme.criteriaLevelCount).forEach(level => {
-                  criteriaLevelCount[level] += subTheme.criteriaLevelCount[level]
-                })
+              if(subTheme.score == "NA") {
+                criteriaScoreNotAvailable = true
+              } else {
+                if(subTheme.score) {
+                  themeScore += (subTheme.weightage * subTheme.score / 100 )
+                }
+                if(subTheme.criteriaLevelCount) {
+                  Object.keys(subTheme.criteriaLevelCount).forEach(level => {
+                    criteriaLevelCount[level] += subTheme.criteriaLevelCount[level]
+                  })
+                }
               }
             })
-            theme.score = themeScore.toFixed(2)
+            theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
             theme.criteriaLevelCount = criteriaLevelCount
           } else {
             let criteriaScores = new Array
             let themeScore = 0
             let criteriaLevelCount = {}
             for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
-
+            let criteriaScoreNotAvailable = false
             theme.criteria.forEach(criteria => {
               if(criteriaScore[criteria.criteriaId.toString()]) {
                 criteriaScores.push({
@@ -132,12 +137,16 @@ module.exports = class Insights extends Abstract {
                   score : levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] ? levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] : "NA",
                   weight : criteria.weightage
                 })
-                themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] / 100 )
-                criteriaLevelCount[criteriaScore[criteria.criteriaId.toString()].score] += 1
+                if(criteriaScores[criteriaScores.length - 1].score == "NA") {
+                  criteriaScoreNotAvailable = true
+                } else {
+                  themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] / 100 )
+                  criteriaLevelCount[criteriaScore[criteria.criteriaId.toString()].score] += 1
+                }
               }
             })
             theme.criteria = criteriaScores
-            theme.score = themeScore.toFixed(2)
+            theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
             theme.criteriaLevelCount = criteriaLevelCount
           }
         })
@@ -151,19 +160,24 @@ module.exports = class Insights extends Abstract {
       let score = 0
       let criteriaLevelCount = {}
       for(var k in evaluationFrameworkDocument.levelToScoreMapping) criteriaLevelCount[k]=0;
+      let criteriaScoreNotAvailable = false
 
       evaluationFrameworkDocument.themes.forEach(theme => {
-        if(theme.score) {
-          score += (theme.weightage * theme.score / 100 )
-        }
-        if(theme.criteriaLevelCount) {
-          Object.keys(theme.criteriaLevelCount).forEach(level => {
-            criteriaLevelCount[level] += theme.criteriaLevelCount[level]
-          })
+        if(theme.score == "NA") {
+          criteriaScoreNotAvailable = true
+        } else {
+          if(theme.score) {
+            score += (theme.weightage * theme.score / 100 )
+          }
+          if(theme.criteriaLevelCount) {
+            Object.keys(theme.criteriaLevelCount).forEach(level => {
+              criteriaLevelCount[level] += theme.criteriaLevelCount[level]
+            })
+          }
         }
       })
-
-      submissionDocument.score = score.toFixed(2)
+      
+      submissionDocument.score = (!criteriaScoreNotAvailable) ? score.toFixed(2) : "NA"
       submissionDocument.criteriaLevelCount = criteriaLevelCount
 
       submissionDocument.submissionStartedAt = submissionDocument.createdAt
