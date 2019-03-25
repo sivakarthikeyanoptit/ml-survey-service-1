@@ -393,7 +393,7 @@ module.exports = class ProgramOperations {
                 result.createdDate = moment().format('DD-MM-YYYY');
                 result.schoolsInporgress = schoolDocumentByStatus.inprogress || 0;
                 result.schoolsCompleted = schoolDocumentByStatus.completed || 0;
-                result.schoolsNotYetStarted = schoolDocuments.length - (schoolDocumentByStatus.blocked + schoolDocumentByStatus.started + schoolDocumentByStatus.completed + schoolDocumentByStatus.inprogress);
+                // result.schoolsNotYetStarted = schoolDocuments.length - (schoolDocumentByStatus.blocked + schoolDocumentByStatus.started + schoolDocumentByStatus.completed + schoolDocumentByStatus.inprogress);
 
                 return resolve({
                     message: 'School details fetched successfully.',
@@ -542,7 +542,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url:`${gen.utils.getHostName(process.env.NODE_ENV)}/assessment/api/v1/programOperations/searchSchool/`,
+                        url:`https://${process.env.SHIKSHALOKAM_BASE_HOST}/assessment/api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -628,7 +628,7 @@ module.exports = class ProgramOperations {
 
                 let queryObject = [
                     { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1, updatedAt: 1 } },
-                    { $match: { userId: req.userDetails.id } },
+                    { $match: { userId: req.userDetails.id, programId: programDocument._id} },
                     {
                         $graphLookup: {
                             from: 'schoolAssessors',
@@ -640,7 +640,7 @@ module.exports = class ProgramOperations {
                         }
                     },
                     {
-                        $project: { schools: 1, updatedAt: 1, "children.schools": 1, "children.updatedAt": 1 }
+                        $project: { schools: 1, "children.schools": 1 }
                     }
                 ];
 
@@ -711,7 +711,7 @@ module.exports = class ProgramOperations {
 
         filteredQueries.forEach(query => {
             if (query == "area") {
-                queryObject["$or"] = [{ addressLine1: new RegExp(requestQuery.area, 'i') }, { addressLine2: new RegExp(requestQuery.area, 'i') }];
+                queryObject["$or"] = [{ zoneId: new RegExp(requestQuery.area, 'i') }, { districtName: new RegExp(requestQuery.area, 'i') }];
             } else if (query == "schoolName") {
                 queryObject["name"] = new RegExp(requestQuery.schoolName, 'i')
             } else {
