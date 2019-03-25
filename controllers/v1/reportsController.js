@@ -798,16 +798,16 @@ module.exports = class Reports {
           ["schoolInformation.externalId"]: req.params._id
         };
 
-        let submissionDocument = database.models.submissions.find(
+        let submissionDocument = database.models.submissions.findOne(
           schoolId,
           {
             criterias: 1
           }
-        ).exec();
+        ).lean().exec();
 
         let evaluationFrameworksDocuments = database.models[
           "evaluationFrameworks"
-        ].find({}, { themes: 1 }).exec();
+        ].find({}, { themes: 1 }).lean().exec();
 
         const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
         let fileStream = new FileStream(fileName);
@@ -825,16 +825,16 @@ module.exports = class Reports {
           let submissionDocument = submissionAndEvaluationFrameworksDocuments[0];
           let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
 
-          let evaluationNameObject = this.evaluationFrameworkDocument(evaluationFrameworksDocuments)
+          let evaluationNameObject = gen.utils.evaluationFrameworkDocument(evaluationFrameworksDocuments)
 
-          if (!submissionDocument && !submissionDocument[0].criterias.length) {
+          if (!submissionDocument ) {
             return resolve({
               status: 404,
               message: "No submissions found for given params."
             });
           }
           else {
-            submissionDocument[0].criterias.forEach(submissionCriterias => {
+            submissionDocument.criterias && submissionDocument.criterias.forEach(submissionCriterias => {
               let levels = Object.values(submissionCriterias.rubric.levels);
 
               if (submissionCriterias._id) {
@@ -2576,50 +2576,4 @@ module.exports = class Reports {
     return schoolFieldArray;
   }
 
-  evaluationFrameworkDocument(evaluationFrameworksDocuments) {
-    let evaluationNameObject = {};
-
-    evaluationFrameworksDocuments.forEach(singleDocument => {
-      singleDocument.themes.forEach(singleTheme => {
-
-        if (singleTheme.children) {
-          evaluationNameObject = this.generatePathToCriteria(singleTheme.children, singleTheme.name)
-        }
-
-        else {
-          singleTheme.criteria.forEach(eachCriteria => {
-            evaluationNameObject[eachCriteria._id.toString()] = {
-              pathToCriteria: singleTheme.name
-            }
-          })
-        }
-      })
-    })
-    return evaluationNameObject
-  }
-
-  generatePathToCriteria(singleTheme, themeName) {
-
-    if (!this.evaluationNameObject) {
-      this.evaluationNameObject = {}
-    }
-
-    for (let counter = 0; counter < singleTheme.length; counter++) {
-
-      if (singleTheme[counter].children) {
-        this.generatePathToCriteria(singleTheme[counter].children, themeName + "->" + singleTheme[counter].name)
-      }
-
-      else {
-        singleTheme[counter].criteria.forEach(singleCriteria => {
-          this.evaluationNameObject[singleCriteria.toString()] = {
-            pathToCriteria: themeName + "->" + singleTheme[counter].name
-          }
-        })
-
-      }
-    }
-
-    return this.evaluationNameObject
-  }
 };

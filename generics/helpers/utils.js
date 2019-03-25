@@ -68,11 +68,58 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function evaluationFrameworkDocument(evaluationFrameworksDocuments) {
+  let evaluationNameObject = {};
+
+  evaluationFrameworksDocuments.forEach(singleDocument => {
+    singleDocument.themes.forEach(singleTheme => {
+
+      if (singleTheme.children) {
+        evaluationNameObject = generatePathToCriteria(singleTheme.children, singleTheme.name)
+      }
+
+      else {
+        singleTheme.criteria.forEach(eachCriteria => {
+          evaluationNameObject[eachCriteria._id.toString()] = {
+            pathToCriteria: singleTheme.name
+          }
+        })
+      }
+    })
+  })
+  return evaluationNameObject
+}
+
+function generatePathToCriteria(singleTheme, themeName) {
+
+  if (!this.evaluationNameObject) {
+    this.evaluationNameObject = {}
+  }
+
+  for (let counter = 0; counter < singleTheme.length; counter++) {
+
+    if (singleTheme[counter].children) {
+      generatePathToCriteria(singleTheme[counter].children, themeName + "->" + singleTheme[counter].name)
+    }
+
+    else {
+      singleTheme[counter].criteria.forEach(singleCriteria => {
+        this.evaluationNameObject[singleCriteria.toString()] = {
+          pathToCriteria: themeName + "->" + singleTheme[counter].name
+        }
+      })
+
+    }
+  }
+
+  return this.evaluationNameObject
+}
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
-  getAllQuestionId: getAllQuestionId
+  getAllQuestionId: getAllQuestionId,
+  evaluationFrameworkDocument:evaluationFrameworkDocument
 };
