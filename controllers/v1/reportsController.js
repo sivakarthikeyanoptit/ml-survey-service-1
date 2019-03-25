@@ -1011,7 +1011,7 @@ module.exports = class Reports {
           let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
 
           let allQuestionWithOptions = await database.models.questions.find(
-            { _id: { $in: questionIds }, responseType: { $in: ["radio", "multiselect"] } },
+            { _id: { $in: questionIds }},
             { options: 1,question:1 }
           ).lean();
 
@@ -1091,7 +1091,7 @@ module.exports = class Reports {
                             }
                           );
                           singleAnswerRecord.Answer =
-                            radioResponse[singleAnswer.value];
+                            radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
                         }
                         else if (singleAnswer.responseType == "multiselect") {
 
@@ -1112,7 +1112,7 @@ module.exports = class Reports {
                         }
                           singleAnswerRecord.Answer = multiSelectResponseArray.toString();
                         } else {
-                          singleAnswerRecord.Answer = singleAnswer.value;
+                          singleAnswerRecord.Answer = singleAnswer.value
                         }
                         input.push(singleAnswerRecord)
 
@@ -1169,7 +1169,7 @@ module.exports = class Reports {
                                     }
                                   );
                                   eachInstanceChildRecord["Answer"] =
-                                    radioResponse[eachInstanceChildQuestion.value];
+                                    radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
                                 } else if (
                                   eachInstanceChildQuestion.responseType ==
                                   "multiselect"
