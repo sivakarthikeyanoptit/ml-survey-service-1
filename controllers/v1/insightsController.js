@@ -60,8 +60,6 @@ module.exports = class Insights extends Abstract {
 
     try {
 
-      let message = "Insights generated successfully."
-      
       if(!submissionId) throw "Submission ID is mandatory."
 
       let submissionsQueryObject = {
@@ -77,6 +75,7 @@ module.exports = class Insights extends Abstract {
         "criterias._id": 1,
         schoolExternalId: 1,
         programExternalId: 1,
+        createdAt: 1,
         completedDate: 1,
         ratingCompletedAt : 1,
         evaluationFrameworkId: 1,
@@ -86,9 +85,7 @@ module.exports = class Insights extends Abstract {
       let submissionDocument = await database.models.submissions.findOne(
         submissionsQueryObject,
         submissionsProjectionObject
-      );
-
-      // console.log(submissionDocument)
+      ).lean();
       
       if(!submissionDocument._id) throw "No submission found"
 
@@ -97,31 +94,36 @@ module.exports = class Insights extends Abstract {
         {themes : 1, scoringSystem : 1, levelToScoreMapping : 1}
       );
 
-      // console.log(evaluationFrameworkDocument)
-
       if(!evaluationFrameworkDocument._id) throw "No evaluation framework document found."
       
       let criteriaScore = _.keyBy(submissionDocument.criterias, '_id')
 
-      // console.log(criteriaScore)
-      submissionDocument.submissionId = submissionDocument._id
-      _.assignIn(submissionDocument, evaluationFrameworkDocument)
-      
-
-      let scoreThemes =  function (themes,levelToScoreMapping,scoringSystem,criteriaScore) {
+      let scoreThemes =  function (themes,levelToScoreMapping,criteriaScore) {
         themes.forEach(theme => {
           if (theme.children) {
-            scoreThemes(theme.children,levelToScoreMapping,scoringSystem,criteriaScore)
+            scoreThemes(theme.children,levelToScoreMapping,criteriaScore)
             let themeScore = 0
+            let criteriaLevelCount = {}
+            for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
+
             theme.children.forEach(subTheme => {
               if(subTheme.score) {
                 themeScore += (subTheme.weightage * subTheme.score / 100 )
               }
+              if(subTheme.criteriaLevelCount) {
+                Object.keys(subTheme.criteriaLevelCount).forEach(level => {
+                  criteriaLevelCount[level] += subTheme.criteriaLevelCount[level]
+                })
+              }
             })
-            theme.score = themeScore
+            theme.score = themeScore.toFixed(2)
+            theme.criteriaLevelCount = criteriaLevelCount
           } else {
             let criteriaScores = new Array
             let themeScore = 0
+            let criteriaLevelCount = {}
+            for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
+
             theme.criteria.forEach(criteria => {
               if(criteriaScore[criteria.criteriaId.toString()]) {
                 criteriaScores.push({
@@ -131,29 +133,55 @@ module.exports = class Insights extends Abstract {
                   weight : criteria.weightage
                 })
                 themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] / 100 )
+                criteriaLevelCount[criteriaScore[criteria.criteriaId.toString()].score] += 1
               }
             })
             theme.criteria = criteriaScores
-            theme.score = themeScore
+            theme.score = themeScore.toFixed(2)
+            theme.criteriaLevelCount = criteriaLevelCount
           }
         })
       }
 
-      scoreThemes(evaluationFrameworkDocument.themes,evaluationFrameworkDocument.levelToScoreMapping,evaluationFrameworkDocument.scoringSystem,criteriaScore)
+      scoreThemes(evaluationFrameworkDocument.themes,evaluationFrameworkDocument.levelToScoreMapping,criteriaScore)
 
-      console.log(evaluationFrameworkDocument.themes)
-      // let insightsDocument = await database.models.insights.findOneAndUpdate(
-      //   {submissionId : submissionDocument._id},
-      //   submissionDocument,
-      //   {
-      //     upsert: true,
-      //     new: true,
-      //     setDefaultsOnInsert: true,
-      //     returnNewDocument: true
-      //   }
-      // );
+      submissionDocument.submissionId = submissionDocument._id
+      _.merge(submissionDocument, evaluationFrameworkDocument)
 
-      // console.log(insightsDocument)
+      let score = 0
+      let criteriaLevelCount = {}
+      for(var k in evaluationFrameworkDocument.levelToScoreMapping) criteriaLevelCount[k]=0;
+
+      evaluationFrameworkDocument.themes.forEach(theme => {
+        if(theme.score) {
+          score += (theme.weightage * theme.score / 100 )
+        }
+        if(theme.criteriaLevelCount) {
+          Object.keys(theme.criteriaLevelCount).forEach(level => {
+            criteriaLevelCount[level] += theme.criteriaLevelCount[level]
+          })
+        }
+      })
+
+      submissionDocument.score = score.toFixed(2)
+      submissionDocument.criteriaLevelCount = criteriaLevelCount
+
+      submissionDocument.submissionStartedAt = submissionDocument.createdAt
+      submissionDocument.submissionCompletedAt = submissionDocument.completedDate
+
+      delete submissionDocument.createdAt
+      delete submissionDocument._id
+      delete submissionDocument.updatedAt
+
+      let insightsDocument = await database.models.insights.findOneAndUpdate(
+        {submissionId : submissionDocument.submissionId},
+        _.pick(submissionDocument,Object.keys(database.models.insights.schema.paths)),
+        {
+          upsert: true,
+          setDefaultsOnInsert: true,
+          returnNewDocument: true
+        }
+      );
 
       return {
         message : "Insights generated successfully."

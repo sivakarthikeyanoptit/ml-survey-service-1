@@ -10,9 +10,11 @@ module.exports = {
     evaluationFrameworkExternalId: String,
     submissionStartedAt: Date,
     submissionCompletedAt: Date,
+    ratingCompletedAt : Date,
     score: String,
     themes: Array,
     scoringSystem : String,
-    levelToScoreMapping : Object
+    levelToScoreMapping : Object,
+    criteriaLevelCount : Object
   }
 };
