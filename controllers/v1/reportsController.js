@@ -1914,14 +1914,6 @@ module.exports = class Reports {
 
                                 if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
                                   if (singleAnswer.value) {
-                                  // console.log("-----------------Begin-----------------")
-                                  // console.log(typeof(singleAnswer.value))
-                                  // console.log(singleAnswer.value)
-                                  // console.log(evidenceSubmission.externalId)
-                                  // console.log(submission.schoolInformation.externalId)
-                                  // console.log(singleAnswer.value.length)
-                                  // console.log(questionIdObject[singleAnswer.qid].questionExternalId)
-                                  // console.log("---------------End--------------")
                                   singleAnswer.value.forEach(value => {
                                     multiSelectResponseArray.push(
                                       multiSelectResponse[value]
