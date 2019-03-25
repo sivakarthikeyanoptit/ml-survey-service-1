@@ -1735,9 +1735,7 @@ module.exports = class Reports {
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
-
         if (!req.query.fromDate) {
           return resolve({
             status: 404,
@@ -1849,7 +1847,6 @@ module.exports = class Reports {
 
                     let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
  
-                    // if ((assessors[evidenceSubmission.submittedBy.toString()]) && (evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
                     if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
@@ -1869,7 +1866,6 @@ module.exports = class Reports {
                                 "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
                             }
 
-
                             if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
                               singleAnswer.fileName.forEach(file => {
                                 singleAnswerRecord.Files +=
@@ -1880,7 +1876,6 @@ module.exports = class Reports {
                                 ""
                               );
                             }
-
 
                           if (!singleAnswer.notApplicable) {
 
@@ -2022,11 +2017,7 @@ module.exports = class Reports {
                                 }
                               }
                             }
-
                           }
-                          
-                         
-                       
                       })
                     }
                   });
