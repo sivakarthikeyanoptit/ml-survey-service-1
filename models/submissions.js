@@ -16,7 +16,6 @@ module.exports = {
     schoolProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,
-    ratings: Object,
     feedback: Array,
     generalQuestions: Object,
     parentInterviewResponsesStatus: Array,
@@ -24,6 +23,7 @@ module.exports = {
     completedDate: Date,
     evaluationFrameworkId: "ObjectId",
     evaluationFrameworkExternalId: String,
-    csvUpdatedHistory: Array
+    csvUpdatedHistory: Array,
+    ratingCompletedAt: Date
   }
 };

@@ -47,8 +47,12 @@ function getCriteriaIds(themes) {
     } else {
       criteriaIdArray = theme.criteria;
     }
-    criteriaIdArray.forEach(eachCriteriaId => {
-      allCriteriaIds.push(eachCriteriaId);
+    criteriaIdArray.forEach(eachCriteria => {
+      if(eachCriteria.criteriaId) {
+        allCriteriaIds.push(eachCriteria.criteriaId);
+      } else {
+        allCriteriaIds.push(eachCriteria);
+      }
     })
   })
   return allCriteriaIds;
