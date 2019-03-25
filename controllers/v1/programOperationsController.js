@@ -542,7 +542,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url:`https://${process.env.SHIKSHALOKAM_BASE_HOST}/assessment/api/v1/programOperations/searchSchool/`,
+                        url:`/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
