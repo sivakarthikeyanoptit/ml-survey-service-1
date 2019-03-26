@@ -694,7 +694,8 @@ module.exports = class ProgramOperations {
                 _.merge(schoolQueryObject, this.getQueryObject(req.query))
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
-                if (pagination == true) {
+
+                if (!req.query.csv || req.query.csv=="false") {
                     filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 } else {
                     filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).lean().exec();
