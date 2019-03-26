@@ -174,7 +174,7 @@ module.exports = class ProgramOperations {
                         name: assessor.name || "",
                         schoolsAssigned: schoolAssigned || 0,
                         schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? ((schoolData.completed / schoolAssigned) * 100).toFixed(2) + '%' || 0 : 0,
+                        schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? gen.utils.round(((schoolData.completed / schoolAssigned) * 100),2) || 0 : 0,
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -269,7 +269,7 @@ module.exports = class ProgramOperations {
 
                 function getAssessmentCompletionPercentage(evidencesStatus) {
                     let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
-                    return Math.ceil((isSubmittedArray.length / evidencesStatus.length) * 100).toString() + '%';
+                    return gen.utils.round(((isSubmittedArray.length / evidencesStatus.length) * 100),2);
                 }
 
                 result.schoolsReport = [];
@@ -379,8 +379,12 @@ module.exports = class ProgramOperations {
                 let schoolIds = schoolDocuments.map(school => school.id);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+                
+                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds },status:'completed' }).lean().exec();
 
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1 }).lean();
+                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds },status:'inprogress' }).lean().exec();
+
+                [schoolsCompletedCount,schoolsInprogressCount] = await Promise.all([schoolsCompletedCount,schoolsInprogressCount]);
 
                 let programDocument = await this.getProgram(req.params._id);
 
@@ -391,9 +395,7 @@ module.exports = class ProgramOperations {
                     programManagers: "Program Managers"
                 };
 
-                let schoolDocumentByStatus = _.countBy(submissionDocuments, 'status');
-
-                let averageTimeTaken = (schoolDocuments.length / schoolDocumentByStatus.completed);
+                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
 
                 let result = [
                     {
@@ -418,15 +420,15 @@ module.exports = class ProgramOperations {
                     },
                     {
                         label: "schoolsCompleted",
-                        value: schoolDocumentByStatus.completed || 0,
+                        value: schoolsCompletedCount || 0,
                     },
                     {
                         label: "schoolsInporgress",
-                        value: schoolDocumentByStatus.inprogress || 0,
+                        value: schoolsInprogressCount || 0,
                     },
                     {
                         label: "averageTimeTaken",
-                        value: averageTimeTaken ? (averageTimeTaken.toFixed(2) || 0) : 0,
+                        value: averageTimeTaken ? (gen.utils.round(averageTimeTaken,2) || 0) : 0,
                     },
                     {
                         label: "userName",
