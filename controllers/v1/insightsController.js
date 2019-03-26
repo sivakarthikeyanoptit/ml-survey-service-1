@@ -98,10 +98,17 @@ module.exports = class Insights extends Abstract {
       
       let criteriaScore = _.keyBy(submissionDocument.criterias, '_id')
 
-      let scoreThemes =  function (themes,levelToScoreMapping,criteriaScore) {
+      let scoreThemes =  function (themes,levelToScoreMapping,criteriaScore,hierarchyLevel = 0,hierarchyTrack = [],themeScores = [],criteriaScores = []) {
+        
         themes.forEach(theme => {
           if (theme.children) {
-            scoreThemes(theme.children,levelToScoreMapping,criteriaScore)
+            theme.hierarchyLevel = hierarchyLevel
+            theme.hierarchyTrack = hierarchyTrack
+
+            let hierarchyTrackToUpdate = [...hierarchyTrack]
+            hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+            scoreThemes(theme.children,levelToScoreMapping,criteriaScore,hierarchyLevel+1,hierarchyTrackToUpdate,themeScores,criteriaScores)
             let themeScore = 0
             let criteriaLevelCount = {}
             for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
@@ -123,21 +130,32 @@ module.exports = class Insights extends Abstract {
             })
             theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
             theme.criteriaLevelCount = criteriaLevelCount
+
+            themeScores.push(_.omit(theme,["children"]))
           } else {
-            let criteriaScores = new Array
+
+            theme.hierarchyLevel = hierarchyLevel
+            theme.hierarchyTrack = hierarchyTrack
+
+            let hierarchyTrackToUpdate = [...hierarchyTrack]
+            hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+            let criteriaScoreArray = new Array
             let themeScore = 0
             let criteriaLevelCount = {}
             for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
             let criteriaScoreNotAvailable = false
             theme.criteria.forEach(criteria => {
               if(criteriaScore[criteria.criteriaId.toString()]) {
-                criteriaScores.push({
+                criteriaScoreArray.push({
                   name : criteriaScore[criteria.criteriaId.toString()].name,
                   level : criteriaScore[criteria.criteriaId.toString()].score,
                   score : levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] ? levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] : "NA",
-                  weight : criteria.weightage
+                  weight : criteria.weightage,
+                  hierarchyLevel : hierarchyLevel+1,
+                  hierarchyTrack : hierarchyTrackToUpdate
                 })
-                if(criteriaScores[criteriaScores.length - 1].score == "NA") {
+                if(criteriaScoreArray[criteriaScoreArray.length - 1].score == "NA") {
                   criteriaScoreNotAvailable = true
                 } else {
                   themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] / 100 )
@@ -145,17 +163,26 @@ module.exports = class Insights extends Abstract {
                 }
               }
             })
-            theme.criteria = criteriaScores
+            theme.criteria = criteriaScoreArray
             theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
             theme.criteriaLevelCount = criteriaLevelCount
+
+            criteriaScores.push(...criteriaScoreArray)
+            themeScores.push(_.omit(theme,["criteria"]))
           }
         })
+
+        return {
+          themeScores : themeScores,
+          criteriaScores: criteriaScores
+        }
       }
 
-      scoreThemes(evaluationFrameworkDocument.themes,evaluationFrameworkDocument.levelToScoreMapping,criteriaScore)
+      let themeAndCriteriaScores = scoreThemes(evaluationFrameworkDocument.themes,evaluationFrameworkDocument.levelToScoreMapping,criteriaScore,0,[])
+      _.merge(submissionDocument,themeAndCriteriaScores)
 
       submissionDocument.submissionId = submissionDocument._id
-      _.merge(submissionDocument, evaluationFrameworkDocument)
+      _.merge(submissionDocument, _.omit(evaluationFrameworkDocument,["themes"]))
 
       let score = 0
       let criteriaLevelCount = {}
@@ -212,5 +239,49 @@ module.exports = class Insights extends Abstract {
     }
 
   }
+
+  /**
+  * @api {post} /assessment/api/v1/insights/singleEntityReport/:schoolId Return insights for a school
+  * @apiVersion 0.0.1
+  * @apiName Generate Insights From Submissions
+  * @apiSampleRequest /assessment/api/v1/insights/singleEntityReport/5c5147ae95743c5718445eff
+  * @apiGroup insights
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async singleEntityReport(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+
+        let schoolId = (req && req.params && req.params._id) ? req.params._id : false
+
+        if(!schoolId) throw "School ID is mandatory."
+
+        let insights = await database.models.insights.findOne(
+          {schoolId : schoolId}
+        );
+
+        let response = {
+          message: "Insights report fetched successfully.",
+          result: insights
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 
 };

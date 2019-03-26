@@ -12,7 +12,8 @@ module.exports = {
     submissionCompletedAt: Date,
     ratingCompletedAt : Date,
     score: String,
-    themes: Array,
+    themeScores: Array,
+    criteriaScores: Array,
     scoringSystem : String,
     levelToScoreMapping : Object,
     criteriaLevelCount : Object
