@@ -174,7 +174,7 @@ module.exports = class ProgramOperations {
                         name: assessor.name || "",
                         schoolsAssigned: schoolAssigned || 0,
                         schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent:  gen.utils.round(((schoolData.completed / schoolAssigned) * 100),2) || 0,
+                        schoolsCompletedPercent:  parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || 0,
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -269,7 +269,7 @@ module.exports = class ProgramOperations {
 
                 function getAssessmentCompletionPercentage(evidencesStatus) {
                     let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
-                    return gen.utils.round(((isSubmittedArray.length / evidencesStatus.length) * 100),2);
+                    return parseFloat(((isSubmittedArray.length / evidencesStatus.length) * 100).toFixed(2));
                 }
 
                 result.schoolsReport = [];
@@ -428,7 +428,7 @@ module.exports = class ProgramOperations {
                     },
                     {
                         label: "averageTimeTaken",
-                        value: averageTimeTaken ? (gen.utils.round(averageTimeTaken,2) || 0) : 0,
+                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || 0) : 0,
                     },
                     {
                         label: "userName",
