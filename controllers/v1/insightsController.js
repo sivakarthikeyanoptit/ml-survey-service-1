@@ -284,4 +284,47 @@ module.exports = class Insights extends Abstract {
   }
 
 
+  /**
+  * @api {post} /assessment/api/v1/insights/mutltiEntityReport/:programId Return insights for a school
+  * @apiVersion 0.0.1
+  * @apiName Generate Insights From Submissions
+  * @apiSampleRequest /assessment/api/v1/insights/mutltiEntityReport/5c5147ae95743c5718445eff
+  * @apiGroup insights
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async mutltiEntityReport(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+
+        let programId = (req && req.params && req.params._id) ? req.params._id : false
+
+        if(!programId) throw "Program ID is mandatory."
+
+        let insights = await database.models.insights.find(
+          {programId : programId}
+        );
+
+        let response = {
+          message: "Insights report fetched successfully.",
+          result: insights
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 };
