@@ -325,4 +325,116 @@ module.exports = class Programs extends Abstract {
     })
   }
 
+
+  /**
+  * @api {get} /assessment/api/v1/programs/getSchoolZones/ Fetch User List
+  * @apiVersion 0.0.1
+  * @apiName Fetch User List 
+  * @apiGroup Program
+  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async getSchoolBlocks(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programId = req.query.programId
+
+        if (!programId) {
+          throw "Program id is missing"
+        }
+
+        let componentId = req.query.componentId
+
+        if (!componentId) {
+          throw "Component id is missing"
+        }
+
+        let assessorName = {};
+        let assessorExternalId = {};
+
+        if (req.searchText != "") {
+          assessorName["assessorInformation.name"] = new RegExp((req.searchText), "i");
+          assessorExternalId["assessorInformation.externalId"] = new RegExp((req.searchText), "i");
+        }
+
+        let programDocument = await database.models.programs.aggregate([
+          {
+            $match: {
+              _id: ObjectId(programId)
+            }
+          }, {
+            $unwind: "$components"
+          }, {
+            $match: {
+              "components.id": ObjectId(componentId)
+            }
+          }, {
+            "$addFields": { "schoolIdInObjectIdForm": "$components.schools" }
+          },
+          {
+            $lookup: {
+              from: "schoolAssessors",
+              localField: "schoolIdInObjectIdForm",
+              foreignField: "schools",
+              as: "assessorInformation"
+            }
+          },
+          {
+            $project: {
+              "assessorInformation.schools": 0,
+              "assessorInformation.deleted": 0
+            }
+          },
+          { $unwind: "$assessorInformation" },
+          { $match: { $or: [assessorName, assessorExternalId] } },
+          {
+            $facet: {
+              "totalCount": [
+                { "$count": "count" }
+              ],
+              "assessorInformationData": [
+                { $skip: req.pageSize * (req.pageNo - 1) },
+                { $limit: req.pageSize }
+              ],
+            }
+          },
+        ])
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
+        let result = {};
+        let assessorInformation = [];
+
+        result["totalCount"] = programDocument[0].totalCount[0].count;
+
+        programDocument[0].assessorInformationData.forEach(eachAssessor => {
+          assessorInformation.push(eachAssessor.assessorInformation)
+        })
+
+        result["assessorInformation"] = assessorInformation;
+
+        return resolve({
+          message: "List of assessors fetched successfully",
+          result: result
+        })
+
+      }
+      catch (error) {
+        return reject({
+          status: 400,
+          message: error
+        })
+      }
+    })
+  }
+
+
+
 };
