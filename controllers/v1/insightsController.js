@@ -257,14 +257,21 @@ module.exports = class Insights extends Abstract {
 
         req.body = req.body || {};
 
-        let schoolId = (req && req.params && req.params._id) ? req.params._id : false
+        let programId = (req && req.params && req.params._id) ? req.params._id : false
+        let schoolId = (req && req.query && req.query.school) ? req.query.school : ""
 
-        if(!schoolId) throw "School ID is mandatory."
+        if(!programId) throw "Program ID is mandatory."
+        if(schoolId == "") throw "School ID is mandatory."
 
         let insights = await database.models.insights.findOne(
-          {schoolId : schoolId}
-        ).lean();
+          {
+            programExternalId : programId,
+            schoolId : ObjectId(schoolId)
+          }
+        );
 
+        if(!insights) throw "No insights found for this school"
+        
         let resultingArray = []
 
         let level0 = {}
@@ -341,12 +348,63 @@ module.exports = class Insights extends Abstract {
       } catch (error) {
         return reject({
           status: 500,
-          message: "Oops! Something went wrong!",
+          message: error,
           errorObject: error
         });
       }
 
     })
   }
-  
+
+
+  /**
+  * @api {post} /assessment/api/v1/insights/mutltiEntityReport/:programId Return insights for a school
+  * @apiVersion 0.0.1
+  * @apiName Generate Insights From Submissions
+  * @apiSampleRequest /assessment/api/v1/insights/mutltiEntityReport/5c5147ae95743c5718445eff
+  * @apiGroup insights
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async mutltiEntityReport(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+
+        let programId = (req && req.params && req.params._id) ? req.params._id : false
+        let schoolIdArray = (req && req.query && req.query.school) ? req.query.school.split(",") : []
+
+        if(!programId) throw "Program ID is mandatory."
+        if(!(schoolIdArray.length > 0)) throw "School ID is mandatory."
+
+        let insights = await database.models.insights.find(
+          {
+            programExternalId : programId,
+            schoolId : { $in: schoolIdArray }
+          }
+        );
+
+        if(!insights) throw "No insights found for this school"
+
+        let response = {
+          message: "Insights report fetched successfully.",
+          result: insights
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 };
