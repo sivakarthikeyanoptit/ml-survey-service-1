@@ -2162,7 +2162,6 @@ module.exports = class Reports {
     });
   }
 
-
   /**
   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
   * @apiVersion 0.0.1
@@ -2421,7 +2420,6 @@ module.exports = class Reports {
     })
   }
 
-
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:programId Generate report whose parent did not pick up the call
  * @apiVersion 0.0.1
@@ -2545,7 +2543,6 @@ module.exports = class Reports {
       }
     })
   }
-
 
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:programId Generate report for the parent whose callResponse is present.
@@ -2679,6 +2676,96 @@ module.exports = class Reports {
         })
       }
     })
+  }
+
+  async schoolList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programId = req.query.programId
+
+        if (!programId) {
+          throw "Program id is missing"
+        }
+
+        let componentId = req.query.componentId
+
+        if (!componentId) {
+          throw "Component id is missing"
+        }
+
+        let submissionQueryObject = {
+          programExternalId:programId,
+          evaluationFrameworkId:componentId
+        }
+
+        let submissionsIds = await database.models.submissions.find(
+          submissionQueryObject,
+          {
+            _id: 1
+          }
+        ).lean();
+
+        const fileName = `School List`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!submissionsIds.length) {
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
+        }
+
+        else {
+          let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
+          let submissionId
+          let submissionDocumentsArray
+
+
+          for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
+            submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
+              return submissionModel._id
+            });
+
+            submissionDocumentsArray = await database.models.submissions.find(
+              {
+                _id: {
+                  $in: submissionId
+                }
+              },
+              {
+                "schoolInformation.externalId": 1,
+                "schoolInformation.name": 1,
+              }
+            ).lean()
+
+            await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
+              let result = {};
+                result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
+                result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+                input.push(result);
+            }))
+          }
+        }
+        input.push(null);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
   }
 
   gmtToIst(gmtTime) {
