@@ -2678,6 +2678,16 @@ module.exports = class Reports {
     })
   }
 
+    /**
+* @api {get} /assessment/api/v1/reports/schoolList Fetch School list based on programId and evaluationFrameworkId
+* @apiVersion 0.0.1
+* @apiName Fetch school list
+* @apiGroup Report
+* @apiParam {String} programId program externalId.
+* @apiParam {String} componentId evaluationFramework Id.
+* @apiUse successBody
+* @apiUse errorBody
+*/
   async schoolList(req) {
     return new Promise(async (resolve, reject) => {
       try {
