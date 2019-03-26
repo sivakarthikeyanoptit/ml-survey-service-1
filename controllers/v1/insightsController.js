@@ -150,7 +150,7 @@ module.exports = class Insights extends Abstract {
                 criteriaScoreArray.push({
                   name : criteriaScore[criteria.criteriaId.toString()].name,
                   level : criteriaScore[criteria.criteriaId.toString()].score,
-                  score : levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] ? levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] : "NA",
+                  score : levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] ? levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score].points : "NA",
                   weight : criteria.weightage,
                   hierarchyLevel : hierarchyLevel+1,
                   hierarchyTrack : hierarchyTrackToUpdate
@@ -158,7 +158,7 @@ module.exports = class Insights extends Abstract {
                 if(criteriaScoreArray[criteriaScoreArray.length - 1].score == "NA") {
                   criteriaScoreNotAvailable = true
                 } else {
-                  themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] / 100 )
+                  themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score].points / 100 )
                   criteriaLevelCount[criteriaScore[criteria.criteriaId.toString()].score] += 1
                 }
               }
@@ -271,7 +271,7 @@ module.exports = class Insights extends Abstract {
         );
 
         if(!insights) throw "No insights found for this school"
-        
+
         let resultingArray = []
 
         let level0 = {}
@@ -384,14 +384,40 @@ module.exports = class Insights extends Abstract {
           {
             programExternalId : programId,
             schoolId : { $in: schoolIdArray }
+          },
+          {
+            schoolId : 1,
+            themeScores : 1,
+            criteriaScores : 1,
+            programId: 1,
+            levelToScoreMapping : 1
           }
         );
 
         if(!insights) throw "No insights found for this school"
+        
+        let insightResult = {}
+        insights[0].themeScores.forEach(theme => {
+          if(theme.hierarchyLevel == 1) {
+              (!insightResult[theme.hierarchyTrack[0].name]) ? insightResult[theme.hierarchyTrack[0].name] = {} : ""
+              if(!insightResult[theme.hierarchyTrack[0].name][theme.name]) {
+                insightResult[theme.hierarchyTrack[0].name][theme.name] = {}
+              }
+              for(var k in insights[0].levelToScoreMapping) insightResult[theme.hierarchyTrack[0].name][theme.name][k] = 0;
+          }
+        })
+
+        insights.forEach(insight => {
+          insight.themeScores.forEach(theme => {
+            if(theme.hierarchyLevel == 1) {
+              for(var k in theme.criteriaLevelCount) insightResult[theme.hierarchyTrack[0].name][theme.name][k]+=theme.criteriaLevelCount[k];
+            }
+          })
+        })
 
         let response = {
           message: "Insights report fetched successfully.",
-          result: insights
+          result: insightResult
         };
 
         return resolve(response);
