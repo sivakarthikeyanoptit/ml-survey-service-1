@@ -88,18 +88,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programExternalId = req.params._id;
-
-                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    _id: 1,name:1
-                }).lean();
-
-                if (!programDocument) {
-                    return resolve({
-                        status: 400,
-                        message: 'Program not found for given params.'
-                    })
-                }
+                let programDocument = await this.getProgram(req.params._id);
 
                 let assessorDetails;
                 let assessorQueryObject = {};
@@ -132,9 +121,15 @@ module.exports = class ProgramOperations {
                 let schoolQueryObject = this.getQueryObject(req.query);
 
                 let filteredSchools;
-                
-                let assessorSchoolIds = assessorDetails.map(school => school.schools);
-                assessorSchoolIds = (assessorSchoolIds.length) ? assessorSchoolIds.flat(1) : null
+
+                let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
+
+                //get only uniq schoolIds
+                if(assessorSchoolIds.length){
+                    let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
+                    assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
+                }
+
 
                 if (!_.isEmpty(schoolQueryObject)) {
                     schoolQueryObject._id = { $in: assessorSchoolIds };
@@ -143,7 +138,7 @@ module.exports = class ProgramOperations {
 
                 let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
                 let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: !_.isEmpty(schoolQueryObject) ? filteredSchools : assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
-                let schoolSubmissionMap = _.keyBy(submissionDocuments,'schoolId');
+                let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
 
 
                 function getAverageTimeTaken(submissionData) {
@@ -161,16 +156,14 @@ module.exports = class ProgramOperations {
                     }
                 }
 
-                function getSubmissionByAssessor(assessorId){
+                function getSubmissionByAssessor(assessorId) {
                     let assessorSchools = assessorSchoolMap[assessorId].schools;
-                    let schoolSubmissions=[];
-                    assessorSchools.forEach(schoolId=>{
+                    let schoolSubmissions = [];
+                    assessorSchools.forEach(schoolId => {
                         schoolSubmissions.push(schoolSubmissionMap[schoolId.toString()])
                     });
                     return _.compact(schoolSubmissions);
                 }
-
-                let result = {};
 
                 let assessorsReports = [];
                 assessorDetails.forEach(async (assessor, index) => {
@@ -199,7 +192,7 @@ module.exports = class ProgramOperations {
                 if (req.query.csv && req.query.csv == "true") {
                     input.push(null);
                 } else {
-                    result = await this.constructResultObject('programOperationAssessorReports',assessorsReports,totalCount,req.userDetails,programDocument.name);
+                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name);
                     return resolve({ result: result })
                 }
 
@@ -305,26 +298,26 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    let program = await database.models.programs.findOne({externalId:programExternalId},{name:1})
-                    result = await this.constructResultObject('programOperationSchoolReports',result.schoolsReport,totalCount,req.userDetails,program.name)
+                    let programDocument = await this.getProgram(req.params._id);
+                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name)
                     return resolve({ result: result })
                 }
-                
+
             } catch (error) {
-                
+
                 return reject({
                     status: error.status || 500,
                     message: error.message || "Oops! Something went wrong!",
                     errorObject: error
                 });
-                
+
             }
         })
     }
-    
-    constructResultObject(graphName,value,totalCount,userDetails,programName){
-        return new Promise(async (resolve,reject)=>{
-            let summary =  [
+
+    constructResultObject(graphName, value, totalCount, userDetails, programName) {
+        return new Promise(async (resolve, reject) => {
+            let summary = [
                 {
                     "label": "Name of the Manager",
                     "value": (userDetails.firstName + " " + userDetails.lastName).trim()
@@ -338,12 +331,12 @@ module.exports = class ProgramOperations {
                     "value": moment().format('DD-MM-YYYY')
                 }
             ]
-            let reportOptions = await database.models.reportOptions.findOne({name:graphName}).lean();
-            let headers = reportOptions.results.sections[0].tabularData.headers.map(header=> header.name)
-            let data = value.map(singleValue=>{
+            let reportOptions = await database.models.reportOptions.findOne({ name: graphName }).lean();
+            let headers = reportOptions.results.sections[0].tabularData.headers.map(header => header.name)
+            let data = value.map(singleValue => {
                 let resultObject = {}
-                headers.forEach(singleHeader=>{
-                    resultObject[singleHeader] = singleValue[singleHeader] ;
+                headers.forEach(singleHeader => {
+                    resultObject[singleHeader] = singleValue[singleHeader];
                 })
                 return resultObject;
             })
@@ -372,6 +365,8 @@ module.exports = class ProgramOperations {
 
                 let schoolObjects = await this.getSchools(req, false);
 
+                let userRole = gen.utils.getUserRole(req.userDetails, true);
+
                 if (!schoolObjects.result.length) {
                     return resolve({
                         status: 400,
@@ -383,18 +378,65 @@ module.exports = class ProgramOperations {
 
                 let schoolIds = schoolDocuments.map(school => school.id);
 
-                let result = {};
-
-                result.managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+                let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
 
                 let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: schoolIds } }, { status: 1 }).lean();
 
+                let programDocument = await this.getProgram(req.params._id);
+
+                let roles = {
+                    assessors: "Assessors",
+                    leadAssessors: "Lead Assessors",
+                    projectManagers: "Project Managers",
+                    programManagers: "Program Managers"
+                };
+
                 let schoolDocumentByStatus = _.countBy(submissionDocuments, 'status');
-                result.schoolsAssigned = schoolDocuments.length;
-                result.createdDate = moment().format('DD-MM-YYYY');
-                result.schoolsInporgress = schoolDocumentByStatus.inprogress || 0;
-                result.schoolsCompleted = schoolDocumentByStatus.completed || 0;
-                // result.schoolsNotYetStarted = schoolDocuments.length - (schoolDocumentByStatus.blocked + schoolDocumentByStatus.started + schoolDocumentByStatus.completed + schoolDocumentByStatus.inprogress);
+
+                let averageTimeTaken = (schoolDocuments.length / schoolDocumentByStatus.completed);
+
+                let result = [
+                    {
+                        label: "createdDate",
+                        value: moment().format('DD-MM-YYYY'),
+                    },
+                    {
+                        label: "managerName",
+                        value: managerName
+                    },
+                    {
+                        label: "role",
+                        value: roles[userRole] || "",
+                    },
+                    {
+                        label: "programName",
+                        value: programDocument.name,
+                    },
+                    {
+                        label: "schoolsAssigned",
+                        value: schoolDocuments.length,
+                    },
+                    {
+                        label: "schoolsCompleted",
+                        value: schoolDocumentByStatus.completed || 0,
+                    },
+                    {
+                        label: "schoolsInporgress",
+                        value: schoolDocumentByStatus.inprogress || 0,
+                    },
+                    {
+                        label: "averageTimeTaken",
+                        value: averageTimeTaken ? (averageTimeTaken.toFixed(2) || 0) : 0,
+                    },
+                    {
+                        label: "userName",
+                        value: req.userDetails.userName || "",
+                    },
+                    {
+                        label: "email",
+                        value: req.userDetails.email || "",
+                    }
+                ]
 
                 return resolve({
                     message: 'School details fetched successfully.',
@@ -426,18 +468,8 @@ module.exports = class ProgramOperations {
         this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
-                let programExternalId = req.params._id;
 
-                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    "components.schools": 1
-                }).lean();
-
-                if (!programDocument) {
-                    return resolve({
-                        status: 400,
-                        message: 'Program not found for given params.'
-                    })
-                }
+                let programDocument = await this.getProgram(req.params._id);
 
                 let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
                 let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
@@ -543,7 +575,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url:`https://${process.env.SHIKSHALOKAM_BASE_HOST}${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `https://${process.env.SHIKSHALOKAM_BASE_HOST}${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -577,27 +609,22 @@ module.exports = class ProgramOperations {
         this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
-                let programExternalId = req.params._id;
 
-                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    "components.schools": 1
-                }).lean();
-
-                if (!programDocument) {
-                    throw { status: 400, message: 'Program not found for given params.' }
-                }
+                let programDocument = await this.getProgram(req.params._id);
 
                 if (!req.query.id) {
                     throw { status: 400, message: 'Bad request.' }
                 }
 
-                let schoolIdAndName = await database.models.schools.find({
-                    externalId: new RegExp(req.query.id, 'i')
-                }, { externalId: 1, name: 1 }).limit(5).lean();//autocomplete needs only 5 dataset
-
-                if (!schoolIdAndName.length) {
-                    throw { status: 400, message: 'No schools found for given params.' }
-                }
+                let schoolIdAndName = await database.models.schools.find(
+                    {
+                        _id: { $in: programDocument.components[0].schools },
+                        externalId: new RegExp(req.query.id, 'i')
+                    },
+                    {
+                        externalId: 1, name: 1
+                    }
+                ).limit(5).lean();//autocomplete needs only 5 dataset
 
                 return resolve({
                     status: 200,
@@ -619,17 +646,11 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await database.models.programs.findOne({ externalId: req.params._id }, {
-                    _id: 1
-                }).lean();
-
-                if (!programDocument) {
-                    throw { status: 400, message: 'Program not found for given params.' };
-                }
+                let programDocument = await this.getProgram(req.params._id);
 
                 let queryObject = [
                     { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1, updatedAt: 1 } },
-                    { $match: { userId: req.userDetails.id, programId: programDocument._id} },
+                    { $match: { userId: req.userDetails.id, programId: programDocument._id } },
                     {
                         $graphLookup: {
                             from: 'schoolAssessors',
@@ -696,6 +717,34 @@ module.exports = class ProgramOperations {
                     errorObject: error
                 });
             }
+        })
+    }
+
+    async getProgram(programExternalId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (!programExternalId)
+                    throw { status: 400, message: 'Program id required.' }
+
+                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
+                    _id: 1, name: 1, "components.schools": 1
+                }).lean();
+
+                if (!programDocument) {
+                    throw { status: 400, message: 'Program not found for given params.' }
+                }
+
+                return resolve(programDocument);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+
         })
     }
 
