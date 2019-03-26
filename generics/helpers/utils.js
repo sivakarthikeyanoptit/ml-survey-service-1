@@ -91,6 +91,10 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function round(value, decimals) {
+  return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
@@ -98,5 +102,6 @@ module.exports = {
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   mapUserRole: mapUserRole,
-  getAllQuestionId: getAllQuestionId
+  getAllQuestionId: getAllQuestionId,
+  round: round
 };
