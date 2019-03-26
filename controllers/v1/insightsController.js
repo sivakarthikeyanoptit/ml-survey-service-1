@@ -268,12 +268,10 @@ module.exports = class Insights extends Abstract {
         let resultingArray = []
 
         let level0 = {}
+        let subTheme = {}
+
         level0["level 0"] = new Array
 
-        let level6 = {}
-        level6["level 6"] = new Array
-
-        let subTheme = {}
         let count = 0;
 
         insights.themeScores.forEach(eachThemeName=>{
@@ -283,6 +281,11 @@ module.exports = class Insights extends Abstract {
             array:new Array()
           }}
         })
+
+        let criteriaLevel = {
+          count:`level ${++count}`,
+          array:new Array()
+        }
 
         insights.themeScores.forEach(eachThemeScore=>{
 
@@ -318,12 +321,15 @@ module.exports = class Insights extends Abstract {
 
         insights.criteriaScores.forEach(eachCriteria=>{
     
-          level6["level 6"].push({
+          criteriaLevel.array.push({
           criteriaName:eachCriteria.name,
           criteriaScore:eachCriteria.score
           })
       })
-      resultingArray.push(level6)
+      
+      resultingArray.push({
+        [criteriaLevel.count]:criteriaLevel.array
+      })
 
         let response = {
           message: "Insights report fetched successfully.",
