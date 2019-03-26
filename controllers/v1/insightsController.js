@@ -263,11 +263,71 @@ module.exports = class Insights extends Abstract {
 
         let insights = await database.models.insights.findOne(
           {schoolId : schoolId}
-        );
+        ).lean();
+
+        let resultingArray = []
+
+        let level0 = {}
+        level0["level 0"] = new Array
+
+        let level6 = {}
+        level6["level 6"] = new Array
+
+        let subTheme = {}
+        let count = 0;
+
+        insights.themeScores.forEach(eachThemeName=>{
+          if(eachThemeName.hierarchyLevel == 0){
+          subTheme[eachThemeName.externalId] = {
+            levelCount:`level ${++count}`,
+            array:new Array()
+          }}
+        })
+
+        insights.themeScores.forEach(eachThemeScore=>{
+
+          if(eachThemeScore.hierarchyLevel == 0){
+            let value = {
+              themeName:eachThemeScore.name,
+              score:eachThemeScore.score
+            }
+            level0["level 0"].push(value)
+          }
+
+          if(eachThemeScore.hierarchyLevel == 1){
+              let themeId = eachThemeScore.hierarchyTrack[0].externalId
+
+              if(subTheme[themeId]){
+                subTheme[themeId].array.push({
+                  name:eachThemeScore.name,
+                  score:eachThemeScore.score,
+                  themeName:eachThemeScore.hierarchyTrack[0].name
+                })
+              }
+          }
+        })
+
+        resultingArray.push(level0)
+
+        Object.values(subTheme).forEach(eachLevelvalue=>{
+          let final = {
+            [eachLevelvalue.levelCount]:eachLevelvalue.array
+          }
+          resultingArray.push(final)
+        })
+
+        insights.criteriaScores.forEach(eachCriteria=>{
+    
+          level6["level 6"].push({
+          criteriaName:eachCriteria.name,
+          criteriaScore:eachCriteria.score
+          })
+      })
+      resultingArray.push(level6)
 
         let response = {
           message: "Insights report fetched successfully.",
-          result: insights
+          result: resultingArray
         };
 
         return resolve(response);
@@ -282,6 +342,5 @@ module.exports = class Insights extends Abstract {
 
     })
   }
-
-
+  
 };
