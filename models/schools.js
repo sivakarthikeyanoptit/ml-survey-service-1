@@ -21,6 +21,7 @@ module.exports = {
     "districtId": "String",
     "districtName": "String",
     "zoneId": "String",
+    "blockId": "String",
     "administration": "String",
     "gender": "String",
     "shift": "String",
