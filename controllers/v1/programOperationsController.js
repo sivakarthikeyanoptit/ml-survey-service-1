@@ -174,7 +174,7 @@ module.exports = class ProgramOperations {
                         name: assessor.name || "",
                         schoolsAssigned: schoolAssigned || 0,
                         schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent: (schoolData.completed / schoolAssigned) ? gen.utils.round(((schoolData.completed / schoolAssigned) * 100),2) || 0 : 0,
+                        schoolsCompletedPercent:  gen.utils.round(((schoolData.completed / schoolAssigned) * 100),2) || 0,
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
