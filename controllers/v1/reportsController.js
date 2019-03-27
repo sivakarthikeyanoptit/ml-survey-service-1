@@ -2794,9 +2794,9 @@ module.exports = class Reports {
   }
 
 /**
-  * @api {get} /assessment/api/v1/reports/teacherRegistry/:programExternalId Fetch School list based on programId and evaluationFrameworkId
+  * @api {get} /assessment/api/v1/reports/teacherRegistry/:programExternalId Fetch Teacher list based on programId 
 * @apiVersion 0.0.1
-* @apiName Fetch school list
+* @apiName Fetch Teacher list
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
