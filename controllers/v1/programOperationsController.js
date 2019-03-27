@@ -224,14 +224,14 @@ module.exports = class ProgramOperations {
                 let isCSV = req.query.csv;
                 let schoolDocuments = await this.getSchools(req, (isCSV && isCSV == "false"));
 
+                if(!schoolDocuments || !schoolDocuments.length)
+                    return resolve({ result: [] })
+
                 let schoolObjects = schoolDocuments.result;
                 let totalCount = schoolDocuments.totalCount;
 
                 if (!schoolObjects.length) {
-                    return resolve({
-                        status: 400,
-                        message: 'No schools found for given program id.'
-                    })
+                    return resolve({ result: [] })
                 }
 
                 let submissionQueryObject = {};
@@ -367,12 +367,8 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
-                if (!schoolObjects.result.length) {
-                    return resolve({
-                        status: 400,
-                        message: 'No schools found for given program id.'
-                    })
-                }
+                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
+                    return resolve({ result: [] })
 
                 let schoolDocuments = schoolObjects.result;
 
@@ -615,7 +611,7 @@ module.exports = class ProgramOperations {
                 let programDocument = await this.getProgram(req.params._id);
 
                 if (!req.query.id) {
-                    throw { status: 400, message: 'Bad request.' }
+                    throw { status: 400, message: 'School id required.' }
                 }
 
                 let schoolIdAndName = await database.models.schools.find(
@@ -671,7 +667,7 @@ module.exports = class ProgramOperations {
                 let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
 
                 if (!schoolsAssessorDocuments.length) {
-                    throw { status: 400, message: 'No documents found for given params.' };
+                    return resolve([]);
                 }
 
                 let schoolIds = [];
@@ -694,7 +690,8 @@ module.exports = class ProgramOperations {
                 _.merge(schoolQueryObject, this.getQueryObject(req.query))
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
-                if (pagination == true) {
+
+                if (!req.query.csv || req.query.csv=="false") {
                     filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
                 } else {
                     filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).lean().exec();
