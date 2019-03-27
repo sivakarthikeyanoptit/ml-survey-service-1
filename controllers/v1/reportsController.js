@@ -2766,17 +2766,18 @@ module.exports = class Reports {
                 _id: {
                   $in: schoolId
                 }
-              },
-              {
-                "externalId": 1,
-                "name": 1,
               }
             ).lean()
 
             await Promise.all(schoolDocumentsArray.map(async (eachSchoolDocument) => {
               let result = {};
-                result["School Id"] = eachSchoolDocument.externalId;
-                result["School Name"] = eachSchoolDocument.name;
+
+              Object.keys(eachSchoolDocument).forEach(singleKey => {
+                if (["schoolTypes", "_id","_v"].indexOf(singleKey) == -1) {
+                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachSchoolDocument[singleKey];
+                }
+              })
+                result["schoolTypes"] = eachSchoolDocument.schoolTypes.join(",")
                 input.push(result);
             }))
           }
@@ -2791,6 +2792,77 @@ module.exports = class Reports {
         });
       }
     });
+  }
+
+  async teacherRegistry(req) {
+    return (new Promise(async (resolve, reject) => {
+      try {
+        const programsQueryParams = {
+          externalId: req.params._id
+        }
+        const programsDocument = await database.models.programs.findOne(programsQueryParams, {
+          externalId: 1
+        }).lean()
+
+        const teacherRegistryDocument = await database.models.teacherRegistry.find({programId:programsDocument._id}, { _id: 1 }).lean()
+
+        let fileName = "Teacher Registry";
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!teacherRegistryDocument.length) {
+          return resolve({
+            status: 404,
+            message: "No document found for given params."
+          });
+        }
+
+        else {
+          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
+          let teacherRegistryIds
+          let teacherRegistryData
+
+          for (let pointerToParentRegistry = 0; pointerToParentRegistry < teacherChunkData.length; pointerToParentRegistry++) {
+            teacherRegistryIds = teacherChunkData[pointerToParentRegistry].map(teacherRegistryId => {
+              return teacherRegistryId._id
+            })
+
+            let teacherRegistryParams = {_id: {$in: teacherRegistryIds}}
+
+
+            teacherRegistryData = await database.models.teacherRegistry.find(teacherRegistryParams).lean()
+
+            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
+
+              let teacherRegistryObject = {};
+              Object.keys(teacherRegistry).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
+                }
+              })
+              input.push(teacherRegistryObject);
+            }))
+          }
+        }
+        input.push(null);
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    }))
   }
 
   gmtToIst(gmtTime) {
