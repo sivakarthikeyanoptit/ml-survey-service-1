@@ -110,8 +110,8 @@ module.exports = class ProgramOperations {
                     }());
                 }
 
-                let limitValue = (!req.query.csv) ? "" : req.pageSize;
-                let skipValue = (!req.query.csv) ? "" : (req.pageSize * (req.pageNo - 1));
+                let limitValue = (req.query.csv && req.query.csv == "true") ? "" : req.pageSize;
+                let skipValue = (req.query.csv && req.query.csv == "true") ? "" : (req.pageSize * (req.pageNo - 1));
 
                 assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
@@ -125,7 +125,7 @@ module.exports = class ProgramOperations {
                 let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
 
                 //get only uniq schoolIds
-                if(assessorSchoolIds.length){
+                if (assessorSchoolIds.length) {
                     let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
                     assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
                 }
@@ -174,7 +174,7 @@ module.exports = class ProgramOperations {
                         name: assessor.name || "",
                         schoolsAssigned: schoolAssigned || 0,
                         schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent:  parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || 0,
+                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || 0,
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -219,19 +219,27 @@ module.exports = class ProgramOperations {
         this.checkUserAuthorization(req.userDetails);
         return new Promise(async (resolve, reject) => {
             try {
+                const self = new ProgramOperations;
+
                 let programExternalId = req.params._id;
 
                 let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (isCSV && isCSV == "false"));
+                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false);
+                let programDocument = await this.getProgram(req.params._id);
 
-                if(!schoolDocuments || !schoolDocuments.length)
-                    return resolve({ result: [] })
+                if (!schoolDocuments)
+                    return resolve(noDataFound())
 
                 let schoolObjects = schoolDocuments.result;
                 let totalCount = schoolDocuments.totalCount;
 
-                if (!schoolObjects.length) {
-                    return resolve({ result: [] })
+                if (!schoolObjects || !schoolObjects.length) {
+                    return resolve(noDataFound())
+                }
+                
+                async function noDataFound() {
+                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name);
+                    return { result: result }
                 }
 
                 let submissionQueryObject = {};
@@ -298,7 +306,6 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    let programDocument = await this.getProgram(req.params._id);
                     result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name)
                     return resolve({ result: result })
                 }
@@ -375,12 +382,12 @@ module.exports = class ProgramOperations {
                 let schoolIds = schoolDocuments.map(school => school.id);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
-                
-                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds },status:'completed' }).lean().exec();
 
-                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds },status:'inprogress' }).lean().exec();
+                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
 
-                [schoolsCompletedCount,schoolsInprogressCount] = await Promise.all([schoolsCompletedCount,schoolsInprogressCount]);
+                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
+
+                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
 
                 let programDocument = await this.getProgram(req.params._id);
 
@@ -691,11 +698,10 @@ module.exports = class ProgramOperations {
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
 
-                if (!req.query.csv || req.query.csv=="false") {
-                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(req.pageSize).skip(req.pageSize * (req.pageNo - 1)).lean().exec();
-                } else {
-                    filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).lean().exec();
-                }
+                let limitValue = (pagination==false) ? "" : req.pageSize;
+                let skipValue = (pagination==false) ? "" : (req.pageSize * (req.pageNo - 1));
+
+                filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
                 [filteredSchoolDocument, totalCount] = await Promise.all([filteredSchoolDocument, totalCount])
 
