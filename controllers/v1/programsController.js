@@ -240,11 +240,16 @@ module.exports = class Programs extends Abstract {
           throw "Invalid parameters."
         }
 
+
+        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
+          _id: 1
+        }).lean();
+
         let assessorSchoolsQueryObject = [
           {
             $match: {
               userId: req.userDetails.userId,
-              programId: ObjectId(programId)
+              programId: programDocument._id
             }
           },
           {
