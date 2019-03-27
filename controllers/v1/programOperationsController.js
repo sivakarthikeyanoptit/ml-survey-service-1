@@ -236,7 +236,7 @@ module.exports = class ProgramOperations {
                 if (!schoolObjects || !schoolObjects.length) {
                     return resolve(noDataFound())
                 }
-                
+
                 async function noDataFound() {
                     let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name);
                     return { result: result }
@@ -375,7 +375,48 @@ module.exports = class ProgramOperations {
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
                 if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
-                    return resolve({ result: [] })
+                    return resolve({ result: [
+                        {
+                            label: "createdDate",
+                            value: moment().format('DD-MM-YYYY'),
+                        },
+                        {
+                            label: "managerName",
+                            value: ""
+                        },
+                        {
+                            label: "role",
+                            value: "",
+                        },
+                        {
+                            label: "programName",
+                            value: "",
+                        },
+                        {
+                            label: "schoolsAssigned",
+                            value: 0,
+                        },
+                        {
+                            label: "schoolsCompleted",
+                            value: 0,
+                        },
+                        {
+                            label: "schoolsInporgress",
+                            value: 0,
+                        },
+                        {
+                            label: "averageTimeTaken",
+                            value: 0,
+                        },
+                        {
+                            label: "userName",
+                            value: "",
+                        },
+                        {
+                            label: "email",
+                            value: "",
+                        }
+                    ] })
 
                 let schoolDocuments = schoolObjects.result;
 
