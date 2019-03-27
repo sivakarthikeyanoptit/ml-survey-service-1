@@ -2692,7 +2692,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.query.programId
+        let programId = req.params._id
 
         if (!programId) {
           throw "Program id is missing"
@@ -2700,21 +2700,32 @@ module.exports = class Reports {
 
         let componentId = req.query.componentId
 
-        if (!componentId) {
+          if (!componentId) {
           throw "Component id is missing"
         }
 
-        let submissionQueryObject = {
-          programExternalId:programId,
-          evaluationFrameworkId:componentId
-        }
-
-        let submissionsIds = await database.models.submissions.find(
-          submissionQueryObject,
+        let programDocument = await database.models.programs.aggregate([
           {
-            _id: 1
+            $match: {
+              externalId: programId
+            }
+          },{
+            $unwind: "$components"
+          }, {
+            $match: {
+              "components.id": ObjectId(componentId)
+            }
+          },{
+            $project:{
+              "components.schools":1
+            }
           }
-        ).lean();
+          
+        ])
+
+        let schoolDocumentList = await database.models.schools.find({
+          _id:{$in:programDocument[0].components.schools}
+        },{_id:1}).lean()
 
         const fileName = `School List`;
         let fileStream = new FileStream(fileName);
@@ -2728,40 +2739,40 @@ module.exports = class Reports {
           });
         }());
 
-        if (!submissionsIds.length) {
+        if (!schoolDocumentList.length) {
           return resolve({
             status: 404,
-            message: "No submissions found for given params."
+            message: "No school found for given params."
           });
         }
 
         else {
-          let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10)
-          let submissionId
-          let submissionDocumentsArray
+          let chunkOfSchoolDocument = _.chunk(schoolDocumentList, 10)
+          let schoolId
+          let schoolDocumentsArray
 
 
-          for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
-            submissionId = chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].map(submissionModel => {
-              return submissionModel._id
+          for (let pointerToSchoolDocument = 0; pointerToSchoolDocument < chunkOfSchoolDocument.length; pointerToSchoolDocument++) {
+            schoolId = chunkOfSchoolDocument[pointerToSchoolDocument].map(schoolModel => {
+              return schoolModel._id
             });
 
-            submissionDocumentsArray = await database.models.submissions.find(
+            schoolDocumentsArray = await database.models.schools.find(
               {
                 _id: {
-                  $in: submissionId
+                  $in: schoolId
                 }
               },
               {
-                "schoolInformation.externalId": 1,
-                "schoolInformation.name": 1,
+                "externalId": 1,
+                "name": 1,
               }
             ).lean()
 
-            await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
+            await Promise.all(schoolDocumentsArray.map(async (eachSchoolDocument) => {
               let result = {};
-                result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
-                result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+                result["School Id"] = eachSchoolDocument.externalId;
+                result["School Name"] = eachSchoolDocument.name;
                 input.push(result);
             }))
           }
