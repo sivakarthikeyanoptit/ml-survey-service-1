@@ -214,24 +214,31 @@ module.exports = class ProgramOperations {
     * @apiUse successBody
     * @apiUse errorBody
     */
+   
+   async schoolReport(req) {
+       this.checkUserAuthorization(req.userDetails);
+       return new Promise(async (resolve, reject) => {
+           try {
+               const self = new ProgramOperations;
 
-    async schoolReport(req) {
-        this.checkUserAuthorization(req.userDetails);
-        return new Promise(async (resolve, reject) => {
-            try {
-                let programExternalId = req.params._id;
+               let programExternalId = req.params._id;
+               
+               let isCSV = req.query.csv;
+               let schoolDocuments = await this.getSchools(req, (isCSV && isCSV == "false"));
+               let programDocument = await this.getProgram(req.params._id);
+               
+               if(!schoolDocuments)
+                    return resolve(noDataFound())
+               
+               let schoolObjects = schoolDocuments.result;
+               let totalCount = schoolDocuments.totalCount;
 
-                let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (isCSV && isCSV == "false"));
-
-                if(!schoolDocuments || !schoolDocuments.length)
-                    return resolve({ result: [] })
-
-                let schoolObjects = schoolDocuments.result;
-                let totalCount = schoolDocuments.totalCount;
-
-                if (!schoolObjects.length) {
-                    return resolve({ result: [] })
+                if (!schoolObjects || !schoolObjects.length) {
+                    return resolve(noDataFound())
+                }
+                async function noDataFound(){
+                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name);
+                    return { result: result }
                 }
 
                 let submissionQueryObject = {};
@@ -298,7 +305,6 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    let programDocument = await this.getProgram(req.params._id);
                     result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name)
                     return resolve({ result: result })
                 }
