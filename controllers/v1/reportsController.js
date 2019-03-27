@@ -2801,7 +2801,7 @@ module.exports = class Reports {
           externalId: req.params._id
         }
         const programsDocument = await database.models.programs.findOne(programsQueryParams, {
-          externalId: 1
+          _id: 1
         }).lean()
 
         const teacherRegistryDocument = await database.models.teacherRegistry.find({programId:programsDocument._id}, { _id: 1 }).lean()
@@ -2831,8 +2831,8 @@ module.exports = class Reports {
           let teacherRegistryIds
           let teacherRegistryData
 
-          for (let pointerToParentRegistry = 0; pointerToParentRegistry < teacherChunkData.length; pointerToParentRegistry++) {
-            teacherRegistryIds = teacherChunkData[pointerToParentRegistry].map(teacherRegistryId => {
+          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
+            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
               return teacherRegistryId._id
             })
 
