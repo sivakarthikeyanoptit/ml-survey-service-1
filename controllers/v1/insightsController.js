@@ -272,79 +272,43 @@ module.exports = class Insights extends Abstract {
 
         if(!insights) throw "No insights found for this school"
 
-        let resultingArray = []
+        let insightResult = {}
 
-        let level0 = {}
-        let subTheme = {}
+        let noRecordsFound = false
+        let hierarchyLevel = 0
 
-        level0["level 0"] = new Array
-
-        let count = 0;
-
-        insights.themeScores.forEach(eachThemeName=>{
-          if(eachThemeName.hierarchyLevel == 0){
-          subTheme[eachThemeName.externalId] = {
-            levelCount:`level ${++count}`,
-            array:new Array()
-          }}
-        })
-
-        let criteriaLevel = {
-          count:`level ${++count}`,
-          array:new Array()
-        }
-
-        insights.themeScores.forEach(eachThemeScore=>{
-
-          if(eachThemeScore.hierarchyLevel == 0){
-            let value = {
-              themeName:eachThemeScore.name,
-              score:eachThemeScore.score
-            }
-            level0["level 0"].push(value)
-          }
-
-          if(eachThemeScore.hierarchyLevel == 1){
-              let themeId = eachThemeScore.hierarchyTrack[0].externalId
-
-              if(subTheme[themeId]){
-                subTheme[themeId].array.push({
-                  name:eachThemeScore.name,
-                  score:eachThemeScore.score,
-                  themeName:eachThemeScore.hierarchyTrack[0].name
-                })
+        while (noRecordsFound != true) {
+          let recordsToProcess = insights.themeScores.filter(theme => theme.hierarchyLevel == hierarchyLevel);
+          if(recordsToProcess.length > 0) {
+            if(!insightResult[hierarchyLevel]) {
+              insightResult[hierarchyLevel] = {
+                data : new Array
               }
+            }
+            recordsToProcess.forEach(record => {
+              if(!record.hierarchyTrack[hierarchyLevel-1] || !record.hierarchyTrack[hierarchyLevel-1].name) {
+                insightResult[hierarchyLevel].data.push(_.omit(record,"hierarchyTrack"))
+              } else {
+                if(!insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1]]) {
+                  insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name] = {
+                    data : new Array
+                  }
+                }
+                insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name].data.push(_.omit(record,"hierarchyTrack"))
+              }
+            })
+            hierarchyLevel += 1
+          } else {
+            noRecordsFound = true
           }
-        })
-
-        resultingArray.push(level0)
-
-        Object.values(subTheme).forEach(eachLevelvalue=>{
-          let final = {
-            [eachLevelvalue.levelCount]:eachLevelvalue.array
-          }
-          resultingArray.push(final)
-        })
-
-        insights.criteriaScores.forEach(eachCriteria=>{
-    
-          criteriaLevel.array.push({
-          criteriaName:eachCriteria.name,
-          criteriaScore:eachCriteria.score
-          })
-      })
-      
-      resultingArray.push({
-        [criteriaLevel.count]:criteriaLevel.array
-      })
+        }
 
         let response = {
           message: "Insights report fetched successfully.",
-          result: resultingArray
+          result: insightResult
         };
 
         return resolve(response);
-
       } catch (error) {
         return reject({
           status: 500,
