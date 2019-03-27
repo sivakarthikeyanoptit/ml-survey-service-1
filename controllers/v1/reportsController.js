@@ -2704,23 +2704,27 @@ module.exports = class Reports {
           throw "Component id is missing"
         }
 
+        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
+          externalId:componentId
+        },{_id:1}).lean()
+
         let programDocument = await database.models.programs.aggregate([
           {
             $match: {
               externalId: programId
             }
-          },{
+          },   {
             $unwind: "$components"
           }, {
             $match: {
-              "components.id": ObjectId(componentId)
+              "components.id": componentDocumentId._id
             }
-          },{
+          },
+          {
             $project:{
-              "components.schools":1
+              "components.schools":1  
             }
           }
-          
         ])
 
         let schoolDocumentList = await database.models.schools.find({
