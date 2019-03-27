@@ -289,7 +289,7 @@ module.exports = class Insights extends Abstract {
               if(!record.hierarchyTrack[hierarchyLevel-1] || !record.hierarchyTrack[hierarchyLevel-1].name) {
                 insightResult[hierarchyLevel].data.push(_.omit(record,"hierarchyTrack"))
               } else {
-                if(!insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1]]) {
+                if(!insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name]) {
                   insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name] = {
                     data : new Array
                   }
