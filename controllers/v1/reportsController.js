@@ -2162,7 +2162,6 @@ module.exports = class Reports {
     });
   }
 
-
   /**
   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:programId Generate ECM submissions By date
   * @apiVersion 0.0.1
@@ -2421,7 +2420,6 @@ module.exports = class Reports {
     })
   }
 
-
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:programId Generate report whose parent did not pick up the call
  * @apiVersion 0.0.1
@@ -2545,7 +2543,6 @@ module.exports = class Reports {
       }
     })
   }
-
 
   /**
  * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:programId Generate report for the parent whose callResponse is present.
@@ -2679,6 +2676,193 @@ module.exports = class Reports {
         })
       }
     })
+  }
+
+    /**
+* @api {get} /assessment/api/v1/reports/schoolList Fetch School list based on programId and evaluationFrameworkId
+* @apiVersion 0.0.1
+* @apiName Fetch school list
+* @apiGroup Report
+* @apiParam {String} programId program externalId.
+* @apiParam {String} componentId evaluationFramework Id.
+* @apiUse successBody
+* @apiUse errorBody
+*/
+  async schoolList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programId = req.params._id
+
+        if (!programId) {
+          throw "Program id is missing"
+        }
+
+        let componentId = req.query.componentId
+
+          if (!componentId) {
+          throw "Component id is missing"
+        }
+
+        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
+          externalId:componentId
+        },{_id:1}).lean()
+
+        let programDocument = await database.models.programs.aggregate([
+          {
+            $match: {
+              externalId: programId
+            }
+          },   {
+            $unwind: "$components"
+          }, {
+            $match: {
+              "components.id": componentDocumentId._id
+            }
+          },
+          {
+            $project:{
+              "components.schools":1  
+            }
+          }
+        ])
+
+        let schoolDocumentList = await database.models.schools.find({
+          _id:{$in:programDocument[0].components.schools}
+        },{_id:1}).lean()
+
+        const fileName = `School List`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!schoolDocumentList.length) {
+          return resolve({
+            status: 404,
+            message: "No school found for given params."
+          });
+        }
+
+        else {
+          let chunkOfSchoolDocument = _.chunk(schoolDocumentList, 10)
+          let schoolId
+          let schoolDocumentsArray
+
+
+          for (let pointerToSchoolDocument = 0; pointerToSchoolDocument < chunkOfSchoolDocument.length; pointerToSchoolDocument++) {
+            schoolId = chunkOfSchoolDocument[pointerToSchoolDocument].map(schoolModel => {
+              return schoolModel._id
+            });
+
+            schoolDocumentsArray = await database.models.schools.find(
+              {
+                _id: {
+                  $in: schoolId
+                }
+              }
+            ).lean()
+
+            await Promise.all(schoolDocumentsArray.map(async (eachSchoolDocument) => {
+              let result = {};
+
+              Object.keys(eachSchoolDocument).forEach(singleKey => {
+                if (["schoolTypes", "_id","_v"].indexOf(singleKey) == -1) {
+                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachSchoolDocument[singleKey];
+                }
+              })
+                result["schoolTypes"] = eachSchoolDocument.schoolTypes.join(",")
+                input.push(result);
+            }))
+          }
+        }
+        input.push(null);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  async teacherRegistry(req) {
+    return (new Promise(async (resolve, reject) => {
+      try {
+        const programsQueryParams = {
+          externalId: req.params._id
+        }
+        const programsDocument = await database.models.programs.findOne(programsQueryParams, {
+          _id: 1
+        }).lean()
+
+        const teacherRegistryDocument = await database.models.teacherRegistry.find({programId:programsDocument._id}, { _id: 1 }).lean()
+
+        let fileName = "Teacher Registry";
+
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        if (!teacherRegistryDocument.length) {
+          return resolve({
+            status: 404,
+            message: "No document found for given params."
+          });
+        }
+
+        else {
+          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
+          let teacherRegistryIds
+          let teacherRegistryData
+
+          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
+            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
+              return teacherRegistryId._id
+            })
+
+            let teacherRegistryParams = {_id: {$in: teacherRegistryIds}}
+
+
+            teacherRegistryData = await database.models.teacherRegistry.find(teacherRegistryParams).lean()
+
+            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
+
+              let teacherRegistryObject = {};
+              Object.keys(teacherRegistry).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
+                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
+                }
+              })
+              input.push(teacherRegistryObject);
+            }))
+          }
+        }
+        input.push(null);
+      }
+      catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    }))
   }
 
   gmtToIst(gmtTime) {
