@@ -303,6 +303,21 @@ module.exports = class Insights extends Abstract {
           }
         }
 
+        let criteriaResult = new Array
+
+        insights.criteriaScores.forEach(criteria => {
+          let criteriaObject = criteriaResult.filter(criteriaGroup => _.isEqual(criteriaGroup.hierarchyTrack, criteria.hierarchyTrack));
+          if(criteriaObject.length > 0) {
+            criteriaObject[0].data.push(_.omit(criteria,"hierarchyTrack"))
+          } else {
+            criteria.data = new Array
+            criteria.data.push(_.omit(criteria,["hierarchyTrack","data"]))
+            criteriaResult.push(_.pick(criteria,["hierarchyTrack","data"]))
+          }
+        })
+
+        insightResult.criteria = criteriaResult
+
         let response = {
           message: "Insights report fetched successfully.",
           result: insightResult
