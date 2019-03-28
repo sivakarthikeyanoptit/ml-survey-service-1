@@ -376,6 +376,7 @@ module.exports = class Insights extends Abstract {
         if(!insights) throw "No insights found for this school"
         
         let insightResult = {}
+        let subThemeLabel = ""
         insights[0].themeScores.forEach(theme => {
           if(theme.hierarchyLevel == 1) {
               (!insightResult[theme.hierarchyTrack[0].name]) ? insightResult[theme.hierarchyTrack[0].name] = {} : ""
@@ -383,6 +384,7 @@ module.exports = class Insights extends Abstract {
                 insightResult[theme.hierarchyTrack[0].name][theme.name] = {}
               }
               for(var k in insights[0].levelToScoreMapping) insightResult[theme.hierarchyTrack[0].name][theme.name][k] = 0;
+              subThemeLabel = theme.label
           }
         })
 
@@ -394,9 +396,77 @@ module.exports = class Insights extends Abstract {
           })
         })
 
+        let responseObject = {}
+        responseObject.heading = "Performance Summary for all School in Block/ District  to be passed in API "
+        responseObject.summary = [
+          {
+            label : "Name of the Block",
+            value: "Title of the Block"
+          },
+          {
+            label : "Total number of schools",
+            value: insights.length
+          },
+          {
+            label : "Date",
+            value: new Date()
+          }
+        ]
+        responseObject.subTitle = "Categorization of schools at different level - %"
+        responseObject.sections = new Array
+
+        let sectionHeaders = new Array
+        sectionHeaders.push({
+          name: "subtheme",
+          value: subThemeLabel
+        })
+        for(var k in insights[0].levelToScoreMapping) sectionHeaders.push({name: k,value: insights[0].levelToScoreMapping[k].label})
+
+
+        Object.keys(insightResult).forEach(themeName=>{
+          
+          let tableData = new Array
+          Object.keys(insightResult[themeName]).forEach(subTheme => {
+            let eachRow = {}
+            eachRow.subTheme = subTheme
+            _.merge(eachRow,insightResult[themeName][subTheme])
+            tableData.push(eachRow)
+          })
+
+          let eachSection = {
+            table: true,
+            graph: true,
+            heading: themeName,
+            graphData: {
+              title: 'Block performance report',
+              subTitle: 'Perfomance of schools in a block across '+subThemeLabel,
+              chartType: 'ColumnChart',
+              chartOptions: {
+                is3D: true,
+                isStack: true,
+                vAxis: {
+                  title: 'Core standards of school improvement',
+                  minValue: 0
+                },
+                hAxis: {
+                  title: 'Percentage of Schools',
+                  showTextEvery: 1
+                }
+              }
+            },
+            data: tableData,
+            tabularData: {
+              headers: sectionHeaders
+            }
+          }
+
+          responseObject.sections.push(eachSection)
+        })
+
+
         let response = {
           message: "Insights report fetched successfully.",
-          result: insightResult
+          result: responseObject
         };
 
         return resolve(response);
