@@ -1177,7 +1177,8 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData
+              criterias: criteriaData,
+              ratingCompletedAt : new Date()
             }
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
@@ -1212,6 +1213,86 @@ module.exports = class Submission extends Abstract {
             message: "All ECM are not submitted"
           })
         }
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+
+  async dummyRate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let message = "Dummy Crtieria rating completed successfully"
+
+        let queryObject = {
+          "schoolExternalId": req.params._id
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject,
+          { criterias: 1}
+        ).lean();
+
+        if (!submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        }
+
+        let result = {}
+        result.runUpdateQuery = true
+        let rubricLevels = ["L1", "L2", "L3", "L4"]
+
+        if (true) {
+          let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+
+            if(!criteria.score || criteria.score != "" || criteria.score == "No Level Matched" || criteria.score == "NA") {
+              criteria.score = rubricLevels[Math.floor(Math.random() * rubricLevels.length)];
+            }
+
+            return criteria
+
+          }));
+
+          if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
+            result.runUpdateQuery = false
+          }
+
+          if (result.runUpdateQuery) {
+            let updateObject = {}
+
+            updateObject.$set = {
+              criterias: criteriaData,
+              ratingCompletedAt : new Date()
+            }
+
+            let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+              queryObject,
+              updateObject
+            );
+
+            let insightsController = new insightsBaseController;
+            insightsController.generate(updatedSubmissionDocument._id);
+
+          }
+
+          let response = {
+            message: message,
+            result: result
+          };
+
+
+          return resolve(response);
+          
+        }
+
       } catch (error) {
         return reject({
           status: 500,

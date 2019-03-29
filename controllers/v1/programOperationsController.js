@@ -286,8 +286,8 @@ module.exports = class ProgramOperations {
                     let resultObject = {};
                     resultObject.status = submissionDetails ? (schoolStatusObject[submissionDetails.status] || submissionDetails.status) : "";
                     resultObject.name = singleSchoolDocument.name || "";
-                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
-                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
+                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : 0;
+                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : 0;
 
                     if (isCSV == "true") {
                         input.push(resultObject)
@@ -374,55 +374,57 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
+                let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+
                 if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
-                    return resolve({ result: [
-                        {
-                            label: "createdDate",
-                            value: moment().format('DD-MM-YYYY'),
-                        },
-                        {
-                            label: "managerName",
-                            value: ""
-                        },
-                        {
-                            label: "role",
-                            value: "",
-                        },
-                        {
-                            label: "programName",
-                            value: "",
-                        },
-                        {
-                            label: "schoolsAssigned",
-                            value: 0,
-                        },
-                        {
-                            label: "schoolsCompleted",
-                            value: 0,
-                        },
-                        {
-                            label: "schoolsInporgress",
-                            value: 0,
-                        },
-                        {
-                            label: "averageTimeTaken",
-                            value: 0,
-                        },
-                        {
-                            label: "userName",
-                            value: "",
-                        },
-                        {
-                            label: "email",
-                            value: "",
-                        }
-                    ] })
+                    return resolve({
+                        result: [
+                            {
+                                label: "dateOfReportGeneration",
+                                value: moment().format('DD-MM-YYYY'),
+                            },
+                            {
+                                label: "nameOfTheManager",
+                                value: managerName
+                            },
+                            {
+                                label: "role",
+                                value: "",
+                            },
+                            {
+                                label: "nameOfTheProgram",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsAssigned",
+                                value: 0,
+                            },
+                            {
+                                label: "schoolsCompleted",
+                                value: 0,
+                            },
+                            {
+                                label: "schoolsInporgress",
+                                value: 0,
+                            },
+                            {
+                                label: "averageTimeTakenInDays",
+                                value: 0,
+                            },
+                            {
+                                label: "userName",
+                                value: "",
+                            },
+                            {
+                                label: "email",
+                                value: "",
+                            }
+                        ]
+                    })
 
                 let schoolDocuments = schoolObjects.result;
 
                 let schoolIds = schoolDocuments.map(school => school.id);
-
-                let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
 
                 let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
 
@@ -443,11 +445,11 @@ module.exports = class ProgramOperations {
 
                 let result = [
                     {
-                        label: "createdDate",
+                        label: "dateOfReportGeneration",
                         value: moment().format('DD-MM-YYYY'),
                     },
                     {
-                        label: "managerName",
+                        label: "nameOfTheManager",
                         value: managerName
                     },
                     {
@@ -455,7 +457,7 @@ module.exports = class ProgramOperations {
                         value: roles[userRole] || "",
                     },
                     {
-                        label: "programName",
+                        label: "nameOfTheProgram",
                         value: programDocument.name,
                     },
                     {
@@ -471,7 +473,7 @@ module.exports = class ProgramOperations {
                         value: schoolsInprogressCount || 0,
                     },
                     {
-                        label: "averageTimeTaken",
+                        label: "averageTimeTakenInDays",
                         value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || 0) : 0,
                     },
                     {
@@ -544,7 +546,7 @@ module.exports = class ProgramOperations {
                         field: "fromDate",
                         label: "start date",
                         value: "",
-                        visible: false,//there is no date calculation right now
+                        visible: true,//there is no date calculation right now
                         editable: true,
                         input: "date",
                         validation: {
@@ -557,7 +559,7 @@ module.exports = class ProgramOperations {
                         field: "toDate",
                         label: "end date",
                         value: "",
-                        visible: false,//there is no date calculation right now
+                        visible: true,//there is no date calculation right now
                         editable: true,
                         input: "date",
                         validation: {
@@ -709,7 +711,7 @@ module.exports = class ProgramOperations {
                         }
                     },
                     {
-                        $project: { schools: 1, "children.schools": 1 }
+                        $project: { schools: 1, userId: 1, "children.schools": 1, "children.userId": 1 }
                     }
                 ];
 
@@ -721,15 +723,34 @@ module.exports = class ProgramOperations {
 
                 let schoolIds = [];
 
-                schoolsAssessorDocuments[0].schools.forEach(school => {
-                    schoolIds.push(school.toString());
-                })
+                if (req.query.fromDate) {
+                    let userIds = [];
 
-                schoolsAssessorDocuments[0].children.forEach(child => {
-                    child.schools.forEach(school => {
+                    userIds.push(schoolsAssessorDocuments[0].userId)
+
+                    schoolsAssessorDocuments[0].children.forEach(child => {
+                        userIds.push(child.userId)
+                    })
+
+                    userIds = _.uniq(userIds);
+
+                    let assessorSchoolTracker = new assessorSchoolTrackersBaseController;
+
+                    schoolIds = await assessorSchoolTracker.filterByDate(req.query, userIds);
+
+                }
+
+                if(!schoolIds.length){
+                    schoolsAssessorDocuments[0].schools.forEach(school => {
                         schoolIds.push(school.toString());
                     })
-                })
+    
+                    schoolsAssessorDocuments[0].children.forEach(child => {
+                        child.schools.forEach(school => {
+                            schoolIds.push(school.toString());
+                        })
+                    })
+                }
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
@@ -740,8 +761,8 @@ module.exports = class ProgramOperations {
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
 
-                let limitValue = (pagination==false) ? "" : req.pageSize;
-                let skipValue = (pagination==false) ? "" : (req.pageSize * (req.pageNo - 1));
+                let limitValue = (pagination == false) ? "" : req.pageSize;
+                let skipValue = (pagination == false) ? "" : (req.pageSize * (req.pageNo - 1));
 
                 filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
@@ -804,7 +825,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {}
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv']);
+        let filteredQueries = _.pullAll(queries, ['csv','fromDate','toDate']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
