@@ -4,6 +4,7 @@ module.exports = {
     submissionId: "ObjectId",
     schoolId: "ObjectId",
     schoolExternalId: String,
+    schoolName: String,
     programId: "ObjectId",
     programExternalId: String,
     evaluationFrameworkId: "ObjectId",
