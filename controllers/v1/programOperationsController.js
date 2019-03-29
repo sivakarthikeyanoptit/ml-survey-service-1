@@ -192,7 +192,7 @@ module.exports = class ProgramOperations {
                         let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
                         return parseFloat(averageTimeTaken.toFixed(2))
                     } else {
-                        return 'N/A'
+                        return ''
                     }
                 }
 
