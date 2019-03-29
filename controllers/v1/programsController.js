@@ -185,7 +185,7 @@ module.exports = class Programs extends Abstract {
         result["totalCount"] = totalCount;
 
         schoolDocuments.forEach(eachSchoolDocument => {
-          let status = submissionSchoolMap[eachSchoolDocument._id.toString()].status
+          let status = submissionSchoolMap[eachSchoolDocument._id.toString()] ? submissionSchoolMap[eachSchoolDocument._id.toString()].status : ""
           eachSchoolDocument['status'] = schoolStatusObject[status] || status;
         })
 
@@ -484,7 +484,7 @@ module.exports = class Programs extends Abstract {
             _id: { $in: programDocument.components[0].schools},
             blockId: blockId
           },
-          { name: 1, externalId: 1, addressLine1: 1, addressLine2: 1, city: 1 }
+          {name :1, externalId :1, addressLine1 : 1, addressLine2 : 1, city: 1}
         ).lean().exec();
 
         let result = {};
