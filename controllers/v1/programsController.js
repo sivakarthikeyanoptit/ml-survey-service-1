@@ -140,42 +140,38 @@ module.exports = class Programs extends Abstract {
 
         let schoolName = {};
         let schoolExternalId = {};
+        let result = {};
+        let schoolInformation = [];
+        
+        let schoolStatusObject = {
+          inprogress: 'In Progress',
+          completed: 'Complete',
+          blocked: 'Blocked',
+          started: 'Started'
+      }
 
         if (req.searchText != "") {
           schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
           schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
-        let programDocument = await database.models.programs.aggregate([
+        
+        let submissionDocument = await database.models.submissions.aggregate([
           {
             $match: {
-              _id: ObjectId(programId)
+              programId: ObjectId(programId),
+              evaluationFrameworkId: ObjectId(componentId)
             }
-          },
-          {
-            $unwind: "$components"
-          }, {
-            $match: {
-              "components.id": ObjectId(componentId)
-            }
-          }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
-          {
-            $lookup: {
-              from: "schools",
-              localField: "schoolIdInObjectIdForm",
-              foreignField: "_id",
-              as: "schoolInformation"
-            }
-          },
+          }, 
           {
             $project: {
-              "schoolInformation._id": 1,
-              "schoolInformation.externalId": 1,
               "schoolInformation.name": 1,
-              "_id": 0
+              "schoolInformation.addressLine1":1,
+              "schoolInformation.administration":1,
+              "schoolInformation.externalId": 1,
+              status:1
             }
           },
-          { $unwind: "$schoolInformation" },
           { $match: { $or: [schoolName, schoolExternalId] } },
           {
             $facet: {
@@ -187,20 +183,20 @@ module.exports = class Programs extends Abstract {
                 { $limit: req.pageSize }
               ],
             }
-          }
+          },
         ])
 
-        if (!programDocument) {
+        if (!submissionDocument) {
           throw "Bad request"
         }
 
-        let result = {};
-        let schoolInformation = [];
+        result["totalCount"] = submissionDocument[0].totalCount[0].count;
 
-        result["totalCount"] = programDocument[0].totalCount[0].count;
-
-        programDocument[0].schoolInformationData.forEach(eachSchoolData => {
-          schoolInformation.push(eachSchoolData.schoolInformation)
+        submissionDocument[0].schoolInformationData.forEach(eachSubmissionDocument=>{
+          if(eachSubmissionDocument.status && schoolStatusObject[eachSubmissionDocument.status]){
+            eachSubmissionDocument.schoolInformation["status"] = schoolStatusObject[eachSubmissionDocument.status]
+          }
+          schoolInformation.push(eachSubmissionDocument.schoolInformation)
         })
 
         result["schoolInformation"] = schoolInformation;

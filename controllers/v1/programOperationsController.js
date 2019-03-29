@@ -524,14 +524,15 @@ module.exports = class ProgramOperations {
                 schoolTypes = _.compact(types[0]);
                 administrationTypes = _.compact(types[1]);
 
-                schoolTypes = schoolTypes.map(schoolType => {
+
+                schoolTypes = schoolTypes.sort().map(schoolType => {
                     return {
                         label: schoolType,
                         value: schoolType
                     }
                 })
 
-                administrationTypes = administrationTypes.map(administrationType => {
+                administrationTypes = administrationTypes.sort().map(administrationType => {
                     return {
                         label: administrationType,
                         value: administrationType
