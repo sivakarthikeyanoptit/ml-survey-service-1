@@ -195,6 +195,18 @@ module.exports = class Assessors {
             updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
           }
 
+          //assessor school tracker
+          req.body = {
+            "action": assessor.schoolOperation,
+            "schools": assessor.schools,
+            "type": "ASSESSOR",
+            "assessorId": assessor.userId
+          }
+
+          let assessorSchoolTracker = new assessorSchoolTrackersBaseController;
+
+          await assessorSchoolTracker.upload(req)
+
           let programFrameworkRoles;
           let assessorRole;
           let assessorCsvDataProgramId
