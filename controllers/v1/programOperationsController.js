@@ -2,7 +2,7 @@ const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
 
-    constructor(){
+    constructor() {
         this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
     }
 
@@ -42,13 +42,29 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
-                let programProject = {
-                    externalId: 1,
-                    name: 1,
-                    description: 1,
-                };
+                let programDocuments = await database.models.programs.aggregate([
+                    { "$match": { [`components.roles.${userRole}.users`]: req.userDetails.id } },
+                    {
+                        $lookup: {
+                            from: "evaluationFrameworks",
+                            localField: "components.id",
+                            foreignField: "_id",
+                            as: "assessments"
+                        }
+                    },
+                    {
+                        $project: {
+                            externalId: 1,
+                            name: 1,
+                            description: 1,
+                            "assessments._id": 1,
+                            "assessments.externalId": 1,
+                            "assessments.name": 1,
+                            "assessments.description": 1
+                        }
+                    }
+                ])
 
-                let programDocuments = await database.models.programs.find({ [`components.roles.${userRole}.users`]: req.userDetails.id }, programProject).lean();
                 let responseMessage;
                 let response;
 
