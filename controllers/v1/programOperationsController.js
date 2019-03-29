@@ -2,6 +2,10 @@ const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
 
+    constructor(){
+        this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
+    }
+
     checkUserAuthorization(userDetails) {
         let userRole = gen.utils.getUserRole(userDetails, true);
         if (userRole == "assessors") {
@@ -116,28 +120,47 @@ module.exports = class ProgramOperations {
                 assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
                 let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
+                
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
-                let schoolQueryObject = this.getQueryObject(req.query);
-
-                let filteredSchools;
-
+                
                 let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
-
+                
                 //get only uniq schoolIds
                 if (assessorSchoolIds.length) {
                     let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
                     assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
                 }
+                
+                
+                let schoolQueryObject = this.getQueryObject(req.query);
 
+                let schoolFilterByQueryParams;
 
                 if (!_.isEmpty(schoolQueryObject)) {
                     schoolQueryObject._id = { $in: assessorSchoolIds };
-                    filteredSchools = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
+                    delete schoolQueryObject.assessorName
+                    schoolFilterByQueryParams = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
                 }
 
                 let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: !_.isEmpty(schoolQueryObject) ? filteredSchools : assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
+                
+                if(req.query.fromDate){
+                    let userIds = assessorDetails.map(assessor=> assessor.userId);
+                    assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                }
+                
+                if(req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length){
+
+                    assessorSchoolIds = _.intersection(schoolFilterByQueryParams.map(school=> school._id.toString()),assessorSchoolIds);
+
+                }else if(!req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length){
+
+                    assessorSchoolIds = schoolFilterByQueryParams
+
+                }
+
+                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
                 let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
 
 
@@ -150,7 +173,8 @@ module.exports = class ProgramOperations {
                             let completedDate = moment(singleResult.completedDate);
                             dayDifference.push(completedDate.diff(startedDate, 'days'))
                         })
-                        return dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+                        let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+                        return parseFloat(averageTimeTaken.toFixed(2))
                     } else {
                         return 'N/A'
                     }
@@ -739,11 +763,11 @@ module.exports = class ProgramOperations {
 
                 }
 
-                if(!schoolIds.length){
+                if (!schoolIds.length && schoolIds.length < 1) {
                     schoolsAssessorDocuments[0].schools.forEach(school => {
                         schoolIds.push(school.toString());
                     })
-    
+
                     schoolsAssessorDocuments[0].children.forEach(child => {
                         child.schools.forEach(school => {
                             schoolIds.push(school.toString());
@@ -824,7 +848,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {}
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv','fromDate','toDate']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
