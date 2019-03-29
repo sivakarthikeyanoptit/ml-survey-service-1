@@ -757,9 +757,7 @@ module.exports = class ProgramOperations {
 
                     userIds = _.uniq(userIds);
 
-                    let assessorSchoolTracker = new assessorSchoolTrackersBaseController;
-
-                    schoolIds = await assessorSchoolTracker.filterByDate(req.query, userIds);
+                    schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
 
                 }
 
