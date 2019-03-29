@@ -141,63 +141,55 @@ module.exports = class Programs extends Abstract {
         let schoolName = {};
         let schoolExternalId = {};
         let result = {};
-        let schoolInformation = [];
 
         let schoolStatusObject = {
           inprogress: 'In Progress',
           completed: 'Complete',
           blocked: 'Blocked',
           started: 'Started'
-      }
+        }
 
         if (req.searchText != "") {
           schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
           schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
-        
-        let submissionDocument = await database.models.submissions.aggregate([
-          {
-            $match: {
-              programId: ObjectId(programId),
-              evaluationFrameworkId: ObjectId(componentId)
-            }
-          }, 
-          {
-            $project: {
-              "schoolInformation.name": 1,
-              "schoolInformation.addressLine1":1,
-              "schoolInformation.administration":1,
-              "schoolInformation.externalId": 1,
-              status:1
-            }
-          },
-          { $match: { $or: [schoolName, schoolExternalId] } },
-          {
-            $facet: {
-              "totalCount": [
-                { "$count": "count" }
-              ],
-              "schoolInformationData": [
-                { $skip: req.pageSize * (req.pageNo - 1) },
-                { $limit: req.pageSize }
-              ],
-            }
-          },
-        ])
+        let programDocument = await database.models.programs.findOne({
+          _id: ObjectId(programId)
+        }, { "components.id": 1,"components.schools": 1 }).lean()
 
-        if (!submissionDocument) {
-          throw "Bad request"
+        let frameWork = programDocument.components.find(component => component.id.toString() == componentId)
+
+        if (!frameWork) {
+          throw 'No framework found'
+        }
+        let limitValue = (!req.pageSize) ? "" : req.pageSize;
+        let skipValue = (!req.pageNo) ? "" : (req.pageSize * (req.pageNo - 1));
+
+        let queryObject = {};
+        queryObject["_id"] = { $in: frameWork.schools };
+        if (req.searchText != "") {
+          queryObject["$or"] = [{ name: new RegExp(req.searchText, 'i') }, { externalId: new RegExp(req.searchText, 'i') }];
         }
 
-        result["totalCount"] = submissionDocument[0].totalCount[0].count;
+        let schoolDocuments = await database.models.schools.find(queryObject,{
+          name:1,addressLine1:1,administration:1,externalId:1
+        }).limit(limitValue).skip(skipValue).lean();
 
-        submissionDocument[0].schoolInformationData.forEach(eachSubmissionDocument=>{
-            eachSubmissionDocument.schoolInformation["status"] = schoolStatusObject[eachSubmissionDocument.status]
-            schoolInformation.push(eachSubmissionDocument.schoolInformation)
+        let totalCount = await database.models.schools.countDocuments(queryObject);
+
+        let submissionDocument = await database.models.submissions.find({schoolId:{ $in: schoolDocuments.map(school=> school._id) }},{status:1,schoolId:1}).lean()
+        
+        let submissionSchoolMap = _.keyBy(submissionDocument,'schoolId');
+
+        result["totalCount"] = totalCount;
+
+        schoolDocuments.forEach(eachSchoolDocument => {
+          let status = submissionSchoolMap[eachSchoolDocument._id.toString()].status
+          eachSchoolDocument['status'] = schoolStatusObject[status] || status;
         })
 
-        result["schoolInformation"] = schoolInformation;
+        result["schoolInformation"] = schoolDocuments;
 
         return resolve({ message: "List of schools fetched successfully", result: result })
       }
@@ -492,7 +484,7 @@ module.exports = class Programs extends Abstract {
             _id: { $in: programDocument.components[0].schools},
             blockId: blockId
           },
-          {name :1, externalId :1, addressLine1 : 1, addressLine2 : 1, city: 1}
+          { name: 1, externalId: 1, addressLine1: 1, addressLine2: 1, city: 1 }
         ).lean().exec();
 
         let result = {};
