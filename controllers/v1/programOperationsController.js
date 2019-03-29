@@ -2,7 +2,7 @@ const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
 
-    constructor(){
+    constructor() {
         this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
     }
 
@@ -42,13 +42,29 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
-                let programProject = {
-                    externalId: 1,
-                    name: 1,
-                    description: 1,
-                };
+                let programDocuments = await database.models.programs.aggregate([
+                    { "$match": { [`components.roles.${userRole}.users`]: req.userDetails.id } },
+                    {
+                        $lookup: {
+                            from: "evaluationFrameworks",
+                            localField: "components.id",
+                            foreignField: "_id",
+                            as: "assessments"
+                        }
+                    },
+                    {
+                        $project: {
+                            externalId: 1,
+                            name: 1,
+                            description: 1,
+                            "assessments._id": 1,
+                            "assessments.externalId": 1,
+                            "assessments.name": 1,
+                            "assessments.description": 1
+                        }
+                    }
+                ])
 
-                let programDocuments = await database.models.programs.find({ [`components.roles.${userRole}.users`]: req.userDetails.id }, programProject).lean();
                 let responseMessage;
                 let response;
 
@@ -176,7 +192,7 @@ module.exports = class ProgramOperations {
                         let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
                         return parseFloat(averageTimeTaken.toFixed(2))
                     } else {
-                        return 'N/A'
+                        return ''
                     }
                 }
 
@@ -196,9 +212,9 @@ module.exports = class ProgramOperations {
                     let schoolAssigned = schoolsByAssessor.length;
                     let assessorResult = {
                         name: assessor.name || "",
-                        schoolsAssigned: schoolAssigned || 0,
-                        schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || 0,
+                        schoolsAssigned: schoolAssigned || "",
+                        schoolsCompleted: schoolData.completed || "",
+                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || "",
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -310,8 +326,8 @@ module.exports = class ProgramOperations {
                     let resultObject = {};
                     resultObject.status = submissionDetails ? (schoolStatusObject[submissionDetails.status] || submissionDetails.status) : "";
                     resultObject.name = singleSchoolDocument.name || "";
-                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : 0;
-                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : 0;
+                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
+                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
 
                     if (isCSV == "true") {
                         input.push(resultObject)
@@ -421,19 +437,19 @@ module.exports = class ProgramOperations {
                             },
                             {
                                 label: "schoolsAssigned",
-                                value: 0,
+                                value: "",
                             },
                             {
                                 label: "schoolsCompleted",
-                                value: 0,
+                                value: "",
                             },
                             {
                                 label: "schoolsInporgress",
-                                value: 0,
+                                value: "",
                             },
                             {
                                 label: "averageTimeTakenInDays",
-                                value: 0,
+                                value: "",
                             },
                             {
                                 label: "userName",
@@ -490,15 +506,15 @@ module.exports = class ProgramOperations {
                     },
                     {
                         label: "schoolsCompleted",
-                        value: schoolsCompletedCount || 0,
+                        value: schoolsCompletedCount || "",
                     },
                     {
                         label: "schoolsInporgress",
-                        value: schoolsInprogressCount || 0,
+                        value: schoolsInprogressCount || "",
                     },
                     {
                         label: "averageTimeTakenInDays",
-                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || 0) : 0,
+                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "",
                     },
                     {
                         label: "userName",
