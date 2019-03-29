@@ -333,8 +333,7 @@ module.exports = class Insights extends Abstract {
 
         responseObject.sections = new Array
 
-        Object.keys(insightResult).forEach(hierarchyLevel => {
-          let content = insightResult[hierarchyLevel]
+        let generateSections = function(content) {
 
           if(content.data.length > 0) {
 
@@ -389,12 +388,19 @@ module.exports = class Insights extends Abstract {
             }
   
             responseObject.sections.push(eachSection)
+          } else {
+            Object.keys(content).forEach(subTheme => {
+              if (subTheme != "data") {
+                generateSections(content[subTheme])
+              }
+            })
           }
-          // } else {
-          //   Object.keys(content).forEach(subTheme => {
+          
+        }
 
-          //   })
-          // }
+        Object.keys(insightResult).forEach(hierarchyLevel => {
+          let eachLevelContent = insightResult[hierarchyLevel]
+          generateSections(eachLevelContent)
         })
 
 
