@@ -142,7 +142,7 @@ module.exports = class Programs extends Abstract {
         let schoolExternalId = {};
         let result = {};
         let schoolInformation = [];
-        
+
         let schoolStatusObject = {
           inprogress: 'In Progress',
           completed: 'Complete',
@@ -193,10 +193,8 @@ module.exports = class Programs extends Abstract {
         result["totalCount"] = submissionDocument[0].totalCount[0].count;
 
         submissionDocument[0].schoolInformationData.forEach(eachSubmissionDocument=>{
-          if(eachSubmissionDocument.status && schoolStatusObject[eachSubmissionDocument.status]){
             eachSubmissionDocument.schoolInformation["status"] = schoolStatusObject[eachSubmissionDocument.status]
-          }
-          schoolInformation.push(eachSubmissionDocument.schoolInformation)
+            schoolInformation.push(eachSubmissionDocument.schoolInformation)
         })
 
         result["schoolInformation"] = schoolInformation;
