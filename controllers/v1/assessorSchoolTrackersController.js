@@ -99,11 +99,12 @@ module.exports = class AssessorSchoolTrackers extends Abstract {
 
                 let toDate = await database.models.assessorSchoolTrackers.find({ assessorId: userId, dateOfOperation: { $lte: params.toDate } }, { dateOfOperation: 1 }).sort({ dateOfOperation: -1 }).limit(1);
 
+
                 let queryObject = {};
                 queryObject.assessorId = userId;
                 queryObject.dateOfOperation = {};
-                queryObject.dateOfOperation['$gte'] = fromDate[0].dateOfOperation;
-                if (toDate.length) queryObject.dateOfOperation['$lte'] = toDate[0].dateOfOperation.setHours(23, 59, 59);
+                if (fromDate.length) queryObject.dateOfOperation['$gte'] = moment(fromDate[0].dateOfOperation).startOf('day');
+                if (toDate.length) queryObject.dateOfOperation['$lte'] = moment(toDate[0].dateOfOperation).endOf('day');
                 return database.models.assessorSchoolTrackers.distinct('updatedData', queryObject).exec()
             }))
             let result = _.uniq(_.flattenDeep(filterdDocuments))
