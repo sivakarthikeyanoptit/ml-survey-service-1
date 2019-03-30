@@ -403,10 +403,64 @@ module.exports = class Insights extends Abstract {
           generateSections(eachLevelContent)
         })
 
+        criteriaResult.forEach(criteriaGroup => {
+
+          let tableData = new Array
+          let subThemeLabel = ""
+          content.data.forEach(row => {
+            subThemeLabel = row.label
+            row.score = Number(row.score)
+            tableData.push(_.pick(row, ["name","score"]))
+          })
+
+          let sectionHeading = "Detailed report for each "+something
+          let graphTitle = (hierarchyLevel == 0) ? "Performance by themes" : "Performance in theme "+subThemeLabel
+          let graphSubTitle = (hierarchyLevel == 0) ? "Performance of school acorss themes" : "Performance of school in sub categories of  "+subThemeLabel
+
+          let graphHAxisTitle = (hierarchyLevel == 0) ? "Themes in the school development framework" : "Categories within  "+subThemeLabel
+
+          let eachSection = {
+            table: true,
+            graph: true,
+            heading: sectionHeading,
+            graphData: {
+              title: graphTitle,
+              subTitle: graphSubTitle,
+              chartType: 'ColumnChart',
+              chartOptions: {
+                is3D: true,
+                isStack: true,
+                vAxis: {
+                  title: 'Percentage of development (out of 100%)',
+                  minValue: 0
+                },
+                hAxis: {
+                  title: graphHAxisTitle,
+                  showTextEvery: 1
+                }
+              }
+            },
+            data: tableData,
+            tabularData: {
+              headers: [
+                {
+                  name: "name",
+                  value: subThemeLabel
+                },
+                {
+                  name: "score",
+                  value: "Performance Index In %"
+                }
+              ]
+            }
+          }
+
+          responseObject.sections.push(eachSection)
+        })
 
         let response = {
           message: "Insights report fetched successfully.",
-          result: responseObject
+          result: criteriaResult
         };
 
         return resolve(response);
