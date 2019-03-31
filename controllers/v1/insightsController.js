@@ -337,7 +337,7 @@ module.exports = class Insights extends Abstract {
 
         let themeSummarySectionHeaders = new Array
         themeSummarySectionHeaders.push({
-          name: "subtheme",
+          name: "name",
           value: ""
         })
         for(var k in insights.levelToScoreMapping) themeSummarySectionHeaders.push({name: k,value: insights.levelToScoreMapping[k].label})
@@ -401,10 +401,10 @@ module.exports = class Insights extends Abstract {
             responseObject.sections.push(eachSection)
 
             let tableSummaryTotal = {
-              "subtheme" : "Total"
+              "name" : "Total"
             }
             let tableSummaryPercentage = {
-              "subtheme" : "% for all themes"
+              "name" : "% for all themes"
             }
             for(var k in insights.levelToScoreMapping) {
               tableSummaryTotal[k] = 0
@@ -462,6 +462,7 @@ module.exports = class Insights extends Abstract {
           let criteriaParent = criteriaGroup.hierarchyTrack[criteriaGroup.hierarchyTrack.length -1].label
 
           criteriaGroup.data.forEach(row => {
+            row.level = Number(row.level.substr(1))
             tableData.push(_.pick(row, ["name","level"]))
           })
 
