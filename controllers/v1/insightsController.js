@@ -333,6 +333,16 @@ module.exports = class Insights extends Abstract {
 
         responseObject.sections = new Array
 
+        let themeSummary = new Array
+
+        let themeSummarySectionHeaders = new Array
+        themeSummarySectionHeaders.push({
+          name: "subtheme",
+          value: ""
+        })
+        for(var k in insights.levelToScoreMapping) themeSummarySectionHeaders.push({name: k,value: insights.levelToScoreMapping[k].label})
+
+
         let generateSections = function(content) {
 
           if(content.data.length > 0) {
@@ -386,8 +396,51 @@ module.exports = class Insights extends Abstract {
                 ]
               }
             }
-  
+
+
             responseObject.sections.push(eachSection)
+
+            let tableSummaryTotal = {
+              "subtheme" : "Total"
+            }
+            let tableSummaryPercentage = {
+              "subtheme" : "% for all themes"
+            }
+            for(var k in insights.levelToScoreMapping) {
+              tableSummaryTotal[k] = 0
+              tableSummaryPercentage[k] = 0
+            }
+
+            let summaryTableData = new Array
+            let totalThemeCount = 0
+            content.data.forEach(row => {
+              for(var k in insights.levelToScoreMapping) {
+                row[k] = row.criteriaLevelCount[k]
+                tableSummaryTotal[k] += row.criteriaLevelCount[k]
+                totalThemeCount += row.criteriaLevelCount[k]
+              }
+              summaryTableData.push(_.pick(row, ["name",...Object.keys(insights.levelToScoreMapping)]))
+            })
+
+            for(var k in insights.levelToScoreMapping) {
+              tableSummaryPercentage[k] = Number(((tableSummaryTotal[k] / totalThemeCount) * 100).toFixed(2))
+            }
+            summaryTableData.push(tableSummaryTotal)
+            summaryTableData.push(tableSummaryPercentage)
+            
+            let summaryTableSectionHeading = (hierarchyLevel > 0) ? "Performance report for " +insights.schoolName + " for each " : "Performance Report for " + insights.schoolName + " by "
+
+            let eachSummarySection = {
+              table: true,
+              graph: false,
+              heading: summaryTableSectionHeading,
+              data: summaryTableData,
+              tabularData: {
+                headers: themeSummarySectionHeaders
+              }
+            }
+  
+            themeSummary.push(eachSummarySection)
           } else {
             Object.keys(content).forEach(subTheme => {
               if (subTheme != "data") {
@@ -454,6 +507,8 @@ module.exports = class Insights extends Abstract {
 
           responseObject.sections.push(eachSection)
         })
+
+        responseObject.sections = _.concat(responseObject.sections, ...themeSummary)
 
         let response = {
           message: "Insights report fetched successfully.",
