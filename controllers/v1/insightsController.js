@@ -327,7 +327,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             title:"Date of Assessment",
-            value:new Date()
+            value:insights.ratingCompletedAt.toDateString()
           }
         ]
 
@@ -461,6 +461,14 @@ module.exports = class Insights extends Abstract {
           let tableData = new Array
           let criteriaParent = criteriaGroup.hierarchyTrack[criteriaGroup.hierarchyTrack.length -1].label
 
+          let sectionSummary = new Array
+          criteriaGroup.hierarchyTrack.forEach(hierarchyLevel => {
+            sectionSummary.push({
+              value: hierarchyLevel.name,
+              label: hierarchyLevel.label
+            })
+          })
+
           criteriaGroup.data.forEach(row => {
             row.level = Number(row.level.substr(1))
             tableData.push(_.pick(row, ["name","level"]))
@@ -474,6 +482,7 @@ module.exports = class Insights extends Abstract {
             table: true,
             graph: true,
             heading: sectionHeading,
+            summary: sectionSummary,
             graphData: {
               title: graphTitle,
               subTitle: graphSubTitle,
