@@ -403,6 +403,57 @@ module.exports = class Insights extends Abstract {
           generateSections(eachLevelContent)
         })
 
+        criteriaResult.forEach(criteriaGroup => {
+
+          let tableData = new Array
+          let criteriaParent = criteriaGroup.hierarchyTrack[criteriaGroup.hierarchyTrack.length -1].label
+
+          criteriaGroup.data.forEach(row => {
+            tableData.push(_.pick(row, ["name","level"]))
+          })
+
+          let sectionHeading = "Detailed report for each "+criteriaParent
+          let graphTitle = "Distribution of levels by criteria"
+          let graphSubTitle = "Performance index"
+
+          let eachSection = {
+            table: true,
+            graph: true,
+            heading: sectionHeading,
+            graphData: {
+              title: graphTitle,
+              subTitle: graphSubTitle,
+              chartType: 'ColumnChart',
+              chartOptions: {
+                is3D: true,
+                isStack: true,
+                vAxis: {
+                  title: 'Level',
+                  minValue: 0
+                },
+                hAxis: {
+                  title: "Criteria",
+                  showTextEvery: 1
+                }
+              }
+            },
+            data: tableData,
+            tabularData: {
+              headers: [
+                {
+                  name: "name",
+                  value: "Criteria"
+                },
+                {
+                  name: "level",
+                  value: "Levels"
+                }
+              ]
+            }
+          }
+
+          responseObject.sections.push(eachSection)
+        })
 
         let response = {
           message: "Insights report fetched successfully.",
