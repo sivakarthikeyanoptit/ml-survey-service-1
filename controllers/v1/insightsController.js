@@ -406,18 +406,15 @@ module.exports = class Insights extends Abstract {
         criteriaResult.forEach(criteriaGroup => {
 
           let tableData = new Array
-          let subThemeLabel = ""
-          content.data.forEach(row => {
-            subThemeLabel = row.label
-            row.score = Number(row.score)
-            tableData.push(_.pick(row, ["name","score"]))
+          let criteriaParent = criteriaGroup.hierarchyTrack[criteriaGroup.hierarchyTrack.length -1].label
+
+          criteriaGroup.data.forEach(row => {
+            tableData.push(_.pick(row, ["name","level"]))
           })
 
-          let sectionHeading = "Detailed report for each "+something
-          let graphTitle = (hierarchyLevel == 0) ? "Performance by themes" : "Performance in theme "+subThemeLabel
-          let graphSubTitle = (hierarchyLevel == 0) ? "Performance of school acorss themes" : "Performance of school in sub categories of  "+subThemeLabel
-
-          let graphHAxisTitle = (hierarchyLevel == 0) ? "Themes in the school development framework" : "Categories within  "+subThemeLabel
+          let sectionHeading = "Detailed report for each "+criteriaParent
+          let graphTitle = "Distribution of levels by criteria"
+          let graphSubTitle = "Performance index"
 
           let eachSection = {
             table: true,
@@ -431,11 +428,11 @@ module.exports = class Insights extends Abstract {
                 is3D: true,
                 isStack: true,
                 vAxis: {
-                  title: 'Percentage of development (out of 100%)',
+                  title: 'Level',
                   minValue: 0
                 },
                 hAxis: {
-                  title: graphHAxisTitle,
+                  title: "Criteria",
                   showTextEvery: 1
                 }
               }
@@ -445,11 +442,11 @@ module.exports = class Insights extends Abstract {
               headers: [
                 {
                   name: "name",
-                  value: subThemeLabel
+                  value: "Criteria"
                 },
                 {
-                  name: "score",
-                  value: "Performance Index In %"
+                  name: "level",
+                  value: "Levels"
                 }
               ]
             }
@@ -460,7 +457,7 @@ module.exports = class Insights extends Abstract {
 
         let response = {
           message: "Insights report fetched successfully.",
-          result: criteriaResult
+          result: responseObject
         };
 
         return resolve(response);
