@@ -289,14 +289,14 @@ module.exports = class Insights extends Abstract {
             }
             recordsToProcess.forEach(record => {
               if(!record.hierarchyTrack[hierarchyLevel-1] || !record.hierarchyTrack[hierarchyLevel-1].name) {
-                insightResult[hierarchyLevel].data.push(_.omit(record,"hierarchyTrack"))
+                insightResult[hierarchyLevel].data.push(record)
               } else {
                 if(!insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name]) {
                   insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name] = {
                     data : new Array
                   }
                 }
-                insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name].data.push(_.omit(record,"hierarchyTrack"))
+                insightResult[hierarchyLevel][record.hierarchyTrack[hierarchyLevel-1].name].data.push(record)
               }
             })
             hierarchyLevel += 1
@@ -349,17 +349,21 @@ module.exports = class Insights extends Abstract {
 
             let tableData = new Array
             let subThemeLabel = ""
+            let parentThemeType = ""
+            let parentThemeName = ""
             content.data.forEach(row => {
               subThemeLabel = row.label
+              parentThemeType = (row.hierarchyTrack[row.hierarchyTrack.length-1]) ? row.hierarchyTrack[row.hierarchyTrack.length-1].label : ""
+              parentThemeName = (row.hierarchyTrack[row.hierarchyTrack.length-1]) ? row.hierarchyTrack[row.hierarchyTrack.length-1].name : ""
               row.score = Number(row.score)
               tableData.push(_.pick(row, ["name","score"]))
             })
 
-            let sectionHeading = (hierarchyLevel > 0) ? "Performance in theme " : ""
-            let graphTitle = (hierarchyLevel == 0) ? "Performance by themes" : "Performance in theme "+subThemeLabel
-            let graphSubTitle = (hierarchyLevel == 0) ? "Performance of school acorss themes" : "Performance of school in sub categories of  "+subThemeLabel
+            let sectionHeading = (hierarchyLevel > 0) ? parentThemeType + " - " + parentThemeName : "" 
+            let graphTitle = (hierarchyLevel > 0) ? "Performance in " + parentThemeName : "Performance by "+subThemeLabel
+            let graphSubTitle = (hierarchyLevel > 0) ? "Performance of school in sub categories of "+parentThemeName : "Performance of school acorss "+ subThemeLabel + " in the school development framework" 
 
-            let graphHAxisTitle = (hierarchyLevel == 0) ? "Themes in the school development framework" : "Categories within  "+subThemeLabel
+            let graphHAxisTitle = (hierarchyLevel > 0) ?  "Categories within  "+parentThemeName : subThemeLabel+" in the school development framework"
 
             let eachSection = {
               table: true,
