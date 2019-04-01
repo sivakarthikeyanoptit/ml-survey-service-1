@@ -610,7 +610,7 @@ module.exports = class ProgramOperations {
                         editable: true,
                         input: "date",
                         validation: {
-                            required: false
+                            required: true
                         },
                         min: new Date(0),
                         max: new Date()
@@ -623,7 +623,7 @@ module.exports = class ProgramOperations {
                         editable: true,
                         input: "date",
                         validation: {
-                            required: false
+                            required: true
                         },
                         min: new Date(0),
                         max: new Date()
@@ -684,7 +684,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `/${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
