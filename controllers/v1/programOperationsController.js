@@ -397,82 +397,24 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @api {get} /assessment/api/v1/programOperations/managerProfile 
     * @apiVersion 0.0.1
-    * @apiName Fetch School Summary
+    * @apiName Manager profile
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async schoolSummary(req) {
+    async managerProfile(req) {
+
         this.checkUserAuthorization(req.userDetails);
+
         return new Promise(async (resolve, reject) => {
             try {
-
-                let schoolObjects = await this.getSchools(req, false);
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
-
-                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
-                    return resolve({
-                        result: [
-                            {
-                                label: "dateOfReportGeneration",
-                                value: moment().format('DD-MM-YYYY'),
-                            },
-                            {
-                                label: "nameOfTheManager",
-                                value: managerName
-                            },
-                            {
-                                label: "role",
-                                value: "",
-                            },
-                            {
-                                label: "nameOfTheProgram",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsAssigned",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsCompleted",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsInporgress",
-                                value: "",
-                            },
-                            {
-                                label: "averageTimeTakenInDays",
-                                value: "",
-                            },
-                            {
-                                label: "userName",
-                                value: "",
-                            },
-                            {
-                                label: "email",
-                                value: "",
-                            }
-                        ]
-                    })
-
-                let schoolDocuments = schoolObjects.result;
-
-                let schoolIds = schoolDocuments.map(school => school.id);
-
-                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
-
-                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
-
-                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
-
-                let programDocument = await this.getProgram(req.params._id);
 
                 let roles = {
                     assessors: "Assessors",
@@ -481,7 +423,7 @@ module.exports = class ProgramOperations {
                     programManagers: "Program Managers"
                 };
 
-                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+                let programDocument = await this.getProgram(req.params._id);
 
                 let result = [
                     {
@@ -501,6 +443,86 @@ module.exports = class ProgramOperations {
                         value: programDocument.name,
                     },
                     {
+                        label: "userName",
+                        value: req.userDetails.userName || "",
+                    },
+                    {
+                        label: "email",
+                        value: req.userDetails.email || "",
+                    }
+                ]
+
+                return resolve({
+                    message: 'Manager profile fetched successfully.',
+                    result: result
+                })
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+
+            }
+        })
+    }
+    
+    /**
+    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @apiVersion 0.0.1
+    * @apiName Fetch School Summary
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    async schoolSummary(req) {
+
+        this.checkUserAuthorization(req.userDetails);
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let schoolObjects = await this.getSchools(req, false);
+
+                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
+                    return resolve({
+                        result: [
+                            {
+                                label: "schoolsAssigned",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsCompleted",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsInporgress",
+                                value: "",
+                            },
+                            {
+                                label: "averageTimeTakenInDays",
+                                value: "",
+                            }
+                        ]
+                    })
+
+                let schoolDocuments = schoolObjects.result;
+
+                let schoolIds = schoolDocuments.map(school => school.id);
+
+                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
+
+                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
+
+                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
+
+                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+
+                let result = [
+                    {
                         label: "schoolsAssigned",
                         value: schoolDocuments.length,
                     },
@@ -515,14 +537,6 @@ module.exports = class ProgramOperations {
                     {
                         label: "averageTimeTakenInDays",
                         value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "",
-                    },
-                    {
-                        label: "userName",
-                        value: req.userDetails.userName || "",
-                    },
-                    {
-                        label: "email",
-                        value: req.userDetails.email || "",
                     }
                 ]
 
