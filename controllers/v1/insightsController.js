@@ -343,7 +343,7 @@ module.exports = class Insights extends Abstract {
         for(var k in insights.levelToScoreMapping) themeSummarySectionHeaders.push({name: k,value: insights.levelToScoreMapping[k].label})
 
 
-        let generateSections = function(content) {
+        let generateSections = function(content,hierarchyLevel) {
 
           if(content.data.length > 0) {
 
@@ -448,7 +448,7 @@ module.exports = class Insights extends Abstract {
           } else {
             Object.keys(content).forEach(subTheme => {
               if (subTheme != "data") {
-                generateSections(content[subTheme])
+                generateSections(content[subTheme],hierarchyLevel + 1)
               }
             })
           }
@@ -457,7 +457,7 @@ module.exports = class Insights extends Abstract {
 
         Object.keys(insightResult).forEach(hierarchyLevel => {
           let eachLevelContent = insightResult[hierarchyLevel]
-          generateSections(eachLevelContent)
+          generateSections(eachLevelContent,hierarchyLevel)
         })
 
         criteriaResult.forEach(criteriaGroup => {
