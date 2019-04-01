@@ -136,45 +136,51 @@ module.exports = class ProgramOperations {
                 assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
                 let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
-                
+
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
-                
                 let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
-                
+
                 //get only uniq schoolIds
                 if (assessorSchoolIds.length) {
                     let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
                     assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
                 }
-                
-                
-                let schoolQueryObject = this.getQueryObject(req.query);
 
-                let schoolFilterByQueryParams;
+                let userIds = assessorDetails.map(assessor => assessor.userId);
 
-                if (!_.isEmpty(schoolQueryObject)) {
-                    schoolQueryObject._id = { $in: assessorSchoolIds };
-                    delete schoolQueryObject.assessorName
-                    schoolFilterByQueryParams = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
-                }
+                // let schoolObjects = await this.getSchools(req, false, userIds);
+
+                // let schoolQueryObject = this.getQueryObject(req.query);
+
+                // let schoolFilterByQueryParams;
+
+                // if (!_.isEmpty(schoolQueryObject)) {
+                //     schoolQueryObject._id = { $in: assessorSchoolIds };
+                //     delete schoolQueryObject.assessorName
+                //     schoolFilterByQueryParams = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
+                // }
 
                 let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
-                
-                if(req.query.fromDate){
-                    let userIds = assessorDetails.map(assessor=> assessor.userId);
-                    assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
-                }
-                
-                if(req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length){
 
-                    assessorSchoolIds = _.intersection(schoolFilterByQueryParams.map(school=> school._id.toString()),assessorSchoolIds);
+                // if (req.query.fromDate) {
+                //     let userIds = assessorDetails.map(assessor => assessor.userId);
+                //     assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                // }
+                // assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                assessorSchoolIds = await this.getSchools(req, false, userIds);
 
-                }else if(!req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length){
+                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id)
 
-                    assessorSchoolIds = schoolFilterByQueryParams
+                // if (req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
 
-                }
+                //     assessorSchoolIds = _.intersection(schoolFilterByQueryParams.map(school => school._id.toString()), assessorSchoolIds);
+
+                // } else if (!req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
+
+                //     assessorSchoolIds = schoolFilterByQueryParams
+
+                // }
 
                 let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
                 let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
@@ -264,7 +270,7 @@ module.exports = class ProgramOperations {
                 let programExternalId = req.params._id;
 
                 let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false);
+                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false, []);
                 let programDocument = await this.getProgram(req.params._id);
 
                 if (!schoolDocuments)
@@ -397,82 +403,24 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @api {get} /assessment/api/v1/programOperations/managerProfile 
     * @apiVersion 0.0.1
-    * @apiName Fetch School Summary
+    * @apiName Manager profile
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async schoolSummary(req) {
+    async managerProfile(req) {
+
         this.checkUserAuthorization(req.userDetails);
+
         return new Promise(async (resolve, reject) => {
             try {
-
-                let schoolObjects = await this.getSchools(req, false);
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
-
-                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
-                    return resolve({
-                        result: [
-                            {
-                                label: "dateOfReportGeneration",
-                                value: moment().format('DD-MM-YYYY'),
-                            },
-                            {
-                                label: "nameOfTheManager",
-                                value: managerName
-                            },
-                            {
-                                label: "role",
-                                value: "",
-                            },
-                            {
-                                label: "nameOfTheProgram",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsAssigned",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsCompleted",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsInporgress",
-                                value: "",
-                            },
-                            {
-                                label: "averageTimeTakenInDays",
-                                value: "",
-                            },
-                            {
-                                label: "userName",
-                                value: "",
-                            },
-                            {
-                                label: "email",
-                                value: "",
-                            }
-                        ]
-                    })
-
-                let schoolDocuments = schoolObjects.result;
-
-                let schoolIds = schoolDocuments.map(school => school.id);
-
-                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
-
-                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
-
-                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
-
-                let programDocument = await this.getProgram(req.params._id);
 
                 let roles = {
                     assessors: "Assessors",
@@ -481,7 +429,7 @@ module.exports = class ProgramOperations {
                     programManagers: "Program Managers"
                 };
 
-                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+                let programDocument = await this.getProgram(req.params._id);
 
                 let result = [
                     {
@@ -501,6 +449,86 @@ module.exports = class ProgramOperations {
                         value: programDocument.name,
                     },
                     {
+                        label: "userName",
+                        value: req.userDetails.userName || "",
+                    },
+                    {
+                        label: "email",
+                        value: req.userDetails.email || "",
+                    }
+                ]
+
+                return resolve({
+                    message: 'Manager profile fetched successfully.',
+                    result: result
+                })
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+
+            }
+        })
+    }
+
+    /**
+    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @apiVersion 0.0.1
+    * @apiName Fetch School Summary
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    async schoolSummary(req) {
+
+        this.checkUserAuthorization(req.userDetails);
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let schoolObjects = await this.getSchools(req, false, []);
+
+                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
+                    return resolve({
+                        result: [
+                            {
+                                label: "schoolsAssigned",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsCompleted",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsInporgress",
+                                value: "",
+                            },
+                            {
+                                label: "averageTimeTakenInDays",
+                                value: "",
+                            }
+                        ]
+                    })
+
+                let schoolDocuments = schoolObjects.result;
+
+                let schoolIds = schoolDocuments.map(school => school.id);
+
+                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
+
+                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
+
+                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
+
+                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+
+                let result = [
+                    {
                         label: "schoolsAssigned",
                         value: schoolDocuments.length,
                     },
@@ -515,14 +543,6 @@ module.exports = class ProgramOperations {
                     {
                         label: "averageTimeTakenInDays",
                         value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "",
-                    },
-                    {
-                        label: "userName",
-                        value: req.userDetails.userName || "",
-                    },
-                    {
-                        label: "email",
-                        value: req.userDetails.email || "",
                     }
                 ]
 
@@ -664,7 +684,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `https://${process.env.SHIKSHALOKAM_BASE_HOST}${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `/${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -731,7 +751,7 @@ module.exports = class ProgramOperations {
     }
 
     //sub function to get schools based on program and current user role
-    async getSchools(req, pagination = false) {
+    async getSchools(req, pagination = false, assessorIds) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -763,31 +783,34 @@ module.exports = class ProgramOperations {
 
                 let schoolIds = [];
 
-                if (req.query.fromDate) {
-                    let userIds = [];
+                schoolsAssessorDocuments[0].schools.forEach(school => {
+                    schoolIds.push(school.toString());
+                })
 
-                    userIds.push(schoolsAssessorDocuments[0].userId)
-
-                    schoolsAssessorDocuments[0].children.forEach(child => {
-                        userIds.push(child.userId)
+                schoolsAssessorDocuments[0].children.forEach(child => {
+                    child.schools.forEach(school => {
+                        schoolIds.push(school.toString());
                     })
+                })
 
-                    userIds = _.uniq(userIds);
+                if (req.query.fromDate) {
+
+                    let userIds = [];
+                    if (assessorIds.length) {
+                        userIds = assessorIds;
+                    } else {
+                        userIds.push(schoolsAssessorDocuments[0].userId);
+
+                        schoolsAssessorDocuments[0].children.forEach(child => {
+                            userIds.push(child.userId)
+                        })
+
+                        userIds = _.uniq(userIds);
+                    }
+
 
                     schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
 
-                }
-
-                if (!schoolIds.length && schoolIds.length < 1) {
-                    schoolsAssessorDocuments[0].schools.forEach(school => {
-                        schoolIds.push(school.toString());
-                    })
-
-                    schoolsAssessorDocuments[0].children.forEach(child => {
-                        child.schools.forEach(school => {
-                            schoolIds.push(school.toString());
-                        })
-                    })
                 }
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
@@ -863,7 +886,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {}
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
