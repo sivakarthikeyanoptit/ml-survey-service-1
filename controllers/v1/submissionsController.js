@@ -1009,8 +1009,20 @@ module.exports = class Submission extends Abstract {
         req.body = req.body || {};
         let message = "Crtieria rating completed successfully"
 
+        let programId = req.query.programId
+        let schoolId = req.params._id
+
+        if(!programId){
+          throw "Program Id is not found"
+        }
+
+        if(!schoolId){
+          throw "School Id is not found"
+        }
+
         let queryObject = {
-          "schoolExternalId": req.params._id
+          "schoolExternalId": schoolId,
+          "programExternalId":programId
         }
 
         let submissionDocument = await database.models.submissions.findOne(
