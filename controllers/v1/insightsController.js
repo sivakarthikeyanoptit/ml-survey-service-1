@@ -558,7 +558,7 @@ module.exports = class Insights extends Abstract {
   /**
   * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:schoolId Return high level insights for a school
   * @apiVersion 0.0.1
-  * @apiName Generate Insights From Submissions
+  * @apiName Fetch High Level Insights For Entity
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?school=5c5147ae95743c5718445eff
   * @apiGroup insights
   * @apiUse successBody
@@ -589,6 +589,7 @@ module.exports = class Insights extends Abstract {
 
         let insightResult = {}
         let hierarchyLevel = 0
+        let themesToProcess = {}
 
         let recordsToProcess = insights.themeScores.filter(theme => theme.hierarchyLevel == hierarchyLevel);
         if(recordsToProcess.length > 0) {
@@ -598,6 +599,10 @@ module.exports = class Insights extends Abstract {
             }
           }
           recordsToProcess.forEach(record => {
+            themesToProcess[record.name] = {
+              name: record.name,
+              criteria: new Array
+            }
             if(!record.hierarchyTrack[hierarchyLevel-1] || !record.hierarchyTrack[hierarchyLevel-1].name) {
               insightResult[hierarchyLevel].data.push(record)
             } else {
@@ -661,7 +666,8 @@ module.exports = class Insights extends Abstract {
           for(var k in insights.levelToScoreMapping) {
             tableSummaryPercentage[k] = ((tableSummaryTotal[k] / totalThemeCount) * 100).toFixed(2)+"%"
           }
-          tableData.push(tableSummaryPercentage)
+          // tableData.push(tableSummaryPercentage)
+          tableData.push(tableSummaryTotal)
 
           let sectionSummary = [
             {
@@ -722,154 +728,132 @@ module.exports = class Insights extends Abstract {
           
         }
         
-        // let generateSections = function(content,hierarchyLevel) {
+        let generateSectionsForTheme = function(theme) {
 
-        //   if(content.data.length > 0) {
+          if(theme.criteria.length > 0) {
 
-        //     let table1Headers = [
-        //       {
-        //         name: "name",
-        //         value: "Core Standard"
-        //       },
-        //       {
-        //         name: "level",
-        //         value: "Availability"
-        //       }
-        //     ]
-        //     let table1Data = new Array
+            let table1Headers = [
+              {
+                name: "name",
+                value: "Core Standard"
+              },
+              {
+                name: "level",
+                value: "Availability"
+              }
+            ]
+            let table1Data = new Array
 
-        //     let table2Headers = [
-        //       {
-        //         name: "level",
-        //         value: "Levels"
-        //       },
-        //       {
-        //         name: "noOfCriteria",
-        //         value: "# of Criteria"
-        //       }
-        //     ]
-        //     let table2Data = new Array
-
-
-        //     let tableSummaryTotal = {}
-        //     for(var k in insights.levelToScoreMapping) {
-        //       tableSummaryTotal[k] = 0
-        //     }
+            let table2Headers = [
+              {
+                name: "level",
+                value: "Levels"
+              },
+              {
+                name: "noOfCriteria",
+                value: "# of Criteria"
+              }
+            ]
+            let table2Data = new Array
 
 
+            let tableSummaryTotal = {}
+            for(var k in insights.levelToScoreMapping) {
+              tableSummaryTotal[k] = 0
+            }
 
-        //     let sectionHeading = (hierarchyLevel > 0) ? parentThemeType + " - " + parentThemeName : "" 
-        //     let graphTitle = (hierarchyLevel > 0) ? "Performance in " + parentThemeName : "Performance by "+subThemeLabel
-        //     let graphSubTitle = (hierarchyLevel > 0) ? "Performance of school in sub categories of "+parentThemeName : "Performance of school acorss "+ subThemeLabel + " in the school development framework" 
+            theme.criteria.forEach(criteria => {
+              tableSummaryTotal[criteria.level] += 1
+              table1Data.push({
+                name: criteria.name,
+                level: Number(criteria.level.substr(1))
+              })
+            })
 
-        //     let graphHAxisTitle = (hierarchyLevel > 0) ?  "Categories within  "+parentThemeName : subThemeLabel+" in the school development framework"
-
-        //     let eachSubSection = {
-        //       table: true,
-        //       graph: true,
-        //       graphData: {
-        //         title: graphTitle,
-        //         subTitle: graphSubTitle,
-        //         chartType: 'ColumnChart',
-        //         chartOptions: {
-        //           is3D: true,
-        //           isStack: true,
-        //           vAxis: {
-        //             title: 'Percentage of development (out of 100%)',
-        //             minValue: 0
-        //           },
-        //           hAxis: {
-        //             title: graphHAxisTitle,
-        //             showTextEvery: 1
-        //           }
-        //         }
-        //       },
-        //       data: tableData,
-        //       tabularData: {
-        //         headers: [
-        //           {
-        //             name: "name",
-        //             value: subThemeLabel
-        //           },
-        //           {
-        //             name: "score",
-        //             value: "Performance Index In %"
-        //           }
-        //         ]
-        //       }
-        //     }
+            for(var k in insights.levelToScoreMapping) {
+              table2Data.push({
+                level : insights.levelToScoreMapping[k].label,
+                noOfCriteria: tableSummaryTotal[k]
+              })
+            }
 
 
-        //     responseObject.sections.push({
-        //       heading: sectionHeading,
-        //       subSections : [
-        //         eachSubSection
-        //       ]
-        //     })
+            let sectionHeading = "Key Domain - "+theme.name
 
-        //     let tableSummaryTotal = {
-        //       "name" : "Total"
-        //     }
-        //     let tableSummaryPercentage = {
-        //       "name" : "% for all themes"
-        //     }
-        //     for(var k in insights.levelToScoreMapping) {
-        //       tableSummaryTotal[k] = 0
-        //       tableSummaryPercentage[k] = 0
-        //     }
+            let subSection1 = {
+              table: true,
+              graph: true,
+              graphData: {
+                title:  "Key Domain - "+theme.name,
+                subTitle: "",
+                chartType: 'ColumnChart',
+                chartOptions: {
+                  is3D: true,
+                  isStack: true,
+                  vAxis: {
+                    title: 'Levels',
+                    minValue: 0
+                  },
+                  hAxis: {
+                    title: "Criteria under "+theme.name,
+                    showTextEvery: 1
+                  }
+                }
+              },
+              data: table1Data,
+              tabularData: {
+                headers: table1Headers
+              }
+            }
 
-        //     let summaryTableData = new Array
-        //     let totalThemeCount = 0
-        //     content.data.forEach(row => {
-        //       for(var k in insights.levelToScoreMapping) {
-        //         row[k] = row.criteriaLevelCount[k]
-        //         tableSummaryTotal[k] += row.criteriaLevelCount[k]
-        //         totalThemeCount += row.criteriaLevelCount[k]
-        //       }
-        //       summaryTableData.push(_.pick(row, ["name",...Object.keys(insights.levelToScoreMapping)]))
-        //     })
+            let subSection2 = {
+              table: true,
+              graph: true,
+              graphData: {
+                title:  "Summary of Distribution",
+                subTitle: "",
+                chartType: 'PieChart',
+                chartOptions: {
+                  is3D: true,
+                  isStack: true,
+                  vAxis: {
+                    title: 'Levels',
+                    minValue: 0
+                  },
+                  hAxis: {
+                    title: "Criteria under "+theme.name,
+                    showTextEvery: 1
+                  }
+                }
+              },
+              data: table2Data,
+              tabularData: {
+                headers: table2Headers
+              }
+            }
 
-        //     for(var k in insights.levelToScoreMapping) {
-        //       tableSummaryPercentage[k] = Number(((tableSummaryTotal[k] / totalThemeCount) * 100).toFixed(2))
-        //     }
-        //     summaryTableData.push(tableSummaryTotal)
-        //     summaryTableData.push(tableSummaryPercentage)
-            
-        //     let summaryTableSectionHeading = (hierarchyLevel > 0) ? "Performance report for " +insights.schoolName + " for each " : "Performance Report for " + insights.schoolName + " by "
+            responseObject.sections.push({
+              heading: sectionHeading,
+              subSections : [
+                subSection1,
+                subSection2
+              ]
+            })
 
-        //     let eachSummarySection = {
-        //       table: true,
-        //       graph: false,
-        //       data: summaryTableData,
-        //       tabularData: {
-        //         headers: themeSummarySectionHeaders
-        //       }
-        //     }
-
-        //     themeSummary.push({
-        //       heading: summaryTableSectionHeading,
-        //       subSections: eachSummarySection
-        //     })
-
-        //   } else {
-        //     Object.keys(content).forEach(subTheme => {
-        //       if (subTheme != "data") {
-        //         generateSections(content[subTheme],hierarchyLevel + 1)
-        //       }
-        //     })
-        //   }
+          }
           
-        // }
+        }
 
-        // Object.keys(insightResult).forEach(hierarchyLevel => {
-        //   if(hierarchyLevel > 0) {
-        //     let eachLevelContent = insightResult[hierarchyLevel]
-        //     generateSections(eachLevelContent,hierarchyLevel)
-        //   }
-        // })
+        for (let criteriaCounter = 0; criteriaCounter < insights.criteriaScores.length; criteriaCounter++) {
+          themesToProcess[insights.criteriaScores[criteriaCounter].hierarchyTrack[0].name].criteria.push(_.pick(insights.criteriaScores[criteriaCounter],["name","level"]))
+        }
+
+        Object.keys(themesToProcess).forEach(theme => {
+            generateSectionsForTheme(themesToProcess[theme])
+        })
 
         let response = {
-          message: "Insights report fetched successfully.",
+          message: "High Level Insights report fetched successfully.",
           result: responseObject
         };
 
