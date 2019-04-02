@@ -332,6 +332,11 @@ module.exports = class Insights extends Abstract {
           }
         ]
 
+        responseObject.frameworkUrl = {
+          label:"Framework Structure + rubric defintion",
+          link: "/evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+        }
+
         responseObject.sections = new Array
 
         let themeSummary = new Array
@@ -630,6 +635,11 @@ module.exports = class Insights extends Abstract {
           }
         ]
 
+        responseObject.frameworkUrl = {
+          label:"Framework Structure + rubric defintion",
+          link: "/evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+        }
+
         responseObject.sections = new Array
 
         let summarySectionTableHeaders = new Array
@@ -905,7 +915,8 @@ module.exports = class Insights extends Abstract {
             themeScores : 1,
             criteriaScores : 1,
             programId: 1,
-            levelToScoreMapping : 1
+            levelToScoreMapping : 1,
+            evaluationFrameworkId: 1
           }
         );
 
@@ -953,6 +964,12 @@ module.exports = class Insights extends Abstract {
           }
         ]
         responseObject.subTitle = "Categorization of schools at different level - %"
+
+        responseObject.frameworkUrl = {
+          label:"Framework Structure + rubric defintion",
+          link: "/evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+        }
+
         responseObject.sections = new Array
 
         let sectionHeaders = new Array
@@ -1060,7 +1077,8 @@ module.exports = class Insights extends Abstract {
             themeScores : 1,
             criteriaScores : 1,
             programId: 1,
-            levelToScoreMapping : 1
+            levelToScoreMapping : 1,
+            evaluationFrameworkId: 1
           }
         );
 
@@ -1095,7 +1113,18 @@ module.exports = class Insights extends Abstract {
             value: moment().format('DD-MM-YYYY')
           }
         ]
+
+        
+        let criteriaLevelCount = {}
+        for(var k in insights[0].levelToScoreMapping) criteriaLevelCount[k] = 0
+
         responseObject.subTitle = "Categorization of schools at different level - %"
+
+        responseObject.frameworkUrl = {
+          label:"Framework Structure + rubric defintion",
+          link: "/evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+        }
+
         responseObject.sections = new Array
 
         let tableHeader = {
@@ -1110,12 +1139,19 @@ module.exports = class Insights extends Abstract {
             criteria: {}
           }
         })
+
+        let totalCriteriaCount = 0
         insights[0].criteriaScores.forEach(criteria=> {
+          totalCriteriaCount += 1
           criteriaThemeGrouping[criteria.hierarchyTrack[0].name].criteria[criteria.name] = {
             criteriaName: criteria.name
           }
         })
-
+        responseObject.summary.push({
+            label : "Number of criteria in each school:",
+            value: totalCriteriaCount
+        })
+          
         Object.keys(insightResult).forEach(themeName=>{
 
           let tableHeaders = new Array
@@ -1136,6 +1172,7 @@ module.exports = class Insights extends Abstract {
             insight.criteriaScores.forEach(criteria => {
               if(criteria.hierarchyTrack[0].name == themeName) {
                 eachRow[criteria.name] = Number(criteria.level.substr(1))
+                criteriaLevelCount[criteria.level]+=1
               }
             })
             tableData.push(eachRow)
@@ -1177,6 +1214,12 @@ module.exports = class Insights extends Abstract {
 
         })
 
+        for(var k in insights[0].levelToScoreMapping) {
+          responseObject.summary.push({
+            label: "% of criteria in "+k,
+            value: ((criteriaLevelCount[k] / (totalCriteriaCount * insights.length) ) * 100).toFixed(2)
+          })
+        }
 
         let response = {
           message: "Insights report fetched successfully.",
