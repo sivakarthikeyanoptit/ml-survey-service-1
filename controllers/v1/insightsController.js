@@ -449,8 +449,11 @@ module.exports = class Insights extends Abstract {
   
             themeSummary.push({
               heading: summaryTableSectionHeading,
-              subSections: eachSummarySection
+              subSections : [
+                eachSummarySection
+              ]
             })
+            
           } else {
             Object.keys(content).forEach(subTheme => {
               if (subTheme != "data") {
