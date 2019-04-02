@@ -243,16 +243,16 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityReport/:schoolId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:schoolId Return insights for a school
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
-  * @apiSampleRequest /assessment/api/v1/insights/singleEntityReport/5c5147ae95743c5718445eff
+  * @apiSampleRequest /assessment/api/v1/insights/singleEntityDrillDownReport/5c5147ae95743c5718445eff
   * @apiGroup insights
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async singleEntityReport(req) {
+  async singleEntityDrillDownReport(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
@@ -871,16 +871,16 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/mutltiEntityReport/:programId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Return insights for a school
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
-  * @apiSampleRequest /assessment/api/v1/insights/mutltiEntityReport/5c5147ae95743c5718445eff
+  * @apiSampleRequest /assessment/api/v1/insights/multiEntityHighLevelReport/5c5147ae95743c5718445eff
   * @apiGroup insights
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async multiEntityReport(req) {
+  async multiEntityHighLevelReport(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
@@ -1032,7 +1032,7 @@ module.exports = class Insights extends Abstract {
   * @apiUse errorBody
   */
 
-  async multiEntityDrilldownReport(req) {
+  async multiEntityDrillDownReport(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
