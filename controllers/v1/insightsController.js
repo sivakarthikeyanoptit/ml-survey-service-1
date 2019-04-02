@@ -1026,10 +1026,10 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityDrilldownReport/:programId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Return insights for a school
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
-  * @apiSampleRequest /assessment/api/v1/insights/multiEntityDrilldownReport/5c5147ae95743c5718445eff
+  * @apiSampleRequest /assessment/api/v1/insights/multiEntityDrillDownReport/5c5147ae95743c5718445eff
   * @apiGroup insights
   * @apiUse successBody
   * @apiUse errorBody
@@ -1044,6 +1044,7 @@ module.exports = class Insights extends Abstract {
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
         let schoolIdArray = (req && req.query && req.query.school) ? req.query.school.split(",") : []
+        let blockName = (req && req.query && req.query.blockName) ? req.query.blockName : ""
 
         if(!programId) throw "Program ID is mandatory."
         if(!(schoolIdArray.length > 0)) throw "School ID is mandatory."
@@ -1055,6 +1056,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             schoolId : 1,
+            schoolName : 1,
             themeScores : 1,
             criteriaScores : 1,
             programId: 1,
@@ -1062,38 +1064,30 @@ module.exports = class Insights extends Abstract {
           }
         );
 
-        if(!insights) throw "No insights found for this school"
+        if(!insights) throw "No insights found for given schools"
         
-        // let insightResult = {}
-        // let subThemeLabel = ""
-        // insights[0].themeScores.forEach(theme => {
-        //   if(theme.hierarchyLevel == 1) {
-        //       (!insightResult[theme.hierarchyTrack[0].name]) ? insightResult[theme.hierarchyTrack[0].name] = {} : ""
-        //       if(!insightResult[theme.hierarchyTrack[0].name][theme.name]) {
-        //         insightResult[theme.hierarchyTrack[0].name][theme.name] = {}
-        //       }
-        //       for(var k in insights[0].levelToScoreMapping) insightResult[theme.hierarchyTrack[0].name][theme.name][k] = 0;
-        //       subThemeLabel = theme.label
-        //   }
-        // })
-
-        // insights.forEach(insight => {
-        //   insight.themeScores.forEach(theme => {
-        //     if(theme.hierarchyLevel == 1) {
-        //       for(var k in theme.criteriaLevelCount) insightResult[theme.hierarchyTrack[0].name][theme.name][k]+=theme.criteriaLevelCount[k];
-        //     }
-        //   })
-        // })
+        let insightResult = {}
+        insights[0].themeScores.forEach(theme => {
+          if(theme.hierarchyLevel == 0) {
+              (!insightResult[theme.name]) ? insightResult[theme.name] = {name: theme.name,schools: {}} : ""
+              if(!insightResult[theme.name]) {
+                insightResult[theme.name] = {
+                  name: theme.name,
+                  schools: {}
+                }
+              }
+          }
+        })
 
         let responseObject = {}
-        responseObject.heading = "Performance Report for all Schools in the cluster/ hub"
+        responseObject.heading = "Performance Summary for all School in "+blockName
         responseObject.summary = [
           {
-            label : "Cluster Name",
-            value: "Name of the Cluster"
+            label : "Name of the Block",
+            value: blockName
           },
           {
-            label : "Number of schools",
+            label : "Total number of schools",
             value: insights.length
           },
           {
@@ -1101,132 +1095,87 @@ module.exports = class Insights extends Abstract {
             value: moment().format('DD-MM-YYYY')
           }
         ]
-
-        // ,
-        //   {
-        //     label : "No. Of Criteria in Each School",
-        //     value: new Date()
-        //   }
-        // for(var k in insights[0].levelToScoreMapping) responseObject.summary.push({label: "% of "+insights[0].levelToScoreMapping[k].label})
-
-        // responseObject.subTitle = "Categorization of schools at different level - %"
+        responseObject.subTitle = "Categorization of schools at different level - %"
         responseObject.sections = new Array
 
-        // let sectionHeaders = new Array
-        // sectionHeaders.push({
-        //   name: "subtheme",
-        //   value: subThemeLabel
-        // })
-        // for(var k in insights[0].levelToScoreMapping) sectionHeaders.push({name: k,value: insights[0].levelToScoreMapping[k].label})
-
-        insights[0].themeScores.forEach(eachTheme => {
-          if(eachTheme.hierarchyLevel == 0) {
-
-            let subThemeLabel = ""
-            let subThemes = insights[0].themeScores.filter(theme => {
-              if(theme.hierarchyLevel == 1) {
-                let isChildOfCurrentTheme  = theme.hierarchyTrack.filter(parentTheme => parentTheme.name == eachTheme.name)
-                if(isChildOfCurrentTheme.length > 0) {
-                  subThemeLabel = theme.label
-                  return true
-                }
-              }
-              return false
-            });
-
-            let sectionHeaders = new Array
-            sectionHeaders.push({
-              name: "schoolName",
-              value: subThemeLabel
-            })
-
-            subThemes.forEach(eachSubTheme => {
-              sectionHeaders.push({
-                name: eachSubTheme.externalId,
-                value: eachSubTheme.name
-              })
-            })
-
-            let eachSubSection = {
-              table: true,
-              graph: true,
-              heading: eachTheme.label+" - "+eachTheme.name,
-              graphData: {
-                title: 'Cluster performance report across schools',
-                subTitle: "Schools in the cluster performance across different "+ subThemeLabel +" in "+eachTheme.label+" - "+eachTheme.name,
-                chartType: 'ColumnChart',
-                chartOptions: {
-                  is3D: true,
-                  isStack: true,
-                  vAxis: {
-                    title: 'Levels',
-                    minValue: 0
-                  },
-                  hAxis: {
-                    title: 'Schools in the cluster',
-                    showTextEvery: 1
-                  }
-                }
-              },
-              data: new Array,
-              tabularData: {
-                headers: sectionHeaders
-              }
-            }
-
-            responseObject.sections.push({
-              heading: eachTheme.label+" - "+eachTheme.name,
-              subSections : [
-                eachSubSection
-              ]
-            })
+        let tableHeader = {
+          name: "schoolName",
+          value: "Core Standard"
+        }
+        
+        let criteriaThemeGrouping = {}
+        Object.keys(insightResult).forEach(themeName => {
+          criteriaThemeGrouping[themeName] = {
+            themeName : themeName,
+            criteria: {}
+          }
+        })
+        insights[0].criteriaScores.forEach(criteria=> {
+          criteriaThemeGrouping[criteria.hierarchyTrack[0].name].criteria[criteria.name] = {
+            criteriaName: criteria.name
           }
         })
 
-        // Object.keys(insightResult).forEach(themeName=>{
-          
-        //   let tableData = new Array
-        //   Object.keys(insightResult[themeName]).forEach(subTheme => {
-        //     let eachRow = {}
-        //     eachRow.subTheme = subTheme
-        //     _.merge(eachRow,insightResult[themeName][subTheme])
-        //     tableData.push(eachRow)
-        //   })
+        Object.keys(insightResult).forEach(themeName=>{
 
-        //   let eachSubSection = {
-        //     table: true,
-        //     graph: true,
-        //     heading: themeName,
-        //     graphData: {
-        //       title: 'Block performance report',
-        //       subTitle: 'Perfomance of schools in a block across '+subThemeLabel,
-        //       chartType: 'ColumnChart',
-        //       chartOptions: {
-        //         is3D: true,
-        //         isStack: true,
-        //         vAxis: {
-        //           title: 'Core standards of school improvement',
-        //           minValue: 0
-        //         },
-        //         hAxis: {
-        //           title: 'Percentage of Schools',
-        //           showTextEvery: 1
-        //         }
-        //       }
-        //     },
-        //     data: tableData,
-        //     tabularData: {
-        //       headers: sectionHeaders
-        //     }
-        //   }
+          let tableHeaders = new Array
+          tableHeaders.push(tableHeader)
+          Object.keys(criteriaThemeGrouping[themeName].criteria).forEach(criteriaName => {
+            tableHeaders.push({
+              name: criteriaName,
+              value:criteriaName
+            })
+          })
 
-        //   responseObject.sections.push({
-        //      heading: themeName,
-        //      subSections : [
-        //        eachSubSection
-        //      ]
-        //    })
-        // })
+          let tableData = new Array
+
+          insights.forEach(insight => {
+            let eachRow = {
+              schoolName: insight.schoolName
+            }
+            insight.criteriaScores.forEach(criteria => {
+              if(criteria.hierarchyTrack[0].name == themeName) {
+                eachRow[criteria.name] = Number(criteria.level.substr(1))
+              }
+            })
+            tableData.push(eachRow)
+          })
+
+          let eachSubSection = {
+            table: true,
+            graph: true,
+            heading: themeName,
+            graphData: {
+              title: 'Cluster performance report across schools',
+              subTitle: 'Schools in the clusters performance across different core-standards in key domain: '+themeName,
+              chartType: 'ColumnChart',
+              chartOptions: {
+                is3D: true,
+                isStacked: true,
+                vAxis: {
+                  title: 'Levels',
+                  minValue: 0
+                },
+                hAxis: {
+                  title: 'Schools in the cluster',
+                  showTextEvery: 1
+                }
+              }
+            },
+            data: tableData,
+            tabularData: {
+              headers: tableHeaders
+            }
+          }
+
+          responseObject.sections.push({
+            heading: "Key Domain "+themeName,
+            subSections : [
+              eachSubSection
+            ]
+          })
+
+        })
 
 
         let response = {
