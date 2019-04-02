@@ -697,10 +697,10 @@ module.exports = class Insights extends Abstract {
             graphData: {
               title: graphTitle,
               subTitle: graphSubTitle,
-              chartType: 'ColumnChart',
+              chartType: 'BarChart',
               chartOptions: {
                 is3D: true,
-                isStack: true,
+                isStacked: true,
                 vAxis: {
                   title: 'Key domain and totals',
                   minValue: 0
