@@ -1,3 +1,4 @@
+const moment = require("moment-timezone");
 module.exports = class Insights extends Abstract {
   /**
      * @apiDefine errorBody
@@ -327,7 +328,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             title:"Date of Assessment",
-            value:insights.ratingCompletedAt.toDateString()
+            value:moment(insights.ratingCompletedAt).format('DD-MM-YYYY')
           }
         ]
 
@@ -625,7 +626,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             title:"Date of Assessment",
-            value:insights.ratingCompletedAt.toDateString()
+            value:moment(insights.ratingCompletedAt).format('DD-MM-YYYY')
           }
         ]
 
@@ -889,6 +890,7 @@ module.exports = class Insights extends Abstract {
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
         let schoolIdArray = (req && req.query && req.query.school) ? req.query.school.split(",") : []
+        let blockName = (req && req.query && req.query.blockName) ? req.query.blockName : ""
 
         if(!programId) throw "Program ID is mandatory."
         if(!(schoolIdArray.length > 0)) throw "School ID is mandatory."
@@ -907,35 +909,39 @@ module.exports = class Insights extends Abstract {
           }
         );
 
-        if(!insights) throw "No insights found for this school"
+        if(!insights) throw "No insights found for given schools"
         
         let insightResult = {}
-        let subThemeLabel = ""
         insights[0].themeScores.forEach(theme => {
-          if(theme.hierarchyLevel == 1) {
-              (!insightResult[theme.hierarchyTrack[0].name]) ? insightResult[theme.hierarchyTrack[0].name] = {} : ""
-              if(!insightResult[theme.hierarchyTrack[0].name][theme.name]) {
-                insightResult[theme.hierarchyTrack[0].name][theme.name] = {}
+          if(theme.hierarchyLevel == 0) {
+              (!insightResult[theme.name]) ? insightResult[theme.name] = {name: theme.name,criteria: {}} : ""
+              if(!insightResult[theme.name]) {
+                insightResult[theme.name] = {
+                  name: theme.name,
+                  criteria: {}
+                }
               }
-              for(var k in insights[0].levelToScoreMapping) insightResult[theme.hierarchyTrack[0].name][theme.name][k] = 0;
-              subThemeLabel = theme.label
           }
         })
 
         insights.forEach(insight => {
-          insight.themeScores.forEach(theme => {
-            if(theme.hierarchyLevel == 1) {
-              for(var k in theme.criteriaLevelCount) insightResult[theme.hierarchyTrack[0].name][theme.name][k]+=theme.criteriaLevelCount[k];
+          insight.criteriaScores.forEach(criteria => {
+            if(!insightResult[criteria.hierarchyTrack[0].name].criteria[criteria.name]) {
+              insightResult[criteria.hierarchyTrack[0].name].criteria[criteria.name] = {
+                criteriaName: criteria.name
+              }
+              for(var k in insights[0].levelToScoreMapping) insightResult[criteria.hierarchyTrack[0].name].criteria[criteria.name][k] = 0
             }
+            insightResult[criteria.hierarchyTrack[0].name].criteria[criteria.name][criteria.level] += 1
           })
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance Summary for all School in Block/ District  to be passed in API "
+        responseObject.heading = "Performance Summary for all School in "+blockName
         responseObject.summary = [
           {
             label : "Name of the Block",
-            value: "Title of the Block"
+            value: blockName
           },
           {
             label : "Total number of schools",
@@ -943,7 +949,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             label : "Date",
-            value: new Date()
+            value: moment().format('DD-MM-YYYY')
           }
         ]
         responseObject.subTitle = "Categorization of schools at different level - %"
@@ -951,8 +957,8 @@ module.exports = class Insights extends Abstract {
 
         let sectionHeaders = new Array
         sectionHeaders.push({
-          name: "subtheme",
-          value: subThemeLabel
+          name: "criteriaName",
+          value: "Core Standard"
         })
         for(var k in insights[0].levelToScoreMapping) sectionHeaders.push({name: k,value: insights[0].levelToScoreMapping[k].label})
 
@@ -960,11 +966,8 @@ module.exports = class Insights extends Abstract {
         Object.keys(insightResult).forEach(themeName=>{
           
           let tableData = new Array
-          Object.keys(insightResult[themeName]).forEach(subTheme => {
-            let eachRow = {}
-            eachRow.subTheme = subTheme
-            _.merge(eachRow,insightResult[themeName][subTheme])
-            tableData.push(eachRow)
+          Object.keys(insightResult[themeName].criteria).forEach(criteria => {
+            tableData.push(insightResult[themeName].criteria[criteria])
           })
 
           let eachSubSection = {
@@ -973,11 +976,11 @@ module.exports = class Insights extends Abstract {
             heading: themeName,
             graphData: {
               title: 'Block performance report',
-              subTitle: 'Perfomance of schools in a block across '+subThemeLabel,
-              chartType: 'ColumnChart',
+              subTitle: 'Perfomance of schools in a block across core standards',
+              chartType: 'BarChart',
               chartOptions: {
                 is3D: true,
-                isStack: true,
+                isStacked: true,
                 vAxis: {
                   title: 'Core standards of school improvement',
                   minValue: 0
@@ -1095,7 +1098,7 @@ module.exports = class Insights extends Abstract {
           },
           {
             label : "Date",
-            value: new Date()
+            value: moment().format('DD-MM-YYYY')
           }
         ]
 
