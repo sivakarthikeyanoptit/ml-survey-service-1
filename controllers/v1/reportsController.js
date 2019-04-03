@@ -912,19 +912,18 @@ module.exports = class Reports {
         }());
 
         submissionDocument.criterias && submissionDocument.criterias.forEach(submissionCriterias => {
-          let levels = Object.values(submissionCriterias.rubric.levels);
-
+    
           if (submissionCriterias._id) {
             let criteriaReportObject = {
               "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
-              "Level 1": levels.find(level => level.level == "L1").description,
-              "Level 2": levels.find(level => level.level == "L2").description,
-              "Level 3": levels.find(level => level.level == "L3").description,
-              "Level 4": levels.find(level => level.level == "L4").description,
               "Score": submissionCriterias.score
                 ? submissionCriterias.score
                 : "NA"
             };
+
+            Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
+              criteriaReportObject[eachRubricLevel.label] = eachRubricLevel.description
+            });
             input.push(criteriaReportObject);
           }
         });          
