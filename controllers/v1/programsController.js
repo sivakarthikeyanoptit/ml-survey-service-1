@@ -234,7 +234,7 @@ module.exports = class Programs extends Abstract {
         let assessorSchoolsQueryObject = [
           {
             $match: {
-              userId: req.userDetails.userId,
+              userId: "32172a5c-8bfe-4520-9089-355de77aac71",
               programId: programDocument._id
             }
           },
@@ -261,6 +261,16 @@ module.exports = class Programs extends Abstract {
         ];
 
         const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
+
+        assessorsDocument[0].schoolDocuments.forEach(async eachSchoolDocument=>{
+          const insights = await database.models.insights.findOne({
+            schoolId:eachSchoolDocument._id
+          })
+        })
+        // const insights = await database.models.insights.find({
+        //   schoolId:{$in:assessorsDocument[0].schools},
+        //   programId:req.query.programId
+        // })
 
         return resolve({
           message: "School list fetched successfully",
