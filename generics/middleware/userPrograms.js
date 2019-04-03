@@ -1,10 +1,10 @@
 module.exports = async (req, res, next) => {
     if (req.userDetails.id) {
-        
-        let roles = ['programManagers', 'projectManagers', 'leadAssessors', 'assessors'];
+
+        let roles = _.pull(req.userDetails.allRoles, 'PUBLIC');
         let queryParams = roles.map(role => {
             return {
-                [`components.roles.${role}.users`]: { $in: [req.userDetails.id] }
+                [`components.roles.${gen.utils.mapUserRole(role)}.users`]: { $in: [req.userDetails.id] }
             }
         })
 
