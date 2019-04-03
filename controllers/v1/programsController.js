@@ -235,7 +235,7 @@ module.exports = class Programs extends Abstract {
         let assessorSchoolsQueryObject = [
           {
             $match: {
-              userId: "32172a5c-8bfe-4520-9089-355de77aac71",
+              userId: req.userDetails.userId,
               programId: programDocument._id
             }
           },
