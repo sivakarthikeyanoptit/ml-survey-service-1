@@ -1,6 +1,7 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
 let pagination = require(ROOT_PATH + "/generics/middleware/pagination");
 let dataRangeFilter = require(ROOT_PATH + "/generics/middleware/dateRangeFilter");
+let userPrograms = require(ROOT_PATH + "/generics/middleware/userPrograms");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -11,6 +12,7 @@ module.exports = function (app) {
   app.use(applicationBaseUrl, authenticator);
   app.use(applicationBaseUrl, pagination);
   app.use(applicationBaseUrl, dataRangeFilter);
+  app.use(applicationBaseUrl, userPrograms);
 
   var router = async function (req, res, next) {
 
