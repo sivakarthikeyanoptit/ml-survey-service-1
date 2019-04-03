@@ -470,41 +470,6 @@ module.exports = class Schools extends Abstract {
           "imageCompression"
         ]);
 
-        let schoolAssessorHierarchyObject = [
-          {
-            $match: {
-              userId: req.userDetails.id,
-              programId: programDocument._id
-            }
-          },
-          {
-            $graphLookup: {
-              from: "schoolAssessors", // Use the schoolAssessors collection
-              startWith: "$parentId", // Start looking at the document's `parentId` property
-              connectFromField: "parentId", // A link in the graph is represented by the parentId property...
-              connectToField: "userId", // ... pointing to another assessor's _id property
-              maxDepth: 2, // Only recurse one level deep
-              as: "connections" // Store this in the `connections` property
-            }
-          }
-        ];
-
-        // let userHierarchyDocument = await database.models.schoolAssessors.aggregate(schoolAssessorHierarchyObject);
-        // userHierarchyDocument[0].connections.forEach(connection => {
-        //   if (connection.role === "PROJECT_MANAGER") {
-        //     response.result.program.projectManagers = _.pick(connection, [
-        //       "userId",
-        //       "externalId"
-        //     ]);
-        //   }
-        //   if (connection.role === "LEAD_ASSESSOR") {
-        //     response.result.program.leadAssessors = _.pick(connection, [
-        //       "userId",
-        //       "externalId"
-        //     ]);
-        //   }
-        // });
-
         let submissionDocument = {
           schoolId: schoolDocument._id,
           schoolInformation: schoolDocument,
@@ -538,31 +503,31 @@ module.exports = class Schools extends Abstract {
           let component = programDocument.components[counter];
           let assessment = {};
 
-          let evaluationFrameworkQueryObject = [
-            { $match: { _id: ObjectId(component.id) } },
+          let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].findOne(
+            { _id: ObjectId(component.id) },
+            { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
+          ).lean();
+
+          assessment.name = evaluationFrameworkDocument.name;
+          assessment.description = evaluationFrameworkDocument.description;
+          assessment.externalId = evaluationFrameworkDocument.externalId;
+
+
+          submissionDocument.evaluationFrameworkId =  evaluationFrameworkDocument._id
+          submissionDocument.evaluationFrameworkExternalId =  evaluationFrameworkDocument.externalId
+
+          let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
+
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
+            { _id: { $in: criteriasIdArray } },
             {
-              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
+              resourceType:0,
+              language:0,
+              keywords:0,
+              concepts:0,
+              createdFor:0
             }
-          ];
-
-          let evaluationFrameworkDocument = await database.models[
-            "evaluationFrameworks"
-          ].aggregate(evaluationFrameworkQueryObject);
-
-          assessment.name = evaluationFrameworkDocument[0].name;
-          assessment.description = evaluationFrameworkDocument[0].description;
-          assessment.externalId = evaluationFrameworkDocument[0].externalId;
-
-
-          submissionDocument.evaluationFrameworkId =  evaluationFrameworkDocument[0]._id
-          submissionDocument.evaluationFrameworkExternalId =  evaluationFrameworkDocument[0].externalId
-
-          let criteriasIdArray = new Array
-          evaluationFrameworkDocument.forEach(eachEvaluation => {
-            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
-          });
-
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
+          ).lean();
 
           let evidenceMethodArray = {};
           let submissionDocumentEvidences = {};
@@ -571,12 +536,7 @@ module.exports = class Schools extends Abstract {
           criteriaQuestionDocument.forEach(criteria => {
 
             submissionDocumentCriterias.push(
-              _.omit(criteria._doc, [
-                "resourceType",
-                "language",
-                "keywords",
-                "concepts",
-                "createdFor",
+              _.omit(criteria, [
                 "evidences"
               ])
             );
@@ -656,7 +616,7 @@ module.exports = class Schools extends Abstract {
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
             submissionDoc.result.evidences,
-            (evaluationFrameworkDocument.length && evaluationFrameworkDocument[0].questionSequenceByEcm) ? evaluationFrameworkDocument[0].questionSequenceByEcm : false
+            (evaluationFrameworkDocument.length && evaluationFrameworkDocument.questionSequenceByEcm) ? evaluationFrameworkDocument.questionSequenceByEcm : false
           );
 
           assessment.evidences = parsedAssessment.evidences;
