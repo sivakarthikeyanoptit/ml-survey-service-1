@@ -219,6 +219,7 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
+        let insightController = new insightsBaseController;
 
         let programId = req.query.programId;
 
@@ -261,16 +262,36 @@ module.exports = class Programs extends Abstract {
         ];
 
         const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
+        
+        let schoolIds = new Array
 
-        assessorsDocument[0].schoolDocuments.forEach(async eachSchoolDocument=>{
-          const insights = await database.models.insights.findOne({
-            schoolId:eachSchoolDocument._id
-          })
+        assessorsDocument[0].schoolDocuments.forEach( eachSchoolDocument=>{
+          schoolIds.push(eachSchoolDocument._id) 
         })
-        // const insights = await database.models.insights.find({
-        //   schoolId:{$in:assessorsDocument[0].schools},
-        //   programId:req.query.programId
-        // })
+
+        let insightDocument = await insightController.insightsDocument(programId,schoolIds);
+
+        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({
+          _id:insightDocument[0].evaluationFrameworkId,
+          scoringSystem:{$exists:true,$ne:""}
+        }).lean()
+
+        let singleEntityDrillDown
+
+        if(evaluationFrameworkDocument){
+          singleEntityDrillDown = true
+        }
+
+        assessorsDocument[0].schoolDocuments.forEach(eachSchoolDocument=>{
+          if(insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolDocument._id.toString())){
+            eachSchoolDocument["isSingleEntityHighLevel"] = true
+            eachSchoolDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else{
+            eachSchoolDocument["isSingleEntityHighLevel"] = false
+            eachSchoolDocument["isSingleEntityDrillDown"] = false
+          }
+        })
+
 
         return resolve({
           message: "School list fetched successfully",
@@ -473,7 +494,7 @@ module.exports = class Programs extends Abstract {
   async blockSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
+        let insightController = new insightsBaseController;
         let programId = req.query.programId
         let blockId = req.query.blockId
 
@@ -497,7 +518,37 @@ module.exports = class Programs extends Abstract {
           {name :1, externalId :1, addressLine1 : 1, addressLine2 : 1, city: 1}
         ).lean().exec();
 
+        let schoolsIdArray = new Array
+
+        schoolsInBlock.forEach(eachSchoolsInBlock=>{
+          schoolsIdArray.push(eachSchoolsInBlock._id)
+        })
+
+        let insightDocument = await insightController.insightsDocument(programId,schoolsIdArray);
+
+
+        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({
+          _id:insightDocument[0].evaluationFrameworkId,
+          scoringSystem:{$exists:true,$ne:""}
+        }).lean()
+
+        let singleEntityDrillDown
+
+        if(evaluationFrameworkDocument){
+          singleEntityDrillDown = true
+        }
+
         let result = {};
+
+        schoolsInBlock.forEach(eachSchoolInBlock=>{
+          if(insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolInBlock._id.toString())){
+            eachSchoolInBlock["isSingleEntityHighLevel"] = true
+            eachSchoolInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else{
+            eachSchoolInBlock["isSingleEntityHighLevel"] = false
+            eachSchoolInBlock["isSingleEntityDrillDown"] = false
+          }
+        })
 
         result["schools"] = schoolsInBlock
 
@@ -515,5 +566,6 @@ module.exports = class Programs extends Abstract {
       }
     })
   }
+
 
 };
