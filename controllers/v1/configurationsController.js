@@ -7,7 +7,7 @@ module.exports = class Configurations extends Abstract {
         return "configurations";
     }
 
-    async sideBar(req) {
+    async navigation(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 _.pull(req.userDetails.allRoles, 'PUBLIC');
