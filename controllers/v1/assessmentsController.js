@@ -152,7 +152,7 @@ module.exports = class Assessments {
 
             criteriaQuestionDocument.forEach(criteria => {
                 submissionDocumentCriterias.push(
-                    _.omit(criteria._doc, [
+                    _.omit(criteria, [
                         "evidences"
                     ])
                 );
