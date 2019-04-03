@@ -27,7 +27,7 @@ module.exports = class Configurations extends Abstract {
                 }
                 return resolve({
                     message: "Configurations fetched successfully.",
-                    result: tabControlsDocument.result.tabGroups[userRole]
+                    result: tabControlsDocument.result.tabGroups[userRole] ? tabControlsDocument.result.tabGroups[userRole] : tabControlsDocument.result.tabGroups["DEFAULT"]
                 });
             } catch (error) {
                 return reject({
