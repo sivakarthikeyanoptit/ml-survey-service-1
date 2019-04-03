@@ -220,6 +220,7 @@ module.exports = class Programs extends Abstract {
 
       try {
         let insightController = new insightsBaseController;
+        let evaluationController = new evaluationFrameworksBaseController;
 
         let programId = req.query.programId;
 
@@ -271,10 +272,7 @@ module.exports = class Programs extends Abstract {
 
         let insightDocument = await insightController.insightsDocument(programId,schoolIds);
 
-        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({
-          _id:insightDocument[0].evaluationFrameworkId,
-          scoringSystem:{$exists:true,$ne:""}
-        }).lean()
+        let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
 
         let singleEntityDrillDown
 
@@ -494,6 +492,7 @@ module.exports = class Programs extends Abstract {
   async blockSchools(req) {
     return new Promise(async (resolve, reject) => {
       try {
+        let evaluationController = new evaluationFrameworksBaseController;
         let insightController = new insightsBaseController;
         let programId = req.query.programId
         let blockId = req.query.blockId
@@ -526,11 +525,7 @@ module.exports = class Programs extends Abstract {
 
         let insightDocument = await insightController.insightsDocument(programId,schoolsIdArray);
 
-
-        let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({
-          _id:insightDocument[0].evaluationFrameworkId,
-          scoringSystem:{$exists:true,$ne:""}
-        }).lean()
+        let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
 
         let singleEntityDrillDown
 
