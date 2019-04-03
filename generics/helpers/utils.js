@@ -100,5 +100,7 @@ module.exports = {
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
+  getUserRole: getUserRole,
+  mapUserRole: mapUserRole,
   getAllQuestionId: getAllQuestionId
 };
