@@ -6,10 +6,12 @@ module.exports = class ProgramOperations {
         this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
     }
 
-    checkUserAuthorization(userDetails) {
+    checkUserAuthorization(userDetails, programExternalId) {
         let userRole = gen.utils.getUserRole(userDetails, true);
-        if (userRole == "assessors") {
-            throw { status: 400, message: "You are not authorized to take this report." };
+        if (userRole == "assessors") throw { status: 400, message: "You are not authorized to take this report." };
+        if(userDetails.accessiblePrograms.length){
+            let userProgramExternalIds = userDetails.accessiblePrograms.map(program=> program.externalId);
+            if(!userProgramExternalIds.includes(programExternalId)) throw { status: 400, message: "You are not part of this program." };
         }
         return
     }
@@ -104,7 +106,7 @@ module.exports = class ProgramOperations {
   */
 
     async assessorReport(req) {
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails,req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -149,38 +151,11 @@ module.exports = class ProgramOperations {
 
                 let userIds = assessorDetails.map(assessor => assessor.userId);
 
-                // let schoolObjects = await this.getSchools(req, false, userIds);
+                let assessorSchoolMap = _.keyBy(assessorDetails, 'userId');
 
-                // let schoolQueryObject = this.getQueryObject(req.query);
-
-                // let schoolFilterByQueryParams;
-
-                // if (!_.isEmpty(schoolQueryObject)) {
-                //     schoolQueryObject._id = { $in: assessorSchoolIds };
-                //     delete schoolQueryObject.assessorName
-                //     schoolFilterByQueryParams = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
-                // }
-
-                let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
-
-                // if (req.query.fromDate) {
-                //     let userIds = assessorDetails.map(assessor => assessor.userId);
-                //     assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
-                // }
-                // assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
                 assessorSchoolIds = await this.getSchools(req, false, userIds);
 
-                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id)
-
-                // if (req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
-
-                //     assessorSchoolIds = _.intersection(schoolFilterByQueryParams.map(school => school._id.toString()), assessorSchoolIds);
-
-                // } else if (!req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
-
-                //     assessorSchoolIds = schoolFilterByQueryParams
-
-                // }
+                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id);
 
                 let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
                 let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
@@ -262,7 +237,7 @@ module.exports = class ProgramOperations {
     */
 
     async schoolReport(req) {
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails,req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
                 const self = new ProgramOperations;
@@ -413,7 +388,7 @@ module.exports = class ProgramOperations {
 
     async managerProfile(req) {
 
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails,req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -486,7 +461,7 @@ module.exports = class ProgramOperations {
 
     async schoolSummary(req) {
 
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -573,7 +548,7 @@ module.exports = class ProgramOperations {
     */
 
     async reportFilters(req) {
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails,req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -715,7 +690,7 @@ module.exports = class ProgramOperations {
 
     //searchSchool is for program operation search school autocomplete
     async searchSchool(req) {
-        this.checkUserAuthorization(req.userDetails);
+        this.checkUserAuthorization(req.userDetails,req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
