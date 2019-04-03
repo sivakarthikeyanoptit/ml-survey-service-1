@@ -334,7 +334,7 @@ module.exports = class Insights extends Abstract {
 
         responseObject.frameworkUrl = {
           label:"Framework Structure + rubric defintion",
-          link: "/evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+          link: "evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
         }
 
         responseObject.sections = new Array
@@ -637,7 +637,7 @@ module.exports = class Insights extends Abstract {
 
         responseObject.frameworkUrl = {
           label:"Framework Structure + rubric defintion",
-          link: "/evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+          link: "evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
         }
 
         responseObject.sections = new Array
@@ -967,7 +967,7 @@ module.exports = class Insights extends Abstract {
 
         responseObject.frameworkUrl = {
           label:"Framework Structure + rubric defintion",
-          link: "/evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+          link: "evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
         }
 
         responseObject.sections = new Array
@@ -1122,7 +1122,7 @@ module.exports = class Insights extends Abstract {
 
         responseObject.frameworkUrl = {
           label:"Framework Structure + rubric defintion",
-          link: "/evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+          link: "evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
         }
 
         responseObject.sections = new Array

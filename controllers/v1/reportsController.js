@@ -842,7 +842,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolId = {
-          ["schoolInformation.externalId"]: req.params._id
+          ["schoolExternalId"]: req.params._id
         };
 
         let submissionDocument = database.models.submissions.find(

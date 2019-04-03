@@ -60,7 +60,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
         let sectionHeaders = new Array
 
         sectionHeaders.push({
-          key:"criteriaName",
+          name:"criteriaName",
           value:"Domain"
         })
 

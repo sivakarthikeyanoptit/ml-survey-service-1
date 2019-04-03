@@ -64,7 +64,7 @@ module.exports = class Assessments {
                             'description': 1
                         }
                     }
-                ]);
+                ]).lean();
 
                 return resolve({
                     result: programDocument
@@ -103,11 +103,11 @@ module.exports = class Assessments {
             let assessmentId = req.query.assessmentId;
             let detailedAssessment = {};
 
-            let programDocument = await database.models.programs.findOne(
+            detailedAssessment.program = await database.models.programs.findOne(
                 { externalId: programExternalId },
-            );
+                {'components':0, 'isDeleted':0, 'updatedAt':0, 'createdAt':0}
+            ).lean();
 
-            detailedAssessment.program = _.pick(programDocument, ['_id', 'externalId', 'name', 'description', 'owner', 'createdBy', 'updatedBy', 'status', 'resourceType', 'language', 'keywords', 'concepts', 'createdFor', 'imageCompression'])
             detailedAssessment.entityProfile = await database.models.entityAssessors.findOne({}, {
                 "assessmentStatus": 0,
                 "deleted": 0,
@@ -115,7 +115,7 @@ module.exports = class Assessments {
                 "updatedAt": 0,
             });
 
-            let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId });
+            let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ _id: assessmentId }).lean();
 
             if (!frameWorkDocument) {
                 let responseMessage = 'No assessments found.';
@@ -135,7 +135,16 @@ module.exports = class Assessments {
             submissionDocument.evaluationFrameworkId =  frameWorkDocument._id
             submissionDocument.evaluationFrameworkExternalId =  frameWorkDocument.externalId
   
-            let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
+            let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
+                { _id: { $in: criteriasIdArray } },
+                {
+                    resourceType:0,
+                    language:0,
+                    keywords:0,
+                    concepts:0,
+                    createdFor:0
+                }
+            ).lean()
 
             let evidenceMethodArray = {};
             let submissionDocumentEvidences = {};
@@ -143,12 +152,7 @@ module.exports = class Assessments {
 
             criteriaQuestionDocument.forEach(criteria => {
                 submissionDocumentCriterias.push(
-                    _.omit(criteria._doc, [
-                        "resourceType",
-                        "language",
-                        "keywords",
-                        "concepts",
-                        "createdFor",
+                    _.omit(criteria, [
                         "evidences"
                     ])
                 );
