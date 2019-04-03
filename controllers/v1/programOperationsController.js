@@ -2,6 +2,10 @@ const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
 
+    constructor() {
+        this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
+    }
+
     checkUserAuthorization(userDetails) {
         let userRole = gen.utils.getUserRole(userDetails, true);
         if (userRole == "assessors") {
@@ -38,13 +42,29 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
-                let programProject = {
-                    externalId: 1,
-                    name: 1,
-                    description: 1,
-                };
+                let programDocuments = await database.models.programs.aggregate([
+                    { "$match": { [`components.roles.${userRole}.users`]: req.userDetails.id } },
+                    {
+                        $lookup: {
+                            from: "evaluationFrameworks",
+                            localField: "components.id",
+                            foreignField: "_id",
+                            as: "assessments"
+                        }
+                    },
+                    {
+                        $project: {
+                            externalId: 1,
+                            name: 1,
+                            description: 1,
+                            "assessments._id": 1,
+                            "assessments.externalId": 1,
+                            "assessments.name": 1,
+                            "assessments.description": 1
+                        }
+                    }
+                ])
 
-                let programDocuments = await database.models.programs.find({ [`components.roles.${userRole}.users`]: req.userDetails.id }, programProject).lean();
                 let responseMessage;
                 let response;
 
@@ -116,11 +136,8 @@ module.exports = class ProgramOperations {
                 assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
                 let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
+
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
-
-                let schoolQueryObject = this.getQueryObject(req.query);
-
-                let filteredSchools;
 
                 let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
 
@@ -130,14 +147,42 @@ module.exports = class ProgramOperations {
                     assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
                 }
 
+                let userIds = assessorDetails.map(assessor => assessor.userId);
 
-                if (!_.isEmpty(schoolQueryObject)) {
-                    schoolQueryObject._id = { $in: assessorSchoolIds };
-                    filteredSchools = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
-                }
+                // let schoolObjects = await this.getSchools(req, false, userIds);
+
+                // let schoolQueryObject = this.getQueryObject(req.query);
+
+                // let schoolFilterByQueryParams;
+
+                // if (!_.isEmpty(schoolQueryObject)) {
+                //     schoolQueryObject._id = { $in: assessorSchoolIds };
+                //     delete schoolQueryObject.assessorName
+                //     schoolFilterByQueryParams = await database.models.schools.find(schoolQueryObject, { _id: 1 }).lean();
+                // }
 
                 let assessorSchoolMap = _.keyBy(assessorDetails, 'userId')
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: !_.isEmpty(schoolQueryObject) ? filteredSchools : assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
+
+                // if (req.query.fromDate) {
+                //     let userIds = assessorDetails.map(assessor => assessor.userId);
+                //     assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                // }
+                // assessorSchoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                assessorSchoolIds = await this.getSchools(req, false, userIds);
+
+                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id)
+
+                // if (req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
+
+                //     assessorSchoolIds = _.intersection(schoolFilterByQueryParams.map(school => school._id.toString()), assessorSchoolIds);
+
+                // } else if (!req.query.fromDate && schoolFilterByQueryParams && schoolFilterByQueryParams.length) {
+
+                //     assessorSchoolIds = schoolFilterByQueryParams
+
+                // }
+
+                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
                 let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
 
 
@@ -150,9 +195,10 @@ module.exports = class ProgramOperations {
                             let completedDate = moment(singleResult.completedDate);
                             dayDifference.push(completedDate.diff(startedDate, 'days'))
                         })
-                        return dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+                        let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+                        return parseFloat(averageTimeTaken.toFixed(2))
                     } else {
-                        return 'N/A'
+                        return ''
                     }
                 }
 
@@ -172,9 +218,9 @@ module.exports = class ProgramOperations {
                     let schoolAssigned = schoolsByAssessor.length;
                     let assessorResult = {
                         name: assessor.name || "",
-                        schoolsAssigned: schoolAssigned || 0,
-                        schoolsCompleted: schoolData.completed || 0,
-                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || 0,
+                        schoolsAssigned: schoolAssigned || "",
+                        schoolsCompleted: schoolData.completed || "",
+                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || "",
                         averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -224,7 +270,7 @@ module.exports = class ProgramOperations {
                 let programExternalId = req.params._id;
 
                 let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false);
+                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false, []);
                 let programDocument = await this.getProgram(req.params._id);
 
                 if (!schoolDocuments)
@@ -357,6 +403,79 @@ module.exports = class ProgramOperations {
     }
 
     /**
+    * @api {get} /assessment/api/v1/programOperations/managerProfile 
+    * @apiVersion 0.0.1
+    * @apiName Manager profile
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    async managerProfile(req) {
+
+        this.checkUserAuthorization(req.userDetails);
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let userRole = gen.utils.getUserRole(req.userDetails, true);
+
+                let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
+
+                let roles = {
+                    assessors: "Assessors",
+                    leadAssessors: "Lead Assessors",
+                    projectManagers: "Project Managers",
+                    programManagers: "Program Managers"
+                };
+
+                let programDocument = await this.getProgram(req.params._id);
+
+                let result = [
+                    {
+                        label: "dateOfReportGeneration",
+                        value: moment().format('DD-MM-YYYY'),
+                    },
+                    {
+                        label: "nameOfTheManager",
+                        value: managerName
+                    },
+                    {
+                        label: "role",
+                        value: roles[userRole] || "",
+                    },
+                    {
+                        label: "nameOfTheProgram",
+                        value: programDocument.name,
+                    },
+                    {
+                        label: "userName",
+                        value: req.userDetails.userName || "",
+                    },
+                    {
+                        label: "email",
+                        value: req.userDetails.email || "",
+                    }
+                ]
+
+                return resolve({
+                    message: 'Manager profile fetched successfully.',
+                    result: result
+                })
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+
+            }
+        })
+    }
+
+    /**
     * @api {get} /assessment/api/v1/programOperations/schoolSummary 
     * @apiVersion 0.0.1
     * @apiName Fetch School Summary
@@ -366,63 +485,39 @@ module.exports = class ProgramOperations {
     */
 
     async schoolSummary(req) {
+
         this.checkUserAuthorization(req.userDetails);
+
         return new Promise(async (resolve, reject) => {
             try {
 
-                let schoolObjects = await this.getSchools(req, false);
-
-                let userRole = gen.utils.getUserRole(req.userDetails, true);
+                let schoolObjects = await this.getSchools(req, false, []);
 
                 if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
-                    return resolve({ result: [
-                        {
-                            label: "createdDate",
-                            value: moment().format('DD-MM-YYYY'),
-                        },
-                        {
-                            label: "managerName",
-                            value: ""
-                        },
-                        {
-                            label: "role",
-                            value: "",
-                        },
-                        {
-                            label: "programName",
-                            value: "",
-                        },
-                        {
-                            label: "schoolsAssigned",
-                            value: 0,
-                        },
-                        {
-                            label: "schoolsCompleted",
-                            value: 0,
-                        },
-                        {
-                            label: "schoolsInporgress",
-                            value: 0,
-                        },
-                        {
-                            label: "averageTimeTaken",
-                            value: 0,
-                        },
-                        {
-                            label: "userName",
-                            value: "",
-                        },
-                        {
-                            label: "email",
-                            value: "",
-                        }
-                    ] })
+                    return resolve({
+                        result: [
+                            {
+                                label: "schoolsAssigned",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsCompleted",
+                                value: "",
+                            },
+                            {
+                                label: "schoolsInporgress",
+                                value: "",
+                            },
+                            {
+                                label: "averageTimeTakenInDays",
+                                value: "",
+                            }
+                        ]
+                    })
 
                 let schoolDocuments = schoolObjects.result;
 
                 let schoolIds = schoolDocuments.map(school => school.id);
-
-                let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
 
                 let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
 
@@ -430,57 +525,24 @@ module.exports = class ProgramOperations {
 
                 [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
 
-                let programDocument = await this.getProgram(req.params._id);
-
-                let roles = {
-                    assessors: "Assessors",
-                    leadAssessors: "Lead Assessors",
-                    projectManagers: "Project Managers",
-                    programManagers: "Program Managers"
-                };
-
                 let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
 
                 let result = [
-                    {
-                        label: "createdDate",
-                        value: moment().format('DD-MM-YYYY'),
-                    },
-                    {
-                        label: "managerName",
-                        value: managerName
-                    },
-                    {
-                        label: "role",
-                        value: roles[userRole] || "",
-                    },
-                    {
-                        label: "programName",
-                        value: programDocument.name,
-                    },
                     {
                         label: "schoolsAssigned",
                         value: schoolDocuments.length,
                     },
                     {
                         label: "schoolsCompleted",
-                        value: schoolsCompletedCount || 0,
+                        value: schoolsCompletedCount || "",
                     },
                     {
                         label: "schoolsInporgress",
-                        value: schoolsInprogressCount || 0,
+                        value: schoolsInprogressCount || "",
                     },
                     {
-                        label: "averageTimeTaken",
-                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || 0) : 0,
-                    },
-                    {
-                        label: "userName",
-                        value: req.userDetails.userName || "",
-                    },
-                    {
-                        label: "email",
-                        value: req.userDetails.email || "",
+                        label: "averageTimeTakenInDays",
+                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "",
                     }
                 ]
 
@@ -524,14 +586,15 @@ module.exports = class ProgramOperations {
                 schoolTypes = _.compact(types[0]);
                 administrationTypes = _.compact(types[1]);
 
-                schoolTypes = schoolTypes.map(schoolType => {
+
+                schoolTypes = schoolTypes.sort().map(schoolType => {
                     return {
                         label: schoolType,
                         value: schoolType
                     }
                 })
 
-                administrationTypes = administrationTypes.map(administrationType => {
+                administrationTypes = administrationTypes.sort().map(administrationType => {
                     return {
                         label: administrationType,
                         value: administrationType
@@ -543,11 +606,11 @@ module.exports = class ProgramOperations {
                         field: "fromDate",
                         label: "start date",
                         value: "",
-                        visible: false,//there is no date calculation right now
+                        visible: true,//there is no date calculation right now
                         editable: true,
                         input: "date",
                         validation: {
-                            required: false
+                            required: true
                         },
                         min: new Date(0),
                         max: new Date()
@@ -556,11 +619,11 @@ module.exports = class ProgramOperations {
                         field: "toDate",
                         label: "end date",
                         value: "",
-                        visible: false,//there is no date calculation right now
+                        visible: true,//there is no date calculation right now
                         editable: true,
                         input: "date",
                         validation: {
-                            required: false
+                            required: true
                         },
                         min: new Date(0),
                         max: new Date()
@@ -621,7 +684,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `https://${process.env.SHIKSHALOKAM_BASE_HOST}${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -688,7 +751,7 @@ module.exports = class ProgramOperations {
     }
 
     //sub function to get schools based on program and current user role
-    async getSchools(req, pagination = false) {
+    async getSchools(req, pagination = false, assessorIds) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -708,7 +771,7 @@ module.exports = class ProgramOperations {
                         }
                     },
                     {
-                        $project: { schools: 1, "children.schools": 1 }
+                        $project: { schools: 1, userId: 1, "children.schools": 1, "children.userId": 1 }
                     }
                 ];
 
@@ -730,6 +793,26 @@ module.exports = class ProgramOperations {
                     })
                 })
 
+                if (req.query.fromDate) {
+
+                    let userIds = [];
+                    if (assessorIds.length) {
+                        userIds = assessorIds;
+                    } else {
+                        userIds.push(schoolsAssessorDocuments[0].userId);
+
+                        schoolsAssessorDocuments[0].children.forEach(child => {
+                            userIds.push(child.userId)
+                        })
+
+                        userIds = _.uniq(userIds);
+                    }
+
+
+                    schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+
+                }
+
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
                 let schoolQueryObject = {};
@@ -739,8 +822,8 @@ module.exports = class ProgramOperations {
                 let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
                 let filteredSchoolDocument;
 
-                let limitValue = (pagination==false) ? "" : req.pageSize;
-                let skipValue = (pagination==false) ? "" : (req.pageSize * (req.pageNo - 1));
+                let limitValue = (pagination == false) ? "" : req.pageSize;
+                let skipValue = (pagination == false) ? "" : (req.pageSize * (req.pageNo - 1));
 
                 filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
@@ -803,7 +886,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {}
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
