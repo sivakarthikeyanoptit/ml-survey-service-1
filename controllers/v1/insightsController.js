@@ -1239,4 +1239,13 @@ module.exports = class Insights extends Abstract {
     })
   }
 
+  async insightsDocument(programId,schoolIds) {
+
+    let insightDocument = await database.models.insights.find({
+      programExternalId:programId,
+      schoolId:{$in:schoolIds}
+    },{schoolId:1,evaluationFrameworkId:1}).lean()
+    return insightDocument
+  }
+
 };
