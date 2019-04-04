@@ -1127,8 +1127,13 @@ module.exports = class Insights extends Abstract {
 
         responseObject.sections = new Array
 
-        let tableHeader = {
+        let table1Header = {
           name: "schoolName",
+          value: "Core Standard"
+        }
+
+        let table2Header = {
+          name: "criteriaName",
           value: "Core Standard"
         }
         
@@ -1154,16 +1159,35 @@ module.exports = class Insights extends Abstract {
           
         Object.keys(insightResult).forEach(themeName=>{
 
-          let tableHeaders = new Array
-          tableHeaders.push(tableHeader)
+          let table1Headers = new Array
+          let table2Headers = new Array
+
+          let table1Data = new Array
+          let table2Data = new Array
+
+          table1Headers.push(table1Header)
+          table2Headers.push(table2Header)
+
           Object.keys(criteriaThemeGrouping[themeName].criteria).forEach(criteriaName => {
-            tableHeaders.push({
+            
+            let eachRow = {
+              criteriaName: criteriaName
+            }
+            insights.forEach(insight => {
+              for (let schoolCriteriaScoresCounter = 0; schoolCriteriaScoresCounter < insight.criteriaScores.length; schoolCriteriaScoresCounter++) {
+                if(insight.criteriaScores[schoolCriteriaScoresCounter].name == criteriaName) {
+                  eachRow[insight.schoolName] = Number(insight.criteriaScores[schoolCriteriaScoresCounter].level.substr(1))
+                  break
+                }
+              }
+            })
+
+            table2Data.push(eachRow)
+            table1Headers.push({
               name: criteriaName,
               value:criteriaName
             })
           })
-
-          let tableData = new Array
 
           insights.forEach(insight => {
             let eachRow = {
@@ -1175,10 +1199,14 @@ module.exports = class Insights extends Abstract {
                 criteriaLevelCount[criteria.level]+=1
               }
             })
-            tableData.push(eachRow)
+            table1Data.push(eachRow)
+            table2Headers.push({
+              name: insight.schoolName,
+              value:insight.schoolName
+            })
           })
 
-          let eachSubSection = {
+          let subSection1 = {
             table: true,
             graph: true,
             heading: themeName,
@@ -1199,16 +1227,44 @@ module.exports = class Insights extends Abstract {
                 }
               }
             },
-            data: tableData,
+            data: table1Data,
             tabularData: {
-              headers: tableHeaders
+              headers: table1Headers
+            }
+          }
+
+          let subSection2 = {
+            table: true,
+            graph: true,
+            heading: themeName,
+            graphData: {
+              title: 'Performance report across core standards',
+              subTitle: 'Schools in a clusters performance across different core-standards',
+              chartType: 'ColumnChart',
+              chartOptions: {
+                is3D: true,
+                isStacked: false,
+                vAxis: {
+                  title: 'Levels',
+                  minValue: 0
+                },
+                hAxis: {
+                  title: 'Core standards in key domain '+themeName,
+                  showTextEvery: 1
+                }
+              }
+            },
+            data: table2Data,
+            tabularData: {
+              headers: table2Headers
             }
           }
 
           responseObject.sections.push({
             heading: "Key Domain "+themeName,
             subSections : [
-              eachSubSection
+              subSection1,
+              subSection2
             ]
           })
 

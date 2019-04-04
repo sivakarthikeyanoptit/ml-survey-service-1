@@ -1,10 +1,10 @@
 module.exports = class Assessments {
 
     /**
- * @apiDefine errorBody
- * @apiError {String} status 4XX,5XX
- * @apiError {String} message Error
- */
+     * @apiDefine errorBody
+     * @apiError {String} status 4XX,5XX
+     * @apiError {String} message Error
+     */
 
     /**
        * @apiDefine successBody
