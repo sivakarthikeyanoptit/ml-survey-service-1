@@ -1188,7 +1188,7 @@ module.exports = class Insights extends Abstract {
               chartType: 'ColumnChart',
               chartOptions: {
                 is3D: true,
-                isStacked: true,
+                isStacked: false,
                 vAxis: {
                   title: 'Levels',
                   minValue: 0
