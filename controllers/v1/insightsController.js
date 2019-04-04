@@ -1234,7 +1234,7 @@ module.exports = class Insights extends Abstract {
           }
 
           let subSection2 = {
-            table: true,
+            table: false,
             graph: true,
             heading: themeName,
             graphData: {
