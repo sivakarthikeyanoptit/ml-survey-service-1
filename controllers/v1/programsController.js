@@ -278,6 +278,8 @@ module.exports = class Programs extends Abstract {
 
         if(evaluationFrameworkDocument){
           singleEntityDrillDown = true
+        }else{
+          singleEntityDrillDown = false
         }
 
         assessorsDocument[0].schoolDocuments.forEach(eachSchoolDocument=>{
@@ -531,6 +533,8 @@ module.exports = class Programs extends Abstract {
 
         if(evaluationFrameworkDocument){
           singleEntityDrillDown = true
+        }else{
+          singleEntityDrillDown = false
         }
 
         let result = {};
@@ -561,6 +565,5 @@ module.exports = class Programs extends Abstract {
       }
     })
   }
-
 
 };
