@@ -4,6 +4,7 @@ module.exports = {
         url: "string",
         linkId: "string",
         createdBy: "string",
+        redirectionUrl: "string",
         userDetails: {
             id: "string",
             accessiblePrograms: Array,

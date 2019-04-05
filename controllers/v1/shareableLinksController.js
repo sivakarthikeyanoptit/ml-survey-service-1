@@ -15,7 +15,7 @@ module.exports = class ShareableLink extends Abstract {
 
         if (!req.body.url) throw { status: 400, message: "Bad request." }
 
-        if (req.body.url.includes("/operations/reports") || req.body.url.includes("/insights/reports")) {
+        if (req.body.url.includes("/programOperations/") || req.body.url.includes("/insights/")) {
 
           let shareableData;
 
@@ -26,11 +26,14 @@ module.exports = class ShareableLink extends Abstract {
 
           if (!shareableData) {
 
+            let linkId = uuid();
+
             let dataObject = {
               url: req.body.url,
-              linkId: uuid(),
+              linkId: linkId,
               createdBy: req.userDetails.id,
               userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
+              redirectionUrl: req.hostName + "/share/reports?linkId=" + linkId,
             }
 
             shareableData = await database.models.shareableLink.create(dataObject)
@@ -40,9 +43,8 @@ module.exports = class ShareableLink extends Abstract {
           return resolve({
             status: 200,
             result: {
-              url: "/share/reports/",
+              url: shareableData.redirectionUrl,
               linkId: shareableData.linkId,
-              fullUrl: "/share/reports/" + "?linkId=" + shareableData.linkId
             }
           })
 
@@ -73,9 +75,7 @@ module.exports = class ShareableLink extends Abstract {
 
         if (!linkId) throw { status: 400, message: "Bad request." };
 
-        let shareableData;
-
-        shareableData = await database.models.shareableLink.findOne({ linkId: linkId });
+        let shareableData = await database.models.shareableLink.findOne({ linkId: linkId });
 
         if (!shareableData) throw { status: 400, message: "No data found for given params." };
 
