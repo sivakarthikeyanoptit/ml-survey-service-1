@@ -1,5 +1,5 @@
 module.exports = async (req, res, next) => {
-    if (req.userDetails.id) {
+    if (req.userDetails && req.userDetails.id) {
 
         let roles = _.pull(req.userDetails.allRoles, 'PUBLIC');
         let queryParams = roles.map(role => {

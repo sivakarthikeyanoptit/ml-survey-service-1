@@ -61,6 +61,8 @@ async function getAllRoles(obj) {
 
 module.exports = function(req, res, next) {
 
+  if(req.path.includes('/shareableLinks/parseLink')) return next();
+
   removedHeaders.forEach(function(e) {
     delete req.headers[e];
   });
