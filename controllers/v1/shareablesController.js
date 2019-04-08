@@ -1,12 +1,12 @@
 const uuid = require('uuid/v1');
-module.exports = class ShareableLink extends Abstract {
+module.exports = class Shareables extends Abstract {
 
   constructor() {
     super(shareableLinksSchema);
   }
 
   static get name() {
-    return "shareableLink";
+    return "shareables";
   }
 
   getLink(req) {

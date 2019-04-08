@@ -81,7 +81,7 @@ module.exports = function (app) {
 
         let customFields = {
           appDetails: '',
-          userDetails: 'NON_LOGGED_IN_USER'
+          userDetails: `NON_LOGGED_IN_USER - IP : ${req.ip}`
         }
 
         if (req.userDetails) {

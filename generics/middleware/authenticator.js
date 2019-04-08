@@ -61,7 +61,7 @@ async function getAllRoles(obj) {
 
 module.exports = async function (req, res, next) {
 
-  if (req.path.includes('/shareableLinks/parseLink')) return next();
+  if (req.path.includes('/shareables/parseLink')) return next();
 
   let port = req.get('host').split(":")[1];
   req.hostName = req.protocol + '://' + req.host + (port == 80 || port == 443 ? '' : ':' + port)

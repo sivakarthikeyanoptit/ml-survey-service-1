@@ -7,6 +7,7 @@ module.exports = {
         type: "String",
         createdBy: "String",
         dateOfOperation: Date,
+        programId: "ObjectId",
         updatedData: ["String"],
     }
 };
