@@ -61,7 +61,17 @@ async function getAllRoles(obj) {
 
 module.exports = async function (req, res, next) {
 
-  if (req.path.includes('/shareables/parseLink')) return next();
+  if (req.path.includes('/shareables/parseLink')) {
+    let isShareable = await database.models.shareableLink.findOne({ linkId: req.query.linkId });
+    if (!isShareable) {
+      return res.status(401).send(respUtil({
+        errCode: responseCode.unauthorized,
+        errMsg: "Link id is not matching.",
+        responseCode: responseCode.unauthorized
+      }));
+    }
+    return next();
+  }
 
   let port = req.get('host').split(":")[1];
   req.hostName = req.protocol + '://' + req.host + (port == 80 || port == 443 ? '' : ':' + port)

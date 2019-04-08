@@ -71,7 +71,7 @@ module.exports = class Shareables extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let linkId = req.params._id;
+        let linkId = req.query.linkId;
 
         if (!linkId) throw { status: 400, message: "Bad request." };
 
