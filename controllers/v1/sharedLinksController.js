@@ -19,7 +19,8 @@ module.exports = class SharedLink extends Abstract {
 
         shareableData = await database.models.sharedLink.findOne({
           actualURL: req.body.url,
-          "userDetails.id": req.userDetails.id
+          "userDetails.id": req.userDetails.id,
+          isActive:true
         })
 
         if (!shareableData) {

@@ -64,7 +64,7 @@ module.exports = async function (req, res, next) {
   if (req.path.includes('/sharedLinks/verify')) return next();
 
   if (req.query && req.query.linkId) {
-    let isShareable = await database.models.sharedLink.findOne({ linkId: req.query.linkId });
+    let isShareable = await database.models.sharedLink.findOne({ linkId: req.query.linkId, isActive: true });
     let requestURL = req.url.replace(`?linkId=${req.query.linkId}`, '').replace(`&linkId=${req.query.linkId}`, '');
     if (isShareable && isShareable.actualURL.includes(requestURL)) {
       req.userDetails = isShareable.userDetails;
