@@ -213,7 +213,7 @@ module.exports = class ProgramOperations {
                 if (req.query.csv && req.query.csv == "true") {
                     input.push(null);
                 } else {
-                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name);
+                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name,req.query);
                     return resolve({ result: result })
                 }
 
@@ -259,7 +259,7 @@ module.exports = class ProgramOperations {
                 }
 
                 async function noDataFound() {
-                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name);
+                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name,req.query);
                     return { result: result }
                 }
 
@@ -327,7 +327,7 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name)
+                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument,req.query)
                     return resolve({ result: result })
                 }
 
@@ -343,7 +343,7 @@ module.exports = class ProgramOperations {
         })
     }
 
-    constructResultObject(graphName, value, totalCount, userDetails, programName) {
+    constructResultObject(graphName, value, totalCount, userDetails, programName,queryParams) {
         return new Promise(async (resolve, reject) => {
             let summary = [
                 {
@@ -371,6 +371,7 @@ module.exports = class ProgramOperations {
             reportOptions.results.sections[0].data = data;
             reportOptions.results.sections[0].totalCount = totalCount;
             reportOptions.results.summary = summary;
+            reportOptions.results.isShareable = (queryParams && queryParams.linkId) ? false : true;
             reportOptions.results.title = `Program Operations Report for ${programName}`;
             return resolve(reportOptions.results);
         })
