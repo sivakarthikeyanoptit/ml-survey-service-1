@@ -51,7 +51,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Framework + rubric api for - "+evaluationFrameworkDocument.name
+        responseObject.heading = "Framework + rubric for - "+evaluationFrameworkDocument.name
 
         responseObject.sections = new Array
 
@@ -120,7 +120,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
         generateCriteriaThemes(evaluationFrameworkDocument.themes)
 
         let response = {
-          message: "Framework + rubric api fetched successfully.",
+          message: "Framework + rubric fetched successfully.",
           result: responseObject
         };
 
