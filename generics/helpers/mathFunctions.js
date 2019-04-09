@@ -125,7 +125,7 @@ math.import({
 
     return checkIfPresentResult
   },
-  checkIfModeIs: function (needle, haystack) {
+  checkIfModeIs: function (needle, haystack, optionRank = false) {
 
     let searchKey
     let isMode
@@ -163,6 +163,35 @@ math.import({
 
       let countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
 
+      if(countOfElements[0] && countOfElements[1] && countOfElements[0][1] == countOfElements[1][1] && optionRank) {
+        let elementsWithHighestCount = new Array
+        countOfElements.forEach(eachCountOfElement => {
+          if(eachCountOfElement[1] == countOfElements[0][1]) {
+            elementsWithHighestCount.push(eachCountOfElement[0])
+          }
+        })
+        let optionRankFromLowToHigh = new Array
+        if(optionRank.split("<".length > 0)) {
+          optionRankFromLowToHigh = optionRank.split("<")
+        } else if (optionRank.split(">".length > 0)) {
+          optionRankFromLowToHigh = _.reverse(optionRank.split(">"));
+        }
+        let modeWinner 
+        let modeWinnerFound = false
+        for (let pointerToElementsWithHighestCount = 0; pointerToElementsWithHighestCount < elementsWithHighestCount.length; pointerToElementsWithHighestCount++) {
+          if(!modeWinnerFound) {
+            modeWinnerFound = true
+            modeWinner = optionRankFromLowToHigh.indexOf(elementsWithHighestCount[pointerToElementsWithHighestCount])
+          } else if (optionRankFromLowToHigh.indexOf(elementsWithHighestCount[pointerToElementsWithHighestCount]) < modeWinner) {
+            modeWinner = optionRankFromLowToHigh.indexOf(elementsWithHighestCount[pointerToElementsWithHighestCount])
+          }
+        }
+        if(modeWinnerFound) {
+          haystack.push(optionRankFromLowToHigh[modeWinner])
+          countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
+        }
+      }
+      
       isMode = -1
       let modeValueCalculated
 
