@@ -30,17 +30,17 @@ module.exports = class SharedLink extends Abstract {
           let linkViews = {
             ip: req.ip,
             userAgent: req.headers["user-agent"],
-            createdAt: new Date,
-            accessedCount: 0
+            createdAt: new Date
           }
-
+          
           let requestURL = req.body.url.split("/");
           let hostName = requestURL[0] + "/" + requestURL[1] + "/" + requestURL[2];
-
+          
           let dataObject = {
             actualURL: req.body.url,
             linkId: linkId,
             isActive: true,
+            accessedCount: 0,
             userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
             linkViews: [linkViews],
             sharedURL: hostName + "/share/reports?linkId=" + linkId,
@@ -87,18 +87,15 @@ module.exports = class SharedLink extends Abstract {
 
         let isChanged = false;
 
-        shareableData.linkViews.forEach(user => {
-          if (user.ip == req.ip) {
-           user.accessedCount++;
-            isChanged = true;
-          }
-        })
+        shareableData.linkViews.forEach(user => { if (user.ip == req.ip) isChanged = true })
 
-        if(isChanged==false) shareableData.linkViews.push({ ip: req.ip, userAgent: req.headers["user-agent"], createdAt: new Date, accessedCount: 0 })
+        if(isChanged==false) shareableData.linkViews.push({ ip: req.ip, userAgent: req.headers["user-agent"], createdAt: new Date })
         
         let updateObject = _.omit(shareableData, ['createdAt'])
 
         if (isChanged == true) {
+
+          updateObject.accessedCount++;
 
           shareableData = await database.models.sharedLink.findOneAndUpdate({ linkId: linkId }, updateObject,
             {

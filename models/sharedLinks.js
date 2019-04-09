@@ -4,6 +4,7 @@ module.exports = {
         actualURL: "string",
         linkId: "string",
         isActive: Boolean,
+        accessedCount: Number,
         sharedURL: "string",
         linkViews: Array,
         userDetails: {

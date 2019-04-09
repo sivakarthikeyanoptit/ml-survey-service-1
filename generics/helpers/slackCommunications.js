@@ -162,7 +162,7 @@ const rubricErrorLogs = function (errorMessage) {
   }
 }
 
-const badRequestForNonLoggedInUsers = function (errorMessage) {
+const badSharedLinkAccessAttemptAlert = function (errorMessage) {
   if (slackCommunicationsOnOff === "ON" && slackToken != "" && gen.utils.checkIfStringIsUrl(exceptionLogPostUrl)) {
     const reqObj = new Request()
     let attachmentData = new Array
@@ -202,6 +202,12 @@ const badRequestForNonLoggedInUsers = function (errorMessage) {
     fieldsData.push({
       title: "User Details",
       value: "NON_LOGGED_IN_USER",
+      short: false
+    })
+    
+    fieldsData.push({
+      title: "User IP",
+      value: errorMessage.userIP || "",
       short: false
     })
     
@@ -264,5 +270,5 @@ const badRequestForNonLoggedInUsers = function (errorMessage) {
 module.exports = {
   sendExceptionLogMessage: sendExceptionLogMessage,
   rubricErrorLogs: rubricErrorLogs,
-  badRequestForNonLoggedInUsers: badRequestForNonLoggedInUsers
+  badSharedLinkAccessAttemptAlert: badSharedLinkAccessAttemptAlert
 };
