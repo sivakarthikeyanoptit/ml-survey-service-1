@@ -1061,7 +1061,7 @@ module.exports = class Submission extends Abstract {
                     result = submissionDocument.schoolInformation[questionArray[1]]
                   }
 
-                  if(result == "" || !(result.length>=0)) {
+                  if(!result || result == "" || !(result.length>=0)) {
                     result = "NA"
                   }
                   submissionAnswers.push(result)
@@ -1070,7 +1070,6 @@ module.exports = class Submission extends Abstract {
 
                 submissionAnswers.push(submissionDocument.answers[questionArray[0]])
                 let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                
                 inputTypes.forEach(inputType => {
                   if (questionArray[1] === inputType) {
                     if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
