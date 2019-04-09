@@ -191,11 +191,7 @@ math.import({
           countOfElements = Object.entries(_.countBy(haystack)).sort((a,b) => {return b[1]-a[1]})
         }
       }
-<<<<<<< HEAD
-
-=======
       
->>>>>>> master
       isMode = -1
       let modeValueCalculated
 
