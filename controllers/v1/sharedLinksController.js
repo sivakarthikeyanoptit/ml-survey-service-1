@@ -28,7 +28,7 @@ module.exports = class SharedLink extends Abstract {
           let linkId = uuid();
 
           let linkViews = {
-            ip: req.ip,
+            ip: req.headers["x-real-ip"],
             userAgent: req.headers["user-agent"],
             createdAt: new Date
           }
@@ -87,9 +87,9 @@ module.exports = class SharedLink extends Abstract {
 
         let isChanged = false;
 
-        shareableData.linkViews.forEach(user => { if (user.ip == req.ip) isChanged = true })
+        shareableData.linkViews.forEach(user => { if (user.ip == req.headers["x-real-ip"]) isChanged = true })
 
-        if(isChanged==false) shareableData.linkViews.push({ ip: req.ip, userAgent: req.headers["user-agent"], createdAt: new Date })
+        if(isChanged==false) shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date })
         
         let updateObject = _.omit(shareableData, ['createdAt'])
 
