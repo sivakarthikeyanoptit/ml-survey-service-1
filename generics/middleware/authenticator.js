@@ -61,27 +61,23 @@ async function getAllRoles(obj) {
 
 module.exports = async function (req, res, next) {
 
-  if (req.path.includes('/shareables/parseLink')) {
-    let isShareable = await database.models.shareableLink.findOne({ linkId: req.query.linkId });
-    if (!isShareable) {
-      return res.status(401).send(respUtil({
-        errCode: responseCode.unauthorized,
-        errMsg: "Link id is not matching.",
-        responseCode: responseCode.unauthorized
-      }));
-    }
-    return next();
-  }
+  if (req.path.includes('/sharedLinks/verify')) return next();
 
-  let port = req.get('host').split(":")[1];
-  req.hostName = req.protocol + '://' + req.host + (port == 80 || port == 443 ? '' : ':' + port)
-
-  if ((req.path.includes('/programOperations/') || req.path.includes('/insights/')) && req.query && req.query.linkId) {
-    let requestUrl = req.hostName + req.baseUrl + (req.url.replace(`&linkId=${req.query.linkId}`, ''));
-    let isShareable = await database.models.shareableLink.findOne({ linkId: req.query.linkId, url: requestUrl });
-    if (isShareable) {
+  if (req.query && req.query.linkId) {
+    let isShareable = await database.models.sharedLink.findOne({ linkId: req.query.linkId, isActive: true });
+    let requestURL = req.url.replace(`?linkId=${req.query.linkId}`, '').replace(`&linkId=${req.query.linkId}`, '');
+    if (isShareable && isShareable.actualURL.includes(requestURL)) {
       req.userDetails = isShareable.userDetails;
       return next();
+    } else {
+      let msg = "Bad request.";
+      const slackMessageForBadRequest = { userIP: req.ip, method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
+      slackClient.badSharedLinkAccessAttemptAlert(slackMessageForBadRequest);
+      let rspObj = {};
+      rspObj.errCode = 400;
+      rspObj.errMsg = msg;
+      rspObj.responseCode = 400;
+      return res.status(400).send(respUtil(rspObj));
     }
   }
 

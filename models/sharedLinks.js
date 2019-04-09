@@ -1,10 +1,12 @@
 module.exports = {
-    name: "shareableLink",
+    name: "sharedLink",
     schema: {
-        url: "string",
+        actualURL: "string",
         linkId: "string",
-        createdBy: "string",
-        redirectionUrl: "string",
+        isActive: Boolean,
+        accessedCount: Number,
+        sharedURL: "string",
+        linkViews: Array,
         userDetails: {
             id: "string",
             accessiblePrograms: Array,
