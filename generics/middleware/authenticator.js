@@ -71,7 +71,7 @@ module.exports = async function (req, res, next) {
       return next();
     } else {
       let msg = "Bad request.";
-      const slackMessageForBadRequest = { userIP: req.ip, method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
+      const slackMessageForBadRequest = { userIP: req.headers["x-real-ip"], method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
       slackClient.badSharedLinkAccessAttemptAlert(slackMessageForBadRequest);
       let rspObj = {};
       rspObj.errCode = 400;
