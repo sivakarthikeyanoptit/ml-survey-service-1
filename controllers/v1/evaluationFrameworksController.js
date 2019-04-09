@@ -51,7 +51,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Framework + rubric api for - "+evaluationFrameworkDocument.name
+        responseObject.heading = "Framework + rubric for - "+evaluationFrameworkDocument.name
 
         responseObject.sections = new Array
 
@@ -120,7 +120,7 @@ module.exports = class EvaluationFrameworks extends Abstract {
         generateCriteriaThemes(evaluationFrameworkDocument.themes)
 
         let response = {
-          message: "Framework + rubric api fetched successfully.",
+          message: "Framework + rubric fetched successfully.",
           result: responseObject
         };
 
@@ -158,5 +158,13 @@ module.exports = class EvaluationFrameworks extends Abstract {
 
     let evaluationFrameworkDocuments = await database.models["evaluationFrameworks"].find(queryObject, projectionObject);
     return evaluationFrameworkDocuments
+  }
+
+  async checkForScoringSystemFromInsights(evaluationId) {
+
+    let evaluationDocument = await database.models.evaluationFrameworks.find({
+      _id:evaluationId,
+      scoringSystem:{$exists:true,$ne:""}},{scoringSystem:1}).lean()
+    return evaluationDocument
   }
 };
