@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+const moment = require("moment-timezone");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
 module.exports = class Assessors {
@@ -104,6 +105,7 @@ module.exports = class Assessors {
           let responseMessage = "Bad request.";
           return resolve({ status: 400, message: responseMessage })
         }
+
         let assessorData = await csv().fromString(req.files.assessors.data.toString());
 
         let schoolQueryList = {};
@@ -160,6 +162,89 @@ module.exports = class Assessors {
 
         const creatorId = req.userDetails.userId;
 
+        function uploadAssessorSchoolTracker(req) {
+          return new Promise(async (resolve, reject) => {
+            try {
+
+              let schoolAssessorTrackerDocument = await database.models.assessorSchoolTrackers.find({ "assessorId": req.body.assessorId, "programId":req.body.programId }).sort({ "dateOfOperation": -1 }).limit(1).lean();
+
+              let actions = ["APPEND", "OVERRIDE", "REMOVE"];
+
+              req.body.schools = req.body.schools.map(school => school.toString());
+
+              let trackerObject = {};
+              let updatedData = schoolAssessorTrackerDocument[0].updatedData;
+
+              if (actions.includes(req.body.action)) {
+
+                trackerObject.action = req.body.action;
+
+                if (req.body.action == "APPEND") {
+
+                  req.body.schools.forEach(school => {
+                    if (!updatedData.includes(school)) {
+                      updatedData.push(school)
+                    }
+                  })
+
+                } else if (req.body.action == "OVERRIDE") {
+
+                  updatedData = req.body.schools;
+
+                } else if (req.body.action == "REMOVE") {
+
+                  _.pullAll(updatedData, req.body.schools);
+
+                }
+
+              } else {
+
+                throw { status: 400, message: 'wrong action' };
+
+              }
+              trackerObject.updatedData = updatedData;
+
+              trackerObject.actionObject = req.body.schools;
+
+              trackerObject.assessorId = req.body.assessorId;
+
+              trackerObject.type = req.body.type;
+
+              trackerObject.programId = req.body.programId;
+
+              trackerObject.dateOfOperation = new Date;
+
+              trackerObject.createdBy = req.userDetails.id;
+
+              let queryObject = {};
+              
+              queryObject.assessorId = req.body.assessorId;
+
+              queryObject.dateOfOperation = {};
+
+              queryObject.dateOfOperation["$gte"] = moment().startOf('day');
+
+              queryObject.dateOfOperation["$lte"] = moment().endOf('day');
+
+              let trackerDocument = await database.models.assessorSchoolTrackers.findOneAndUpdate(queryObject, trackerObject, {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true,
+                returnNewDocument: true
+              });
+
+              return resolve({ result: trackerDocument });
+
+            } catch (error) {
+              return reject({
+                status: error.status || 500,
+                message: error.message || "Oops! Something went wrong!",
+                errorObject: error
+              });
+            }
+          })
+        }
+
         assessorData = await Promise.all(assessorData.map(async (assessor) => {
           let assessorSchoolArray = new Array
           assessor.schools.split(",").forEach(assessorSchool => {
@@ -200,12 +285,11 @@ module.exports = class Assessors {
             "action": assessor.schoolOperation,
             "schools": assessor.schools,
             "type": "ASSESSOR",
-            "assessorId": assessor.userId
+            "assessorId": assessor.userId,
+            "programId": assessor.programId
           }
 
-          let assessorSchoolTracker = new assessorSchoolTrackersBaseController;
-
-          await assessorSchoolTracker.upload(req)
+          await uploadAssessorSchoolTracker(req)
 
           let programFrameworkRoles;
           let assessorRole;
@@ -430,7 +514,7 @@ module.exports = class Assessors {
           })
 
           let updateObject;
-          
+
           if (fieldsWithOutSchool.parentId) {
             fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
           }
