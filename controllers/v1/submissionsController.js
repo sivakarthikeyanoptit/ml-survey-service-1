@@ -1096,8 +1096,6 @@ module.exports = class Submission extends Abstract {
               })
 
               let errorWhileParsingCriteriaExpression = false
-              let errorLevel = {}
-              let errorLevels = [];
               let errorExpression = {}
 
               if (allValuesAvailable) {
@@ -1122,16 +1120,16 @@ module.exports = class Submission extends Abstract {
                       if (_.isEmpty(errorExpression[criteria.externalId], true)) {
                         errorExpression[criteria.externalId] = {}
                       }
-                      errorExpression[criteria.externalId][criteria.rubric.levels[level].level] = {
-                        expression: criteria.rubric.levels[level].expression,
-                        error: error.toString()
-                      }
 
-                      errorLevels.push(criteria.rubric.levels[level].level)
-                      errorLevel[criteria.externalId] = {
-                        level: errorLevels.join(',')
+                      let errorObject = {
+                        errorName:error.message,
+                        criteriaName:criteria.name,
+                        expression:criteria.rubric.levels[level].expression,
+                        expressionVariables:JSON.stringify(expressionVariables),
+                        errorLevels:criteria.rubric.levels[level].level,
+                        expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
                       }
-
+                      slackClient.rubricErrorLogs(errorObject)
 
                       errorWhileParsingCriteriaExpression = true
                     }
@@ -1177,21 +1175,6 @@ module.exports = class Submission extends Abstract {
 
               result[criteria.externalId].expressionResult = expressionResult
               result[criteria.externalId].submissionAnswers = submissionAnswers
-
-              if (errorWhileParsingCriteriaExpression) {
-
-                criteriaIdWithParsingErrors.push({
-                  [criteria.externalId]: {
-                    criteriaName: result[criteria.externalId].criteriaName,
-                    criteriaId: result[criteria.externalId].criteriaExternalId,
-                    expressionVariableDefined: result[criteria.externalId].expressionVariablesDefined,
-                    expressionVariables: result[criteria.externalId].expressionVariables,
-                    level: errorLevel[criteria.externalId].level,
-                    allLevelexpression: errorExpression[criteria.externalId] ? errorExpression[criteria.externalId] : "",
-                  }
-                })
-
-              }
             }
 
             return criteria
