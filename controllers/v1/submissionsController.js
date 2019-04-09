@@ -1050,10 +1050,27 @@ module.exports = class Submission extends Abstract {
             if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
               let submissionAnswers = new Array
               const questionValueExtractor = function (question) {
+                let result;
                 const questionArray = question.split('.')
+
+                if(questionArray[0] === "schoolProfile") {
+
+                  if(submissionDocument.schoolProfile[questionArray[1]]){
+                    result = submissionDocument.schoolProfile[questionArray[1]]
+                  } else {
+                    result = submissionDocument.schoolInformation[questionArray[1]]
+                  }
+
+                  if(!result || result == "" || !(result.length>=0)) {
+                    result = "NA"
+                  }
+                  submissionAnswers.push(result)
+                  return result
+                }
+
                 submissionAnswers.push(submissionDocument.answers[questionArray[0]])
                 let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                let result;
+
                 inputTypes.forEach(inputType => {
                   if (questionArray[1] === inputType) {
                     if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
