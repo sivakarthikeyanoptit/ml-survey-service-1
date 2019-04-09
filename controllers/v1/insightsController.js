@@ -320,7 +320,8 @@ module.exports = class Insights extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance report for - "+insights.schoolName
+        responseObject.heading = "Performance report for - "+insights.schoolName;
+        responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             title: "Name of Entity",
@@ -623,7 +624,8 @@ module.exports = class Insights extends Abstract {
         }
 
         let responseObject = {}
-        responseObject.heading = insights.schoolName+" - (Performance across domains)"
+        responseObject.heading = insights.schoolName+" - (Performance across domains)";
+        responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             title: "Name of Entity",
@@ -948,7 +950,8 @@ module.exports = class Insights extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance Summary for all School in "+blockName
+        responseObject.heading = "Performance Summary for all School in "+blockName;
+        responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             label : "Name of the Block",
@@ -1098,7 +1101,8 @@ module.exports = class Insights extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance Summary for all School in "+blockName
+        responseObject.heading = "Performance Summary for all School in "+blockName;
+        responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             label : "Name of the Block",
