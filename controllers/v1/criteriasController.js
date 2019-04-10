@@ -901,11 +901,6 @@ module.exports = class Criterias extends Abstract {
             }
           })
 
-          // let criteriasIdArray = new Array
-          // evaluationFrameworkDocument.forEach(eachEvaluation => {
-          //   criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
-          // });
-
           let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasId } })
 
           criteriaQuestionDocument.forEach(criteria => {
