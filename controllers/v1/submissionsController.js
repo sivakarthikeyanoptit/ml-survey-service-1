@@ -1043,7 +1043,7 @@ module.exports = class Submission extends Abstract {
         if (allSubmittedEvidence) {
           let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
 
-            if(criteria.weightage !== 0){
+            if(criteria.weightage > 0){
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
