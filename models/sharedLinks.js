@@ -1,11 +1,11 @@
 module.exports = {
     name: "sharedLink",
     schema: {
-        actualURL: "string",
+        privateURL: "string",
+        publicURL: "string",
         linkId: "string",
         isActive: Boolean,
         accessedCount: Number,
-        sharedURL: "string",
         linkViews: Array,
         userDetails: {
             id: "string",
