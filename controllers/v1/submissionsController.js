@@ -1027,7 +1027,7 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolInformation: 1, schoolProfile : 1 , "programInformation.externalId": 1 }
+          { answers: 1, criterias: 1, evidencesStatus: 1, schoolProfile:1, schoolInformation: 1, "programInformation.externalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1055,7 +1055,7 @@ module.exports = class Submission extends Abstract {
 
                 if(questionArray[0] === "schoolProfile") {
 
-                  if(submissionDocument.schoolProfile[questionArray[1]]){
+                  if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionArray[1]]){
                     result = submissionDocument.schoolProfile[questionArray[1]]
                   } else {
                     result = submissionDocument.schoolInformation[questionArray[1]]
