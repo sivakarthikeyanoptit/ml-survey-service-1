@@ -327,7 +327,7 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument,req.query)
+                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name,req.query)
                     return resolve({ result: result })
                 }
 
@@ -343,7 +343,7 @@ module.exports = class ProgramOperations {
         })
     }
 
-    constructResultObject(graphName, value, totalCount, userDetails, programName,queryParams) {
+    constructResultObject(graphName, value, totalCount, userDetails, programName, queryParams) {
         return new Promise(async (resolve, reject) => {
             let reportOptions = await database.models.reportOptions.findOne({ name: graphName }).lean();
             let headers = reportOptions.results.sections[0].tabularData.headers.map(header => header.name)
@@ -452,28 +452,31 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
+                let resultArray = [
+                    {
+                        label: "schoolsAssigned",
+                        value: "",
+                    },
+                    {
+                        label: "schoolsCompleted",
+                        value: "",
+                    },
+                    {
+                        label: "schoolsInporgress",
+                        value: "",
+                    },
+                    {
+                        label: "averageTimeTakenInDays",
+                        value: "",
+                    }
+                ];
+
                 let schoolObjects = await this.getSchools(req, false, []);
+
 
                 if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
                     return resolve({
-                        result: [
-                            {
-                                label: "schoolsAssigned",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsCompleted",
-                                value: "",
-                            },
-                            {
-                                label: "schoolsInporgress",
-                                value: "",
-                            },
-                            {
-                                label: "averageTimeTakenInDays",
-                                value: "",
-                            }
-                        ]
+                        result: resultArray
                     })
 
                 let schoolDocuments = schoolObjects.result;
@@ -488,28 +491,14 @@ module.exports = class ProgramOperations {
 
                 let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
 
-                let result = [
-                    {
-                        label: "schoolsAssigned",
-                        value: schoolDocuments.length,
-                    },
-                    {
-                        label: "schoolsCompleted",
-                        value: schoolsCompletedCount || "",
-                    },
-                    {
-                        label: "schoolsInporgress",
-                        value: schoolsInprogressCount || "",
-                    },
-                    {
-                        label: "averageTimeTakenInDays",
-                        value: averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "",
-                    }
-                ]
+                resultArray[0]["value"] = schoolDocuments.length;
+                resultArray[1]["value"] = schoolsCompletedCount || "";
+                resultArray[2]["value"] = schoolsInprogressCount || "";
+                resultArray[3]["value"] = averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "";
 
                 return resolve({
                     message: 'School details fetched successfully.',
-                    result: result
+                    result: resultArray
                 })
 
             } catch (error) {
@@ -676,7 +665,7 @@ module.exports = class ProgramOperations {
 
     //searchSchool is for program operation search school autocomplete
     async searchSchool(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -738,41 +727,26 @@ module.exports = class ProgramOperations {
 
                 let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
 
-                if (!schoolsAssessorDocuments.length) {
+                if (schoolsAssessorDocuments.length<1) {
                     return resolve([]);
                 }
 
-                let schoolIds = [];
+                let userIds = [];
 
-                schoolsAssessorDocuments[0].schools.forEach(school => {
-                    schoolIds.push(school.toString());
-                })
+                if (assessorIds.length) {
+                    userIds = assessorIds;
+                } else {
+                    userIds.push(schoolsAssessorDocuments[0].userId);
 
-                schoolsAssessorDocuments[0].children.forEach(child => {
-                    child.schools.forEach(school => {
-                        schoolIds.push(school.toString());
+                    schoolsAssessorDocuments[0].children.forEach(child => {
+                        userIds.push(child.userId)
                     })
-                })
 
-                if (req.query.fromDate) {
-
-                    let userIds = [];
-                    if (assessorIds.length) {
-                        userIds = assessorIds;
-                    } else {
-                        userIds.push(schoolsAssessorDocuments[0].userId);
-
-                        schoolsAssessorDocuments[0].children.forEach(child => {
-                            userIds.push(child.userId)
-                        })
-
-                        userIds = _.uniq(userIds);
-                    }
-
-
-                    schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
-
+                    userIds = _.uniq(userIds);
                 }
+
+
+                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
