@@ -64,20 +64,37 @@ module.exports = async function (req, res, next) {
   if (req.path.includes('/sharedLinks/verify')) return next();
 
   if (req.query && req.query.linkId) {
+
     let isShareable = await database.models.sharedLink.findOne({ linkId: req.query.linkId, isActive: true });
-    let requestURL = req.url.replace(`?linkId=${req.query.linkId}`, '').replace(`&linkId=${req.query.linkId}`, '');
-    if (isShareable && isShareable.actualURL.includes(requestURL)) {
+
+    // let requestURL = req.url.replace(`?linkId=${req.query.linkId}`, '').replace(`&linkId=${req.query.linkId}`, '');
+
+    // if (isShareable && isShareable.privateURL.includes(requestURL)) {
+
+    if (isShareable) {
+
       req.userDetails = isShareable.userDetails;
+
       return next();
+
     } else {
+      
       let msg = "Bad request.";
-      const slackMessageForBadRequest = { userIP: req.ip, method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
+
+      const slackMessageForBadRequest = { userIP: req.headers["x-real-ip"], method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
+
       slackClient.badSharedLinkAccessAttemptAlert(slackMessageForBadRequest);
+
       let rspObj = {};
+
       rspObj.errCode = 400;
+
       rspObj.errMsg = msg;
+
       rspObj.responseCode = 400;
+
       return res.status(400).send(respUtil(rspObj));
+
     }
   }
 

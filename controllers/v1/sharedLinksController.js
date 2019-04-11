@@ -13,12 +13,13 @@ module.exports = class SharedLink extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.body.url) throw { status: 400, message: "Bad request." }
+        if (!req.body.privateURL || !req.body.publicURL) throw { status: 400, message: "Bad request." }
 
         let shareableData;
 
         shareableData = await database.models.sharedLink.findOne({
-          actualURL: req.body.url,
+          privateURL: req.body.privateURL,
+          publicURL: req.body.publicURL,
           "userDetails.id": req.userDetails.id,
           isActive:true
         })
@@ -28,22 +29,19 @@ module.exports = class SharedLink extends Abstract {
           let linkId = uuid();
 
           let linkViews = {
-            ip: req.ip,
+            ip: req.headers["x-real-ip"],
             userAgent: req.headers["user-agent"],
             createdAt: new Date
           }
           
-          let requestURL = req.body.url.split("/");
-          let hostName = requestURL[0] + "/" + requestURL[1] + "/" + requestURL[2];
-          
           let dataObject = {
-            actualURL: req.body.url,
+            privateURL: req.body.privateURL,
+            publicURL: req.body.publicURL,
             linkId: linkId,
             isActive: true,
             accessedCount: 0,
             userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
-            linkViews: [linkViews],
-            sharedURL: hostName + "/share/reports?linkId=" + linkId,
+            linkViews: [linkViews]
           }
 
           shareableData = await database.models.sharedLink.create(dataObject)
@@ -53,7 +51,6 @@ module.exports = class SharedLink extends Abstract {
         return resolve({
           status: 200,
           result: {
-            url: shareableData.sharedURL,
             linkId: shareableData.linkId,
           }
         })
@@ -87,9 +84,9 @@ module.exports = class SharedLink extends Abstract {
 
         let isChanged = false;
 
-        shareableData.linkViews.forEach(user => { if (user.ip == req.ip) isChanged = true })
+        shareableData.linkViews.forEach(user => { if (user.ip == req.headers["x-real-ip"]) isChanged = true })
 
-        if(isChanged==false) shareableData.linkViews.push({ ip: req.ip, userAgent: req.headers["user-agent"], createdAt: new Date })
+        if(isChanged==false) shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date })
         
         let updateObject = _.omit(shareableData, ['createdAt'])
 
@@ -107,10 +104,13 @@ module.exports = class SharedLink extends Abstract {
 
         }
 
+        let privateURL = shareableData.privateURL + ((shareableData.privateURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`
+
         return resolve({
           status: 200,
           result: {
-            url: shareableData.actualURL,
+            privateURL: privateURL,
+            publicURL: shareableData.publicURL,
             linkId: shareableData.linkId
           }
         })

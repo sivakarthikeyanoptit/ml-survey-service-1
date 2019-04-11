@@ -516,10 +516,18 @@ module.exports = class Schools extends Abstract {
           submissionDocument.evaluationFrameworkId =  evaluationFrameworkDocument._id
           submissionDocument.evaluationFrameworkExternalId =  evaluationFrameworkDocument.externalId
 
-          let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
+          let criteriasId = new Array
+          let criteriaObject = {}
+          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(evaluationFrameworkDocument.themes);
 
+          criteriasIdArray.forEach(eachCriteriaId=>{
+            criteriasId.push(eachCriteriaId.criteriaId)
+            criteriaObject[eachCriteriaId.criteriaId.toString()]={
+              weightage:eachCriteriaId.weightage
+            }
+          })
           let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
-            { _id: { $in: criteriasIdArray } },
+            { _id: { $in: criteriasId } },
             {
               resourceType:0,
               language:0,
@@ -535,6 +543,7 @@ module.exports = class Schools extends Abstract {
 
           criteriaQuestionDocument.forEach(criteria => {
 
+            criteria.weightage = criteriaObject[criteria._id.toString()].weightage
             submissionDocumentCriterias.push(
               _.omit(criteria, [
                 "evidences"

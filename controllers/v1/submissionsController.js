@@ -1027,7 +1027,7 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolProfile:1, schoolInformation: 1, "programInformation.externalId": 1 }
+          { "answers": 1, "criterias": 1, "evidencesStatus": 1, "schoolInformation": 1, "schoolProfile" : 1 , "programInformation.externalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1043,159 +1043,144 @@ module.exports = class Submission extends Abstract {
         if (allSubmittedEvidence) {
           let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
 
-            result[criteria.externalId] = {}
-            result[criteria.externalId].criteriaName = criteria.name
-            result[criteria.externalId].criteriaExternalId = criteria.externalId
+            if(criteria.weightage > 0){
+              result[criteria.externalId] = {}
+              result[criteria.externalId].criteriaName = criteria.name
+              result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-            if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
-              let submissionAnswers = new Array
-              const questionValueExtractor = function (question) {
-                let result;
-                const questionArray = question.split('.')
+              if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+                let submissionAnswers = new Array
+                const questionValueExtractor = function (question) {
+                  let result;
+                  const questionArray = question.split('.')
+                  if(questionArray[0] === "schoolProfile") {
 
-                if(questionArray[0] === "schoolProfile") {
-
-                  if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionArray[1]]){
-                    result = submissionDocument.schoolProfile[questionArray[1]]
-                  } else {
-                    result = submissionDocument.schoolInformation[questionArray[1]]
+                    if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionArray[1]]){
+                      result = submissionDocument.schoolProfile[questionArray[1]]
+                    } else {
+                      result = submissionDocument.schoolInformation[questionArray[1]]
                   }
 
-                  if(!result || result == "" || !(result.length>=0)) {
-                    result = "NA"
+                    if(!result || result == "" || !(result.length>=0)) {
+                      result = "NA"
+                   }
+                    submissionAnswers.push(result)
+                    return result
                   }
-                  submissionAnswers.push(result)
-                  return result
+
+                  submissionAnswers.push(submissionDocument.answers[questionArray[0]])
+                  let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                  inputTypes.forEach(inputType => {
+                    if (questionArray[1] === inputType) {
+                      if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                        result = submissionDocument.answers[questionArray[0]][inputType];
+                      } else {
+                        result = "NA";
+                      }
+                    }
+                  })
+                  return result;
                 }
 
-                submissionAnswers.push(submissionDocument.answers[questionArray[0]])
-                let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                inputTypes.forEach(inputType => {
-                  if (questionArray[1] === inputType) {
-                    if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
-                      result = submissionDocument.answers[questionArray[0]][inputType];
-                    } else {
-                      result = "NA";
-                    }
+                let expressionVariables = {};
+                let expressionResult = {};
+                let allValuesAvailable = true;
+
+                Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
+                  if (variable != "default") {
+                    expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
+                    expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
+                    if (expressionVariables[variable] === "NA") {
+                      allValuesAvailable = false;
+                   }
                   }
                 })
-                return result;
-              }
-              let expressionVariables = {};
-              let expressionResult = {};
-              let allValuesAvailable = true;
 
-              Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-                if (variable != "default") {
-                  expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
-                  expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
-                  if (expressionVariables[variable] === "NA") {
-                    allValuesAvailable = false;
-                  }
-                }
-              })
+                let errorWhileParsingCriteriaExpression = false
+                let errorExpression = {}
 
-              let errorWhileParsingCriteriaExpression = false
-              let errorLevel = {}
-              let errorLevels = [];
-              let errorExpression = {}
+                if (allValuesAvailable) {
+                  Object.keys(criteria.rubric.levels).forEach(level => {
 
-              if (allValuesAvailable) {
-                Object.keys(criteria.rubric.levels).forEach(level => {
-
-                  if (criteria.rubric.levels[level].expression != "") {
-                    try {
-                      expressionResult[level] = {
-                        expressionParsed: criteria.rubric.levels[level].expression,
-                        result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
-                      }
-                    } catch (error) {
-                      console.log("---------------Some exception caught begins---------------")
-                      console.log(error)
-                      console.log(criteria.name)
-                      console.log(criteria.rubric.levels[level].expression)
-                      console.log(expressionVariables)
-                      console.log(criteria.rubric.expressionVariables)
-                      console.log("---------------Some exception caught ends---------------")
+                    if (criteria.rubric.levels[level].expression != "") {
+                      try {
+                        expressionResult[level] = {
+                          expressionParsed: criteria.rubric.levels[level].expression,
+                          result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
+                        }
+                      } catch (error) {
+                        console.log("---------------Some exception caught begins---------------")
+                        console.log(error)
+                        console.log(criteria.name)
+                        console.log(criteria.rubric.levels[level].expression)
+                        console.log(expressionVariables)
+                        console.log(criteria.rubric.expressionVariables)
+                        console.log("---------------Some exception caught ends---------------")
 
                       // errorExpressions.push(criteria.rubric.levels[level].expression)
-                      if (_.isEmpty(errorExpression[criteria.externalId], true)) {
-                        errorExpression[criteria.externalId] = {}
-                      }
-                      errorExpression[criteria.externalId][criteria.rubric.levels[level].level] = {
-                        expression: criteria.rubric.levels[level].expression,
-                        error: error.toString()
-                      }
+                        if (_.isEmpty(errorExpression[criteria.externalId], true)) {
+                          errorExpression[criteria.externalId] = {}
+                        }
 
-                      errorLevels.push(criteria.rubric.levels[level].level)
-                      errorLevel[criteria.externalId] = {
-                        level: errorLevels.join(',')
+                        let errorObject = {
+                          errorName:error.message,
+                          criteriaName:criteria.name,
+                          expression:criteria.rubric.levels[level].expression,
+                          expressionVariables:JSON.stringify(expressionVariables),
+                          errorLevels:criteria.rubric.levels[level].level,
+                          expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
+                        }
+                        slackClient.rubricErrorLogs(errorObject)
+
+                        errorWhileParsingCriteriaExpression = true
                       }
-
-
-                      errorWhileParsingCriteriaExpression = true
+                    } else {
+                      expressionResult[level] = {
+                        expressionParsed: criteria.rubric.levels[level].expression,
+                        result: false
+                      }
                     }
-                  } else {
-                    expressionResult[level] = {
-                      expressionParsed: criteria.rubric.levels[level].expression,
-                      result: false
-                    }
-                  }
-                })
-              }
-
-              let score = "NA"
-              if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                if (expressionResult.L4.result) {
-                  score = "L4"
-                } else if (expressionResult.L3.result) {
-                  score = "L3"
-                } else if (expressionResult.L2.result) {
-                  score = "L2"
-                } else if (expressionResult.L1.result) {
-                  score = "L1"
-                } else {
-                  score = "No Level Matched"
+                  })
                 }
-              }
 
-              result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
-              result[criteria.externalId].expressionVariables = expressionVariables
-
-              if (score == "NA") {
-                result[criteria.externalId].valuesNotFound = true
-                result[criteria.externalId].score = score
-                criteria.score = score
-              } else if (score == "No Level Matched") {
-                result[criteria.externalId].noExpressionMatched = true
-                result[criteria.externalId].score = score
-                criteria.score = score
-              } else {
-                result[criteria.externalId].score = score
-                criteria.score = score
-              }
-
-              result[criteria.externalId].expressionResult = expressionResult
-              result[criteria.externalId].submissionAnswers = submissionAnswers
-
-              if (errorWhileParsingCriteriaExpression) {
-
-                criteriaIdWithParsingErrors.push({
-                  [criteria.externalId]: {
-                    criteriaName: result[criteria.externalId].criteriaName,
-                    criteriaId: result[criteria.externalId].criteriaExternalId,
-                    expressionVariableDefined: result[criteria.externalId].expressionVariablesDefined,
-                    expressionVariables: result[criteria.externalId].expressionVariables,
-                    level: errorLevel[criteria.externalId].level,
-                    allLevelexpression: errorExpression[criteria.externalId] ? errorExpression[criteria.externalId] : "",
+                let score = "NA"
+                if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
+                  if (expressionResult.L4.result) {
+                    score = "L4"
+                  } else if (expressionResult.L3.result) {
+                    score = "L3"
+                  } else if (expressionResult.L2.result) {
+                    score = "L2"
+                  } else if (expressionResult.L1.result) {
+                    score = "L1"
+                  } else {
+                    score = "No Level Matched"
                   }
-                })
+                }
 
-              }
+                result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
+                result[criteria.externalId].expressionVariables = expressionVariables
+
+                if (score == "NA") {
+                  result[criteria.externalId].valuesNotFound = true
+                  result[criteria.externalId].score = score
+                  criteria.score = score
+                } else if (score == "No Level Matched") {
+                  result[criteria.externalId].noExpressionMatched = true
+                  result[criteria.externalId].score = score
+                  criteria.score = score
+                } else {
+                  result[criteria.externalId].score = score
+                  criteria.score = score
+                }
+
+                result[criteria.externalId].expressionResult = expressionResult
+                result[criteria.externalId].submissionAnswers = submissionAnswers
+             }
+
+              return criteria
+
             }
-
-            return criteria
-
           }));
 
           if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
@@ -1252,6 +1237,7 @@ module.exports = class Submission extends Abstract {
 
     })
   }
+
 
 
   async dummyRate(req) {

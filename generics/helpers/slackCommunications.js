@@ -98,7 +98,7 @@ const rubricErrorLogs = function (errorMessage) {
     let attachmentData = new Array
     let fieldsData = new Array
 
-    Object.keys(_.pick(errorMessage, ["submissionId", "schoolId", "schoolName", "programId"])).forEach(objValue => {
+    Object.keys(errorMessage).forEach(objValue => {
       fieldsData.push({
         title: objValue,
         value: errorMessage[objValue],
@@ -114,7 +114,7 @@ const rubricErrorLogs = function (errorMessage) {
 
     let attachment = {
       color: "#e00f2b",
-      pretext: errorMessage.errorMsg.message,
+      pretext: errorMessage,
       text: "More information below",
       fields: fieldsData
     }
