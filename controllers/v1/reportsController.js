@@ -842,19 +842,62 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolId = {
-          ["schoolInformation.externalId"]: req.params._id
+          ["schoolExternalId"]: req.params._id
         };
 
-        let submissionDocument = database.models.submissions.find(
+        let submissionDocument = await database.models.submissions.findOne(
           schoolId,
           {
-            criterias: 1
+            criterias: 1,
+            evaluationFrameworkId:1
           }
-        ).exec();
+        ).lean()
 
-        let evaluationFrameworksDocuments = database.models[
+        if (!submissionDocument ) {
+          return resolve({
+            status: 404,
+            message: "No submissions found for given params."
+          });
+        }
+
+        let evaluationFrameworksDocuments = await database.models[
           "evaluationFrameworks"
-        ].find({}, { themes: 1 }).exec();
+        ].findOne({_id:submissionDocument.evaluationFrameworkId}, { themes: 1 }).lean()
+
+        let arr ={}
+
+        let getCriteriaPath =  function (themes,parentData = []) {
+
+          themes.forEach(theme => {
+
+            if (theme.children) {  
+              let hierarchyTrackToUpdate = [...parentData]
+              hierarchyTrackToUpdate.push(theme.name)
+
+              getCriteriaPath(theme.children,hierarchyTrackToUpdate)
+              
+            } else {
+
+              let data = {}
+
+              let hierarchyTrackToUpdate = [...parentData]
+              hierarchyTrackToUpdate.push(theme.name)
+
+              theme.criteria.forEach(criteria => {
+
+                  data[criteria.criteriaId.toString()]={
+                    parentPath:hierarchyTrackToUpdate.join("->")
+                  }
+
+              })
+
+              _.merge(arr,data)
+            }
+          })
+
+        }
+
+        getCriteriaPath(evaluationFrameworksDocuments.themes)
 
         const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
         let fileStream = new FileStream(fileName);
@@ -868,61 +911,24 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([submissionDocument, evaluationFrameworksDocuments]).then(submissionAndEvaluationFrameworksDocuments => {
-          let submissionDocument = submissionAndEvaluationFrameworksDocuments[0];
-          let evaluationFrameworksDocuments = submissionAndEvaluationFrameworksDocuments[1];
+        submissionDocument.criterias && submissionDocument.criterias.forEach(submissionCriterias => {
+    
+          if (submissionCriterias._id) {
+            let criteriaReportObject = {
+              "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
+              "Score": submissionCriterias.score
+                ? submissionCriterias.score
+                : "NA"
+            };
 
-          let evaluationNameObject = {};
-          evaluationFrameworksDocuments.forEach(singleDocument => {
-            singleDocument.themes.forEach(singleTheme => {
-              singleTheme.children && singleTheme.children.forEach(subThemes => {
-                subThemes.children && subThemes.children.forEach(singleSubTheme => {
-                  singleSubTheme.criteria.forEach(singleCriteria => {
-                    evaluationNameObject[singleCriteria.toString()] = {
-                      themeName: singleTheme.name,
-                      aoiName: subThemes.name,
-                      indicatorName: singleSubTheme.name
-                    };
-                  });
-                })
-              })
+            Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
+              criteriaReportObject[eachRubricLevel.label] = eachRubricLevel.description
             });
-          });
-
-          if (!submissionDocument && !submissionDocument[0].criterias.length) {
-            return resolve({
-              status: 404,
-              message: "No submissions found for given params."
-            });
+            input.push(criteriaReportObject);
           }
-          else {
-            submissionDocument[0].criterias.forEach(submissionCriterias => {
-              let levels = Object.values(submissionCriterias.rubric.levels);
+        });          
 
-              if (submissionCriterias._id) {
-                let criteriaReportObject = {
-                  "Theme Name": evaluationNameObject[submissionCriterias._id]
-                    ? evaluationNameObject[submissionCriterias._id].themeName
-                    : "",
-                  "AoI Name": evaluationNameObject[submissionCriterias._id]
-                    ? evaluationNameObject[submissionCriterias._id].aoiName
-                    : "",
-                  "Level 1": levels.find(level => level.level == "L1").description,
-                  "Level 2": levels.find(level => level.level == "L2").description,
-                  "Level 3": levels.find(level => level.level == "L3").description,
-                  "Level 4": levels.find(level => level.level == "L4").description,
-                  "Score": submissionCriterias.score
-                    ? submissionCriterias.score
-                    : "NA"
-                };
-                input.push(criteriaReportObject);
-              }
-            });
-          }
-          input.push(null)
-        })
-
-
+        input.push(null)
       } catch (error) {
         return reject({
           status: 500,
@@ -1115,7 +1121,6 @@ module.exports = class Reports {
                         } else {
                           singleAnswerRecord.Answer = singleAnswer.value
                         }
-                        input.push(singleAnswerRecord)
 
                       } else {
                         singleAnswerRecord["Answer"] = "Instance Question";
