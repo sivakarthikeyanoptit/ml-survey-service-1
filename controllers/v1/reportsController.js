@@ -864,6 +864,16 @@ module.exports = class Reports {
           "evaluationFrameworks"
         ].findOne({_id:submissionDocument.evaluationFrameworkId}, { themes: 1 }).lean()
 
+        let criteriaName = {}
+        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworksDocuments.themes);
+        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } },{name:1});
+        
+        allCriteriaDocument.forEach(eachCriteria=>{
+          criteriaName[eachCriteria._id.toString()]={
+            name:eachCriteria.name
+          }
+        })
+
         let arr ={}
 
         let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
@@ -920,9 +930,11 @@ module.exports = class Reports {
           if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
             let criteriaReportObject = {
               "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
+              "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
               "Score": submissionCriterias.score
                 ? submissionCriterias.score
                 : "NA"
+
             };
 
             Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
