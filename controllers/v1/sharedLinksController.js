@@ -13,15 +13,19 @@ module.exports = class SharedLink extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.body.privateURL || !req.body.publicURL) throw { status: 400, message: "Bad request." }
+        if (!req.body.privateURL || !req.body.publicURL || !req.body.reportName) throw { status: 400, message: "Bad request." }
 
         let shareableData;
+
+        let queryParams = req.body.publicURL.split("?")
 
         shareableData = await database.models.sharedLink.findOne({
           privateURL: req.body.privateURL,
           publicURL: req.body.publicURL,
+          reportName: req.body.reportName,
+          queryParams: queryParams[1],
           "userDetails.id": req.userDetails.id,
-          isActive:true
+          isActive: true
         })
 
         if (!shareableData) {
@@ -33,12 +37,14 @@ module.exports = class SharedLink extends Abstract {
             userAgent: req.headers["user-agent"],
             createdAt: new Date
           }
-          
+
           let dataObject = {
             privateURL: req.body.privateURL,
             publicURL: req.body.publicURL,
             linkId: linkId,
             isActive: true,
+            reportName: req.body.reportName,
+            queryParams: queryParams[1],
             accessedCount: 0,
             userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
             linkViews: [linkViews]
@@ -72,13 +78,15 @@ module.exports = class SharedLink extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let linkId = req.query.linkId;
+        let linkId = req.headers.linkId;
 
-        if (!linkId) throw { status: 400, message: "Bad request." };
+        let reportName = req.headers.reportName;
+
+        if (!linkId || !reportName) throw { status: 400, message: "Bad request." };
 
         let shareableData;
 
-        shareableData = await database.models.sharedLink.findOne({ linkId: linkId, isActive: true }).lean();
+        shareableData = await database.models.sharedLink.findOne({ linkId: linkId, reportName: reportName, isActive: true }).lean();
 
         if (!shareableData) throw { status: 400, message: "No data found for given params." };
 
@@ -86,8 +94,8 @@ module.exports = class SharedLink extends Abstract {
 
         shareableData.linkViews.forEach(user => { if (user.ip == req.headers["x-real-ip"]) isChanged = true })
 
-        if(isChanged==false) shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date })
-        
+        if (isChanged == false) shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date })
+
         let updateObject = _.omit(shareableData, ['createdAt'])
 
         if (isChanged == true) {
