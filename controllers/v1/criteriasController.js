@@ -890,15 +890,21 @@ module.exports = class Criterias extends Abstract {
             "evaluationFrameworks"
           ].aggregate(evaluationFrameworkQueryObject);
 
-          let criteriasIdArray = new Array
-          evaluationFrameworkDocument.forEach(eachEvaluation => {
-            criteriasIdArray.push(...gen.utils.getCriteriaIds(eachEvaluation.themes))
-          });
+          let criteriasId = new Array
+          let criteriaObject = {}
+          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(evaluationFrameworkDocument[0].themes);
 
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasIdArray } })
+          criteriasIdArray.forEach(eachCriteriaId=>{
+            criteriasId.push(eachCriteriaId.criteriaId)
+            criteriaObject[eachCriteriaId.criteriaId.toString()]={
+              weightage:eachCriteriaId.weightage
+            }
+          })
+
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasId } })
 
           criteriaQuestionDocument.forEach(criteria => {
-
+            criteria.weightage = criteriaObject[criteria._id.toString()].weightage
             submissionDocumentCriterias.push(
               _.omit(criteria._doc, [
                 "resourceType",

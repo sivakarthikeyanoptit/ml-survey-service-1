@@ -1121,7 +1121,6 @@ module.exports = class Reports {
                         } else {
                           singleAnswerRecord.Answer = singleAnswer.value
                         }
-                        input.push(singleAnswerRecord)
 
                       } else {
                         singleAnswerRecord["Answer"] = "Instance Question";

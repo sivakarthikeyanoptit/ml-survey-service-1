@@ -821,7 +821,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {}
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
