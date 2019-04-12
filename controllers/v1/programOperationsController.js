@@ -634,7 +634,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -819,9 +819,9 @@ module.exports = class ProgramOperations {
     }
 
     getQueryObject(requestQuery) {
-        let queryObject = {}
+        let queryObject = {};
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId','ProgramId']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {

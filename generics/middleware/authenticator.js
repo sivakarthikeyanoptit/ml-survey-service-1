@@ -61,24 +61,24 @@ async function getAllRoles(obj) {
 
 module.exports = async function (req, res, next) {
 
-  if (req.path.includes('/sharedLinks/verify')) return next();
+  if (req.path.includes("/sharedLinks/verify")) return next();
 
-  if (req.query && req.query.linkId) {
+  if (req.headers && req.headers.linkid) {
 
-    let isShareable = await database.models.sharedLink.findOne({ linkId: req.query.linkId, isActive: true });
+    let isShareable = await database.models.sharedLink.findOne({ linkId: req.headers.linkid, isActive: true });
 
-    // let requestURL = req.url.replace(`?linkId=${req.query.linkId}`, '').replace(`&linkId=${req.query.linkId}`, '');
+    let requestURL = req.url.includes("?") ? req.url.split("?")[0] : req.url;
 
-    // if (isShareable && isShareable.privateURL.includes(requestURL)) {
+    if (isShareable && requestURL.includes(isShareable.reportName)) {
 
-    if (isShareable) {
+      req.url = (isShareable.queryParams) ? requestURL + "?" + isShareable.queryParams : requestURL;
 
       req.userDetails = isShareable.userDetails;
 
       return next();
 
     } else {
-      
+
       let msg = "Bad request.";
 
       const slackMessageForBadRequest = { userIP: req.headers["x-real-ip"], method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };

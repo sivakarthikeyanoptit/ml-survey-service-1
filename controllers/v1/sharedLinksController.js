@@ -39,13 +39,13 @@ module.exports = class SharedLink extends Abstract {
 
         let shareableData;
 
-        let queryParams = req.body.publicURL.split("?")
+        let queryParams = req.body.publicURL.includes("?") ? req.body.publicURL.split("?")[1] : "";
 
         shareableData = await database.models.sharedLink.findOne({
           privateURL: req.body.privateURL,
           publicURL: req.body.publicURL,
           reportName: req.body.reportName,
-          queryParams: queryParams[1],
+          queryParams: queryParams,
           "userDetails.id": req.userDetails.id,
           isActive: true
         })
@@ -66,7 +66,7 @@ module.exports = class SharedLink extends Abstract {
             linkId: linkId,
             isActive: true,
             reportName: req.body.reportName,
-            queryParams: queryParams[1],
+            queryParams: queryParams,
             accessedCount: 0,
             userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
             linkViews: [linkViews]
@@ -109,9 +109,9 @@ module.exports = class SharedLink extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let linkId = req.headers.linkId;
+        let linkId = req.headers.linkid;
 
-        let reportName = req.headers.reportName;
+        let reportName = req.headers.reportname;
 
         if (!linkId || !reportName) throw { status: 400, message: "Bad request." };
 
