@@ -888,7 +888,7 @@ module.exports = class Reports {
 
               theme.criteria.forEach(criteria => {
 
-                  data[criteria.criteriaId.toString()]={
+                  data[criteria._id.toString()]={
                     parentPath:hierarchyTrackToUpdate.join("->")
                   }
 
@@ -922,7 +922,9 @@ module.exports = class Reports {
               "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
               "Score": submissionCriterias.score
                 ? submissionCriterias.score
-                : "NA"
+                : "NA",
+                "Criteria Name": arr[submissionCriterias._id.toString()].name
+
             };
 
             Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
