@@ -9,6 +9,28 @@ module.exports = class SharedLink extends Abstract {
     return "sharedLink";
   }
 
+  /**
+      * @apiDefine errorBody
+      * @apiError {String} status 4XX,5XX
+      * @apiError {String} message Error
+      */
+
+  /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
+
+  /**
+  * @api {get} /assessment/api/v1/sharedLinks/generate Create a shared link
+  * @apiVersion 0.0.1
+  * @apiName Create shared link
+  * @apiGroup sharedLinks
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   generate(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -74,6 +96,15 @@ module.exports = class SharedLink extends Abstract {
     })
   }
 
+  /**
+    * @api {get} /assessment/api/v1/sharedLinks/verify Create a shared link
+    * @apiVersion 0.0.1
+    * @apiName Verify shared link
+    * @apiGroup sharedLinks
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
   verify(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -112,13 +143,13 @@ module.exports = class SharedLink extends Abstract {
 
         }
 
-        let privateURL = shareableData.privateURL + ((shareableData.privateURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`
+        let publicURL = shareableData.publicURL + ((shareableData.publicURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`
 
         return resolve({
           status: 200,
           result: {
-            privateURL: privateURL,
-            publicURL: shareableData.publicURL,
+            privateURL: shareableData.privateURL,
+            publicURL: publicURL,
             linkId: shareableData.linkId
           }
         })

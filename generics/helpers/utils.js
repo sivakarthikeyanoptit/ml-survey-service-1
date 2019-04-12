@@ -58,6 +58,25 @@ function getCriteriaIds(themes) {
   return allCriteriaIds;
 }
 
+function getCriteriaIdsAndWeightage(themes) {
+  let allCriteriaIds = [];
+  themes.forEach(theme => {
+    let criteriaIdArray = [];
+    if (theme.children) {
+      criteriaIdArray = this.getCriteriaIdsAndWeightage(theme.children);
+    } else {
+      criteriaIdArray = theme.criteria;
+    }
+    criteriaIdArray.forEach(eachCriteria => {
+        allCriteriaIds.push({
+          criteriaId:eachCriteria.criteriaId,
+          weightage:eachCriteria.weightage
+        });
+    })
+  })
+  return allCriteriaIds;
+}
+
 function getUserRole(userDetails, caseSensitive = false) {
   if (userDetails && userDetails.allRoles.length) {
     _.pull(userDetails.allRoles, 'PUBLIC');
@@ -102,5 +121,6 @@ module.exports = {
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   mapUserRole: mapUserRole,
-  getAllQuestionId: getAllQuestionId
+  getAllQuestionId: getAllQuestionId,
+  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
 };

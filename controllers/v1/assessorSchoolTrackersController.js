@@ -11,29 +11,29 @@ module.exports = class AssessorSchoolTrackers extends Abstract {
 
     async filterByDate(params, userIds) {
         return new Promise(async (resolve, reject) => {
-            let filterdDocuments = await Promise.all(userIds.map(async (userId) => {
 
-                params.fromDate.setHours(23, 59, 59)
-                params.toDate.setHours(23, 59, 59)
+            params.fromDate.setHours(0);
+            params.toDate.setHours(23, 59, 59);
 
-                let fromDate = await database.models.assessorSchoolTrackers.find({ assessorId: userId, dateOfOperation: { $lte: params.fromDate } }, { dateOfOperation: 1 }).sort({ dateOfOperation: -1 }).limit(1);
+            let queryObject = {
+                assessorId: { $in: userIds },
+                //formula =  (validFrom <= fromDate && fromDate <= validTo) || (validFrom <= toDate && toDate <= validTo)
+                $or: 
+                [
+                    {
+                        validFrom: { $lte: params.fromDate },
+                        validTo: { $gte: params.fromDate }
+                    },
+                    {
+                        validFrom: { $lte: params.toDate }, 
+                        validTo: { $gte: params.toDate }
+                    },
+                ]
+            };
 
-                let toDate = await database.models.assessorSchoolTrackers.find({ assessorId: userId, dateOfOperation: { $lte: params.toDate } }, { dateOfOperation: 1 }).sort({ dateOfOperation: -1 }).limit(1);
-
-                let queryObject = {};
-                queryObject.assessorId = userId;
-                queryObject.dateOfOperation = {};
-
-                if(fromDate.length){
-                    if (fromDate.length) queryObject.dateOfOperation['$gte'] = moment(fromDate[0].dateOfOperation).startOf('day');
-                    if (toDate.length) queryObject.dateOfOperation['$lte'] = moment(toDate[0].dateOfOperation).endOf('day');
-                    return database.models.assessorSchoolTrackers.distinct('updatedData', queryObject).exec()
-                }else{
-                    return []
-                }
-
-            }))
-            let result = _.uniq(_.flattenDeep(filterdDocuments))
+            let assessorSchoolTrackersDocuments = await database.models.assessorSchoolTrackers.find(queryObject, { updatedData: 1 }).lean();
+            let schoolIds = assessorSchoolTrackersDocuments.map(documents => documents.updatedData)
+            let result = _.uniq(_.flattenDeep(schoolIds));
             return resolve(result);
 
         })
