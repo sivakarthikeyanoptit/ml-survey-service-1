@@ -888,7 +888,7 @@ module.exports = class Reports {
 
               theme.criteria.forEach(criteria => {
 
-                  data[criteria.criteriaId.toString()]={
+                  data[criteria._id.toString()]={
                     parentPath:hierarchyTrackToUpdate.join("->")
                   }
 
