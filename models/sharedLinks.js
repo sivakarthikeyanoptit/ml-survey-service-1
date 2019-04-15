@@ -7,6 +7,8 @@ module.exports = {
         isActive: Boolean,
         accessedCount: Number,
         linkViews: Array,
+        reportName: "string",
+        queryParams: "string",
         userDetails: {
             id: "string",
             accessiblePrograms: Array,

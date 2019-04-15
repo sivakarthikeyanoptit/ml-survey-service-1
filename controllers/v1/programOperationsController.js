@@ -114,8 +114,17 @@ module.exports = class ProgramOperations {
 
                 let assessorDetails;
                 let assessorQueryObject = {};
+                assessorQueryObject["$or"] = [
+                    {
+                        "parentId" : req.userDetails.id 
+                    },
+                    {
+                        "userId" : req.userDetails.id 
+                    }
+                ];
 
-                assessorQueryObject["parentId"] = req.userDetails.id;
+                assessorQueryObject["programId"] = programDocument._id;
+
                 if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
 
                 if (req.query.csv && req.query.csv == "true") {
@@ -634,7 +643,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `${process.env.APPLICATION_BASE_URL}api/v1/programOperations/searchSchool/`,
+                        url: `programOperations/searchSchool/`,
                         min: "",
                         max: ""
                     }
@@ -746,7 +755,7 @@ module.exports = class ProgramOperations {
                 }
 
 
-                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds, programDocument._id);
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
@@ -819,9 +828,9 @@ module.exports = class ProgramOperations {
     }
 
     getQueryObject(requestQuery) {
-        let queryObject = {}
+        let queryObject = {};
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId','ProgramId']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
