@@ -64,7 +64,7 @@ module.exports = class Assessments {
                             'description': 1
                         }
                     }
-                ]).lean();
+                ]);
 
                 return resolve({
                     result: programDocument
