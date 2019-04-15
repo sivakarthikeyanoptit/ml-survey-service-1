@@ -1778,8 +1778,11 @@ module.exports = class Reports {
           });
         }
 
+        let  schoolIdArray = req.query.schoolId.split(",")
+
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        fetchRequiredSubmissionDocumentIdQueryObj["schoolExternalId"] = {$in:schoolIdArray}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
