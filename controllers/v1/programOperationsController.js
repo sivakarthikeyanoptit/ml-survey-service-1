@@ -114,8 +114,17 @@ module.exports = class ProgramOperations {
 
                 let assessorDetails;
                 let assessorQueryObject = {};
+                assessorQueryObject["$or"] = [
+                    {
+                        "parentId" : req.userDetails.id 
+                    },
+                    {
+                        "userId" : req.userDetails.id 
+                    }
+                ];
 
-                assessorQueryObject["parentId"] = req.userDetails.id;
+                assessorQueryObject["programId"] = programDocument._id;
+
                 if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
 
                 if (req.query.csv && req.query.csv == "true") {
@@ -746,7 +755,7 @@ module.exports = class ProgramOperations {
                 }
 
 
-                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds);
+                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds, programDocument._id);
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 

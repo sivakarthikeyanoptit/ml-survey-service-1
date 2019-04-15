@@ -111,13 +111,11 @@ module.exports = class SharedLink extends Abstract {
 
         let linkId = req.headers.linkid;
 
-        let reportName = req.headers.reportname;
-
-        if (!linkId || !reportName) throw { status: 400, message: "Bad request." };
+        if (!linkId) throw { status: 400, message: "Bad request." };
 
         let shareableData;
 
-        shareableData = await database.models.sharedLink.findOne({ linkId: linkId, reportName: reportName, isActive: true }).lean();
+        shareableData = await database.models.sharedLink.findOne({ linkId: linkId, isActive: true }).lean();
 
         if (!shareableData) throw { status: 400, message: "No data found for given params." };
 
