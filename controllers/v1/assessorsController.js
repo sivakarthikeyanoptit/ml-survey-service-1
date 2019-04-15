@@ -382,48 +382,48 @@ module.exports = class Assessors {
             return
           }
 
-       
-          if (assessor.parentId == "" ) {
-            throw "Parent Id is mandatory field"
-          }else{
+          let parentIdFromKeyCloakToken 
 
+          if (assessor.parentId) {
             let parentIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.parentId)
   
-            let parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
+            parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
 
             if(!(parentIdFromKeyCloakToken)){
               let errorMessage = `Skipped document of parentId ${assessor.parentId}`
               errorMessageArray.push({ errorMessage })
               return
             }
-            let assessorSchoolArray = new Array
+          }
 
-            assessor.schools.split(",").forEach(assessorSchool => {
+          let assessorSchoolArray = new Array
+
+          assessor.schools.split(",").forEach(assessorSchool => {
               if (schoolsData[assessorSchool.trim()])
                 assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
-            })
+          })
   
-            assessor.schools = assessorSchoolArray
+          assessor.schools = assessorSchoolArray
   
-            if (programsData[programId]) {
+          if (programsData[programId]) {
               assessor.programId = programsData[programId]._id;
-            } else {
+          } else {
               assessor.programId = null;
               skippedDocumentCount += 1;
-            }
+          }
   
-            assessor.createdBy = assessor.updatedBy = creatorId
+          assessor.createdBy = assessor.updatedBy = creatorId
   
-            let fieldsWithOutSchool = {};
-            Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
-              if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
-            })
+          let fieldsWithOutSchool = {};
+          Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
+            if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+          })
   
-            let updateObject;
+          let updateObject;
             
-            if (fieldsWithOutSchool.parentId) {
-              fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
-            }
+          if (fieldsWithOutSchool.parentId) {
+            fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
+          }
   
             if (assessor.schoolOperation == "OVERRIDE") {
               updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
@@ -483,7 +483,7 @@ module.exports = class Assessors {
             }
   
             return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject);
-          }
+          
         })).catch(error => {
           throw error
         });
