@@ -1778,8 +1778,14 @@ module.exports = class Reports {
           });
         }
 
+
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
+        
+        if(req.query.schoolId && req.query.schoolId != "" && req.query.schoolId.split(",").length > 0) {
+          fetchRequiredSubmissionDocumentIdQueryObj["schoolExternalId"] = {$in:req.query.schoolId.split(",")}
+        }
+        
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
