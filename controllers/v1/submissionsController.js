@@ -1882,7 +1882,7 @@ module.exports = class Submission extends Abstract {
                 if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
                   schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
                   csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
-                  updateQuery["$addToSet"] = { "csvUpdatedHistory": csvUpdateHistory }
+                  updateQuery["$addToSet"] = { "submissionsUpdatedHistory": csvUpdateHistory }
                 }
 
                 let submissionCheck = await database.models.submissions.findOneAndUpdate(findQuery, updateQuery).lean()
@@ -1907,6 +1907,66 @@ module.exports = class Submission extends Abstract {
         })
       }
     })
+  }
+
+  async resetEcm(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programId = req.params._id
+
+        if (!programId) {
+          throw "Program id is missing"
+        }
+
+        let schoolId = req.query.schoolId
+        let ecmToBeReset = req.query.ecm
+        let evidencesToBeReset = "evidences." +ecmToBeReset
+        let submissionUpdated=new Array
+
+          if (!schoolId) {
+          throw "School id is missing"
+        }
+
+        let findQuery = {
+          programExternalId:programId,
+          schoolExternalId:schoolId,
+          [evidencesToBeReset]:{$ne:null},
+          "evidencesStatus.externalId":req.query.ecm
+        }
+
+        let updateQuery = {
+          $set: {
+            [evidencesToBeReset+".submissions"]:[],
+            [evidencesToBeReset+".isSubmitted"]:false,
+            [evidencesToBeReset+".endTime"]:"",[evidencesToBeReset+".startTime"]:"",
+            [evidencesToBeReset+".hasConflicts"]:false,"evidencesStatus.$.submissions":[],
+            "evidencesStatus.$.isSubmitted":false,"evidencesStatus.$.hasConflicts":false,
+            "evidencesStatus.$.startTime":"","evidencesStatus.$.endTime":""
+          }
+        }
+
+        submissionUpdated.push({ userId: req.userDetails.id, date: new Date(),message: "Updated ECM "+req.query.ecm })
+        updateQuery["$addToSet"] = { "submissionsUpdatedHistory": submissionUpdated }
+
+         let updatedQuery = await database.models.submissions.findOneAndUpdate(findQuery,updateQuery).lean()
+
+         if(updatedQuery == null){
+           throw "Ecm doesnot exists" 
+        }
+
+        return resolve({
+          message:"ECM Reset successfully"
+        })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
   }
 
   allSubmission(allSubmission) {
