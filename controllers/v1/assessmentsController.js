@@ -129,7 +129,6 @@ module.exports = class Assessments {
 
             let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
 
-            // let submissionDocument = {};
             let submissionDocument = {
                 entityId: detailedAssessment.entityProfile._id,
                 entityInformation: detailedAssessment.entityProfile,
