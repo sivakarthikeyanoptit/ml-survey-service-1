@@ -482,7 +482,12 @@ module.exports = class Assessors {
               programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
             }
   
-            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject);
+            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject ,{
+              upsert: true,
+              new: true,
+              setDefaultsOnInsert: true,
+              returnNewDocument: true
+            });
           
         })).catch(error => {
           throw error
