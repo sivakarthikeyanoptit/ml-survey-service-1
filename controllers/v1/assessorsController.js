@@ -382,112 +382,113 @@ module.exports = class Assessors {
             return
           }
 
-          let parentIdByKeyCloakToken
-          if (assessor.parentId) {
-            parentIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.parentId)
-          }
+          let parentIdFromKeyCloakToken 
 
-          let parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
-          if ((assessor.parentId !== "" && !(parentIdFromKeyCloakToken))) {
-            let errorMessage = `Skipped document of parentId ${assessor.parentId}`
-            errorMessageArray.push({ errorMessage })
-            return
+          if (assessor.parentId) {
+            let parentIdByKeyCloakToken = await this.getInternalUserIdByExternalId(req.rspObj.userToken, assessor.parentId)
+  
+            parentIdFromKeyCloakToken = parentIdByKeyCloakToken[assessor.parentId]
+
+            if(!(parentIdFromKeyCloakToken)){
+              let errorMessage = `Skipped document of parentId ${assessor.parentId}`
+              errorMessageArray.push({ errorMessage })
+              return
+            }
           }
 
           let assessorSchoolArray = new Array
 
           assessor.schools.split(",").forEach(assessorSchool => {
-            if (schoolsData[assessorSchool.trim()])
-              assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
+              if (schoolsData[assessorSchool.trim()])
+                assessorSchoolArray.push(schoolsData[assessorSchool.trim()])
           })
-
+  
           assessor.schools = assessorSchoolArray
-
+  
           if (programsData[programId]) {
-            assessor.programId = programsData[programId]._id;
+              assessor.programId = programsData[programId]._id;
           } else {
-            assessor.programId = null;
-            skippedDocumentCount += 1;
+              assessor.programId = null;
+              skippedDocumentCount += 1;
           }
-
+  
           assessor.createdBy = assessor.updatedBy = creatorId
-
+  
           let fieldsWithOutSchool = {};
           Object.keys(database.models.schoolAssessors.schema.paths).forEach(fieldName => {
             if (fieldName != 'schools' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
           })
-
+  
           let updateObject;
-          
+            
           if (fieldsWithOutSchool.parentId) {
             fieldsWithOutSchool.parentId = parentIdFromKeyCloakToken.userId
           }
-
-          if (assessor.schoolOperation == "OVERRIDE") {
-            updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
-          }
-
-          else if (assessor.schoolOperation == "APPEND") {
-            updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
-          }
-
-          else if (assessor.schoolOperation == "REMOVE") {
-            updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
-          }
-          let assessorCsvDataProgramId
-
-          let programFrameworkRoles;
-          let assessorRole;
-          let assessorCsvDataEvaluationFrameworkId
-          let assessorProgramComponents
-          let indexOfComponents
-
-          assessorCsvDataProgramId = programId
-          assessorCsvDataEvaluationFrameworkId = componentId
-          assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
-
-          indexOfComponents = assessorProgramComponents.findIndex(component => {
-            return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
-          });
-
-          if (indexOfComponents >= 0) {
-            programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
-            assessorRole = roles[assessor.role];
-
-            Object.keys(programFrameworkRoles).forEach(role => {
-              let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
-
-              if (role === assessorRole) {
-                if (roleIndex < 0) {
-                  programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
+  
+            if (assessor.schoolOperation == "OVERRIDE") {
+              updateObject = { $set: { schools: assessor.schools, ...fieldsWithOutSchool } }
+            }
+  
+            else if (assessor.schoolOperation == "APPEND") {
+              updateObject = { $addToSet: { schools: assessor.schools }, $set: fieldsWithOutSchool };
+            }
+  
+            else if (assessor.schoolOperation == "REMOVE") {
+              updateObject = { $pull: { schools: { $in: assessor.schools } }, $set: fieldsWithOutSchool };
+            }
+            let assessorCsvDataProgramId
+  
+            let programFrameworkRoles;
+            let assessorRole;
+            let assessorCsvDataEvaluationFrameworkId
+            let assessorProgramComponents
+            let indexOfComponents
+  
+            assessorCsvDataProgramId = programId
+            assessorCsvDataEvaluationFrameworkId = componentId
+            assessorProgramComponents = programsData[assessorCsvDataProgramId] ? programsData[assessorCsvDataProgramId].components : []
+  
+            indexOfComponents = assessorProgramComponents.findIndex(component => {
+              return component.id.toString() == evaluationFrameworksData[assessorCsvDataEvaluationFrameworkId].toString()
+            });
+  
+            if (indexOfComponents >= 0) {
+              programFrameworkRoles = assessorProgramComponents[indexOfComponents].roles
+              assessorRole = roles[assessor.role];
+  
+              Object.keys(programFrameworkRoles).forEach(role => {
+                let roleIndex = programFrameworkRoles[role].users.findIndex(user => user === userIdFromKeyCloakToken.userId);
+  
+                if (role === assessorRole) {
+                  if (roleIndex < 0) {
+                    programFrameworkRoles[role].users.push(userIdFromKeyCloakToken.userId);
+                  }
                 }
-              }
-              else {
-                if ((roleIndex >= 0)) {
-                  programFrameworkRoles[role].users.splice(roleIndex, 1);
+                else {
+                  if ((roleIndex >= 0)) {
+                    programFrameworkRoles[role].users.splice(roleIndex, 1);
+                  }
+  
+                  if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
+  
+                  if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
+                    programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
                 }
-
-                if (!assessorRole || !programFrameworkRoles[assessorRole]) skippedDocumentCount += 1;
-
-                if (assessorRole && programFrameworkRoles[assessorRole] && !programFrameworkRoles[assessorRole].users.includes(userIdFromKeyCloakToken.userId))
-                  programFrameworkRoles[assessorRole].users.push(userIdFromKeyCloakToken.userId);
-              }
-            })
-          }
-
-
-          if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
-            programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
-          }
-
-          return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject,
-            {
+              })
+            }
+  
+  
+            if (programsData[assessorCsvDataProgramId] && programsData[assessorCsvDataProgramId].components[indexOfComponents]) {
+              programsData[assessorCsvDataProgramId].components[indexOfComponents].roles = programFrameworkRoles;
+            }
+  
+            return database.models.schoolAssessors.findOneAndUpdate({ userId: userIdFromKeyCloakToken.userId }, updateObject ,{
               upsert: true,
               new: true,
               setDefaultsOnInsert: true,
               returnNewDocument: true
             });
-
+          
         })).catch(error => {
           throw error
         });
