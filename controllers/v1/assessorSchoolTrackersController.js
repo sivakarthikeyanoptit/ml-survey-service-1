@@ -9,7 +9,7 @@ module.exports = class AssessorSchoolTrackers extends Abstract {
         return "assessorSchoolTrackers";
     }
 
-    async filterByDate(params, userIds) {
+    async filterByDate(params, userIds, programId) {
         return new Promise(async (resolve, reject) => {
 
             params.fromDate.setHours(0);
@@ -17,6 +17,7 @@ module.exports = class AssessorSchoolTrackers extends Abstract {
 
             let queryObject = {
                 assessorId: { $in: userIds },
+                programId: programId,
                 //formula =  (validFrom <= fromDate && fromDate <= validTo) || (validFrom <= toDate && toDate <= validTo)
                 $or: 
                 [
