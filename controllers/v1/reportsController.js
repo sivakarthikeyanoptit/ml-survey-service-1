@@ -913,7 +913,7 @@ module.exports = class Reports {
 
         getCriteriaPath(evaluationFrameworksDocuments.themes)
 
-        const fileName = `generateCriteriasBySchoolId_schoolId_${req.query.schoolId}`;
+        const fileName = `generateCriteriasBySchoolId_schoolId_`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1002,7 +1002,7 @@ module.exports = class Reports {
           }
         ).lean().exec();
 
-        const fileName = `generateSubmissionReportsBySchoolId_${req.query.schoolId}`;
+        const fileName = `generateSubmissionReportsBySchoolId_`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
