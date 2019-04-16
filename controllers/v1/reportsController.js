@@ -842,12 +842,13 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let schoolId = {
-          ["schoolExternalId"]: req.params._id
+          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
         };
 
-        let submissionDocument = await database.models.submissions.findOne(
+        let submissionDocument = await database.models.submissions.find(
           schoolId,
           {
+            schoolExternalId:1,
             criterias: 1,
             evaluationFrameworkId:1
           }
@@ -862,7 +863,7 @@ module.exports = class Reports {
 
         let evaluationFrameworksDocuments = await database.models[
           "evaluationFrameworks"
-        ].findOne({_id:submissionDocument.evaluationFrameworkId}, { themes: 1 }).lean()
+        ].findOne({_id:submissionDocument[0].evaluationFrameworkId}, { themes: 1 }).lean()
 
         let criteriaName = {}
         let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworksDocuments.themes);
@@ -912,7 +913,7 @@ module.exports = class Reports {
 
         getCriteriaPath(evaluationFrameworksDocuments.themes)
 
-        const fileName = `generateCriteriasBySchoolId_schoolId_${req.params._id}`;
+        const fileName = `generateCriteriasBySchoolId_schoolId_`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -925,24 +926,28 @@ module.exports = class Reports {
         }());
 
 
-        submissionDocument.criterias && submissionDocument.criterias.forEach(submissionCriterias => {
+        submissionDocument.forEach(eachSubmissionDocument=>{
+          let schoolId = eachSubmissionDocument.schoolExternalId
+          eachSubmissionDocument.criterias && eachSubmissionDocument.criterias.forEach(submissionCriterias => {
           
-          if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
-            let criteriaReportObject = {
-              "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
-              "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
-              "Score": submissionCriterias.score
-                ? submissionCriterias.score
-                : "NA"
-
-            };
-
-            Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
-              criteriaReportObject[eachRubricLevel.label] = eachRubricLevel.description
-            });
-            input.push(criteriaReportObject);
-          }
-        });          
+            if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
+              let criteriaReportObject = {
+                "School Id":schoolId,
+                "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
+                "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
+                "Score": submissionCriterias.score
+                  ? submissionCriterias.score
+                  : "NA"
+  
+              };
+  
+              Object.values(submissionCriterias.rubric.levels).forEach(eachRubricLevel=>{
+                criteriaReportObject[eachRubricLevel.label] = eachRubricLevel.description
+              });
+              input.push(criteriaReportObject);
+            }
+          });
+        })          
 
         input.push(null)
       } catch (error) {
@@ -969,7 +974,7 @@ module.exports = class Reports {
       try {
 
         let schoolSubmissionQuery = {
-          ["schoolExternalId"]: req.params._id
+          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
         };
 
         let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
@@ -991,14 +996,13 @@ module.exports = class Reports {
         let schoolSubmissionDocument = database.models.submissions.find(
           schoolSubmissionQuery,
           {
+            schoolExternalId:1,
             answers: 1,
             criterias: 1
           }
         ).lean().exec();
 
-
-
-        const fileName = `generateSubmissionReportsBySchoolId_${req.params._id}`;
+        const fileName = `generateSubmissionReportsBySchoolId_`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1077,6 +1081,7 @@ module.exports = class Reports {
                 singleAnswer => {
                   if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
                     let singleAnswerRecord = {
+                      "School Id":singleSchoolSubmission.schoolExternalId,
                       "Criteria Name":
                         criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
                           ? " Question Deleted Post Submission"
@@ -1145,6 +1150,7 @@ module.exports = class Reports {
                         }
 
                       } else {
+                        let schoolId = singleSchoolSubmission.schoolExternalId
                         singleAnswerRecord["Answer"] = "Instance Question";
 
                         if (singleAnswer.value.length) {
@@ -1154,6 +1160,7 @@ module.exports = class Reports {
                             Object.values(singleAnswer.value[instance]).forEach(
                               eachInstanceChildQuestion => {
                                 let eachInstanceChildRecord = {
+                                  "School Id":schoolId,
                                   "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined
                                       ? " Question Deleted Post Submission"
                                       : criteriaQuestionDetailsObject[
@@ -1231,9 +1238,9 @@ module.exports = class Reports {
                 }
               );
             }
-            input.push(null)
+           
           });
-
+          input.push(null)
         })
 
       } catch (error) {
