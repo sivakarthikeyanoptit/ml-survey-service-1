@@ -35,11 +35,19 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/";
 
 //API documentation (apidoc)
-if (process.env.NODE_ENV == "development") {
+if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == "local") {
   app.use(express.static("apidoc"));
-  app.get("/apidoc", (req, res) => {
-    res.sendFile(path.join(__dirname, "/public/apidoc/index.html"));
-  });
+  if(process.env.NODE_ENV == "local") {
+    app.get("/apidoc", (req, res) => {
+      res.sendFile(path.join(__dirname, "/public/apidoc/index.html"));
+    });
+  } else {
+    app.get(serviceBaseUrl+"apidoc/*", (req, res) => {
+      let urlArray = req.path.split("/")
+      urlArray.splice(0,3)
+      res.sendFile(path.join(__dirname, "/public/apidoc/"+urlArray.join("/")));
+    });
+  }
 }
 
 // app.get(serviceBaseUrl+"web/*", function(req, res) {
