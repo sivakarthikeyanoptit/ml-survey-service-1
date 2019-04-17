@@ -13,7 +13,7 @@ module.exports = class Assessments {
        */
 
     /**
-    * @api {get} /assessment/api/v1/assessments/list?type={assessment}&subType={individual}&status={active} Individual assessment list
+    * @api {get} /assessment/api/v/assessments/list?type={assessment}&subType={individual}&status={active} Individual assessment list
     * @apiVersion 0.0.1
     * @apiName Individual assessment list
     * @apiGroup IndividualAssessments
