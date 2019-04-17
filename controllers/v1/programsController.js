@@ -274,7 +274,7 @@ module.exports = class Programs extends Abstract {
 
         let singleEntityDrillDown
 
-        if(insightController.length>0){
+        if(insightDocument.length>0){
           let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
 
           if(evaluationFrameworkDocument){
