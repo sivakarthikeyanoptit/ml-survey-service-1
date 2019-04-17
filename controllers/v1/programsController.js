@@ -272,18 +272,21 @@ module.exports = class Programs extends Abstract {
 
         let insightDocument = await insightController.insightsDocument(programId,schoolIds);
 
-        let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
-
         let singleEntityDrillDown
 
-        if(evaluationFrameworkDocument){
-          singleEntityDrillDown = true
-        }else{
-          singleEntityDrillDown = false
+        if(insightController.length>0){
+          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
+
+          if(evaluationFrameworkDocument){
+            singleEntityDrillDown = true
+          }else{
+            singleEntityDrillDown = false
+          }
+
         }
 
         assessorsDocument[0].schoolDocuments.forEach(eachSchoolDocument=>{
-          if(insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolDocument._id.toString())){
+          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolDocument._id.toString())){
             eachSchoolDocument["isSingleEntityHighLevel"] = true
             eachSchoolDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
           } else{
@@ -527,20 +530,22 @@ module.exports = class Programs extends Abstract {
 
         let insightDocument = await insightController.insightsDocument(programId,schoolsIdArray);
 
-        let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
-
         let singleEntityDrillDown
 
-        if(evaluationFrameworkDocument){
-          singleEntityDrillDown = true
-        }else{
-          singleEntityDrillDown = false
-        }
+        if(insightDocument.length>0){
+          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
 
+          if(evaluationFrameworkDocument){
+            singleEntityDrillDown = true
+          }else{
+            singleEntityDrillDown = false
+          }
+        }
+     
         let result = {};
 
         schoolsInBlock.forEach(eachSchoolInBlock=>{
-          if(insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolInBlock._id.toString())){
+          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolInBlock._id.toString())){
             eachSchoolInBlock["isSingleEntityHighLevel"] = true
             eachSchoolInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
           } else{
