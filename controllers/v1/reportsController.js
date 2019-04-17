@@ -878,7 +878,7 @@ module.exports = class Reports {
         let arr ={}
 
         let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
-        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c2","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
+        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
 
         let getCriteriaPath =  function (themes,parentData = []) {
 
@@ -1015,7 +1015,7 @@ module.exports = class Reports {
         }());
 
         let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
-        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c2","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
+        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
 
         Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
 
