@@ -1073,7 +1073,7 @@ module.exports = class Submission extends Abstract {
 
                 inputTypes.forEach(inputType => {
                   if (questionArray[1] === inputType) {
-                    if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                    if (submissionDocument.answers[questionArray[0]] && (submissionDocument.answers[questionArray[0]][inputType] || submissionDocument.answers[questionArray[0]][inputType] == 0)) {
                       result = submissionDocument.answers[questionArray[0]][inputType];
                     } else {
                       result = "NA";
