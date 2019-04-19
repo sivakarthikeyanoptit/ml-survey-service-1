@@ -1086,7 +1086,6 @@ module.exports = class Submission extends Abstract {
                 let expressionResult = {};
                 let allValuesAvailable = true;
 
-<<<<<<< HEAD
                 Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                   if (variable != "default") {
                     expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
@@ -1094,15 +1093,6 @@ module.exports = class Submission extends Abstract {
                     if (expressionVariables[variable] === "NA") {
                       allValuesAvailable = false;
                    }
-=======
-                inputTypes.forEach(inputType => {
-                  if (questionArray[1] === inputType) {
-                    if (submissionDocument.answers[questionArray[0]] && (submissionDocument.answers[questionArray[0]][inputType] || submissionDocument.answers[questionArray[0]][inputType] == 0)) {
-                      result = submissionDocument.answers[questionArray[0]][inputType];
-                    } else {
-                      result = "NA";
-                    }
->>>>>>> master
                   }
                 })
 
