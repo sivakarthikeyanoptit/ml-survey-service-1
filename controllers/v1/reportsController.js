@@ -1090,6 +1090,7 @@ module.exports = class Reports {
 
                   let singleAnswerRecord = {
                       "School Id":singleSchoolSubmission.schoolExternalId,
+                      "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
                       "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
                       "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                       "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
@@ -1159,10 +1160,13 @@ module.exports = class Reports {
                         
                         for (let instance = 0;instance < singleAnswer.value.length;instance++) {
 
-                          Object.values(singleAnswer.value[instance]).forEach(
-                            eachInstanceChildQuestion => {
+                          Object.values(singleAnswer.value[instance]).forEach(eachInstanceChildQuestion => {
+                            
+                            if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
+                            
                               let eachInstanceChildRecord = {
                                 "School Id":schoolId,
+                                "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
                                 "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
                                 "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                                 "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
@@ -1174,7 +1178,7 @@ module.exports = class Reports {
                                 "Remarks": eachInstanceChildQuestion.remarks || "",
                                 "Files": "",
                               };
-
+  
                               if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
                                 eachInstanceChildQuestion.fileName.forEach(
                                   file => {
@@ -1187,6 +1191,7 @@ module.exports = class Reports {
                                   ""
                                 );
                               }
+
 
                               let radioResponse = {};
                               let multiSelectResponse = {};
@@ -1224,12 +1229,15 @@ module.exports = class Reports {
                               }
 
                               input.push(eachInstanceChildRecord);
-                              
-                            }
 
-                          );
+                            }
+                            
+                          });
+
                         }
+
                       }
+
                     }
                   }
 
@@ -1237,10 +1245,13 @@ module.exports = class Reports {
                 }
 
               });
+
             }
            
           });
+
           input.push(null)
+          
         })
 
       } catch (error) {
