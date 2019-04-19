@@ -1022,7 +1022,6 @@ module.exports = class Reports {
           let allCriterias = documents[0];
           let schoolSubmissionDocument = documents[1];
           let criteriaQuestionDetailsObject = {};
-          let criteriaScoreObject = {};
           let questionOptionObject = {};
 
           allCriterias.forEach(eachCriteria => {
@@ -1043,7 +1042,7 @@ module.exports = class Reports {
 
           let allQuestionWithOptions = await database.models.questions.find(
             { _id: { $in: questionIds }},
-            { options: 1,question:1 }
+            { options: 1,question:1, externalId :1 }
           ).lean();
 
           allQuestionWithOptions.forEach(question => {
@@ -1057,12 +1056,19 @@ module.exports = class Reports {
               questionOptionObject[question._id.toString()] = {
                 questionOptions:question.options,
                 questionOptionString:optionString,
-                questionName:question.question
+                questionName:question.question,
+                externalId:question.externalId
+              };
+            } else {
+              questionOptionObject[question._id.toString()] = {
+                questionName:question.question,
+                externalId:question.externalId
               };
             }
           });
 
           schoolSubmissionDocument.forEach(singleSchoolSubmission => {
+            let criteriaScoreObject = {};
             singleSchoolSubmission.criterias.forEach(singleCriteria => {
               criteriaScoreObject[singleCriteria._id.toString()] = {
                 id: singleCriteria._id,
@@ -1070,173 +1076,167 @@ module.exports = class Reports {
                 score: singleCriteria.score
               };
             });
+
             if (!Object.values(singleSchoolSubmission.answers).length) {
               return resolve({
                 status: 404,
                 message: "No submissions found for given params."
               });
-            }
-            else {
-             Object.values(singleSchoolSubmission.answers).forEach(
-                singleAnswer => {
-                  if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
-                    let singleAnswerRecord = {
+            } else {
+
+              Object.values(singleSchoolSubmission.answers).forEach(singleAnswer => {
+                  
+                if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
+
+                  let singleAnswerRecord = {
                       "School Id":singleSchoolSubmission.schoolExternalId,
-                      "Criteria Name":
-                        criteriaQuestionDetailsObject[singleAnswer.qid] == undefined
-                          ? " Question Deleted Post Submission"
-                          : criteriaQuestionDetailsObject[singleAnswer.qid]
-                            .criteriaName,
+                      "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
+                      "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                       "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                       "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                      "Options":
-                        questionOptionObject[singleAnswer.qid] == undefined
-                          ? " No Options"
-                          : questionOptionObject[singleAnswer.qid].questionOptionString,
+                      "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                       "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                       "Remarks": singleAnswer.remarks || "",
                       "Files": "",
-                    };
+                  };
 
-                    if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
-                      singleAnswer.fileName.forEach(file => {
-                        singleAnswerRecord.Files +=
-                          imageBaseUrl + file.sourcePath + ",";
-                      });
-                      singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
-                        /,\s*$/,
-                        ""
-                      );
-                    }
+                  if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
+                    singleAnswer.fileName.forEach(file => {
+                      singleAnswerRecord.Files +=
+                        imageBaseUrl + file.sourcePath + ",";
+                    });
+                    singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                      /,\s*$/,
+                      ""
+                    );
+                  }
 
-                    if (!singleAnswer.notApplicable) {
-                      if (singleAnswer.responseType != "matrix") {
-                        let radioResponse = {};
-                        let multiSelectResponse = {};
-                        let multiSelectResponseArray = [];
+                  if (!singleAnswer.notApplicable) {
+                    if (singleAnswer.responseType != "matrix" && (singleAnswer.value || singleAnswer.value == 0)) {
+                      let radioResponse = {};
+                      let multiSelectResponse = {};
+                      let multiSelectResponseArray = [];
 
-                        if (
-                          singleAnswer.responseType == "radio"
-                        ) {
-                          questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                            option => {
+                      if (
+                        singleAnswer.responseType == "radio"
+                      ) {
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
 
-                              radioResponse[option.value] = option.label;
-                            }
-                          );
-                          singleAnswerRecord.Answer =
-                            radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
-                        }
-                        else if (singleAnswer.responseType == "multiselect") {
-
-                          questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                            option => {
-                              multiSelectResponse[option.value] =
-                                option.label;
-                            }
-                          );
-                          if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
-                            if (singleAnswer.value) {
-                              singleAnswer.value.forEach(value => {
-                                multiSelectResponseArray.push(
-                                  multiSelectResponse[value]
-                              );
-                            });
+                            radioResponse[option.value] = option.label;
                           }
-                        }
-                          singleAnswerRecord.Answer = multiSelectResponseArray.toString();
-                        } else {
-                          singleAnswerRecord.Answer = singleAnswer.value
-                        }
+                        );
+                        singleAnswerRecord.Answer =
+                          radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                      }
+                      else if (singleAnswer.responseType == "multiselect") {
 
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
+                            multiSelectResponse[option.value] =
+                              option.label;
+                          }
+                        );
+                        if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                          if (singleAnswer.value) {
+                            singleAnswer.value.forEach(value => {
+                              multiSelectResponseArray.push(
+                                multiSelectResponse[value]
+                            );
+                          });
+                        }
+                      }
+                        singleAnswerRecord.Answer = multiSelectResponseArray.toString();
                       } else {
-                        let schoolId = singleSchoolSubmission.schoolExternalId
-                        singleAnswerRecord["Answer"] = "Instance Question";
+                        singleAnswerRecord.Answer = singleAnswer.value
+                      }
 
-                        if (singleAnswer.value.length) {
-                          
-                          for (let instance = 0;instance < singleAnswer.value.length;instance++) {
+                    } else {
+                      let schoolId = singleSchoolSubmission.schoolExternalId
+                      singleAnswerRecord["Answer"] = "Instance Question";
 
-                            Object.values(singleAnswer.value[instance]).forEach(
-                              eachInstanceChildQuestion => {
-                                let eachInstanceChildRecord = {
-                                  "School Id":schoolId,
-                                  "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion._id] == undefined
-                                      ? " Question Deleted Post Submission"
-                                      : criteriaQuestionDetailsObject[
-                                        eachInstanceChildQuestion._id
-                                      ].criteriaName,
-                                  "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
-                                  "Answer": eachInstanceChildQuestion.value,
-                                  "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
-                                      ? " No Options"
-                                      : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
-                                  "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
-                                  "Remarks": eachInstanceChildQuestion.remarks || "",
-                                  "Files": "",
-                                };
+                      if (singleAnswer.value || singleAnswer.value == 0) {
+                        
+                        for (let instance = 0;instance < singleAnswer.value.length;instance++) {
 
-                                if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
-                                  eachInstanceChildQuestion.fileName.forEach(
-                                    file => {
-                                      eachInstanceChildRecord["Files"] +=
-                                        imageBaseUrl + file + ",";
-                                    }
-                                  );
-                                  eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
-                                    /,\s*$/,
-                                    ""
-                                  );
-                                }
+                          Object.values(singleAnswer.value[instance]).forEach(
+                            eachInstanceChildQuestion => {
+                              let eachInstanceChildRecord = {
+                                "School Id":schoolId,
+                                "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
+                                "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
+                                "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
+                                "Answer": eachInstanceChildQuestion.value,
+                                "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
+                                "Remarks": eachInstanceChildQuestion.remarks || "",
+                                "Files": "",
+                              };
 
-                                let radioResponse = {};
-                                let multiSelectResponse = {};
-                                let multiSelectResponseArray = [];
-
-                                if (eachInstanceChildQuestion.responseType == "radio") {
-
-                                  questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                    option => {
-                                      radioResponse[option.value] = option.label;
-                                    }
-                                  );
-                                  eachInstanceChildRecord["Answer"] =
-                                    radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
-                                } else if (eachInstanceChildQuestion.responseType == "multiselect") {
-                                  
-                                  questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                    option => {
-                                      multiSelectResponse[option.value] =
-                                        option.label;
-                                    }
-                                  );
-
-                                  if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
-                                    eachInstanceChildQuestion.value.forEach(value => {
-                                      multiSelectResponseArray.push(
-                                        multiSelectResponse[value]
-                                      );
-                                    });
-                                    eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
-                                  } else {
-                                    eachInstanceChildRecord["Answer"] = "No value given";
+                              if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
+                                eachInstanceChildQuestion.fileName.forEach(
+                                  file => {
+                                    eachInstanceChildRecord["Files"] +=
+                                      imageBaseUrl + file + ",";
                                   }
-
-                                }
-
-                                input.push(eachInstanceChildRecord);
-                                
+                                );
+                                eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
+                                  /,\s*$/,
+                                  ""
+                                );
                               }
 
-                            );
-                          }
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (eachInstanceChildQuestion.responseType == "radio") {
+
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    radioResponse[option.value] = option.label;
+                                  }
+                                );
+                                eachInstanceChildRecord["Answer"] =
+                                  radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                                
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  }
+                                );
+
+                                if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
+                                  eachInstanceChildQuestion.value.forEach(value => {
+                                    multiSelectResponseArray.push(
+                                      multiSelectResponse[value]
+                                    );
+                                  });
+                                  eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                } else {
+                                  eachInstanceChildRecord["Answer"] = "No value given";
+                                }
+
+                              }
+
+                              input.push(eachInstanceChildRecord);
+                              
+                            }
+
+                          );
                         }
                       }
                     }
-                    input.push(singleAnswerRecord);
                   }
+
+                  input.push(singleAnswerRecord);
                 }
-              );
+
+              });
             }
            
           });
