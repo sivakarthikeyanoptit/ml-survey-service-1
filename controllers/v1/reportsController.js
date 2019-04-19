@@ -1088,7 +1088,6 @@ module.exports = class Reports {
                   
                 if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
 
-
                   let singleAnswerRecord = {
                       "School Id":singleSchoolSubmission.schoolExternalId,
                       "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
@@ -1233,8 +1232,6 @@ module.exports = class Reports {
 
                             }
                             
-
-                              
                           });
 
                         }
@@ -1248,10 +1245,13 @@ module.exports = class Reports {
                 }
 
               });
+
             }
            
           });
+
           input.push(null)
+          
         })
 
       } catch (error) {
