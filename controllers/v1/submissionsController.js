@@ -1256,12 +1256,7 @@ module.exports = class Submission extends Abstract {
         let resultingArray = new Array()
 
         await Promise.all(submissionDocument.map(async eachSubmissionDocument=>{
-
-          let queryData = {
-            programExternalId:programId,
-            schoolExternalId:eachSubmissionDocument.schoolExternalId
-          }
-          
+            
           let result = {}
           result.runUpdateQuery = true
           let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
@@ -1417,7 +1412,9 @@ module.exports = class Submission extends Abstract {
               }
   
               let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-                queryData,
+                {
+                  _id:eachSubmissionDocument._id
+                },
                 updateObject
               );
             }
