@@ -1097,7 +1097,6 @@ module.exports = class Submission extends Abstract {
                 })
 
                 let errorWhileParsingCriteriaExpression = false
-                let errorExpression = {}
 
                 if (allValuesAvailable) {
                   Object.keys(criteria.rubric.levels).forEach(level => {
@@ -1116,10 +1115,6 @@ module.exports = class Submission extends Abstract {
                         console.log(expressionVariables)
                         console.log(criteria.rubric.expressionVariables)
                         console.log("---------------Some exception caught ends---------------")
-
-                        if (_.isEmpty(errorExpression[criteria.externalId], true)) {
-                          errorExpression[criteria.externalId] = {}
-                        }
 
                         let errorObject = {
                           errorName:error.message,
@@ -1405,20 +1400,6 @@ module.exports = class Submission extends Abstract {
                 result[criteria.externalId].expressionResult = expressionResult
                 result[criteria.externalId].submissionAnswers = submissionAnswers
   
-                // if (errorWhileParsingCriteriaExpression) {
-  
-                //   criteriaIdWithParsingErrors.push({
-                //     [criteria.externalId]: {
-                //       criteriaName: result[criteria.externalId].criteriaName,
-                //       criteriaId: result[criteria.externalId].criteriaExternalId,
-                //       expressionVariableDefined: result[criteria.externalId].expressionVariablesDefined,
-                //       expressionVariables: result[criteria.externalId].expressionVariables,
-                //       level: errorLevel[criteria.externalId].level,
-                //       allLevelexpression: errorExpression[criteria.externalId] ? errorExpression[criteria.externalId] : "",
-                //     }
-                //   })
-  
-                // }
                 }
                 return criteria
             }
