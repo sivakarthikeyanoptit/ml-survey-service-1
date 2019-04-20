@@ -1043,7 +1043,6 @@ module.exports = class Submission extends Abstract {
         if (allSubmittedEvidence) {
           let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
 
-            if(criteria.weightage > 0){
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
@@ -1175,7 +1174,7 @@ module.exports = class Submission extends Abstract {
 
               return criteria
 
-            }
+            
           }));
 
           if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
@@ -1256,7 +1255,7 @@ module.exports = class Submission extends Abstract {
         let resultingArray = new Array()
 
         await Promise.all(submissionDocument.map(async eachSubmissionDocument=>{
-            
+
           let result = {}
           result.runUpdateQuery = true
           let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
@@ -1264,8 +1263,6 @@ module.exports = class Submission extends Abstract {
           if (allSubmittedEvidence) {
             let criteriaData = await Promise.all(eachSubmissionDocument.criterias.map(async (criteria) => {
               
-              if(criteria.weightage > 0){
-
                 result[criteria.externalId] = {}
                 result[criteria.externalId].criteriaName = criteria.name
                 result[criteria.externalId].criteriaExternalId = criteria.externalId
@@ -1397,7 +1394,7 @@ module.exports = class Submission extends Abstract {
   
                 }
                 return criteria
-            }
+            
             }));
   
             if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
