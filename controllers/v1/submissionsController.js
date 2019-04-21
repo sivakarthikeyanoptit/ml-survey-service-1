@@ -1071,7 +1071,7 @@ module.exports = class Submission extends Abstract {
                   let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                   inputTypes.forEach(inputType => {
                     if (questionArray[1] === inputType) {
-                      if (submissionDocument.answers[questionArray[0]] && submissionDocument.answers[questionArray[0]][inputType]) {
+                      if (submissionDocument.answers[questionArray[0]] && (submissionDocument.answers[questionArray[0]][inputType] || submissionDocument.answers[questionArray[0]][inputType] == 0)) {
                         result = submissionDocument.answers[questionArray[0]][inputType];
                       } else {
                         result = "NA";
@@ -1185,8 +1185,7 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData,
-              ratingCompletedAt : new Date()
+              criterias: criteriaData
             }
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
