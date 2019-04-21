@@ -4,7 +4,7 @@ const program = require("commander");
 const _ = require("lodash");
 const Table = require("cli-table");
 const migrateMongo = require("../lib/migrate");
-const pkgjson = require("../package.json");
+const pkgjson = require("../../../package.json");
 
 function printMigrated(migrated = []) {
   migrated.forEach(migratedItem => {

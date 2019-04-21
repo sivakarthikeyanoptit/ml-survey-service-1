@@ -2,7 +2,7 @@ const _ = require("lodash");
 const fnArgs = require("fn-args");
 const { promisify } = require("util");
 const status = require("./status");
-const configFile = require("../env/configFile");
+// const configFile = require("../env/configFile");
 const migrationsDir = require("../env/migrationsDir");
 
 module.exports = async db => {
