@@ -104,7 +104,7 @@ program
     global.options = options;
     migrateMongo.database
       .connect()
-      .then(db => migrateMongo.down(db))
+      .then(db => migrateMongo.downgrade(db))
       .then(migrated => {
         migrated.forEach(migratedItem => {
           console.log(`MIGRATED DOWN: ${migratedItem}`);
