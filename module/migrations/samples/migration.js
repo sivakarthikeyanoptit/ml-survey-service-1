@@ -3,7 +3,10 @@ module.exports = {
     // return db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: true}});
   },
 
-  down(db) {
+  downgrade(db) {
+    // return db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});
+  },
+  rollback(db) {
     // return db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});
   }
 };

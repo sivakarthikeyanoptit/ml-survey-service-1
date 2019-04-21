@@ -7,18 +7,21 @@ const migrationsDir = require("../env/migrationsDir");
 
 module.exports = async db => {
   const statusItems = await status(db);
-  const pendingItems = _.filter(statusItems, { appliedAt: "PENDING" });
+  const pendingItems = statusItems.filter(eachItem=>{
+    return eachItem.appliedAt != "PENDING"  
+  })
+  
   const migrated = [];
 
   const migrateItem = async item => {
     try {
       const migration = await migrationsDir.loadMigration(item.fileName);
-      const args = fnArgs(migration.upgrade);
-      const upgrade = args.length > 1 ? promisify(migration.upgrade) : migration.upgrade;
-      await upgrade(db);
+      const args = fnArgs(migration.rollback);
+      const rollback = args.length > 1 ? promisify(migration.rollback) : migration.rollback;
+      await rollback(db);
     } catch (err) {
       const error = new Error(
-        `Could not migrate upgrade ${item.fileName}: ${err.message}`
+        `Could not migrate rollback ${item.fileName}: ${err.message}`
       );
       error.migrated = migrated;
       throw error;
@@ -33,7 +36,7 @@ module.exports = async db => {
     try {
       await collection.insertOne({ fileName, appliedAt });
     } catch (err) {
-      throw new Error(`Could not update changelog: ${err.message}`);
+      throw new Error(`Could not update migration-status: ${err.message}`);
     }
     migrated.push(item.fileName);
   };

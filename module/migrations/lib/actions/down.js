@@ -2,7 +2,6 @@ const _ = require("lodash");
 const fnArgs = require("fn-args");
 const { promisify } = require("util");
 const status = require("./status");
-// const configFile = require("../env/configFile");
 const migrationsDir = require("../env/migrationsDir");
 
 module.exports = async db => {
@@ -22,8 +21,8 @@ module.exports = async db => {
         `Could not migrate down ${lastAppliedItem.fileName}: ${err.message}`
       );
     }
-    const config = await configFile.read();
-    const collectionName = config.changelogCollectionName;
+  
+    const collectionName = process.env.MIGRATION_COLLECTION;
     const collection = db.collection(collectionName);
     try {
       await collection.deleteOne({ fileName: lastAppliedItem.fileName });

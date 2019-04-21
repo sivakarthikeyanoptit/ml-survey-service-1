@@ -1,17 +1,18 @@
 const init = require("./actions/init");
 const create = require("./actions/create");
 const upgrade = require("./actions/upgrade");
-const down = require("./actions/down");
+const downgrade = require("./actions/down");
+const rollback = require("./actions/rollback");
 const status = require("./actions/status");
 const database = require("./env/database");
-const config = require("./env/configFile");
+require('dotenv').config()
 
 module.exports = {
   init,
   create,
   upgrade,
-  down,
+  downgrade,
   status,
   database,
-  config
+  rollback
 };

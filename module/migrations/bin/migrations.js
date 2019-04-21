@@ -34,7 +34,7 @@ program
       .init()
       .then(() =>
         console.log(
-          `Initialization successful. Please edit the generated \`${migrateMongo.config.getConfigFilename()}\` file`
+          `Initialization successful. Please edit the generated file`
         )
       )
       .catch(err => handleError(err))
@@ -50,14 +50,12 @@ program
     migrateMongo
       .create(description)
       .then(fileName => 
-        migrateMongo.config.read().then(config => {
-          console.log(`Created: ${config.migrationsDir}/${fileName}`);
-        })
+        console.log(`Created: ${fileName}`)
       )
       .catch(err => handleError(err));
   });
 
-program
+  program
   .command("upgrade")
   .alias('u') 
   .description("run all pending database migrations")
@@ -77,8 +75,28 @@ program
       });
   });
 
+  program
+  .command("rollback")
+  .alias('r') 
+  .description("run upgrade again")
+  .option("-f --file <file>", "use a custom config file")
+  .action(options => {
+    global.options = options;
+    migrateMongo.database
+      .connect()
+      .then(db => migrateMongo.rollback(db))
+      .then(migrated => {
+        printMigrated(migrated);
+        process.exit(0);
+      })
+      .catch(err => {
+        handleError(err);
+        printMigrated(err.migrated);
+      });
+  });  
+
 program
-  .command("down")
+  .command("downgrade")
   .alias('d') 
   .description("undo the last applied database migration")
   .option("-f --file <file>", "use a custom config file")

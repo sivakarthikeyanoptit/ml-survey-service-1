@@ -1,20 +1,18 @@
 const fs = require("fs-extra");
 const path = require("path");
-const configFile = require("./configFile");
 
-const DEFAULT_MIGRATIONS_DIR_NAME = "migrations";
+const DEFAULT_MIGRATIONS_DIR_NAME = "migration-folder";
 
 async function resolveMigrationsDirPath() {
   let migrationsDir;
   try {
-    const config = await configFile.read();
-    migrationsDir = config.migrationsDir; 
-    // if config file doesn't have migrationsDir key, assume default 'migrations' dir
+        
+    migrationsDir = process.env.MIGRATION_DIR; 
+
     if (!migrationsDir) {
       migrationsDir = DEFAULT_MIGRATIONS_DIR_NAME;
     }
   } catch (err) {
-    // config file could not be read, assume default 'migrations' dir
     migrationsDir = DEFAULT_MIGRATIONS_DIR_NAME;
   }
 

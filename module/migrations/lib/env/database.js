@@ -1,13 +1,11 @@
 const { MongoClient } = require("mongodb");
-const _ = require("lodash");
-const configFile = require("./configFile");
 
 module.exports = {
   async connect() {
-    const config = await configFile.read();
-    const url = _.get(config, "mongodb.url");
-    const databaseName = _.get(config, "mongodb.databaseName");
-    const options = _.get(config, "mongodb.options");
+
+    const url = process.env.MONGODB_URL
+    const databaseName = process.env.DB
+    const options = {useNewUrlParser: true}
 
     if (!url) {
       throw new Error("No `url` defined in config file!");
