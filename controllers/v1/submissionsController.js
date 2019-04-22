@@ -1046,8 +1046,12 @@ module.exports = class Submission extends Abstract {
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
-
-              if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+              
+              let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
+                return eachRubricLevels.expression != ""
+              })
+            
+              if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                 let submissionAnswers = new Array
                 const questionValueExtractor = function (question) {
                   let result;
@@ -1115,6 +1119,10 @@ module.exports = class Submission extends Abstract {
                         console.log(criteria.rubric.expressionVariables)
                         console.log("---------------Some exception caught ends---------------")
 
+                        expressionResult[level] = {
+                          expressionParsed: criteria.rubric.levels[level].expression
+                        }
+
                         let errorObject = {
                           errorName:error.message,
                           criteriaName:criteria.name,
@@ -1124,7 +1132,7 @@ module.exports = class Submission extends Abstract {
                           expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
                         }
 
-                        slackClient.rubricErrorLogs(errorObject)
+                          slackClient.rubricErrorLogs(errorObject)
 
                         errorWhileParsingCriteriaExpression = true
                       }
@@ -1265,8 +1273,12 @@ module.exports = class Submission extends Abstract {
                 result[criteria.externalId] = {}
                 result[criteria.externalId].criteriaName = criteria.name
                 result[criteria.externalId].criteriaExternalId = criteria.externalId
+
+                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
+                  return eachRubricLevels.expression != ""
+                })
   
-                if (criteria.rubric.expressionVariables && criteria.rubric.levels.L1.expression != "" && criteria.rubric.levels.L2.expression != "" && criteria.rubric.levels.L3.expression != "" && criteria.rubric.levels.L4.expression != "") {
+                if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
                   const questionValueExtractor = function (question) {
                     let result;
@@ -1336,6 +1348,7 @@ module.exports = class Submission extends Abstract {
                           console.log("---------------Some exception caught ends---------------")
                           
                           let errorObject = {
+                            schoolId:eachSubmissionDocument.schoolExternalId,
                             errorName:error.message,
                             criteriaName:criteria.name,
                             expression:criteria.rubric.levels[level].expression,
