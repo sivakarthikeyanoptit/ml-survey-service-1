@@ -1277,6 +1277,7 @@ module.exports = class Submission extends Abstract {
                 let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
                   return eachRubricLevels.expression != ""
                 })
+                
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
