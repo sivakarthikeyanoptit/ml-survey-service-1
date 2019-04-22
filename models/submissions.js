@@ -24,6 +24,7 @@ module.exports = {
     completedDate: Date,
     evaluationFrameworkId: "ObjectId",
     evaluationFrameworkExternalId: String,
-    submissionsUpdatedHistory: Array
+    submissionsUpdatedHistory: Array,
+    ratingCompletedAt : Date
   }
 };

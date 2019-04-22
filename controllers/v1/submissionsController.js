@@ -1193,7 +1193,8 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData
+              criterias: criteriaData,
+              ratingCompletedAt : new Date()
             }
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
@@ -1277,7 +1278,7 @@ module.exports = class Submission extends Abstract {
                 let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
                   return eachRubricLevels.expression != ""
                 })
-                
+
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
@@ -1418,7 +1419,8 @@ module.exports = class Submission extends Abstract {
               let updateObject = {}
   
               updateObject.$set = {
-                criterias: criteriaData
+                criterias: criteriaData,
+                ratingCompletedAt : new Date()
               }
   
               let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
