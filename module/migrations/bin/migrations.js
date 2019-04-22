@@ -74,27 +74,7 @@ program
         printMigrated(err.migrated);
       });
   });
-
-  program
-  .command("rollback")
-  .alias('r') 
-  .description("run upgrade again")
-  .option("-f --file <file>", "use a custom config file")
-  .action(options => {
-    global.options = options;
-    migrateMongo.database
-      .connect()
-      .then(db => migrateMongo.rollback(db))
-      .then(migrated => {
-        printMigrated(migrated);
-        process.exit(0);
-      })
-      .catch(err => {
-        handleError(err);
-        printMigrated(err.migrated);
-      });
-  });  
-
+  
 program
   .command("downgrade")
   .alias('d') 

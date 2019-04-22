@@ -29,9 +29,10 @@ module.exports = async db => {
 
     const { fileName } = item;
     const appliedAt = new Date();
+    const message = global.migrationMsg
 
     try {
-      await collection.insertOne({ fileName, appliedAt });
+      await collection.insertOne({ fileName, appliedAt,message });
     } catch (err) {
       throw new Error(`Could not update changelog: ${err.message}`);
     }

@@ -1,6 +1,6 @@
 const fs = require("fs-extra");
 const path = require("path");
-const date = require("../utils/date");
+const moment = require("moment-timezone");
 const migrationsDir = require("../env/migrationsDir");
 
 module.exports = async description => {
@@ -9,7 +9,7 @@ module.exports = async description => {
   }
   await migrationsDir.shouldExist();
   const source = path.join(__dirname, "../../samples/migration.js");
-  const filename = `${date.nowAsString()}-${description
+  const filename = `${moment().format('DD-MM-YYYY')}-${description
     .split(" ")
     .join("_")}.js`;
   const destination = path.join(await migrationsDir.resolve(), filename);
