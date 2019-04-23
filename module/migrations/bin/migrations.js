@@ -75,7 +75,7 @@ program
       });
   });
   
-program
+  program
   .command("downgrade")
   .alias('d') 
   .description("undo the last applied database migration")

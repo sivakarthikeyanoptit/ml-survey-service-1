@@ -9,7 +9,7 @@ module.exports = async description => {
   }
   await migrationsDir.shouldExist();
   const source = path.join(__dirname, "../../samples/migration.js");
-  const filename = `${moment().format('DD-MM-YYYY')}-${description
+  const filename = `${moment().format('YYYYMMDDHHmmss')}-${description
     .split(" ")
     .join("_")}.js`;
   const destination = path.join(await migrationsDir.resolve(), filename);
