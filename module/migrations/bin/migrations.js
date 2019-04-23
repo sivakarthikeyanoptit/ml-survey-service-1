@@ -60,7 +60,9 @@ program
   .alias('u') 
   .description("run all pending database migrations")
   .option("-f --file <file>", "use a custom config file")
-  .action(options => {
+  .action((env,options) => {
+    console.log(env)
+    console.log(options)
     global.options = options;
     migrateMongo.database
       .connect()
