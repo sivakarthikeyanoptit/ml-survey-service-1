@@ -56,14 +56,14 @@ program
   });
 
   program
-  .command("upgrade")
+  .command("up")
   .alias('u') 
   .description("run all pending database migrations")
-  .option("-f --file <file>", "use a custom config file")
+  .option("-n --name <name>", "use a custom config name")
   .action((env,options) => {
     global.alias = env._alias
-    if(env.file !== ""){
-      global.upgradeOneItem = env.file
+    if(env.name !== ""){
+      global.upgradeOneItem = env.name
     }
     global.options = options;
     migrateMongo.database
@@ -81,14 +81,14 @@ program
   });
   
   program
-  .command("downgrade")
+  .command("down")
   .alias('d') 
   .description("undo the last applied database migration")
-  .option("-f --file <file>", "use a custom config file")
+  .option("-n --name <name>", "use a custom config name")
   .action((env,options) => {
     global.alias = env._alias
-    if(env.file !==""){
-      global.downgradeOneItem = env.file
+    if(env.name !==""){
+      global.downgradeOneItem = env.name
     }
     global.options = options;
     migrateMongo.database
