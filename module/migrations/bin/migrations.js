@@ -61,12 +61,15 @@ program
   .description("run all pending database migrations")
   .option("-f --file <file>", "use a custom config file")
   .action((env,options) => {
-    console.log(env)
-    console.log(options)
+    global.alias = env._alias
+    if(env.file !== ""){
+      global.upgradeOneItem = env.file
+    }
     global.options = options;
     migrateMongo.database
       .connect()
-      .then(db => migrateMongo.upgrade(db))
+      .then(db => 
+        migrateMongo.upgrade(db))
       .then(migrated => {
         printMigrated(migrated);
         process.exit(0);
@@ -82,7 +85,11 @@ program
   .alias('d') 
   .description("undo the last applied database migration")
   .option("-f --file <file>", "use a custom config file")
-  .action(options => {
+  .action((env,options) => {
+    global.alias = env._alias
+    if(env.file !==""){
+      global.downgradeOneItem = env.file
+    }
     global.options = options;
     migrateMongo.database
       .connect()
