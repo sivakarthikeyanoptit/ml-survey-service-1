@@ -69,7 +69,7 @@ program
     migrateMongo.database
       .connect()
       .then(db => 
-        migrateMongo.upgrade(db))
+        migrateMongo.up(db))
       .then(migrated => {
         printMigrated(migrated);
         process.exit(0);
@@ -93,7 +93,7 @@ program
     global.options = options;
     migrateMongo.database
       .connect()
-      .then(db => migrateMongo.downgrade(db))
+      .then(db => migrateMongo.down(db))
       .then(migrated => {
         migrated.forEach(migratedItem => {
           console.log(`MIGRATED DOWN: ${migratedItem}`);
