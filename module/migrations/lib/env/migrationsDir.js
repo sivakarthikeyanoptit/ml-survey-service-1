@@ -1,7 +1,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 
-const DEFAULT_MIGRATIONS_DIR_NAME = "migration-folder";
+const DEFAULT_MIGRATIONS_DIR_NAME = "migrations";
 
 async function resolveMigrationsDirPath() {
   let migrationsDir;
