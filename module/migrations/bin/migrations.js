@@ -66,6 +66,7 @@ program
       global.upgradeOneItem = env.name
     }
     global.options = options;
+    global.transferFromDB = migrateMongo.database.connectToTransferFromDB()
     migrateMongo.database
       .connect()
       .then(db => 
@@ -91,6 +92,7 @@ program
       global.downgradeOneItem = env.name
     }
     global.options = options;
+    global.transferFromDB = migrateMongo.database.connectToTransferFromDB()
     migrateMongo.database
       .connect()
       .then(db => migrateMongo.down(db))

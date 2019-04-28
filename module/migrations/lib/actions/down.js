@@ -13,9 +13,9 @@ module.exports = async db => {
   if (lastAppliedItem) {
     try {
       const migration = await migrationsDir.loadMigration(lastAppliedItem.fileName);
-      const args = fnArgs(migration.downgrade);
-      const downgrade = args.length > 1 ? promisify(migration.downgrade) : migration.downgrade;
-      await downgrade(db);
+      const args = fnArgs(migration.down);
+      const down = args.length > 1 ? promisify(migration.down) : migration.down;
+      await down(db);
     } catch (err) {
       throw new Error(
         `Could not migrate down ${lastAppliedItem.fileName}: ${err.message}`
