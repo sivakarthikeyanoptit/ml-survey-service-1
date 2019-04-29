@@ -491,6 +491,109 @@ module.exports = class Criterias extends Abstract {
     })
   }
 
+  uploadQuestion(req){
+    return new Promise(async (resolve,reject)=>{
+      try{
+
+        if (!req.files || !req.files.questions) {
+          let responseMessage = "Bad request.";
+          return resolve({ status: 400, message: responseMessage })
+        }
+
+        let questionData = await csv().fromString(req.files.questions.data.toString());
+        let criteriaIds = new Array
+        let criteriaObject = {}
+
+        let questionCollection = {}
+        let questionIds = new Array
+        
+        let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] }).lean();
+        let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
+        let criteriasArray = new Array;
+
+        criteriasIdArray.forEach(eachCriteriaIdArray=>{
+          criteriasArray.push(eachCriteriaIdArray._id.toString())
+        })
+
+        questionData.forEach(eachQuestionData=>{
+          if(!criteriaIds.includes(eachQuestionData["Criteria ID"])){
+            criteriaIds.push(eachQuestionData["Criteria ID"])
+          }
+
+          questionIds.push(eachQuestionData["Question ID"])
+          if (eachQuestionData["parent id"] != "") { questionIds.push(eachQuestionData.parentId) }
+          if (eachQuestionData["Dependency Type (Instance Parent)"] != "") { questionIds.push(eachQuestionData["Dependency Type (Instance Parent)"]) }
+
+        })
+       
+        let criteriaDocument = await database.models.criterias.find({
+          externalId:{$in:criteriaIds}
+        }).lean()
+
+        if(!criteriaDocument.length>0){
+          throw "Criteria is not defined"
+        }
+
+        criteriaDocument.forEach(eachCriteriaDocument=>{
+          if(criteriasArray.includes(eachCriteriaDocument._id.toString())){
+            criteriaObject[eachCriteriaDocument.externalId]= eachCriteriaDocument
+          }
+        })
+
+        let questionsFromDatabase = await database.models.questions.find({
+          externalId: { $in: questionIds }
+        });
+
+        if (questionsFromDatabase.length > 0) {
+          questionsFromDatabase.forEach(question => {
+            questionCollection[question.externalId] = question
+          })
+        }
+
+
+        let responseObject = {
+          "MCQ-Only one correct":{
+            responseType:"radio"
+          },
+          "MCQ-More than one correct":{
+            responseType:"multiselect"
+          },
+          "Data entry":{
+            responseType:"text"
+          }
+        }
+
+        let questionSection = {
+          "SQ":{
+            name:"Survey Questions"
+          },
+          "DF":{
+            name:"Data to be Filled"
+          }
+        }
+
+        await Promise.all(questionData.map(async (eachQuestion) => {
+          let allValues = {}
+          allValues["visibleIf"]= new Array
+
+          let evidenceMethod = eachQuestion["Evidence collection method"]
+          let questionSection = questionSection[eachQuestion.Section]
+
+          if(eachQuestion["Dependency Type (Parent)"]){
+            allValues.visibleIf = ""
+          }else{
+            allValues.visibleIf.push(eachQuestion["operator"],eachQuestion.value,questionCollection[eachQuestion["parent id"]]._id)
+          }
+          
+        }))
+
+
+      }catch(error){
+        console.log(error)
+      }
+    })
+  }
+
 
   getEvidenceObjectsForDCPCR() {
     return {
