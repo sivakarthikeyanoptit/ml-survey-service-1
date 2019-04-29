@@ -3,7 +3,8 @@ module.exports = {
     schema: {
       name : String,
       regsitryDetails : Object,
-      profileForm : Array
+      profileForm : Array,
+      profileFields : Array
     }
   };
   

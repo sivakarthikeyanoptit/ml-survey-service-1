@@ -1,4 +1,5 @@
 const { MongoClient } = require("mongodb");
+global.ObjectID = require('mongodb').ObjectID
 
 module.exports = {
   async connect() {
