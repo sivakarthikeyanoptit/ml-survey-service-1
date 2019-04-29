@@ -2176,8 +2176,8 @@ module.exports = class Reports {
                   $in: submissionId
                 }
               },
-              { feedback: 1, assessors: 1 }
-            )
+              { feedback: 1, assessors: 1,schoolExternalId:1}
+            ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
               let result = {};
               let assessorObject = {};
@@ -2191,7 +2191,7 @@ module.exports = class Reports {
                 result["Q2"] = eachFeedback.q2;
                 result["Q3"] = eachFeedback.q3;
                 result["Q4"] = eachFeedback.q4;
-                result["School Id"] = eachFeedback.schoolId;
+                result["School Id"] = eachSubmission.schoolExternalId;
                 result["School Name"] = eachFeedback.schoolName;
                 result["Program Id"] = eachFeedback.programId;
                 result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
