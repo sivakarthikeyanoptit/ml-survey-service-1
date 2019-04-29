@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 const program = require("commander");
-const _ = require("lodash");
+global._ = require("lodash");
 const Table = require("cli-table");
 const migrateMongo = require("../lib/migrate");
 const pkgjson = require("../../../package.json");
