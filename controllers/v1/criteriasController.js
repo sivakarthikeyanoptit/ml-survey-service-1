@@ -574,17 +574,118 @@ module.exports = class Criterias extends Abstract {
 
         await Promise.all(questionData.map(async (eachQuestion) => {
           let allValues = {}
+
           allValues["visibleIf"]= new Array
+          allValues["question"] = new Array
 
           let evidenceMethod = eachQuestion["Evidence collection method"]
-          let questionSection = questionSection[eachQuestion.Section]
+          let questionSection = eachQuestion.Section
 
           if(eachQuestion["Dependency Type (Parent)"]){
             allValues.visibleIf = ""
           }else{
             allValues.visibleIf.push(eachQuestion["operator"],eachQuestion.value,questionCollection[eachQuestion["parent id"]]._id)
           }
+
+          if (questionCollection[eachQuestion["Question ID"]]) {
+            throw "The question with the external ID " + eachQuestion.externalId + " already exists"
+          }
+  
+          if (eachQuestion["parent id"] != "" && !questionCollection[eachQuestion["parent id"]]) {
+            throw "Parent question with external ID " + eachQuestion.parentId + " not found"
+          }
+  
+          if (eachQuestion["Dependency Type (Instance Parent)"] != "" && !questionCollection[eachQuestion["Dependency Type (Instance Parent)"]]) {
+            throw "Instance Parent question with external ID " + eachQuestion.instanceParentId + " not found"
+          }
+
+          allValues.question.push(
+            eachQuestion["Question in English"],
+            eachQuestion["Question in Hindi (हिंदी में सवाल)"])
+
+          allValues["externalId"] = eachQuestion["Question ID"]
+          allValues["responseType"] = responseObject[eachQuestion["Response Type"]]
+          allValues["fileName"] = []
+          allValues["file"] = {}
+
+          if(eachQuestion["File Upload *non-mandatory"] != "NA"){
+            allValues.file["required"] = eachQuestion["Required"]
+            allValues.file["type"] = new Array
+            allValues.file.type.push(eachQuestion["Type"])
+            allValues.file["minCount"] = eachQuestion["Min count"]
+            allValues.file["maxCount"] = eachQuestion["Max count"]
+            allValues.file["caption"] = eachQuestion["Caption"]         
+          }
+
+          allValues["validation"] = {}
+          allValues["validation"]["required"] = eachQuestion["Is response required or not (Y/N)"]
           
+          allValues["showRemarks"] = eachQuestion["Show Remarks (Y/N)"]
+          allValues["tip"] = eachQuestion["Tip"]
+
+          allValues["questionGroup"] = new Array
+          allValues.questionGroup.push(eachQuestion["School Applicability"])
+
+          allValues["modeOfCollection"] = eachQuestion["Mode of Collection (i.e. on school premise or over call)"]
+
+          allValues["options"] = new Array
+          
+          if(eachQuestion["R1"] !=""){
+            allValues.options.push({
+              value:"R1",
+              label:eachQuestion.R1
+            })
+          }
+
+          if(eachQuestion["R2"] !=""){
+            allValues.options.push({
+              value:"R2",
+              label:eachQuestion.R2
+            })
+          }
+
+          if(eachQuestion["R3"] !=""){
+            allValues.options.push({
+              value:"R3",
+              label:eachQuestion.R3
+            })
+          }
+
+          if(eachQuestion["R4"] !=""){
+            allValues.options.push({
+              value:"R4",
+              label:eachQuestion.R4
+            })
+          }
+
+          if(eachQuestion["R5"] !=""){
+            allValues.options.push({
+              value:"R5",
+              label:eachQuestion.R5
+            })
+          }
+
+          if(eachQuestion["R6"] !=""){
+            allValues.options.push({
+              value:"R6",
+              label:eachQuestion.R6
+            })
+          }
+
+          if(eachQuestion["R7"] !=""){
+            allValues.options.push({
+              value:"R7",
+              label:eachQuestion.R7
+            })
+          }
+
+          if(eachQuestion["R8"] !=""){
+            allValues.options.push({
+              value:"R8",
+              label:eachQuestion.R8
+            })
+          }
+
         }))
 
 
