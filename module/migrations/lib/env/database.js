@@ -47,8 +47,8 @@ module.exports = {
       options
     );
 
-    const db = client.db(databaseName);
-    db.close = client.close;
-    return db;
+    const transferFromDb = client.db(databaseName);
+    transferFromDb.close = client.close;
+    return transferFromDb;
   }
 };

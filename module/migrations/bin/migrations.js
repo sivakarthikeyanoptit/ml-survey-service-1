@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 const program = require("commander");
-const _ = require("lodash");
+global._ = require("lodash");
 const Table = require("cli-table");
 const migrateMongo = require("../lib/migrate");
 const pkgjson = require("../../../package.json");
@@ -66,7 +66,6 @@ program
       global.upgradeOneItem = env.name
     }
     global.options = options;
-    global.transferFromDB = migrateMongo.database.connectToTransferFromDB()
     migrateMongo.database
       .connect()
       .then(db => 
@@ -92,7 +91,6 @@ program
       global.downgradeOneItem = env.name
     }
     global.options = options;
-    global.transferFromDB = migrateMongo.database.connectToTransferFromDB()
     migrateMongo.database
       .connect()
       .then(db => migrateMongo.down(db))
