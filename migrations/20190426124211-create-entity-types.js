@@ -7,7 +7,90 @@ module.exports = {
       regsitryDetails : {
           name : "schoolRegsitry"
       },
-      createdAt : new Date
+      createdAt : new Date,
+      profileForm : [],
+      profileFields : [
+        "externalId",
+        "addressLine1",
+        "addressLine2",
+        "city",
+        "country",
+        "createdBy",
+        "createdDate",
+        "gpsLocation",
+        "isDeleted",
+        "name",
+        "phone",
+        "principalName",
+        "state",
+        "status",
+        "updatedBy",
+        "updatedDate",
+        "pincode",
+        "districtId",
+        "districtName",
+        "zoneId",
+        "blockId",
+        "administration",
+        "gender",
+        "shift",
+        "schoolTypes",
+        "totalStudents",
+        "totalGirls",
+        "totalBoys",
+        "lowestGrade",
+        "highestGrade",
+        "totalEnglishTeachers",
+        "totalHindiTeachers",
+        "totalMathsTeachers",
+        "totalScienceTeachers",
+        "totalSocialTeachers",
+        "totalSocialScienceTeachers",
+        "totalComputerTeachers",
+        "mediumOfInstruction",
+        "totalPhysicsTeachers",
+        "totalChemistryTeachers",
+        "totalBiologyTeachers",
+        "totalEconomicsTeachers",
+        "totalPoliticalScienceTeachers",
+        "totalAccountsTeachers",
+        "totalBusinessStudiesTeachers",
+        "totalHistoryTeachers",
+        "totalGeographyTeachers",
+        "streamOffered",
+        "emailId",
+        "presenceOfSignMarkingSchoolEntrance",
+        "schoolTiming",
+        "isPrePrimaryPresentOrNot",
+        "totalSections",
+        "totalStudentsInPrePrimary",
+        "totalStudentsInPrimary",
+        "totalStudentsInMiddleAndSecondarySchool",
+        "averageStudentsPerSection",
+        "totalStudentsGrade1",
+        "totalStudentsGrade2",
+        "totalStudentsGrade3",
+        "totalStudentsGrade4",
+        "totalStudentsGrade5",
+        "totalStudentsGrade6",
+        "totalStudentsGrade7",
+        "totalStudentsGrade8",
+        "totalStudentsGrade9",
+        "totalStudentsGrade10",
+        "totalStudentsGrade11",
+        "totalStudentsGrade12",
+        "totalNoOfTeachers",
+        "totalNoOfPrincipal",
+        "totalNoOfHMsOrCoordinators",
+        "presenceOfSchoolBoardOrManagement",
+        "briefHistoryOfTheSchool",
+        "descriptionOfCommunityAroundSchool",
+        "studentBackground",
+        "stateOfStudentDropout",
+        "issuesWithTeachersLeavingSchool",
+        "teacherAttendanceInTheSchool",
+        "adminOrHelpingStaff"
+      ]
     }
 
     let parentEntity = {
@@ -16,6 +99,21 @@ module.exports = {
           name : "parentsRegsitry"
       },
       createdAt: new Date,
+      profileFields : [
+        "studentName",
+        "grade",
+        "name",
+        "gender",
+        "type",
+        "phone1",
+        "phone2",
+        "address",
+        "schoolId",
+        "schoolName",
+        "programId",
+        "callResponse",
+        "callResponseUpdatedTime"
+      ],
       profileForm : [
           {
             field: "studentName",
@@ -263,6 +361,15 @@ module.exports = {
           name : "teacherRegsitry"
       },
       createdAt: new Date,
+      profileFields : [
+        "name",
+        "qualifications",
+        "yearsOfExperience",
+        "yearsInCurrentSchool",
+        "schoolId",
+        "schoolName",
+        "programId"
+      ],
       profileForm : [
         {
             field: "name",
@@ -351,6 +458,23 @@ module.exports = {
           name : "schoolLeaderRegsitry"
       },
       createdAt : new Date,
+      profileFields : [
+        "name",
+        "age",
+        "gender",
+        "bio",
+        "experienceInEducationSector",
+        "experienceInCurrentSchool",
+        "experienceAsSchoolLeader",
+        "dutiesOrResponsibility",
+        "timeOfAvailability",
+        "nonTeachingHours",
+        "bestPart",
+        "challenges",
+        "schoolId",
+        "schoolName",
+        "programId",
+      ],
       profileForm: [
         {
             field: "name",
@@ -554,6 +678,12 @@ module.exports = {
       regsitryDetails : {
           name : "studentRegsitry"
       },
+      profileFields : [
+
+      ],
+      profileForm: [
+
+      ],
       createdAt : new Date
     }
 
@@ -563,6 +693,16 @@ module.exports = {
       regsitryDetails : {
           name : "blockRegsitry"
       },
+      profileFields : [
+        "name",
+        "blockId",
+        "districtName",
+        "state",
+        "region"
+      ],
+      profileForm: [
+
+      ],
       createdAt : new Date 
     }
 
@@ -571,6 +711,13 @@ module.exports = {
       regsitryDetails : {
           name : "districtRegsitry"
       },
+      profileFields : [],
+      profileForm: [
+        "name",
+        "state",
+        "districtId",
+        "region"
+      ],
       createdAt : new Date 
     }
 

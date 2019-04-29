@@ -36,6 +36,10 @@ module.exports = {
 
     global.migrationMsg = "Total schools transferred - "+schools.length
 
+    await db.collection('entities').createIndex( { entityTypeId: 1} )
+
+    await db.collection('entities').createIndex( {"entityType": "text" } )
+    
     return await db.collection('entities').insertMany(schoolArray);
   },
 
