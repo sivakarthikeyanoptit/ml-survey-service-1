@@ -492,6 +492,8 @@ module.exports = class Criterias extends Abstract {
   }
 
   uploadQuestion(req){
+    req.evidenceObjects = this.getEvidenceObjects()
+
     return new Promise(async (resolve,reject)=>{
       try{
 
@@ -521,8 +523,12 @@ module.exports = class Criterias extends Abstract {
           }
 
           questionIds.push(eachQuestionData["Question ID"])
-          if (eachQuestionData["parent id"] != "") { questionIds.push(eachQuestionData.parentId) }
-          if (eachQuestionData["Dependency Type (Instance Parent)"] != "") { questionIds.push(eachQuestionData["Dependency Type (Instance Parent)"]) }
+          if (eachQuestionData["parent id"] != "") { 
+            questionIds.push(eachQuestionData["parent id"]) 
+          }
+          if (eachQuestionData["Instance Parent"] != "") { 
+            questionIds.push(eachQuestionData["Instance Parent"]) 
+          }
 
         })
        
@@ -542,7 +548,7 @@ module.exports = class Criterias extends Abstract {
 
         let questionsFromDatabase = await database.models.questions.find({
           externalId: { $in: questionIds }
-        });
+        }).lean();
 
         if (questionsFromDatabase.length > 0) {
           questionsFromDatabase.forEach(question => {
@@ -563,7 +569,7 @@ module.exports = class Criterias extends Abstract {
           }
         }
 
-        let questionSection = {
+        let questionSectionObject = {
           "SQ":{
             name:"Survey Questions"
           },
@@ -574,41 +580,42 @@ module.exports = class Criterias extends Abstract {
 
         await Promise.all(questionData.map(async (eachQuestion) => {
           let allValues = {}
+          let result = {}
 
           allValues["visibleIf"]= new Array
           allValues["question"] = new Array
 
           let evidenceMethod = eachQuestion["Evidence collection method"]
-          let questionSection = eachQuestion.Section
+          let questionSection = questionSectionObject[eachQuestion.Section].name
 
-          if(eachQuestion["Dependency Type (Parent)"]){
+          if(!eachQuestion["Parent id"]){
             allValues.visibleIf = ""
           }else{
             allValues.visibleIf.push(eachQuestion["operator"],eachQuestion.value,questionCollection[eachQuestion["parent id"]]._id)
           }
 
           if (questionCollection[eachQuestion["Question ID"]]) {
-            throw "The question with the external ID " + eachQuestion.externalId + " already exists"
+            throw "The question with the external ID " + eachQuestion["Question ID"] + " already exists"
           }
   
           if (eachQuestion["parent id"] != "" && !questionCollection[eachQuestion["parent id"]]) {
-            throw "Parent question with external ID " + eachQuestion.parentId + " not found"
+            throw "Parent question with external ID " + eachQuestion["parent id"] + " not found"
           }
   
-          if (eachQuestion["Dependency Type (Instance Parent)"] != "" && !questionCollection[eachQuestion["Dependency Type (Instance Parent)"]]) {
-            throw "Instance Parent question with external ID " + eachQuestion.instanceParentId + " not found"
+          if (eachQuestion["Instance Parent"] != "" && !questionCollection[eachQuestion["Instance Parent"]]) {
+            throw "Instance Parent question with external ID " + eachQuestion["Instance Parent"] + " not found"
           }
 
           allValues.question.push(
             eachQuestion["Question in English"],
-            eachQuestion["Question in Hindi (हिंदी में सवाल)"])
+            eachQuestion["Question in Hindi"])
 
           allValues["externalId"] = eachQuestion["Question ID"]
-          allValues["responseType"] = responseObject[eachQuestion["Response Type"]]
+          allValues["responseType"] = responseObject[eachQuestion["Response Type"]].responseType
           allValues["fileName"] = []
           allValues["file"] = {}
 
-          if(eachQuestion["File Upload *non-mandatory"] != "NA"){
+          if(eachQuestion["File Upload"] != "NA"){
             allValues.file["required"] = eachQuestion["Required"]
             allValues.file["type"] = new Array
             allValues.file.type.push(eachQuestion["Type"])
@@ -618,17 +625,19 @@ module.exports = class Criterias extends Abstract {
           }
 
           allValues["validation"] = {}
-          allValues["validation"]["required"] = eachQuestion["Is response required or not (Y/N)"]
+          allValues["validation"]["required"] = eachQuestion["Is response required or not"]
           
-          allValues["showRemarks"] = eachQuestion["Show Remarks (Y/N)"]
+          allValues["showRemarks"] = Boolean(eachQuestion["Show Remarks"])
           allValues["tip"] = eachQuestion["Tip"]
 
           allValues["questionGroup"] = new Array
           allValues.questionGroup.push(eachQuestion["School Applicability"])
 
-          allValues["modeOfCollection"] = eachQuestion["Mode of Collection (i.e. on school premise or over call)"]
+          allValues["modeOfCollection"] = eachQuestion["Mode of Collection"]
 
           allValues["options"] = new Array
+          allValues["isCompleted"] = false
+          allValues["value"] = ""
           
           if(eachQuestion["R1"] !=""){
             allValues.options.push({
@@ -685,6 +694,70 @@ module.exports = class Criterias extends Abstract {
               label:eachQuestion.R8
             })
           }
+
+        let createQuestion = await database.models.questions.create(
+          allValues
+        )
+
+        result._id = createQuestion._id
+
+
+        if (eachQuestion["parent id"] != "") {
+          let queryParentQuestionObject = {
+            _id: questionCollection[eachQuestion["parent id"]]._id
+          }
+          let updateParentQuestionObject = {}
+          updateParentQuestionObject.$push = {
+            ["children"]: createQuestion._id
+          }
+          await database.models.questions.findOneAndUpdate(
+            queryParentQuestionObject,
+            updateParentQuestionObject
+          )
+        }
+
+        if (eachQuestion["Instance Parent"] != "") {
+          let queryInstanceParentQuestionObject = {
+            _id: questionCollection[eachQuestion["Instance Parent"]]._id
+          }
+          let updateInstanceParentQuestionObject = {}
+          updateInstanceParentQuestionObject.$push = {
+            ["instanceQuestions"]: generatedQuestionDocument._id
+          }
+          await database.models.questions.findOneAndUpdate(
+            queryInstanceParentQuestionObject,
+            updateInstanceParentQuestionObject
+          )
+        }
+
+        let criteriaEvidences = criteriaObject[eachQuestion["Criteria ID"]].evidences
+        let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
+
+        if (indexOfEvidenceMethodInCriteria < 0) {
+          criteriaEvidences.push(req.evidenceObjects[evidenceMethod])
+          indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+        }
+
+        let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+        
+        if (indexOfSectionInEvidenceMethod < 0) {
+          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
+          indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+        }
+
+        criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+
+        let queryCriteriaObject = {
+          _id: questionCriteria._id
+        }
+        let updateCriteriaObject = {}
+        updateCriteriaObject.$set = {
+          ["evidences"]: criteriaEvidences
+        }
+        await database.models.criterias.findOneAndUpdate(
+          queryCriteriaObject,
+          updateCriteriaObject
+        )
 
         }))
 
