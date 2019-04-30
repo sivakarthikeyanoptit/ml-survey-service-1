@@ -254,6 +254,32 @@ module.exports = class Assessments {
 
     }
 
+    async upload(req){
+        return new Promise(async (resolve, reject) => {
+            try {
+              let assessorUploadData = await csv().fromString(
+                req.files.assessments.data.toString()
+              );
+      
+             
+      
+             
+      
+              let responseMessage = "School record created successfully.";
+      
+              let response = { message: responseMessage };
+      
+              return resolve(response);
+            } catch (error) {
+              return reject({
+                status: 500,
+                message: error,
+                errorObject: error
+              });
+            }
+          });
+    }
+
     async findSubmissionByEntityProgram(document, requestObject) {
 
         let queryObject = {
