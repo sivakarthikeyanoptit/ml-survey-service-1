@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Criterias extends Abstract {
   /**
@@ -20,7 +21,6 @@ module.exports = class Criterias extends Abstract {
   static get name() {
     return "criterias";
   }
-
 
   /**
   * @api {post} /assessment/api/v1/criterias/insert Add Criterias
@@ -243,7 +243,6 @@ module.exports = class Criterias extends Abstract {
     });
   }
 
-
   /**
 * @api {get} /assessment/api/v1/criterias/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And Instance Parent Ques
 * @apiVersion 0.0.1
@@ -383,7 +382,7 @@ module.exports = class Criterias extends Abstract {
         }
 
         let questionCollection = {}
-        let toFetchQuestionIds = new Array
+        let toFetchQuestionIds = new Array  
         toFetchQuestionIds.push(question.externalId)
         if (question.parentId != "") { toFetchQuestionIds.push(question.parentId) }
         if (question.instanceParentId != "") { toFetchQuestionIds.push(question.instanceParentId) }
@@ -492,7 +491,6 @@ module.exports = class Criterias extends Abstract {
   }
 
   uploadQuestion(req){
-    req.evidenceObjects = this.getEvidenceObjects()
 
     return new Promise(async (resolve,reject)=>{
       try{
@@ -503,14 +501,17 @@ module.exports = class Criterias extends Abstract {
         }
 
         let questionData = await csv().fromString(req.files.questions.data.toString());
+        
         let criteriaIds = new Array
         let criteriaObject = {}
 
         let questionCollection = {}
         let questionIds = new Array
         
-        let frameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] }).lean();
-        let criteriasIdArray = gen.utils.getCriteriaIds(frameWorkDocument.themes);
+        let evaluationFrameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] },{"themes":1,"evidenceMethods":1,"sections":1}).lean();
+        let evidenceCollectionMethodObject = evaluationFrameWorkDocument.evidenceMethods[0]
+
+        let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameWorkDocument.themes);
         let criteriasArray = new Array;
 
         criteriasIdArray.forEach(eachCriteriaIdArray=>{
@@ -518,18 +519,20 @@ module.exports = class Criterias extends Abstract {
         })
 
         questionData.forEach(eachQuestionData=>{
+
           if(!criteriaIds.includes(eachQuestionData["Criteria ID"])){
             criteriaIds.push(eachQuestionData["Criteria ID"])
           }
 
           questionIds.push(eachQuestionData["Question ID"])
+          
           if (eachQuestionData["parent id"] != "") { 
             questionIds.push(eachQuestionData["parent id"]) 
           }
+
           if (eachQuestionData["Instance Parent"] != "") { 
             questionIds.push(eachQuestionData["Instance Parent"]) 
           }
-
         })
        
         let criteriaDocument = await database.models.criterias.find({
@@ -537,7 +540,7 @@ module.exports = class Criterias extends Abstract {
         }).lean()
 
         if(!criteriaDocument.length>0){
-          throw "Criteria is not defined"
+          throw "Criteria is not found"
         }
 
         criteriaDocument.forEach(eachCriteriaDocument=>{
@@ -556,37 +559,28 @@ module.exports = class Criterias extends Abstract {
           })
         }
 
+        const fileName = `upload question`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
 
-        let responseObject = {
-          "MCQ-Only one correct":{
-            responseType:"radio"
-          },
-          "MCQ-More than one correct":{
-            responseType:"multiselect"
-          },
-          "Data entry":{
-            responseType:"text"
-          }
-        }
-
-        let questionSectionObject = {
-          "SQ":{
-            name:"Survey Questions"
-          },
-          "DF":{
-            name:"Data to be Filled"
-          }
-        }
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
 
         await Promise.all(questionData.map(async (eachQuestion) => {
+
+          let csvResult = {}
           let allValues = {}
-          let result = {}
 
           allValues["visibleIf"]= new Array
           allValues["question"] = new Array
 
           let evidenceMethod = eachQuestion["Evidence collection method"]
-          let questionSection = questionSectionObject[eachQuestion.Section].name
+          let questionSection = evaluationFrameWorkDocument.sections[eachQuestion.Section]
 
           if(!eachQuestion["Parent id"]){
             allValues.visibleIf = ""
@@ -611,21 +605,27 @@ module.exports = class Criterias extends Abstract {
             eachQuestion["Question in Hindi"])
 
           allValues["externalId"] = eachQuestion["Question ID"]
-          allValues["responseType"] = responseObject[eachQuestion["Response Type"]].responseType
+
+          if(eachQuestion["Response Type"] !== ""){
+            allValues["responseType"] = eachQuestion["Response Type"]
+          }
+
           allValues["fileName"] = []
           allValues["file"] = {}
 
           if(eachQuestion["File Upload"] != "NA"){
             allValues.file["required"] = eachQuestion["Required"]
+
             allValues.file["type"] = new Array
             allValues.file.type.push(eachQuestion["Type"])
+
             allValues.file["minCount"] = eachQuestion["Min count"]
             allValues.file["maxCount"] = eachQuestion["Max count"]
             allValues.file["caption"] = eachQuestion["Caption"]         
           }
 
           allValues["validation"] = {}
-          allValues["validation"]["required"] = eachQuestion["Is response required or not"]
+          allValues["validation"]["required"] = eachQuestion["Validation Required"]
           
           allValues["showRemarks"] = Boolean(eachQuestion["Show Remarks"])
           allValues["tip"] = eachQuestion["Tip"]
@@ -638,136 +638,103 @@ module.exports = class Criterias extends Abstract {
           allValues["options"] = new Array
           allValues["isCompleted"] = false
           allValues["value"] = ""
+
+          for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
+            let responseValue = "R"+pointerToResponseCount
+
+            if(eachQuestion[responseValue] && eachQuestion[responseValue] != ""){
+              allValues.options.push({
+                value:responseValue,
+                label:eachQuestion[responseValue]
+              })
+            }
+          }
           
-          if(eachQuestion["R1"] !=""){
-            allValues.options.push({
-              value:"R1",
-              label:eachQuestion.R1
-            })
-          }
+          let createQuestion = await database.models.questions.create(
+            allValues
+          )
 
-          if(eachQuestion["R2"] !=""){
-            allValues.options.push({
-              value:"R2",
-              label:eachQuestion.R2
-            })
-          }
+          csvResult["internal id"] = createQuestion._id
 
-          if(eachQuestion["R3"] !=""){
-            allValues.options.push({
-              value:"R3",
-              label:eachQuestion.R3
-            })
-          }
+          Object.keys(eachQuestion).forEach(eachQuestionData=>{
+            csvResult[eachQuestionData] = eachQuestion[eachQuestionData]
+          })
 
-          if(eachQuestion["R4"] !=""){
-            allValues.options.push({
-              value:"R4",
-              label:eachQuestion.R4
-            })
-          }
+          if (eachQuestion["parent id"] != "") {
 
-          if(eachQuestion["R5"] !=""){
-            allValues.options.push({
-              value:"R5",
-              label:eachQuestion.R5
-            })
-          }
-
-          if(eachQuestion["R6"] !=""){
-            allValues.options.push({
-              value:"R6",
-              label:eachQuestion.R6
-            })
-          }
-
-          if(eachQuestion["R7"] !=""){
-            allValues.options.push({
-              value:"R7",
-              label:eachQuestion.R7
-            })
-          }
-
-          if(eachQuestion["R8"] !=""){
-            allValues.options.push({
-              value:"R8",
-              label:eachQuestion.R8
-            })
-          }
-
-        let createQuestion = await database.models.questions.create(
-          allValues
-        )
-
-        result._id = createQuestion._id
-
-
-        if (eachQuestion["parent id"] != "") {
           let queryParentQuestionObject = {
             _id: questionCollection[eachQuestion["parent id"]]._id
           }
+
           let updateParentQuestionObject = {}
+
           updateParentQuestionObject.$push = {
             ["children"]: createQuestion._id
           }
+
           await database.models.questions.findOneAndUpdate(
             queryParentQuestionObject,
             updateParentQuestionObject
           )
-        }
+          }
 
-        if (eachQuestion["Instance Parent"] != "") {
+          if (eachQuestion["Instance Parent"] != "") {
           let queryInstanceParentQuestionObject = {
             _id: questionCollection[eachQuestion["Instance Parent"]]._id
           }
           let updateInstanceParentQuestionObject = {}
           updateInstanceParentQuestionObject.$push = {
-            ["instanceQuestions"]: generatedQuestionDocument._id
+            ["instanceQuestions"]: createQuestion._id
           }
           await database.models.questions.findOneAndUpdate(
             queryInstanceParentQuestionObject,
             updateInstanceParentQuestionObject
           )
-        }
+          }
 
-        let criteriaEvidences = criteriaObject[eachQuestion["Criteria ID"]].evidences
-        let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
+          let criteriaEvidences = criteriaObject[eachQuestion["Criteria ID"]].evidences
+          let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
 
-        if (indexOfEvidenceMethodInCriteria < 0) {
-          criteriaEvidences.push(req.evidenceObjects[evidenceMethod])
-          indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
-        }
+          if (indexOfEvidenceMethodInCriteria < 0) {
+            evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
+            criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
+            indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+          }
 
-        let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+          let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
         
-        if (indexOfSectionInEvidenceMethod < 0) {
+          if (indexOfSectionInEvidenceMethod < 0) {
           criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
           indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
-        }
+          }
 
-        criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
 
-        let queryCriteriaObject = {
-          _id: questionCriteria._id
-        }
-        let updateCriteriaObject = {}
-        updateCriteriaObject.$set = {
-          ["evidences"]: criteriaEvidences
-        }
-        await database.models.criterias.findOneAndUpdate(
-          queryCriteriaObject,
-          updateCriteriaObject
-        )
+          let queryCriteriaObject = {
+          externalId: eachQuestion["Criteria ID"]
+          }
 
+          let updateCriteriaObject = {}
+          updateCriteriaObject.$set = {
+            ["evidences"]: criteriaEvidences
+          }
+          await database.models.criterias.findOneAndUpdate(
+            queryCriteriaObject,
+            updateCriteriaObject
+          )
+          input.push(csvResult)
         }))
-
+        
+        input.push(null)
 
       }catch(error){
-        console.log(error)
-      }
+        reject({
+          message:error
+        })
+      }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
     })
   }
-
 
   getEvidenceObjectsForDCPCR() {
     return {
@@ -894,7 +861,6 @@ module.exports = class Criterias extends Abstract {
       }
     }
   }
-
 
   getEvidenceObjects() {
     return {
@@ -1045,7 +1011,6 @@ module.exports = class Criterias extends Abstract {
       }
     }
   }
-
 
   async uploadRubricLevels(req) {
 
