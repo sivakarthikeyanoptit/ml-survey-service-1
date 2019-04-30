@@ -65,9 +65,8 @@ module.exports = class Entities extends Abstract {
                       entityAssessorsDocument.externalId = assessor.externalId;
                       entityAssessorsDocument.name = assessor.name;
                       entityAssessorsDocument.email = assessor.email;
-                      entityAssessorsDocument.createdBy = assessor.createdBy;
-                      entityAssessorsDocument.createdBy = assessor.createdBy;
-                      entityAssessorsDocument.updatedBy = assessor.updatedBy;
+                      entityAssessorsDocument.createdBy = req.userDetails.id;
+                      entityAssessorsDocument.updatedBy = req.userDetails.id;
                       await database.models.entityAssessors.findOneAndUpdate(
                           { userId: entityAssessorsDocument.userId },
                           entityAssessorsDocument,
