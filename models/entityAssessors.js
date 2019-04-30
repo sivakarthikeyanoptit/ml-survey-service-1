@@ -7,7 +7,7 @@ module.exports = {
     role: "String",
     programId: "ObjectId",
     parentId: "String",
-    entities: [{ type: "String" }],
+    entities: Array,
     createdBy: "String",
     updatedBy: "String"
   }
