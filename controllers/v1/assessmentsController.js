@@ -301,34 +301,30 @@ module.exports = class Assessments {
 
                 const schoolUploadedData = await Promise.all(
                     assessorUploadData.map(async assessor => {
-                        if (assessor.entityOperation == "REMOVE") {
-                            await database.models.entityAssessors.findOneAndRemove({ userId: assessor.userId })
-                        } else {
-                            let entityAssessorsDocument = {}
-                            entityAssessorsDocument.programId = programsData[assessor.programId];
-                            entityAssessorsDocument.assessmentStatus = "pending";
-                            entityAssessorsDocument.parentId = "";
-                            entityAssessorsDocument["entities"] = [assessor.userId];
-                            entityAssessorsDocument.frameworkId = assessor.frameworkId;
-                            entityAssessorsDocument.role = assessor.role;
-                            entityAssessorsDocument.userId = assessor.userId;
-                            entityAssessorsDocument.externalId = assessor.externalId;
-                            entityAssessorsDocument.name = assessor.name;
-                            entityAssessorsDocument.email = assessor.email;
-                            entityAssessorsDocument.createdBy = assessor.createdBy;
-                            entityAssessorsDocument.createdBy = assessor.createdBy;
-                            entityAssessorsDocument.updatedBy = assessor.updatedBy;
-                            await database.models.entityAssessors.findOneAndUpdate(
-                                { userId: entityAssessorsDocument.userId },
-                                entityAssessorsDocument,
-                                {
-                                    upsert: true,
-                                    new: true,
-                                    setDefaultsOnInsert: true,
-                                    returnNewDocument: true
-                                }
-                            );
-                        }
+                        let entityAssessorsDocument = {}
+                        entityAssessorsDocument.programId = programsData[assessor.programId];
+                        entityAssessorsDocument.assessmentStatus = "pending";
+                        entityAssessorsDocument.parentId = "";
+                        entityAssessorsDocument["entities"] = [assessor.userId];
+                        entityAssessorsDocument.frameworkId = assessor.frameworkId;
+                        entityAssessorsDocument.role = assessor.role;
+                        entityAssessorsDocument.userId = assessor.userId;
+                        entityAssessorsDocument.externalId = assessor.externalId;
+                        entityAssessorsDocument.name = assessor.name;
+                        entityAssessorsDocument.email = assessor.email;
+                        entityAssessorsDocument.createdBy = assessor.createdBy;
+                        entityAssessorsDocument.createdBy = assessor.createdBy;
+                        entityAssessorsDocument.updatedBy = assessor.updatedBy;
+                        await database.models.entityAssessors.findOneAndUpdate(
+                            { userId: entityAssessorsDocument.userId },
+                            entityAssessorsDocument,
+                            {
+                                upsert: true,
+                                new: true,
+                                setDefaultsOnInsert: true,
+                                returnNewDocument: true
+                            }
+                        );
 
                         let componentsIndex = programsData[assessor.programId].components.findIndex(component => {
                             return component.id.toString() == evaluationFrameworksData[assessor.frameworkId].toString()
@@ -336,22 +332,8 @@ module.exports = class Assessments {
 
                         let entities = programsData[assessor.programId].components[componentsIndex]['entities'];
 
-                        if (assessor.entityOperation == "OVERRIDE") {
-                            entities = [assessor.userId];
-                        }
-
-                        else if (assessor.entityOperation == "APPEND") {
-                            if (!entities.includes(assessor.userId)) {
-                                entities.push(assessor.userId)
-                            }
-                        }
-
-                        else if (assessor.entityOperation == "REMOVE") {
-                            _.pull(entities, assessor.userId);
-                        }
-
-                        else {
-                            throw "unknown operation"
+                        if (!entities.includes(assessor.userId)) {
+                            entities.push(assessor.userId)
                         }
 
                         programsData[assessor.programId].components[componentsIndex]['entities'] = entities;
