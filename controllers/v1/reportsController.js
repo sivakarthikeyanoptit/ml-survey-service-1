@@ -1113,7 +1113,7 @@ async generateSubmissionReportsBySchoolId(req) {
                 }
 
                 if (!singleAnswer.notApplicable) {
-                  if (singleAnswer.responseType != "matrix" && (singleAnswer.value || singleAnswer.value == 0) && singleAnswer.value != undefined) {
+                  if (singleAnswer.responseType != "matrix" && singleAnswer.value != undefined) {
                     let radioResponse = {};
                     let multiSelectResponse = {};
                     let multiSelectResponseArray = [];
