@@ -1,0 +1,31 @@
+module.exports = {
+  name: "solutions",
+  schema: {
+    externalId: String,
+    name: String,
+    description: String,
+    author: String,
+    parentId: "ObjectId",
+    resourceType: Array,
+    language: Array,
+    keywords: Array,
+    concepts: Array,
+    createdFor: Array,
+    scoringSystem : String,
+    levelToScoreMapping : Object,
+    themes: Array,
+    questionSequenceByEcm : Object,
+    entityId: "ObjectId",
+    entityType : String,
+    type: String,
+    subType : String,
+    entities: Array,
+    programId: "ObjectId",
+    programExternalId: String,
+    startDate: Date,
+    endDate: Date,
+    status: String,
+    evidenceMethods: Object,
+    sections: Object
+  }
+};
