@@ -133,7 +133,7 @@ module.exports = {
         evaluationFrameworkDocument[0].startDate = startDate
         evaluationFrameworkDocument[0].endDate = endDate
         evaluationFrameworkDocument[0].status = "active"
-        evaluationFrameworkDocument[0].deleted = false
+        evaluationFrameworkDocument[0].isDeleted = false
 
         evaluationFrameworkDocument[0].evidenceMethods = evidenceMethods
         evaluationFrameworkDocument[0].sections = sections
@@ -148,7 +148,7 @@ module.exports = {
       programs[programsCounter].startDate = startDate
       programs[programsCounter].endDate = endDate
       programs[programsCounter].status = "active"
-      programs[programsCounter].deleted = false
+      programs[programsCounter].isDeleted = false
       programs[programsCounter].updatedBy = "INITIALIZE"
       programs[programsCounter].createdBy = "INITIALIZE"
       programs[programsCounter].createdAt = "INITIALIZE"
