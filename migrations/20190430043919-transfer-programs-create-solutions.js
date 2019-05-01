@@ -92,11 +92,11 @@ module.exports = {
           _id : programs[programsCounter].components[0].id
         }).toArray();
 
-        let frameworkThemesArray = getCriteriaIds(evaluationFrameworkDocument[0].themes)
+        let frameworkCriteriaArray = getCriteriaIds(evaluationFrameworkDocument[0].themes)
 
 
         let criterias = await sourceDB.collection('criterias').find(
-          { _id: { $in: frameworkThemesArray } },
+          { _id: { $in: frameworkCriteriaArray } },
           {
               resourceType: 0,
               language: 0,

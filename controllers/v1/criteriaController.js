@@ -1,6 +1,6 @@
 const csv = require("csvtojson");
 
-module.exports = class Criterias extends Abstract {
+module.exports = class Criteria extends Abstract {
   /**
    * @apiDefine errorBody
    * @apiError {String} status 4XX,5XX
@@ -14,11 +14,11 @@ module.exports = class Criterias extends Abstract {
      */
 
   constructor() {
-    super(criteriasSchema);
+    super(criteriaSchema);
   }
 
   static get name() {
-    return "criterias";
+    return "criteria";
   }
 
 

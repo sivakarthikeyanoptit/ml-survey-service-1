@@ -1,10 +1,10 @@
-module.exports = class EvaluationFrameworks extends Abstract {
+module.exports = class Frameworks extends Abstract {
   constructor() {
     super(evaluationFrameworksSchema);
   }
 
   static get name() {
-    return "evaluationFrameworks";
+    return "frameworks";
   }
 
   find(req) {
