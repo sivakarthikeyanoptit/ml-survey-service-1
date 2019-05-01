@@ -1,7 +1,7 @@
 module.exports = {
   async up(db) {
     
-    let solutions = await db.collection('solutions').find({},{programExternalId : 1}).toArray();
+    let solutions = await db.collection('solutions').find({}).project({programExternalId : 1}).toArray();
 
     solutions.forEach(async (solution) => {
       await db.collection('solutions').findOneAndUpdate(
