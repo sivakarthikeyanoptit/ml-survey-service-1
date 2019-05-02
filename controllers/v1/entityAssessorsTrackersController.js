@@ -1,12 +1,12 @@
 const moment = require("moment-timezone");
 
-module.exports = class AssessorSchoolTrackers extends Abstract {
+module.exports = class EntityAssessorsTrackers extends Abstract {
     constructor() {
-        super(assessorSchoolTrackersSchema);
+        super(entityAssessorsTrackersSchema);
     }
 
     static get name() {
-        return "assessorSchoolTrackers";
+        return "entityAssessorsTrackers";
     }
 
     async filterByDate(params, userIds, programId) {
