@@ -3,15 +3,15 @@ const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class ProgramOperations {
 
     constructor() {
-        this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
+        this.entityAssessorsTrackers = new entityAssessorsTrackersBaseController;
     }
 
     checkUserAuthorization(userDetails, programExternalId) {
         let userRole = gen.utils.getUserRole(userDetails, true);
         if (userRole == "assessors") throw { status: 400, message: "You are not authorized to take this report." };
-        if(userDetails.accessiblePrograms.length){
-            let userProgramExternalIds = userDetails.accessiblePrograms.map(program=> program.externalId);
-            if(!userProgramExternalIds.includes(programExternalId)) throw { status: 400, message: "You are not part of this program." };
+        if (userDetails.accessiblePrograms.length) {
+            let userProgramExternalIds = userDetails.accessiblePrograms.map(program => program.programExternalId);
+            if (!userProgramExternalIds.includes(programExternalId)) throw { status: 400, message: "You are not part of this program." };
         }
         return
     }
@@ -44,33 +44,41 @@ module.exports = class ProgramOperations {
 
                 let userRole = gen.utils.getUserRole(req.userDetails, true);
 
-                let programDocuments = await database.models.programs.aggregate([
-                    { "$match": { [`components.roles.${userRole}.users`]: req.userDetails.id } },
-                    {
-                        $lookup: {
-                            from: "evaluationFrameworks",
-                            localField: "components.id",
-                            foreignField: "_id",
-                            as: "assessments"
-                        }
-                    },
+                let solutionsDocuments = await database.models.solutions.aggregate([
+                    { "$match": { [`roles.${userRole}.users`]: req.userDetails.id } },
                     {
                         $project: {
-                            externalId: 1,
-                            name: 1,
-                            description: 1,
-                            "assessments._id": 1,
-                            "assessments.externalId": 1,
-                            "assessments.name": 1,
-                            "assessments.description": 1
+                            "externalId": "$programExternalId",
+                            "_id": "$programId",
+                            "name": "$programName",
+                            "description": "$programDescription",
+                            "assessmentId": "$_id",
+                            "assessmentExternalId": "$externalId",
+                            "assessmentName": "$name",
+                            "assessmentDescription": "$description"
                         }
-                    }
-                ])
+                    },
+                    { 
+                        $group : {
+                            _id : "$_id",
+                            name : {$first : "$name"},
+                            description : {$first : "$description"},
+                            externalId : {$first : "$externalId"},
+                            assessments : { $push :{
+                                "_id": "$assessmentId",
+                                "externalId": "$assessmentExternalId",
+                                "name": "$assessmentName",
+                                "description": "$assessmentDescription" 
+                            }},
+                        }
+                    },
+                ]
+                )
 
                 let responseMessage;
                 let response;
 
-                if (!programDocuments.length) {
+                if (!solutionsDocuments.length) {
 
                     responseMessage = "No programs data found for given params.";
                     response = { status: 404, message: responseMessage };
@@ -78,7 +86,7 @@ module.exports = class ProgramOperations {
                 } else {
 
                     responseMessage = "Program information list fetched successfully.";
-                    response = { message: responseMessage, result: programDocuments };
+                    response = { message: responseMessage, result: solutionsDocuments };
 
                 }
 
@@ -87,8 +95,8 @@ module.exports = class ProgramOperations {
             } catch (error) {
 
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || 500,
+                    message: error.message || "Oops! something went wrong",
                     errorObject: error
                 });
 
@@ -106,7 +114,7 @@ module.exports = class ProgramOperations {
   */
 
     async assessorReport(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -116,10 +124,10 @@ module.exports = class ProgramOperations {
                 let assessorQueryObject = {};
                 assessorQueryObject["$or"] = [
                     {
-                        "parentId" : req.userDetails.id 
+                        "parentId": req.userDetails.id
                     },
                     {
-                        "userId" : req.userDetails.id 
+                        "userId": req.userDetails.id
                     }
                 ];
 
@@ -222,7 +230,7 @@ module.exports = class ProgramOperations {
                 if (req.query.csv && req.query.csv == "true") {
                     input.push(null);
                 } else {
-                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name,req.query);
+                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name, req.query);
                     return resolve({ result: result })
                 }
 
@@ -246,7 +254,7 @@ module.exports = class ProgramOperations {
     */
 
     async schoolReport(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
                 const self = new ProgramOperations;
@@ -268,7 +276,7 @@ module.exports = class ProgramOperations {
                 }
 
                 async function noDataFound() {
-                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name,req.query);
+                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name, req.query);
                     return { result: result }
                 }
 
@@ -336,7 +344,7 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name,req.query)
+                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name, req.query)
                     return resolve({ result: result })
                 }
 
@@ -383,7 +391,7 @@ module.exports = class ProgramOperations {
 
     async managerProfile(req) {
 
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -532,14 +540,14 @@ module.exports = class ProgramOperations {
     */
 
     async reportFilters(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        this.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
                 let programDocument = await this.getProgram(req.params._id);
 
-                let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
-                let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
+                let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.entities } }).lean().exec();
+                let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.entities } }).lean().exec();
                 let types = await Promise.all([schoolTypes, administrationTypes]);
 
                 schoolTypes = _.compact(types[0]);
@@ -686,7 +694,7 @@ module.exports = class ProgramOperations {
 
                 let schoolIdAndName = await database.models.schools.find(
                     {
-                        _id: { $in: programDocument.components[0].schools },
+                        _id: { $in: programDocument.entities },
                         externalId: new RegExp(req.query.id, 'i')
                     },
                     {
@@ -736,7 +744,7 @@ module.exports = class ProgramOperations {
 
                 let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
 
-                if (schoolsAssessorDocuments.length<1) {
+                if (schoolsAssessorDocuments.length < 1) {
                     return resolve([]);
                 }
 
@@ -755,7 +763,7 @@ module.exports = class ProgramOperations {
                 }
 
 
-                let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds, programDocument._id);
+                let schoolIds = await this.entityAssessorsTrackers.filterByDate(req.query, userIds, programDocument._id);
 
                 let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
@@ -801,12 +809,18 @@ module.exports = class ProgramOperations {
                     throw { status: 400, message: 'Program id required.' }
 
                 let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    _id: 1, name: 1, "components.schools": 1
+                    _id: 1, name: 1, "solutions": 1
                 }).lean();
 
                 if (!programDocument) {
                     throw { status: 400, message: 'Program not found for given params.' }
                 }
+
+                let solutionDocument = await database.models.solutions.findOne({ _id: programDocument.solutions[0] }, {
+                    "entities": 1
+                }).lean();
+
+                programDocument["entities"] = solutionDocument.entities
 
                 return resolve(programDocument);
 
@@ -830,7 +844,7 @@ module.exports = class ProgramOperations {
     getQueryObject(requestQuery) {
         let queryObject = {};
         let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId','ProgramId']);
+        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName', 'linkId', 'ProgramId']);
 
         filteredQueries.forEach(query => {
             if (query == "area") {
