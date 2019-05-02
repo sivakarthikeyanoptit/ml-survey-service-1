@@ -110,7 +110,8 @@ program
   .alias('s') 
   .description("print the changelog of the database")
   .option("-f --file <file>", "use a custom config file")
-  .action(options => {
+  .action((env,options) => {
+    global.alias = env._alias
     global.options = options;
     migrateMongo.database
       .connect()
