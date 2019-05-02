@@ -47,7 +47,7 @@ module.exports = class Entities extends Abstract {
 
     })
   }
-  
+
   fetch(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -67,7 +67,7 @@ module.exports = class Entities extends Abstract {
 
     })
   }
- 
+
   add(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -87,7 +87,7 @@ module.exports = class Entities extends Abstract {
 
     })
   }
-  
+
   update(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -107,7 +107,7 @@ module.exports = class Entities extends Abstract {
 
     })
   }
-  
+
   upload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -116,6 +116,26 @@ module.exports = class Entities extends Abstract {
       try {
 
         result = await this.entityHelper.upload(req);
+
+      } catch (error) {
+
+        return reject(error)
+
+      }
+
+      return resolve(result);
+
+    })
+  }
+
+  uploadForPortal(req) {
+    return new Promise(async (resolve, reject) => {
+
+      let result;
+
+      try {
+
+        result = await this.entityHelper.uploadForPortal(req);
 
       } catch (error) {
 

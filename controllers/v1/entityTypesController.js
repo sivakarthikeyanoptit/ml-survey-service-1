@@ -1,6 +1,7 @@
 
-module.exports = class EntityTypes {
+module.exports = class EntityTypes extends Abstract {
   constructor() {
+    super(entityTypesSchema);
   }
 
   static get name() {

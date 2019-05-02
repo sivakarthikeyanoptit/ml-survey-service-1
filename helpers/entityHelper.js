@@ -1145,157 +1145,173 @@ module.exports = class entityHelper {
     
     async uploadForPortal(req) {
         return new Promise(async (resolve, reject) => {
-          try {
-            let schoolsData = await csv().fromString(
-              req.files.schools.data.toString()
-            );
-    
-            const schoolsUploadCount = schoolsData.length;
-            // let programController = new programsBaseController;
-            // let evaluationFrameworkController = new evaluationFrameworksBaseController
-    
-            let programId = req.query.programId
-    
-            if (!programId) {
-              throw "Program Id is missing"
-            }
-    
-            let componentId = req.query.componentId
-    
-            if (!componentId) {
-              throw "Component Id is missing."
-            }
-    
-            let programDocument = await programController.programDocument([programId])
-    
-            if (!programDocument) {
-              throw "Bad request"
-            }
-    
-            let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument([componentId], ["_id"])
-    
-            if (!evaluationFrameworkDocument) {
-              throw "Bad request"
-            }
-    
-            const programsData = programDocument.reduce(
-              (ac, program) => ({ ...ac, [program._id]: program }),
-              {}
-            );
-    
-            const evaluationFrameworksData = evaluationFrameworkDocument.reduce(
-              (ac, evaluationFramework) => ({
-                ...ac,
-                [evaluationFramework._id]: evaluationFramework._id
-              }),
-              {}
-            );
-    
-            const schoolUploadedData = await Promise.all(
-              schoolsData.map(async school => {
-                school.schoolTypes = await school.schoolType.split(",");
-                school.createdBy = school.updatedBy = req.userDetails.id;
-                school.gpsLocation = "";
-                const schoolCreateObject = await database.models.schools.findOneAndUpdate(
-                  { externalId: school.externalId },
-                  school,
-                  {
-                    upsert: true,
-                    new: true,
-                    setDefaultsOnInsert: true,
-                    returnNewDocument: true
-                  }
-                );
-    
-                return {
-                  _id: schoolCreateObject._id,
-                  externalId: school.externalId,
-                  programId: programId,
-                  frameworkId: componentId
-                };
-              })
-            );
-    
-            if (schoolsUploadCount === schoolUploadedData.length) {
-              let schoolElement = new Object();
-              let indexOfEvaluationFrameworkInProgram;
-              let schoolProgramComponents = new Array();
-              let programFrameworkSchools = new Array();
-              let schoolCsvDataProgramId;
-              let schoolCsvDataEvaluationFrameworkId;
-    
-              for (
-                let schoolIndexInData = 0;
-                schoolIndexInData < schoolUploadedData.length;
-                schoolIndexInData++
-              ) {
-                schoolElement = schoolUploadedData[schoolIndexInData];
-    
-                schoolCsvDataProgramId = programId;
-                schoolCsvDataEvaluationFrameworkId =
-                  componentId;
-                schoolProgramComponents =
-                  programsData[schoolCsvDataProgramId].components;
-                indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
-                  component =>
-                    component.id.toString() ===
-                    evaluationFrameworksData[
-                      schoolCsvDataEvaluationFrameworkId
-                    ].toString()
-                );
-    
-                if (indexOfEvaluationFrameworkInProgram >= 0) {
-                  programFrameworkSchools =
-                    schoolProgramComponents[indexOfEvaluationFrameworkInProgram]
-                      .schools;
-                  if (
-                    programFrameworkSchools.findIndex(
-                      school => school.toString() == schoolElement._id.toString()
-                    ) < 0
-                  ) {
-                    programFrameworkSchools.push(
-                      ObjectId(schoolElement._id.toString())
-                    );
-                  }
-                }
+            try {
+      
+              if (req.query.type != "school") throw "invalid type";
+
+              if (!req.files || !req.files.schools) throw {status:400,message:"Bad Request."};
+      
+              let schoolsData = await csv().fromString(
+                req.files.schools.data.toString()
+              );
+      
+              const schoolsUploadCount = schoolsData.length;
+            //   let programController = new programsBaseController;
+            //   let evaluationFrameworkController = new evaluationFrameworksBaseController
+      
+              let programId = req.query.programId
+      
+              if (!programId) {
+                throw "Program Id is missing"
               }
-    
-              await Promise.all(
-                Object.values(programsData).map(async program => {
-                  let queryObject = {
-                    _id: ObjectId(program._id.toString())
-                  };
-                  let updateObject = {};
-    
-                  updateObject.$set = {
-                    ["components"]: program.components
-                  };
-    
-                  await database.models.programs.findOneAndUpdate(
-                    queryObject,
-                    updateObject
+      
+              let componentId = req.query.componentId
+      
+              if (!componentId) {
+                throw "Component Id is missing."
+              }
+      
+              // let programDocument = await programController.programDocument([programId])
+              let programDocument = await database.models.programs.find({ _id: programId }).lean();
+      
+              if (!programDocument) throw "Bad request"
+      
+              // let evaluationFrameworkDocument = await evaluationFrameworkController.evaluationFrameworkDocument([componentId], ["_id"])
+              let evaluationFrameworkDocument = await database.models.evaluationFrameworks.find({
+                _id: { $in: componentId }
+              }, { _id: 1 }).lean();
+      
+              if (!evaluationFrameworkDocument) throw "Bad request";
+      
+              const programsData = programDocument.reduce(
+                (ac, program) => ({ ...ac, [program._id]: program }),
+                {}
+              );
+      
+              const evaluationFrameworksData = evaluationFrameworkDocument.reduce(
+                (ac, evaluationFramework) => ({
+                  ...ac,
+                  [evaluationFramework._id]: evaluationFramework._id
+                }),
+                {}
+              );
+      
+              let entityType = await database.models.entityTypes.find({ "entityType": "school" },{_id:1}).lean();
+      
+              const schoolUploadedData = await Promise.all(
+                schoolsData.map(async school => {
+                  school.schoolTypes = await school.schoolType.split(",");
+                  const schoolCreateObject = await database.models.entities.findOneAndUpdate(
+                    {
+                      "metaInformation.externalId": school.externalId,
+                      "entityType": "school"
+                    },
+                    {
+                        "entityTypeId" : entityType._id, 
+                        "entityType" : "school", 
+                        "regsitryDetails" : {}, 
+                        "groups" : {}, 
+                        "metaInformation" : school, 
+                        "updatedBy" : req.userDetails.id, 
+                        "createdBy" : req.userDetails.id
+                    },
+                    {
+                      upsert: true,
+                      new: true,
+                      setDefaultsOnInsert: true,
+                      returnNewDocument: true
+                    }
                   );
-    
-                  return;
+      
+                  return {
+                    _id: schoolCreateObject._id,
+                    externalId: school.externalId,
+                    programId: programId,
+                    frameworkId: componentId
+                  };
                 })
               );
-            } else {
-              throw "Something went wrong, not all records were inserted/updated.";
+      
+              if (schoolsUploadCount === schoolUploadedData.length) {
+                let schoolElement = new Object();
+                let indexOfEvaluationFrameworkInProgram;
+                let schoolProgramComponents = new Array();
+                let programFrameworkSchools = new Array();
+                let schoolCsvDataProgramId;
+                let schoolCsvDataEvaluationFrameworkId;
+      
+                for (
+                  let schoolIndexInData = 0;
+                  schoolIndexInData < schoolUploadedData.length;
+                  schoolIndexInData++
+                ) {
+                  schoolElement = schoolUploadedData[schoolIndexInData];
+      
+                  schoolCsvDataProgramId = programId;
+                  schoolCsvDataEvaluationFrameworkId =
+                    componentId;
+                  schoolProgramComponents =
+                    programsData[schoolCsvDataProgramId].components;
+                  indexOfEvaluationFrameworkInProgram = schoolProgramComponents.findIndex(
+                    component =>
+                      component.id.toString() ===
+                      evaluationFrameworksData[
+                        schoolCsvDataEvaluationFrameworkId
+                      ].toString()
+                  );
+      
+                  if (indexOfEvaluationFrameworkInProgram >= 0) {
+                    programFrameworkSchools =
+                      schoolProgramComponents[indexOfEvaluationFrameworkInProgram]
+                        .schools;
+                    if (
+                      programFrameworkSchools.findIndex(
+                        school => school.toString() == schoolElement._id.toString()
+                      ) < 0
+                    ) {
+                      programFrameworkSchools.push(
+                        ObjectId(schoolElement._id.toString())
+                      );
+                    }
+                  }
+                }
+      
+                await Promise.all(
+                  Object.values(programsData).map(async program => {
+                    let queryObject = {
+                      _id: ObjectId(program._id.toString())
+                    };
+                    let updateObject = {};
+      
+                    updateObject.$set = {
+                      ["components"]: program.components
+                    };
+      
+                    await database.models.programs.findOneAndUpdate(
+                      queryObject,
+                      updateObject
+                    );
+      
+                    return;
+                  })
+                );
+              } else {
+                throw "Something went wrong, not all records were inserted/updated.";
+              }
+      
+              let responseMessage = "School record created successfully.";
+      
+              let response = { message: responseMessage };
+      
+              return resolve(response);
+            } catch (error) {
+              return reject({
+                status: error.status || 500,
+                message: error.message || error || "Oops! Something went wrong!",
+                errorObject: error
+              });
             }
-    
-            let responseMessage = "School record created successfully.";
-    
-            let response = { message: responseMessage };
-    
-            return resolve(response);
-          } catch (error) {
-            return reject({
-              status: 500,
-              message: error,
-              errorObject: error
-            });
-          }
-        });
+          })
       }
 
 };
