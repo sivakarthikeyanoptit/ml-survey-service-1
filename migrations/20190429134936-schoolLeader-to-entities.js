@@ -39,7 +39,7 @@ module.exports = {
           "updatedAt",
           "updatedBy",
           "__v",
-          "deleted",
+          "isDeleted",
           "programId",
           "schoolId"
         ]),

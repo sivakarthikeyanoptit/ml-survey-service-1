@@ -26,6 +26,9 @@ module.exports = {
     endDate: Date,
     status: String,
     evidenceMethods: Object,
-    sections: Object
+    sections: Object,
+    registry : Array,
+    frameworkId: "ObjectId",
+    frameworkExternalId: String,
   }
 };
