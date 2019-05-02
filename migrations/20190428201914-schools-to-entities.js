@@ -26,7 +26,7 @@ module.exports = {
           "updatedAt",
           "updatedBy",
           "__v",
-          "deleted"
+          "isDeleted"
         ]),
         updatedBy: "INITIALIZE",
         createdBy: "INITIALIZE",
