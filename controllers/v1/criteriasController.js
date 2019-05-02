@@ -710,6 +710,7 @@ module.exports = class Criterias extends Abstract {
 
           criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
 
+          
           let queryCriteriaObject = {
           externalId: eachQuestion["Criteria ID"]
           }
