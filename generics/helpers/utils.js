@@ -114,6 +114,10 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function valueParser(value){
+  return value.trim();
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
@@ -121,6 +125,7 @@ module.exports = {
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   mapUserRole: mapUserRole,
+  valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
   getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
 };

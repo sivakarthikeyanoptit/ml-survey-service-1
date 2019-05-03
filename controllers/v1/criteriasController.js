@@ -1198,12 +1198,27 @@ module.exports = class Criterias extends Abstract {
 
         let criteriaData = await csv().fromString(req.files.criterias.data.toString())
 
-        let criteriaDocumentArray = criteriaData.map(criteria => {
+        const fileName = `upload Criteria`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
 
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+        // let criteriaDocumentArray = 
+        await Promise.all(criteriaData.map(async criteria => {
+
+          let csvData = {}
           let rubric = {}
-          rubric.name = criteria.criteriaName
-          rubric.description = criteria.criteriaName
-          rubric.type = criteria.type
+
+          rubric.name = gen.utils.valueParser(criteria.criteriaName)
+          rubric.description = gen.utils.valueParser(criteria.criteriaName)
+          rubric.type = gen.utils.valueParser(criteria.type)
           rubric.expressionVariables = {}
           rubric.levels = {};
           let countLabel = 1;
@@ -1218,7 +1233,7 @@ module.exports = class Criterias extends Abstract {
               rubric.levels[eachCriteriaKey] = {
                 level: eachCriteriaKey,
                 label: label,
-                description: criteria[eachCriteriaKey],
+                description: gen.utils.valueParser(criteria[eachCriteriaKey]),
                 expression: ""
               }
             }
@@ -1226,8 +1241,8 @@ module.exports = class Criterias extends Abstract {
 
           let criteriaStructure = {
             owner: req.userDetails.id,
-            name: criteria.criteriaName,
-            description: criteria.criteriaName,
+            name: gen.utils.valueParser(criteria.criteriaName),
+            description: gen.utils.valueParser(criteria.criteriaName),
             resourceType: [
               "Program",
               "Framework",
@@ -1287,31 +1302,45 @@ module.exports = class Criterias extends Abstract {
             ],
             evidences: [],
             deleted: false,
-            externalId: criteria.criteriaID,
+            externalId: gen.utils.valueParser(criteria.criteriaID),
             owner: req.userDetails.id,
             timesUsed: 12,
             weightage: 20,
             remarks: "",
-            name: criteria.criteriaName,
-            description: criteria.criteriaName,
+            name: gen.utils.valueParser(criteria.criteriaName),
+            description: gen.utils.valueParser(criteria.criteriaName),
             criteriaType: "auto",
             score: "",
             flag: "",
             rubric: rubric
           };
 
-          return criteriaStructure;
-        })
+          let criteriaDocuments = await database.models.criterias.create(
+            criteriaStructure
+          );
 
-        let criteriaDocuments = await database.models.criterias.create(
-          criteriaDocumentArray
-        );
+          csvData["Criteria Name"] = gen.utils.valueParser(criteria.criteriaName)
+          csvData["Criteria External Id"] = gen.utils.valueParser(criteria.criteriaID)
 
-        let result = _.mapValues(_.keyBy(criteriaDocuments, 'externalId'), '_id');
-        let responseMessage = "Criteria levels updated successfully."
-        let response = { message: responseMessage, result: result };
+          if(criteriaDocuments._id){
+          csvData["Criteria Internal Id"] = criteriaDocuments._id            
+          } else{
+            csvData["Criteria Internal Id"] = "Not inserted" 
+          }
+          
+          input.push(csvData)
+          // return criteriaStructure;
+        }))
 
-        return resolve(response)
+        input.push(null)
+
+       
+
+        // let result = _.mapValues(_.keyBy(criteriaDocuments, 'externalId'), '_id');
+        // let responseMessage = "Criteria levels updated successfully."
+        // let response = { message: responseMessage, result: result };
+
+        // return resolve(response)
       }
       catch (error) {
         return reject({
@@ -1322,5 +1351,6 @@ module.exports = class Criterias extends Abstract {
       }
     })
   }
+
 
 };
