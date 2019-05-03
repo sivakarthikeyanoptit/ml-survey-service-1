@@ -1327,7 +1327,7 @@ module.exports = class Criterias extends Abstract {
           } else{
             csvData["Criteria Internal Id"] = "Not inserted" 
           }
-          
+
           input.push(csvData)
           // return criteriaStructure;
         }))
@@ -1351,6 +1351,5 @@ module.exports = class Criterias extends Abstract {
       }
     })
   }
-
-
+  
 };
