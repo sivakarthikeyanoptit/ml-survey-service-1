@@ -1046,7 +1046,7 @@ async generateSubmissionReportsBySchoolId(req) {
         ).lean();
 
         allQuestionWithOptions.forEach(question => {
-          if (question.options.length > 0) {
+          if (question.options && question.options.length > 0) {
             let optionString = "";
             question.options.forEach(option => {
               optionString += option.label + ",";
