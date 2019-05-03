@@ -16,7 +16,7 @@ module.exports = class EntityAssessorsTrackers extends Abstract {
             params.toDate.setHours(23, 59, 59);
 
             let queryObject = {
-                assessorId: { $in: userIds },
+                assessorUserId: { $in: userIds },
                 programId: programId,
                 //formula =  (validFrom <= fromDate && fromDate <= validTo) || (validFrom <= toDate && toDate <= validTo)
                 $or: 
@@ -32,8 +32,8 @@ module.exports = class EntityAssessorsTrackers extends Abstract {
                 ]
             };
 
-            let assessorSchoolTrackersDocuments = await database.models.assessorSchoolTrackers.find(queryObject, { updatedData: 1 }).lean();
-            let schoolIds = assessorSchoolTrackersDocuments.map(documents => documents.updatedData)
+            let entityAssessorsTrackersDocuments = await database.models.entityAssessorsTrackers.find(queryObject, { updatedData: 1 }).lean();
+            let schoolIds = entityAssessorsTrackersDocuments.map(documents => documents.updatedData)
             let result = _.uniq(_.flattenDeep(schoolIds));
             return resolve(result);
 
