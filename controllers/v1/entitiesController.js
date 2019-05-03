@@ -148,4 +148,24 @@ module.exports = class Entities extends Abstract {
     })
   }
 
+  assessments(req) {
+    return new Promise(async (resolve, reject) => {
+
+      let result;
+
+      try {
+
+        result = await this.entityHelper.assessments(req);
+
+      } catch (error) {
+
+        return reject(error)
+
+      }
+
+      return resolve(result);
+
+    })
+  }
+
 };
