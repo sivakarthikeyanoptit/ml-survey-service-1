@@ -12,7 +12,7 @@ module.exports = class Entities extends Abstract {
 * @api {get} /assessment/api/v1/entities/list/:entityId Entity list
 * @apiVersion 0.0.1
 * @apiName Entity list
-* @apiGroup entities
+* @apiGroup Entities
 * @apiHeader {String} X-authenticated-user-token Authenticity token
 * @apiSampleRequest /assessment/api/v1/entities/list/5c533ae82ffa8f30d7d7e55e
 * @apiUse successBody
@@ -43,7 +43,7 @@ module.exports = class Entities extends Abstract {
   * @api {get} /assessment/api/v1/entities/form Entity form
   * @apiVersion 0.0.1
   * @apiName Entity form
-  * @apiGroup entities
+  * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/entities/form
   * @apiUse successBody
@@ -73,7 +73,7 @@ module.exports = class Entities extends Abstract {
   * @api {get} /assessment/api/v1/entities/fetch/:entityId Entity profile
   * @apiVersion 0.0.1
   * @apiName Entity profile
-  * @apiGroup entities
+  * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/entities/fetch/5c48875a4196bd6d6904c2c3
   * @apiUse successBody
@@ -104,7 +104,7 @@ module.exports = class Entities extends Abstract {
   * @api {post} /assessment/api/v1/entities/add Entity add
   * @apiVersion 0.0.1
   * @apiName Entity add
-  * @apiGroup entities
+  * @apiGroup Entities
   * @apiParamExample {json} Request-Body:
   * {
   *	"parents": [
@@ -151,7 +151,7 @@ module.exports = class Entities extends Abstract {
 * @api {post} /assessment/api/v1/entities/update/:entitiesId Update Entity Information
 * @apiVersion 0.0.1
 * @apiName Update Entity Information
-* @apiGroup entities
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	{
 *	        "studentName" : "",
@@ -195,7 +195,7 @@ module.exports = class Entities extends Abstract {
 * @api {post} /assessment/api/v1/entities/upload Upload Entity Information CSV
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV
-* @apiGroup entities
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	Upload CSV
 * @apiUse successBody
@@ -225,7 +225,7 @@ module.exports = class Entities extends Abstract {
 * @api {post} /assessment/api/v1/entities/uploadForPortal Upload Entity Information CSV Using Portal
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV Using Portal
-* @apiGroup entities
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	Upload CSV
 * @apiUse successBody
@@ -255,7 +255,7 @@ module.exports = class Entities extends Abstract {
 * @api {get} /assessment/api/v1/entities/assessments/:entityID Entity assessments
 * @apiVersion 0.0.1
 * @apiName Entity assessments
-* @apiGroup entities
+* @apiGroup Entities
 * @apiHeader {String} X-authenticated-user-token Authenticity token
 * @apiSampleRequest /assessment/api/v1/entities/assessments/5beaa888af0065f0e0a10515
 * @apiUse successBody
