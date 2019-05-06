@@ -114,8 +114,14 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
-function valueParser(value){
-  return value.trim();
+function valueParser(dataToBeParsed){
+  
+  let parsedData = {}
+
+  Object.keys(dataToBeParsed).forEach(eachDataToBeParsed=>{
+    parsedData[eachDataToBeParsed] = dataToBeParsed[eachDataToBeParsed].trim()
+  })
+  return parsedData
 }
 
 module.exports = {
