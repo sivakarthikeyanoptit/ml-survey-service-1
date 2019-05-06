@@ -8,6 +8,10 @@ module.exports = {
           name : "schoolRegsitry"
       },
       createdAt : new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false,
       profileForm : [],
       profileFields : [
         "externalId",
@@ -99,6 +103,10 @@ module.exports = {
           name : "parentsRegsitry"
       },
       createdAt: new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false,
       profileFields : [
         "studentName",
         "grade",
@@ -361,6 +369,10 @@ module.exports = {
           name : "teacherRegsitry"
       },
       createdAt: new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false,
       profileFields : [
         "name",
         "qualifications",
@@ -458,6 +470,10 @@ module.exports = {
           name : "schoolLeaderRegsitry"
       },
       createdAt : new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false,
       profileFields : [
         "name",
         "age",
@@ -684,7 +700,11 @@ module.exports = {
       profileForm: [
 
       ],
-      createdAt : new Date
+      createdAt : new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false
     }
 
   
@@ -703,7 +723,11 @@ module.exports = {
       profileForm: [
 
       ],
-      createdAt : new Date 
+      createdAt : new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false
     }
 
     let districtEntity = {
@@ -718,7 +742,11 @@ module.exports = {
         "districtId",
         "region"
       ],
-      createdAt : new Date 
+      createdAt : new Date,
+      updatedAt : new Date,
+      createdBy: "SYSTEM",
+      updatedBy: "SYSTEM",
+      isDeleted: false
     }
 
     
