@@ -152,29 +152,29 @@ module.exports = class ProgramOperations {
                 let limitValue = (req.query.csv && req.query.csv == "true") ? "" : req.pageSize;
                 let skipValue = (req.query.csv && req.query.csv == "true") ? "" : (req.pageSize * (req.pageNo - 1));
 
-                assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
+                assessorDetails = await database.models.entityAssessors.find(assessorQueryObject, { userId: 1, name: 1, entities: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
-                let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
+                let totalCount = database.models.entityAssessors.countDocuments(assessorQueryObject).exec();
 
                 [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
 
-                let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
+                let assessorEntityIds = _.flattenDeep(assessorDetails.map(entity => entity.entities));
 
                 //get only uniq schoolIds
-                if (assessorSchoolIds.length) {
-                    let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
-                    assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
+                if (assessorEntityIds.length) {
+                    let uniqAssessorEntityIds = _.uniq(assessorEntityIds.map(school => school.toString()));
+                    assessorEntityIds = uniqAssessorEntityIds.map(school => ObjectId(school));
                 }
 
                 let userIds = assessorDetails.map(assessor => assessor.userId);
 
                 let assessorSchoolMap = _.keyBy(assessorDetails, 'userId');
 
-                assessorSchoolIds = await this.getSchools(req, false, userIds);
+                assessorEntityIds = await this.getSchools(req, false, userIds);
 
-                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id);
+                assessorEntityIds = assessorEntityIds.result.map(school => school.id);
 
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
+                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorEntityIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
                 let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
 
 
@@ -195,9 +195,9 @@ module.exports = class ProgramOperations {
                 }
 
                 function getSubmissionByAssessor(assessorId) {
-                    let assessorSchools = assessorSchoolMap[assessorId].schools;
+                    let assessorEntity = assessorSchoolMap[assessorId].entities;
                     let schoolSubmissions = [];
-                    assessorSchools.forEach(schoolId => {
+                    assessorEntity.forEach(schoolId => {
                         schoolSubmissions.push(schoolSubmissionMap[schoolId.toString()])
                     });
                     return _.compact(schoolSubmissions);
@@ -692,15 +692,21 @@ module.exports = class ProgramOperations {
                     throw { status: 400, message: 'School id required.' }
                 }
 
-                let schoolIdAndName = await database.models.schools.find(
+                let schoolIdAndName = await database.models.entities.find(
                     {
                         _id: { $in: programDocument.entities },
-                        externalId: new RegExp(req.query.id, 'i')
+                        "metaInformation.externalId": new RegExp(req.query.id, 'i')
                     },
                     {
-                        externalId: 1, name: 1
+                        "metaInformation.externalId": 1, "metaInformation.name": 1
                     }
                 ).limit(5).lean();//autocomplete needs only 5 dataset
+
+                schoolIdAndName = schoolIdAndName.map(schoolIdAndName=>{
+                    schoolIdAndName.metaInformation._id = schoolIdAndName._id;
+
+                    return schoolIdAndName.metaInformation;
+                })
 
                 return resolve({
                     status: 200,
@@ -729,7 +735,7 @@ module.exports = class ProgramOperations {
                     { $match: { userId: req.userDetails.id, programId: programDocument._id } },
                     {
                         $graphLookup: {
-                            from: 'schoolAssessors',
+                            from: 'entityAssessors',
                             startWith: '$userId',
                             connectFromField: 'userId',
                             connectToField: 'parentId',
@@ -738,13 +744,13 @@ module.exports = class ProgramOperations {
                         }
                     },
                     {
-                        $project: { schools: 1, userId: 1, "children.schools": 1, "children.userId": 1 }
+                        $project: { entities: 1, userId: 1, "children.entities": 1, "children.userId": 1 }
                     }
                 ];
 
-                let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
+                let entityAssessorDocuments = await database.models.entityAssessors.aggregate(queryObject);
 
-                if (schoolsAssessorDocuments.length < 1) {
+                if (entityAssessorDocuments.length < 1) {
                     return resolve([]);
                 }
 
@@ -753,9 +759,9 @@ module.exports = class ProgramOperations {
                 if (assessorIds.length) {
                     userIds = assessorIds;
                 } else {
-                    userIds.push(schoolsAssessorDocuments[0].userId);
+                    userIds.push(entityAssessorDocuments[0].userId);
 
-                    schoolsAssessorDocuments[0].children.forEach(child => {
+                    entityAssessorDocuments[0].children.forEach(child => {
                         userIds.push(child.userId)
                     })
 
