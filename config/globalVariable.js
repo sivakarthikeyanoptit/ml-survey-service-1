@@ -41,10 +41,10 @@ module.exports = function () {
   });
 
   //load helpers
-  fs.readdirSync(ROOT_PATH + '/helpers/').forEach(function (file) {
-    if (file.match(/\.js$/) !== null) {
-      var name = file.replace('Helper.js', '');
-      global[name + 'Helper'] = require(ROOT_PATH + '/helpers/' + file);
+  fs.readdirSync(ROOT_PATH + '/module/').forEach(function (file) {
+    if (file.includes('Module')) {
+      var name = file.replace('Module', '');
+      global[name + 'Helper'] = require(ROOT_PATH + `/module/${file}/${name}Helper.js`);
     }
   });
  

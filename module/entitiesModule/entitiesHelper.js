@@ -1,6 +1,6 @@
 const csv = require("csvtojson");
 
-module.exports = class entityHelper {
+module.exports = class entitiesHelper {
 
     constructor() {
         this.roles = {
@@ -12,7 +12,7 @@ module.exports = class entityHelper {
     }
 
     static get name() {
-        return "entityHelper";
+        return "entitiesHelper";
     }
 
     add(req) {
@@ -68,7 +68,8 @@ module.exports = class entityHelper {
                     ).lean();
 
                     if (req.query.type == "parent") {
-                        result = await this.getParentRegistrySubmissionStatus(req.params, result)
+                        result = await this.getParentRegistrySubmissionStatus(result, req.query);
+                        result = result;
                     }
 
                 } else {
@@ -76,6 +77,11 @@ module.exports = class entityHelper {
                 }
 
                 let responseMessage = "Information fetched successfully."
+
+                result = result.map(entity=>{
+                    entity.metaInformation._id = entity._id
+                    return entity.metaInformation
+                })
 
                 let response = { message: responseMessage, result: result };
 
@@ -87,10 +93,11 @@ module.exports = class entityHelper {
         })
     }
 
-    async getParentRegistrySubmissionStatus(params, parents) {
+    async getParentRegistrySubmissionStatus(parents, query) {
+
         let submissionParentInterviewResponses = await database.models.submissions.findOne(
             {
-                schoolId: params._id
+                schoolId: query.schoolId
             },
             {
                 parentInterviewResponses: 1
@@ -98,36 +105,17 @@ module.exports = class entityHelper {
         ).lean();
 
         submissionParentInterviewResponses = (submissionParentInterviewResponses && submissionParentInterviewResponses.parentInterviewResponses && Object.values(submissionParentInterviewResponses.parentInterviewResponses).length > 0) ? submissionParentInterviewResponses.parentInterviewResponses : {}
-        let result = parents.map(function (parent) {
+        let result = await Promise.all(parents.map(async(parent)=>{
+
+            let parentEntity = await database.models.entityTypes.findOne({name:"parent"});
 
             if (parent.metaInformation.type.length > 0) {
 
                 let parentTypeLabelArray = new Array
 
                 parent.metaInformation.type.forEach(parentType => {
-                    let parentTypeLabel
-                    switch (parentType) {
-                        case "P1":
-                            parentTypeLabel = "Parent only"
-                            break;
-                        case "P2":
-                            parentTypeLabel = "SMC Parent Member"
-                            break;
-                        case "P3":
-                            parentTypeLabel = "Safety Committee Member"
-                            break;
-                        case "P4":
-                            parentTypeLabel = "EWS-DG Parent"
-                            break;
-                        case "P5":
-                            parentTypeLabel = "Social Worker"
-                            break;
-                        case "P6":
-                            parentTypeLabel = "Elected Representative Nominee"
-                            break;
-                        default:
-                            break;
-                    }
+
+                    let parentTypeLabel = parentEntity.regsitryDetails.profileTypes[parentType] ? parentEntity.regsitryDetails.profileTypes[parentType] : ""
 
                     if (parentTypeLabel != "") {
                         parentTypeLabelArray.push(parentTypeLabel)
@@ -140,42 +128,15 @@ module.exports = class entityHelper {
             }
 
             if (parent.metaInformation.callResponse != "") {
-                let parentCallResponseLabel
-                switch (parent.metaInformation.callResponse) {
-                    case "R1":
-                        parentCallResponseLabel = "Call not initiated"
-                        break;
-                    case "R2":
-                        parentCallResponseLabel = "Did not pick up"
-                        break;
-                    case "R3":
-                        parentCallResponseLabel = "Not reachable"
-                        break;
-                    case "R4":
-                        parentCallResponseLabel = "Call back later"
-                        break;
-                    case "R5":
-                        parentCallResponseLabel = "Wrong number"
-                        break;
-                    case "R6":
-                        parentCallResponseLabel = "Call disconnected mid way"
-                        break;
-                    case "R7":
-                        parentCallResponseLabel = "Completed"
-                        break;
-                    case "R00":
-                        parentCallResponseLabel = "Call Response Completed But Survey Not Completed."
-                        break;
-                    default:
-                        break;
-                }
 
-                parent.metaInformation.callResponse = parentCallResponseLabel
+                let parentCallResponseLabel = parentEntity.regsitryDetails.profileCallResponse[parent.metaInformation.callResponse] ? parentEntity.regsitryDetails.profileCallResponse[parent.metaInformation.callResponse] : "";
+
+                parent.metaInformation.callResponse = parentCallResponseLabel;
             }
 
             parent.metaInformation.submissionStatus = (submissionParentInterviewResponses[parent._id.toString()]) ? submissionParentInterviewResponses[parent._id.toString()].status : ""
             return parent;
-        })
+        }))
 
         return result;
     }
@@ -185,19 +146,10 @@ module.exports = class entityHelper {
 
             try {
                 let result;
-                switch (req.query.type) {
-                    case "parent":
-                        result = await this.getParentForm();
-                        break;
-                    case "teacher":
-                        result = await this.getTeacherForm();
-                        break;
-                    case "schoolLeader":
-                        result = await this.getSchoolLeaderRegistryForm();
-                        break;
-                    default:
-                        throw "invalid type";
-                }
+
+                let entityType = await database.models.entityTypes.findOne({ name: req.query.type })
+
+                result = entityType.profileForm.length ? entityType.profileForm : [];
 
                 let responseMessage = "Information fetched successfully."
 
@@ -216,23 +168,38 @@ module.exports = class entityHelper {
 
             try {
                 let result;
-                switch (req.query.type) {
-                    case "parent":
-                        result = await this.getParentForm(req.params._id);
-                        break;
-                    case "teacher":
-                        result = await this.getTeacherForm(req.params._id);
-                        break;
-                    case "schoolLeader":
-                        result = await this.getSchoolLeaderRegistryForm(req.params._id);
-                        break;
-                    default:
-                        throw "invalid type";
+
+                let entityType = await database.models.entityTypes.findOne({ name: req.query.type }).lean();
+
+                let entityForm = entityType.profileForm;
+
+                if (!entityForm.length) {
+                    let responseMessage = `No form data available for ${req.query.type} entity type.`;
+                    throw responseMessage;
                 }
+
+                let entityInformation;
+
+                if (req.params._id) {
+                    entityInformation = await database.models.entities.findOne(
+                        { _id: ObjectId(req.params._id), entityType: req.query.type }
+                    );
+
+                    if (!entityInformation) {
+                        let responseMessage = `No ${req.query.type} information found for given params.`;
+                        throw responseMessage;
+                    }
+
+                    entityInformation = entityInformation.metaInformation;
+                }
+
+                entityForm.forEach(eachField=>{
+                    eachField.value = entityInformation[eachField.field]
+                })
 
                 let responseMessage = "Information fetched successfully."
 
-                let response = { message: responseMessage, result: result };
+                let response = { message: responseMessage, result: entityForm };
 
                 return resolve(response);
             } catch (error) {
@@ -240,517 +207,6 @@ module.exports = class entityHelper {
             }
 
         })
-    }
-
-    async getParentForm(id = null) {
-
-        let parentInformation = {};
-
-        if (id) {
-            parentInformation = await database.models.entities.findOne(
-                { _id: ObjectId(id) }
-            );
-
-            if (!parentInformation) {
-                let responseMessage = `No parent information found for given params.`;
-                throw responseMessage;
-            }
-
-            parentInformation = parentInformation.metaInformation;
-        }
-
-        let result = [
-            {
-                field: "name",
-                label: "Parent Name",
-                value: (parentInformation.name) ? parentInformation.name : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "gender",
-                label: "Parent Gender",
-                value: (parentInformation.gender) ? parentInformation.gender : "",
-                visible: true,
-                editable: true,
-                input: "radio",
-                options: [
-                    {
-                        value: "M",
-                        label: "Male"
-                    },
-                    {
-                        value: "F",
-                        label: "Female"
-                    }
-                ],
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "phone1",
-                label: "Phone Number",
-                value: (parentInformation.phone1) ? parentInformation.phone1 : "",
-                visible: true,
-                editable: false,
-                input: "number",
-                validation: {
-                    required: true,
-                    regex: "^[0-9]{10}+$"
-                }
-            },
-            {
-                field: "phone2",
-                label: "Additional Phone Number",
-                value: (parentInformation.phone2) ? parentInformation.phone2 : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: false,
-                    regex: "^[0-9]{10}+$"
-                }
-            },
-            {
-                field: "studentName",
-                label: "Student Name",
-                value: (parentInformation.studentName) ? parentInformation.studentName : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "grade",
-                label: "Grade",
-                value: (parentInformation.grade) ? parentInformation.grade : "",
-                visible: true,
-                editable: true,
-                input: "radio",
-                options: [
-                    {
-                        value: "nursery",
-                        label: "Nursery"
-                    },
-                    {
-                        value: "lowerKG",
-                        label: "Lower KG"
-                    },
-                    {
-                        value: "upperKG",
-                        label: "Upper KG"
-                    },
-                    {
-                        value: "kindergarten",
-                        label: "Kindergarten"
-                    },
-                    {
-                        value: "1",
-                        label: 1
-                    },
-                    {
-                        value: "2",
-                        label: 2
-                    },
-                    {
-                        value: "3",
-                        label: 3
-                    },
-                    {
-                        value: "4",
-                        label: 4
-                    },
-                    {
-                        value: "5",
-                        label: 5
-                    },
-                    {
-                        value: "6",
-                        label: 6
-                    },
-                    {
-                        value: "7",
-                        label: 7
-                    },
-                    {
-                        value: "8",
-                        label: 8
-                    },
-                    {
-                        value: "9",
-                        label: 9
-                    },
-                    {
-                        value: "10",
-                        label: 10
-                    },
-                    {
-                        value: "11",
-                        label: 11
-                    },
-                    {
-                        value: "12",
-                        label: 12
-                    }
-                ],
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "schoolName",
-                label: "School Name",
-                value: (parentInformation.schoolName) ? parentInformation.schoolName : "",
-                visible: true,
-                editable: false,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "type",
-                label: "Parent Type",
-                value: (parentInformation.type) ? parentInformation.type : "",
-                visible: true,
-                editable: true,
-                input: "multiselect",
-                options: [
-                    {
-                        value: "P1",
-                        label: "Parent only"
-                    },
-                    {
-                        value: "P2",
-                        label: "SMC Parent Member"
-                    },
-                    {
-                        value: "P3",
-                        label: "Safety Committee Member"
-                    },
-                    {
-                        value: "P4",
-                        label: "EWS-DG Parent"
-                    },
-                    {
-                        value: "P5",
-                        label: "Social Worker"
-                    },
-                    {
-                        value: "P6",
-                        label: "Elected Representative Nominee"
-                    }
-                ],
-                validation: {
-                    required: false
-                }
-            },
-            {
-                field: "callResponse",
-                label: "Call Response",
-                value: (parentInformation.callResponse) ? parentInformation.callResponse : "",
-                visible: true,
-                editable: true,
-                input: "radio",
-                options: [
-                    {
-                        value: "R1",
-                        label: "Call not initiated"
-                    },
-                    {
-                        value: "R2",
-                        label: "Did not pick up"
-                    },
-                    {
-                        value: "R3",
-                        label: "Not reachable"
-                    },
-                    {
-                        value: "R4",
-                        label: "Call back later"
-                    },
-                    {
-                        value: "R5",
-                        label: "Wrong number"
-                    },
-                    {
-                        value: "R6",
-                        label: "Call disconnected mid way"
-                    }
-                ],
-                validation: {
-                    required: true
-                }
-            }
-        ]
-
-        return result;
-    }
-
-    async getTeacherForm(id = null) {
-
-        let teacherInformation = {};
-
-        if (id) {
-            teacherInformation = await database.models.entities.findOne(
-                { _id: ObjectId(id) }
-            );
-
-            if (!teacherInformation) {
-                let responseMessage = `No teacher information found for given params.`;
-                throw responseMessage;
-            }
-
-            teacherInformation = teacherInformation.metaInformation
-        }
-
-        let result = [
-            {
-                field: "name",
-                label: "Name",
-                value: (teacherInformation.name) ? teacherInformation.name : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "qualifications",
-                label: "Qualifications",
-                value: (teacherInformation.qualifications) ? teacherInformation.qualifications : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "yearsOfExperience",
-                label: "Years Of Experience",
-                value: (teacherInformation.yearsOfExperience) ? teacherInformation.yearsOfExperience : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "yearsInCurrentSchool",
-                label: "Number of years in this school",
-                value: (teacherInformation.yearsInCurrentSchool) ? teacherInformation.yearsInCurrentSchool : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "schoolName",
-                label: "School Name",
-                value: (teacherInformation.schoolName) ? teacherInformation.schoolName : "",
-                visible: false,
-                editable: false,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            }
-        ]
-
-        return result;
-    }
-
-    async getSchoolLeaderRegistryForm(id = null) {
-
-        let schoolLeadersInformation = {};
-
-        if (id) {
-
-            schoolLeadersInformation = await database.models.entities.findOne(
-                { _id: ObjectId(id) }
-            );
-
-            if (!schoolLeadersInformation) {
-                let responseMessage = `No school leader information found for given params.`;
-                throw responseMessage;
-            }
-
-            schoolLeadersInformation = schoolLeadersInformation.metaInformation
-        }
-
-
-        let result = [
-            {
-                field: "name",
-                label: "Name",
-                tip: "",
-                value: (schoolLeadersInformation.name) ? schoolLeadersInformation.name : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "age",
-                label: "Age",
-                tip: "Need not ask. Write an approximation",
-                value: (schoolLeadersInformation.age) ? schoolLeadersInformation.age : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "gender",
-                label: "Gender",
-                tip: "",
-                value: (schoolLeadersInformation.gender) ? schoolLeadersInformation.gender : "",
-                visible: true,
-                editable: true,
-                input: "radio",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "bio",
-                label: "Can you tell me a little about yourself?",
-                tip: "",
-                value: (schoolLeadersInformation.bio) ? schoolLeadersInformation.bio : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "experienceInEducationSector",
-                label: "How long have you been in the education sector?",
-                tip: "Enter number in terms of years",
-                value: (schoolLeadersInformation.experienceInEducationSector) ? schoolLeadersInformation.experienceInEducationSector : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "experienceInCurrentSchool",
-                label: "How long have you been in this school?",
-                tip: "Enter number in terms of years",
-                value: (schoolLeadersInformation.experienceInCurrentSchool) ? schoolLeadersInformation.experienceInCurrentSchool : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "experienceAsSchoolLeader",
-                label: "How long have you been a school leader here?",
-                tip: "Enter number in terms of years",
-                value: (schoolLeadersInformation.experienceAsSchoolLeaders) ? schoolLeadersInformation.experienceAsSchoolLeaders : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "dutiesOrResponsibility",
-                label: "What does your day look like? Apart from performing the duties of a principal/coordinator, do you also have to teach?",
-                tip: "Also find out how often they come to school",
-                value: (schoolLeadersInformation.dutiesOrResponsibility) ? schoolLeadersInformation.dutiesOrResponsibility : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "timeOfAvailability",
-                label: "When would you be able to get time during the day when we can update you or discuss our plans with you?",
-                tip: "",
-                value: (schoolLeadersInformation.timeOfDiscussion) ? schoolLeadersInformation.timeOfDiscussion : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "nonTeachingHours",
-                label: "Number of non-teaching hours in a day:",
-                tip: "",
-                value: (schoolLeadersInformation.nonTeachingHours) ? schoolLeadersInformation.nonTeachingHours : "",
-                visible: true,
-                editable: true,
-                input: "number",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "bestPart",
-                label: "What do you like the best about the profession?",
-                tip: "",
-                value: (schoolLeadersInformation.bestPart) ? schoolLeadersInformation.bestPart : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "challenges",
-                label: "What do you find challenging in your profession?",
-                tip: "",
-                value: (schoolLeadersInformation.challenges) ? schoolLeadersInformation.challenges : "",
-                visible: true,
-                editable: true,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            },
-            {
-                field: "schoolName",
-                label: "School Name",
-                tip: "",
-                value: (schoolLeadersInformation.schoolName) ? schoolLeadersInformation.schoolName : "",
-                visible: false,
-                editable: false,
-                input: "text",
-                validation: {
-                    required: true
-                }
-            }
-        ]
-
-        return result;
     }
 
     update(req) {
