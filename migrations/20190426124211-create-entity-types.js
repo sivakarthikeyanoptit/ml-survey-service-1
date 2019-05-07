@@ -12,7 +12,544 @@ module.exports = {
       createdBy: "SYSTEM",
       updatedBy: "SYSTEM",
       isDeleted: false,
-      profileForm : [],
+      profileForm : [
+        {
+            "field": "presenceOfSignMarkingSchoolEntrance",
+            "label": "Presence Of Sign Marking School Entrance",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "schoolTiming",
+            "label": "School Timing",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "isPrePrimaryPresentOrNot",
+            "label": "Is Pre Primary Present Or Not?",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalSections",
+            "label": "Total Sections",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsInPrePrimary",
+            "label": "Total Students In Pre Primary",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsInPrimary",
+            "label": "Total Student In Primary",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsInMiddleAndSecondarySchool",
+            "label": "Total Students In Middle & Secondary School",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "averageStudentsPerSection",
+            "label": "Average Students Per Section",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade1",
+            "label": "Total Students In Grade 1",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade2",
+            "label": "Total Students In Grade 2",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade3",
+            "label": "Total Students In Grade 3",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade4",
+            "label": "Total Students In Grade 4",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade5",
+            "label": "Total Students In Grade 5",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade6",
+            "label": "Total Students In Grade 6",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade7",
+            "label": "Total Students In Grade 7",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade8",
+            "label": "Total Students In Grade 8",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade9",
+            "label": "Total Students In Grade 9",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade10",
+            "label": "Total Students In Grade 10",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade11",
+            "label": "Total Students In Grade 11",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudentsGrade12",
+            "label": "Total Students In Grade 12",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalNoOfTeachers",
+            "label": "Total No Of Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalNoOfPrincipal",
+            "label": "Total No Of Principal",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalNoOfHMsOrCoordinators",
+            "label": "Total No Of HMs or Coordinators",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "presenceOfSchoolBoardOrManagement",
+            "label": "Presence Of School Board Or Management",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "briefHistoryOfTheSchool",
+            "label": "Brief History Of The School",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "descriptionOfCommunityAroundSchool",
+            "label": "Description Of Community Around School",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "studentBackground",
+            "label": "Student Background",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "stateOfStudentDropout",
+            "label": "State of Student Dropout",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "issuesWithTeachersLeavingSchool",
+            "label": "Issues with Teachers Leaving School",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "teacherAttendanceInTheSchool",
+            "label": "Teacher Attendance In The School",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "adminOrHelpingStaff",
+            "label": "Admin Or Helping Staff",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "externalId",
+            "label": "External Id",
+            "value": "",
+            "visible": "",
+            "editable": "",
+            "input": "text"
+        },
+        {
+            "field": "addressLine1",
+            "label": "Address Line 1",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "addressLine2",
+            "label": "Address Line 2",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "city",
+            "label": "City",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "gpsLocation",
+            "label": "Gps Location",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "name",
+            "label": "Name",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "phone",
+            "label": "Phone",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "principalName",
+            "label": "Principal Name",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "pincode",
+            "label": "Pincode",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "administration",
+            "label": "Administration",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "gender",
+            "label": "Gender",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "shift",
+            "label": "Shift",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalStudents",
+            "label": "Total Students",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalGirls",
+            "label": "Total Girls",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalBoys",
+            "label": "Total Boys",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "lowestGrade",
+            "label": "Lowest Grade",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "highestGrade",
+            "label": "Highest Grade",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalEnglishTeachers",
+            "label": "Total English Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalHindiTeachers",
+            "label": "Total Hindi Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalMathsTeachers",
+            "label": "Total Maths Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalScienceTeachers",
+            "label": "Total Science Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalSocialTeachers",
+            "label": "Total Social Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalSocialScienceTeachers",
+            "label": "Total Social Science Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalComputerTeachers",
+            "label": "Total Computer Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "mediumOfInstruction",
+            "label": "Medium Of Instruction",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalPhysicsTeachers",
+            "label": "Total Physics Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalChemistryTeachers",
+            "label": "Total Chemistry Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalBiologyTeachers",
+            "label": "Total Biology Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalEconomicsTeachers",
+            "label": "Total Economics Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalPoliticalScienceTeachers",
+            "label": "Total Political Science Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalAccountsTeachers",
+            "label": "Total Accounts Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalBusinessStudiesTeachers",
+            "label": "Total Business Studies Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalHistoryTeachers",
+            "label": "Total History Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "totalGeographyTeachers",
+            "label": "Total Geography Teachers",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "streamOffered",
+            "label": "Stream Offered",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        },
+        {
+            "field": "emailId",
+            "label": "Email Id",
+            "value": "",
+            "visible":"",
+            "editable":"",
+            "input": "text"
+        }
+      ],
       profileFields : [
         "externalId",
         "addressLine1",

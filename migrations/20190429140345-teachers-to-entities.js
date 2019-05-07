@@ -43,9 +43,11 @@ module.exports = {
           "programId",
           "schoolId"
         ]),
-        updatedBy: "INITIALIZE",
-        createdBy: "INITIALIZE",
-        createdAt: new Date()
+        updatedBy: (teachers[teachersCounter].updatedBy) ? teachers[teachersCounter].updatedBy : "INITIALIZE",
+        createdBy: (teachers[teachersCounter].createdBy) ? teachers[teachersCounter].createdBy :"INITIALIZE",
+        createdAt: (teachers[teachersCounter].createdAt) ? teachers[teachersCounter].createdAt : new Date,
+        updatedAt: (teachers[teachersCounter].updatedAt) ? teachers[teachersCounter].updatedAt : new Date,
+        isDeleted: false
       })
     }
 
