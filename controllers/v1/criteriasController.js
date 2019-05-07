@@ -1234,10 +1234,15 @@ module.exports = class Criterias extends Abstract {
           let evidenceMethod = parsedQuestion["Evidence collection method"]
           let questionSection = evaluationFramework.sections[parsedQuestion.Section]
 
-          if(parsedQuestion["Parent"] !== "Yes"){
+          if(parsedQuestion["Parent"] !== "YES"){
             allValues.visibleIf = ""
           }else{
-            allValues.visibleIf.push(parsedQuestion["operator"],parsedQuestion.value,questionCollection[parsedQuestion["Parent id"]]._id)
+            let operator = parsedQuestion["operator"]="EQUALS"?parsedQuestion["operator"] = "===":parsedQuestion["operator"]
+            allValues.visibleIf.push({
+              operator:operator,
+              value:parsedQuestion.value,
+              _id:questionCollection[parsedQuestion["Parent id"]]._id
+            })
           }
     
           allValues.question.push(
@@ -1256,6 +1261,7 @@ module.exports = class Criterias extends Abstract {
             }
             if(parsedQuestion["Response Type"] == "date"){
               allValues["dateFormat"] = parsedQuestion.dateFormat
+              allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture)
               allValues["validation"]["max"] = parsedQuestion.max
               allValues["validation"]["min"] = parsedQuestion.min?parsedQuestion.min:parsedQuestion.min=""
             }
@@ -1289,7 +1295,7 @@ module.exports = class Criterias extends Abstract {
           }
 
     
-          allValues["showRemarks"] = Boolean(parsedQuestion["Show Remarks"])
+          allValues["showRemarks"] = Boolean(gen.utils.lowerCase(parsedQuestion["Show Remarks"]))
           allValues["tip"] = parsedQuestion["Tip"]
 
           allValues["questionGroup"] = new Array
