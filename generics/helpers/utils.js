@@ -19,6 +19,10 @@ function camelCaseToTitleCase(in_camelCaseString) {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
+function upperCaseToTitleCase(in_upperCaseString){
+  return _.capitalize(upperCaseToTitleCase)
+}
+
 function checkIfStringIsUrl(str) {
   var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
@@ -133,5 +137,6 @@ module.exports = {
   mapUserRole: mapUserRole,
   valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
-  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
+  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage,
+  upperCaseToTitleCase:upperCaseToTitleCase
 };

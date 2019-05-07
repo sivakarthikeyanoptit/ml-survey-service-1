@@ -509,15 +509,7 @@ module.exports = class Criterias extends Abstract {
         let questionIds = new Array
         
         let evaluationFrameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] },{"evidenceMethods":1,"sections":1}).lean();
-        // let evidenceCollectionMethodObject = evaluationFrameWorkDocument.evidenceMethods
-
-        // let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameWorkDocument.themes);
-        // let criteriasArray = new Array;
-
-        // criteriasIdArray.forEach(eachCriteriaIdArray=>{
-        //   criteriasArray.push(eachCriteriaIdArray._id.toString())
-        // })
-
+     
         questionData.forEach(eachQuestionData=>{
 
           if(!criteriaIds.includes(eachQuestionData["Criteria ID"])){
@@ -544,9 +536,7 @@ module.exports = class Criterias extends Abstract {
         }
 
         criteriaDocument.forEach(eachCriteriaDocument=>{
-          // if(criteriasArray.includes(eachCriteriaDocument._id.toString())){
             criteriaObject[eachCriteriaDocument.externalId]= eachCriteriaDocument
-          // }
         })
 
         let questionsFromDatabase = await database.models.questions.find({
@@ -579,34 +569,27 @@ module.exports = class Criterias extends Abstract {
 
           if ((parsedQuestion["Parent"] == "Yes" && !questionCollection[parsedQuestion["Parent id"]]) || (parsedQuestion["Instance Parent"] != "NA" && !questionCollection[parsedQuestion["Instance Parent"]])) {
             pendingItems.push(parsedQuestion)
-            // throw "Parent question with external ID " + parsedQuestion["parent id"] + " not found"
+          } else {
+
+            let criteriaToBeSent = {
+              [eachQuestion["Criteria ID"]]:criteriaObject[eachQuestion["Criteria ID"]]
+            }
+
+            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionCollection,evaluationFrameWorkDocument,criteriaToBeSent)
+            
+            if(resultFromCreateQuestions.result){
+              questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
+            }
+            input.push(resultFromCreateQuestions.total[0])
           }
-  
-          // if (parsedQuestion["Instance Parent"] != "" && !questionCollection[parsedQuestion["Instance Parent"]]) {
-          //   pendingItems.push(parsedQuestion)
-          //   // throw "Instance Parent question with external ID " + parsedQuestion["Instance Parent"] + " not found"
-          // }
-         else {
-
-         let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionCollection,evaluationFrameWorkDocument,criteriaObject)
-         
-         if(resultFromCreateQuestions.result){
-          questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
-         }
-         input.push(resultFromCreateQuestions.total[0])
-         }
-
         }))
 
         if(pendingItems){
           await Promise.all(pendingItems.map(async eachPendingItem=>{
+            
             let csvQuestionData = await this.createQuestions(eachPendingItem,questionCollection,evaluationFrameWorkDocument,criteriaObject)
-           
             input.push(csvQuestionData.total[0])
-            // csvQuestionData.total.forEach(eachTotalCsvValue=>{
-            //   input.push(eachTotalCsvValue)
-            // })
-
+            
           }))
         }
         
@@ -1234,188 +1217,190 @@ module.exports = class Criterias extends Abstract {
     let csvArray = new Array
 
     return new Promise(async(resolve,reject)=>{
-
-      let resultQuestion
-
-      let evidenceCollectionMethodObject = evaluationFramework.evidenceMethods
-
-      let csvResult = {}
-
-      if (questionCollection[parsedQuestion["Question ID"]]) {
-        csvResult["internal id"] = "Question already exists"
-      }else{
-    
-        let allValues = {}
-
-        allValues["visibleIf"]= new Array
-        allValues["question"] = new Array
-
-        let evidenceMethod = parsedQuestion["Evidence collection method"]
-        let questionSection = evaluationFramework.sections[parsedQuestion.Section]
-
-        if(parsedQuestion["Parent"] !== "Yes"){
-          allValues.visibleIf = ""
-        }else{
-          allValues.visibleIf.push(parsedQuestion["operator"],parsedQuestion.value,questionCollection[parsedQuestion["Parent id"]]._id)
-        }
-    
-        allValues.question.push(
-          parsedQuestion["Question in English"],
-          parsedQuestion["Question in Hindi"])
-
-        allValues["externalId"] = parsedQuestion["Question ID"]
-
-        if(parsedQuestion["Response Type"] !== ""){
-          allValues["responseType"] = parsedQuestion["Response Type"]
-          allValues["validation"] = {}
-          allValues["validation"]["required"] = parsedQuestion["Validation"]
-
-          if(parsedQuestion["Response Type"] == "matrix"){
-            allValues["instanceIdentifier"] = parsedQuestion["Instance Identifier"]
-          }
-          if(parsedQuestion["Response Type"] == "date"){
-            allValues["dateFormat"] = parsedQuestion.dateFormat
-            allValues["validation"]["max"] = parsedQuestion.max
-            allValues["validation"]["min"] = parsedQuestion.min?parsedQuestion.min:parsedQuestion.min=""
-          }
-
-          if(parsedQuestion["Response Type"] == "number"){
-             allValues["validation"]["IsNumber"] = parsedQuestion["IsNumber"]
-             allValues["validation"]["regex"] = parsedQuestion["regex"]
-          }
-
-          if(parsedQuestion["Response Type"] == "slider"){
-            allValues["validation"]["regex"] = parsedQuestion["regex"]
-            allValues["validation"]["max"] = parsedQuestion.max
-            allValues["validation"]["min"] = parsedQuestion.min?parsedQuestion.min:parsedQuestion.min=""
-          }
-
-        }
-
-        allValues["fileName"] = []
-        allValues["file"] = {}
-
-        if(parsedQuestion["File Upload"] != "NA"){
         
-          allValues.file["required"] = parsedQuestion["File Required"]
-          allValues.file["type"] = new Array
-          allValues.file.type.push(parsedQuestion["Type"])
-          allValues.file["minCount"] = parsedQuestion["Min count"]
-          allValues.file["maxCount"] = parsedQuestion["Max count"]
-          allValues.file["caption"] = parsedQuestion["Caption"]
-        }
-
-    
-        allValues["showRemarks"] = Boolean(parsedQuestion["Show Remarks"])
-        allValues["tip"] = parsedQuestion["Tip"]
-
-        allValues["questionGroup"] = new Array
-        allValues.questionGroup.push(parsedQuestion["School Applicability"])
-
-        allValues["modeOfCollection"] = parsedQuestion["Mode of Collection"]
-
-        allValues["options"] = new Array
-        allValues["isCompleted"] = false
-        allValues["value"] = ""
-
-        for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
-          let responseValue = "R"+pointerToResponseCount
-
-          if(parsedQuestion[responseValue] && parsedQuestion[responseValue] != ""){
-            allValues.options.push({
-              value:responseValue,
-              label:parsedQuestion[responseValue]
-            })
-          }
-        }
-    
-        let createQuestion = await database.models.questions.create(
-          allValues
-       )
-
-        if(!createQuestion._id){
-          csvResult["internal id"] = "Not Created"
+        let resultQuestion
+        let evidenceCollectionMethodObject = evaluationFramework.evidenceMethods
+        let csvResult = {}
+        
+        if (questionCollection[parsedQuestion["Question ID"]]) {
+          csvResult["internal id"] = "Question already exists"
         } else{
-          resultQuestion = createQuestion
-          csvResult["internal id"] = createQuestion._id
-
-          if (parsedQuestion["Parent id"] != "") {
-
-          let queryParentQuestionObject = {
-            _id: questionCollection[parsedQuestion["Parent id"]]._id
-          }
-
-          let updateParentQuestionObject = {}
-
-          updateParentQuestionObject.$push = {
-            ["children"]: createQuestion._id
-          }
-
-          await database.models.questions.findOneAndUpdate(
-            queryParentQuestionObject,
-            updateParentQuestionObject
-          )
-          }
-
-          if (parsedQuestion["Instance Parent"] != "NA") {
-
-          let queryInstanceParentQuestionObject = {
-            _id: questionCollection[parsedQuestion["Instance Parent"]]._id
-          }
-
-          let updateInstanceParentQuestionObject = {}
-
-          updateInstanceParentQuestionObject.$push = {
-            ["instanceQuestions"]: createQuestion._id
-          }
-          await database.models.questions.findOneAndUpdate(
-            queryInstanceParentQuestionObject,
-            updateInstanceParentQuestionObject
-          )
-          }
-
-        let criteriaEvidences = criteriaObject[parsedQuestion["Criteria ID"]].evidences
-        let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
-
-        if (indexOfEvidenceMethodInCriteria < 0) {
-          evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
-          criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
-          indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
-        }
-
-        let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
     
-        if (indexOfSectionInEvidenceMethod < 0) {
-        criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
-        indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+          let allValues = {}
+
+          allValues["visibleIf"]= new Array
+          allValues["question"] = new Array
+
+          let evidenceMethod = parsedQuestion["Evidence collection method"]
+          let questionSection = evaluationFramework.sections[parsedQuestion.Section]
+
+          if(parsedQuestion["Parent"] !== "Yes"){
+            allValues.visibleIf = ""
+          }else{
+            allValues.visibleIf.push(parsedQuestion["operator"],parsedQuestion.value,questionCollection[parsedQuestion["Parent id"]]._id)
+          }
+    
+          allValues.question.push(
+            parsedQuestion["Question in English"],
+            parsedQuestion["Question in Hindi"])
+
+          allValues["externalId"] = parsedQuestion["Question ID"]
+
+          if(parsedQuestion["Response Type"] !== ""){
+            allValues["responseType"] = parsedQuestion["Response Type"]
+            allValues["validation"] = {}
+            allValues["validation"]["required"] = gen.utils.upperCaseToTitleCase(parsedQuestion["Validation"])
+
+            if(parsedQuestion["Response Type"] == "matrix"){
+              allValues["instanceIdentifier"] = parsedQuestion["Instance Identifier"]
+            }
+            if(parsedQuestion["Response Type"] == "date"){
+              allValues["dateFormat"] = parsedQuestion.dateFormat
+              allValues["validation"]["max"] = parsedQuestion.max
+              allValues["validation"]["min"] = parsedQuestion.min?parsedQuestion.min:parsedQuestion.min=""
+            }
+
+            if(parsedQuestion["Response Type"] == "number"){
+
+              allValues["validation"]["IsNumber"] = gen.utils.upperCaseToTitleCase(parsedQuestion["IsNumber"])
+              let regexValue = parsedQuestion["regex"]-1
+              allValues["validation"]["regex"] = `^[0-${regexValue}s]*$`
+            }
+
+            if(parsedQuestion["Response Type"] == "slider"){
+              let regexValue = parsedQuestion["regex"]-1
+              allValues["validation"]["regex"] = `^[0-${regexValue}s]*$`
+              allValues["validation"]["max"] = parsedQuestion.max
+              allValues["validation"]["min"] = parsedQuestion.min?parsedQuestion.min:parsedQuestion.min=""
+            }
+          }
+
+          allValues["fileName"] = []
+          allValues["file"] = {}
+
+          if(parsedQuestion["File Upload"] != "NA"){
+        
+            allValues.file["required"] = gen.utils.upperCaseToTitleCase(parsedQuestion["File Required"])
+            allValues.file["type"] = new Array
+            allValues.file.type.push(parsedQuestion["Type"])
+            allValues.file["minCount"] = parsedQuestion["Min count"]
+            allValues.file["maxCount"] = parsedQuestion["Max count"]
+            allValues.file["caption"] = parsedQuestion["Caption"]
+          }
+
+    
+          allValues["showRemarks"] = Boolean(parsedQuestion["Show Remarks"])
+          allValues["tip"] = parsedQuestion["Tip"]
+
+          allValues["questionGroup"] = new Array
+          allValues.questionGroup.push(parsedQuestion["School Applicability"])
+
+          allValues["modeOfCollection"] = parsedQuestion["Mode of Collection"]
+
+          allValues["options"] = new Array
+          allValues["isCompleted"] = false
+          allValues["value"] = ""
+
+          for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
+            let responseValue = "R"+pointerToResponseCount
+
+            if(parsedQuestion[responseValue] && parsedQuestion[responseValue] != ""){
+              allValues.options.push({
+                value:responseValue,
+                label:parsedQuestion[responseValue]
+              })
+            }
+          }
+    
+          let createQuestion = await database.models.questions.create(
+            allValues
+          )
+
+          if(!createQuestion._id){
+            csvResult["internal id"] = "Not Created"
+          } else{
+            resultQuestion = createQuestion
+            csvResult["internal id"] = createQuestion._id
+
+            if (parsedQuestion["Parent id"] != "") {
+
+            let queryParentQuestionObject = {
+              _id: questionCollection[parsedQuestion["Parent id"]]._id
+            }
+
+            let updateParentQuestionObject = {}
+
+            updateParentQuestionObject.$push = {
+              ["children"]: createQuestion._id
+            }
+
+            await database.models.questions.findOneAndUpdate(
+              queryParentQuestionObject,
+              updateParentQuestionObject
+            )
+            }
+
+            if (parsedQuestion["Instance Parent"] != "NA") {
+
+            let queryInstanceParentQuestionObject = {
+              _id: questionCollection[parsedQuestion["Instance Parent"]]._id
+            }
+
+            let updateInstanceParentQuestionObject = {}
+
+            updateInstanceParentQuestionObject.$push = {
+              ["instanceQuestions"]: createQuestion._id
+            }
+
+            await database.models.questions.findOneAndUpdate(
+              queryInstanceParentQuestionObject,
+              updateInstanceParentQuestionObject
+            )
+            }
+
+          let criteriaEvidences = criteriaObject[parsedQuestion["Criteria ID"]].evidences
+          let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
+
+          if (indexOfEvidenceMethodInCriteria < 0) {
+            evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
+            criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
+            indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+          }
+
+          let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+    
+          if (indexOfSectionInEvidenceMethod < 0) {
+          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
+          indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+          }
+
+          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+
+          let queryCriteriaObject = {
+          externalId: parsedQuestion["Criteria ID"]
+          }
+
+          let updateCriteriaObject = {}
+          updateCriteriaObject.$set = {
+            ["evidences"]: criteriaEvidences
+          }
+
+          await database.models.criterias.findOneAndUpdate(
+            queryCriteriaObject,
+            updateCriteriaObject
+          )
+          }
         }
 
-        criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+      csvResult["Question External Id"] = parsedQuestion["Question ID"]
+      csvResult["Question Name"] = parsedQuestion["Question in English"]
+      csvArray.push(csvResult)
 
-        let queryCriteriaObject = {
-        externalId: parsedQuestion["Criteria ID"]
-        }
-
-        let updateCriteriaObject = {}
-        updateCriteriaObject.$set = {
-          ["evidences"]: criteriaEvidences
-        }
-
-        await database.models.criterias.findOneAndUpdate(
-          queryCriteriaObject,
-          updateCriteriaObject
-        )
-        }
-      }
-
-    csvResult["Question External Id"] = parsedQuestion["Question ID"]
-    csvResult["Question Name"] = parsedQuestion["Question in English"]
-    csvArray.push(csvResult)
-
-    return resolve({
-      total:csvArray,
-      result:resultQuestion
-    })
+      return resolve({
+        total:csvArray,
+        result:resultQuestion
+      })
+      
     })
   }
 
