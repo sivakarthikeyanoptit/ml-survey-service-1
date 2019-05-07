@@ -5,7 +5,8 @@
 export const environment = {
   production: false,
   baseUrl: "assessment/web2/",
-  apiHost: "http://localhost:4201",
+  // apiHost: "http://localhost:4201",
+  apiHost: "https://staging.shikshalokam.org",
   apiBaseEndpoint: "/assessment/"
 };
 

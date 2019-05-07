@@ -66,7 +66,7 @@ export class LocalStorageService {
     //     this.items = items;
     //     items = null;
     // }
-    // console.log("lc",JSON.stringify(this._items));
+    // //console.log("lc",JSON.stringify(this._items));
     // localStorage.setItem(LocalStorageService.id, JSON.stringify(this._items));
     if (options.name && options.value) {
       localStorage.setItem(options.name, options.value);
