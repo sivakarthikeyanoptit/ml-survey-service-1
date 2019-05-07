@@ -75,6 +75,15 @@ module.exports = {
 
       updateThemes(eachFrameworkDocument.themes)
 
+      eachFrameworkDocument.noOfRatingLevels = 4
+      eachFrameworkDocument.isRubricDriven = true
+
+      eachFrameworkDocument.isDeleted = false
+      eachFrameworkDocument.updatedBy = (eachFrameworkDocument.updatedBy) ? eachFrameworkDocument.updatedBy : "INITIALIZE"
+      eachFrameworkDocument.createdBy = (eachFrameworkDocument.updatedBy) ? eachFrameworkDocument.updatedBy : "INITIALIZE"
+      eachFrameworkDocument.createdAt = (eachFrameworkDocument.createdAt) ? eachFrameworkDocument.createdAt : new Date
+      eachFrameworkDocument.updatedAt = (eachFrameworkDocument.updatedAt) ? eachFrameworkDocument.updatedAt : new Date
+
       let frameworkId = await db.collection('frameworks').insertOne(_.omit(eachFrameworkDocument,["_id"]))
       if(frameworkId.insertedId) {
         await db.collection('solutions').findOneAndUpdate({

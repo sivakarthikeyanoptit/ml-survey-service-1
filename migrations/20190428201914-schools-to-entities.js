@@ -28,9 +28,11 @@ module.exports = {
           "__v",
           "isDeleted"
         ]),
-        updatedBy: "INITIALIZE",
-        createdBy: "INITIALIZE",
-        createdAt: new Date()
+        updatedBy: (schools[schoolCounter].updatedBy) ? schools[schoolCounter].updatedBy : "INITIALIZE",
+        createdBy: (schools[schoolCounter].createdBy) ? schools[schoolCounter].createdBy :"INITIALIZE",
+        createdAt: (schools[schoolCounter].createdAt) ? schools[schoolCounter].createdAt : new Date,
+        updatedAt: (schools[schoolCounter].updatedAt) ? schools[schoolCounter].updatedAt : new Date,
+        isDeleted: false
       })
     }
 
