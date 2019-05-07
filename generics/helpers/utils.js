@@ -19,8 +19,8 @@ function camelCaseToTitleCase(in_camelCaseString) {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
-function upperCaseToTitleCase(in_upperCaseString){
-  return _.capitalize(upperCaseToTitleCase)
+function lowerCase(str){
+  return str.toLowerCase()
 }
 
 function checkIfStringIsUrl(str) {
@@ -130,6 +130,7 @@ function valueParser(dataToBeParsed){
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
+  lowerCase:lowerCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
@@ -137,6 +138,5 @@ module.exports = {
   mapUserRole: mapUserRole,
   valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
-  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage,
-  upperCaseToTitleCase:upperCaseToTitleCase
+  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
 };

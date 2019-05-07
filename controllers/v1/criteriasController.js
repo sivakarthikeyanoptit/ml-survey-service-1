@@ -1249,7 +1249,7 @@ module.exports = class Criterias extends Abstract {
           if(parsedQuestion["Response Type"] !== ""){
             allValues["responseType"] = parsedQuestion["Response Type"]
             allValues["validation"] = {}
-            allValues["validation"]["required"] = gen.utils.upperCaseToTitleCase(parsedQuestion["Validation"])
+            allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["Validation"])
 
             if(parsedQuestion["Response Type"] == "matrix"){
               allValues["instanceIdentifier"] = parsedQuestion["Instance Identifier"]
@@ -1262,7 +1262,7 @@ module.exports = class Criterias extends Abstract {
 
             if(parsedQuestion["Response Type"] == "number"){
 
-              allValues["validation"]["IsNumber"] = gen.utils.upperCaseToTitleCase(parsedQuestion["IsNumber"])
+              allValues["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["IsNumber"])
               let regexValue = parsedQuestion["regex"]-1
               allValues["validation"]["regex"] = `^[0-${regexValue}s]*$`
             }
@@ -1280,7 +1280,7 @@ module.exports = class Criterias extends Abstract {
 
           if(parsedQuestion["File Upload"] != "NA"){
         
-            allValues.file["required"] = gen.utils.upperCaseToTitleCase(parsedQuestion["File Required"])
+            allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["File Required"])
             allValues.file["type"] = new Array
             allValues.file.type.push(parsedQuestion["Type"])
             allValues.file["minCount"] = parsedQuestion["Min count"]
