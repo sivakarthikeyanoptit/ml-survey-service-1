@@ -281,8 +281,8 @@ module.exports = class ProgramOperations {
                 }
 
                 let submissionQueryObject = {};
-                let schoolObjectIds = schoolObjects.map(school => school.id)
-                submissionQueryObject.schoolId = { $in: schoolObjectIds };
+                let entityObjectIds = schoolObjects.map(school => school.id)
+                submissionQueryObject.schoolId = { $in: entityObjectIds };
                 submissionQueryObject.programExternalId = programExternalId;
 
                 if (isCSV && isCSV == "true") {
@@ -771,23 +771,23 @@ module.exports = class ProgramOperations {
 
                 let schoolIds = await this.entityAssessorsTrackers.filterByDate(req.query, userIds, programDocument._id);
 
-                let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
+                let entityObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
 
-                let schoolQueryObject = {};
-                schoolQueryObject._id = { $in: schoolObjectIds };
+                let entitisQueryObject = {};
+                entitisQueryObject._id = { $in: entityObjectIds };
 
-                _.merge(schoolQueryObject, this.getQueryObject(req.query))
-                let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
-                let filteredSchoolDocument;
+                _.merge(entitisQueryObject, this.getQueryObject(req.query))
+                let totalCount = database.models.entities.countDocuments(entitisQueryObject).exec();
+                let filteredEntityDocument;
 
                 let limitValue = (pagination == false) ? "" : req.pageSize;
                 let skipValue = (pagination == false) ? "" : (req.pageSize * (req.pageNo - 1));
 
-                filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(limitValue).skip(skipValue).lean().exec();
+                filteredEntityDocument = database.models.entities.find(entitisQueryObject, { _id: 1, "metaInformation.name": 1, "metaInformation.externalId": 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
-                [filteredSchoolDocument, totalCount] = await Promise.all([filteredSchoolDocument, totalCount])
+                [filteredEntityDocument, totalCount] = await Promise.all([filteredEntityDocument, totalCount])
 
-                let schoolDocumentFilteredObject = filteredSchoolDocument.map(school => {
+                let schoolDocumentFilteredObject = filteredEntityDocument.map(school => {
                     return {
                         id: school._id,
                         name: school.name,
