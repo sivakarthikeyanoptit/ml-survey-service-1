@@ -1,7 +1,6 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
-
 module.exports = class Reports {
   /**
    * @apiDefine errorBody
@@ -1883,7 +1882,6 @@ async generateSubmissionReportsBySchoolId(req) {
 
 
             await Promise.all(submissionDocuments.map(async (submission) => {
-
               let assessors = {}
 
               submission.assessors.forEach(assessor => {
@@ -1891,8 +1889,9 @@ async generateSubmissionReportsBySchoolId(req) {
                   externalId: assessor.externalId
                 };
               });
-
+              
               Object.values(submission.evidences).forEach(singleEvidence => {
+
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions && singleEvidence.submissions.forEach(evidenceSubmission => {
 
@@ -1981,9 +1980,8 @@ async generateSubmissionReportsBySchoolId(req) {
                                   let instance = 0;
                                   instance < singleAnswer.value.length;
                                   instance++
-                                ) {
-
-                                  Object.values(singleAnswer.value[instance]).forEach(
+                                ) { 
+                                  singleAnswer.value[instance] != null && Object.values(singleAnswer.value[instance]).forEach(
                                     eachInstanceChildQuestion => {
                                       let eachInstanceChildRecord = {
                                         "School Name": submission.schoolInformation.name,
