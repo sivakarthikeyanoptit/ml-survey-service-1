@@ -4,7 +4,9 @@ module.exports = {
       name : String,
       regsitryDetails : Object,
       profileForm : Array,
-      profileFields : Array
+      profileFields : Array,
+      types: Array,
+      callResponseTypes: Array
     }
   };
   
