@@ -508,22 +508,30 @@ module.exports = class Criterias extends Abstract {
         let questionCollection = {}
         let questionIds = new Array
         
-        let evaluationFrameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] },{"evidenceMethods":1,"sections":1}).lean();
-     
+        let evaluationFrameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["Evaluation framework Id"] },{"evidenceMethods":1,"sections":1,"themes":1}).lean();
+        let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameWorkDocument.themes);
+        let criteriasArray = new Array;
+
+        criteriasIdArray.forEach(eachCriteriaIdArray=>{
+          criteriasArray.push(eachCriteriaIdArray._id.toString())
+        })
+
         questionData.forEach(eachQuestionData=>{
 
-          if(!criteriaIds.includes(eachQuestionData["Criteria ID"])){
-            criteriaIds.push(eachQuestionData["Criteria ID"])
+          let parsedQuestion = gen.utils.valueParser(eachQuestionData)
+
+          if(!criteriaIds.includes(parsedQuestion["Criteria ID"])){
+            criteriaIds.push(parsedQuestion["Criteria ID"])
           }
 
-          if(!questionIds.includes(eachQuestionData["Question ID"])) questionIds.push(eachQuestionData["Question ID"])
+          if(!questionIds.includes(parsedQuestion["Question ID"])) questionIds.push(parsedQuestion["Question ID"])
           
-          if (eachQuestionData["Parent"] !== "NO" && !questionIds.includes(eachQuestionData["Parent id"])) { 
-            questionIds.push(eachQuestionData["Parent id"]) 
+          if (parsedQuestion["Parent"] !== "NO" && !questionIds.includes(parsedQuestion["Parent id"])) { 
+            questionIds.push(parsedQuestion["Parent id"]) 
           }
 
-          if (eachQuestionData["Instance Parent"] !== "NA" && !questionIds.includes(eachQuestionData["Instance Parent"])) { 
-            questionIds.push(eachQuestionData["Instance Parent"]) 
+          if (parsedQuestion["Instance Parent"] !== "NA" && !questionIds.includes(parsedQuestion["Instance Parent"])) { 
+            questionIds.push(parsedQuestion["Instance Parent"]) 
           }
         })
        
@@ -536,7 +544,9 @@ module.exports = class Criterias extends Abstract {
         }
 
         criteriaDocument.forEach(eachCriteriaDocument=>{
+          if(criteriasArray.includes(eachCriteriaDocument._id.toString())){
             criteriaObject[eachCriteriaDocument.externalId]= eachCriteriaDocument
+          }
         })
 
         let questionsFromDatabase = await database.models.questions.find({
@@ -567,15 +577,10 @@ module.exports = class Criterias extends Abstract {
 
           let parsedQuestion = gen.utils.valueParser(eachQuestion)
 
-          if ((parsedQuestion["Parent"] == "Yes" && !questionCollection[parsedQuestion["Parent id"]]) || (parsedQuestion["Instance Parent"] != "NA" && !questionCollection[parsedQuestion["Instance Parent"]])) {
+          if ((parsedQuestion["Parent"] == "YES" && !questionCollection[parsedQuestion["Parent id"]]) || (parsedQuestion["Instance Parent"] != "NA" && !questionCollection[parsedQuestion["Instance Parent"]])) {
             pendingItems.push(parsedQuestion)
           } else {
-
-            let criteriaToBeSent = {
-              [eachQuestion["Criteria ID"]]:criteriaObject[eachQuestion["Criteria ID"]]
-            }
-
-            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionCollection,evaluationFrameWorkDocument,criteriaToBeSent)
+            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionCollection,evaluationFrameWorkDocument,criteriaObject)
             
             if(resultFromCreateQuestions.result){
               questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
