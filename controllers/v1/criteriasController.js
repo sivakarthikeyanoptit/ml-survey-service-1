@@ -518,7 +518,7 @@ module.exports = class Criterias extends Abstract {
 
           if(!questionIds.includes(eachQuestionData["Question ID"])) questionIds.push(eachQuestionData["Question ID"])
           
-          if (eachQuestionData["Parent"] !== "No" && !questionIds.includes(eachQuestionData["Parent id"])) { 
+          if (eachQuestionData["Parent"] !== "NO" && !questionIds.includes(eachQuestionData["Parent id"])) { 
             questionIds.push(eachQuestionData["Parent id"]) 
           }
 
@@ -1248,6 +1248,10 @@ module.exports = class Criterias extends Abstract {
           allValues.question.push(
             parsedQuestion["Question in English"],
             parsedQuestion["Question in Hindi"])
+
+          if(parsedQuestion["Rubric Level"]) {
+            allValues["rubricLevel"] = parsedQuestion["Rubric Level"]
+          }
 
           allValues["externalId"] = parsedQuestion["Question ID"]
 

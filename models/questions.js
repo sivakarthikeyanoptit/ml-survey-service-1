@@ -36,6 +36,7 @@ module.exports = {
     instanceQuestions: Array,
     isAGeneralQuestion: Boolean,
     dateFormat:String,
-    autoCapture:String
+    autoCapture:String,
+    rubricLevel: String
   }
 };
