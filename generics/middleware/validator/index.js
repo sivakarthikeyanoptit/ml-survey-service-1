@@ -1,6 +1,9 @@
+let fs = require("fs");
 module.exports = (req, res, next) => {
 
-    if(req.params.controller == "entities" ) require("../../../module/entitiesModule/entitiesValidator")(req);
+    let validatorPath = ROOT_PATH + `/module/${req.params.controller}/validator.js`
+
+    if (fs.existsSync(validatorPath)) require(validatorPath)(req);
 
     next();
 
