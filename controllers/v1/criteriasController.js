@@ -580,7 +580,31 @@ module.exports = class Criterias extends Abstract {
           if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] != "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
             pendingItems.push(parsedQuestion)
           } else {
-            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionCollection,evaluationFrameWorkDocument,criteriaObject)
+
+            let question = {}
+            let criteria = {}
+
+             if(questionCollection[parsedQuestion["externalId"]]) questionCollection[parsedQuestion["externalId"]]
+
+            if(parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[parsedQuestion["instanceParentQuestionId"]]){
+              question[parsedQuestion["instanceParentQuestionId"]] =  questionCollection[parsedQuestion["instanceParentQuestionId"]]
+            }
+            
+            if(parsedQuestion["hasAParentQuestion"] == "YES" && questionCollection[parsedQuestion["parentQuestionId"]]){
+              question[parsedQuestion["parentQuestionId"]] =  questionCollection[parsedQuestion["parentQuestionId"]]
+            }
+
+            let ecm = {}
+            ecm[parsedQuestion["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
+
+            criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
+          
+            let criteriaToBeSent = await criteria
+            let questionToBeSent = await question
+            let evaluationFrameworkMethod = await ecm
+            let section = await evaluationFrameWorkDocument.sections[parsedQuestion.section]
+
+            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionToBeSent,criteriaToBeSent,evaluationFrameworkMethod,section)
             
             if(resultFromCreateQuestions.result){
               questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
@@ -592,7 +616,30 @@ module.exports = class Criterias extends Abstract {
         if(pendingItems){
           await Promise.all(pendingItems.map(async eachPendingItem=>{
             
-            let csvQuestionData = await this.createQuestions(eachPendingItem,questionCollection,evaluationFrameWorkDocument,criteriaObject)
+
+            let question = {}
+            let criteria = {}
+
+            criteria[eachPendingItem.criteriaExternalId] = criteriaObject[eachPendingItem.criteriaExternalId]
+            if(questionCollection[eachPendingItem["externalId"]]) questionCollection[eachPendingItem["externalId"]]
+
+            if(eachPendingItem["instanceParentQuestionId"] !== "NA" && questionCollection[eachPendingItem["instanceParentQuestionId"]]){
+              question[eachPendingItem["instanceParentQuestionId"]] =  questionCollection[eachPendingItem["instanceParentQuestionId"]]
+            }
+            
+            if(eachPendingItem["hasAParentQuestion"] == "YES" && questionCollection[eachPendingItem["parentQuestionId"]]){
+              question[eachPendingItem["parentQuestionId"]] =  questionCollection[eachPendingItem["parentQuestionId"]]
+            }
+
+            let ecm = {}
+            ecm[eachPendingItem["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[eachPendingItem["evidenceMethod"]]
+
+            let criteriaToBeSent = await criteria
+            let questionToBeSent = await question
+            let evaluationFrameworkMethod = await ecm
+            let section = await evaluationFrameWorkDocument.sections[eachPendingItem.section]
+
+            let csvQuestionData = await this.createQuestions(eachPendingItem,questionToBeSent,criteriaToBeSent,evaluationFrameworkMethod,section)
             input.push(csvQuestionData.total[0])
             
           }))
@@ -1217,7 +1264,7 @@ module.exports = class Criterias extends Abstract {
     })
   }
 
-  async createQuestions(parsedQuestion,questionCollection,evaluationFramework,criteriaObject){
+  async createQuestions(parsedQuestion,questionCollection,criteriaObject,evidenceCollectionMethodObject,questionSection){
 
     let csvArray = new Array
 
@@ -1233,10 +1280,10 @@ module.exports = class Criterias extends Abstract {
         }
         
         let resultQuestion
-        let evidenceCollectionMethodObject = evaluationFramework.evidenceMethods
+
         let csvResult = {}
         
-        if (questionCollection[parsedQuestion["externalId"]]) {
+        if (questionCollection && questionCollection[parsedQuestion["externalId"]]) {
           csvResult["internal id"] = "Question already exists"
         } else{
     
@@ -1250,12 +1297,13 @@ module.exports = class Criterias extends Abstract {
           allValues["question"] = new Array
 
           let evidenceMethod = parsedQuestion["evidenceMethod"]
-          let questionSection = evaluationFramework.sections[parsedQuestion.section]
 
           if(parsedQuestion["hasAParentQuestion"] !== "YES"){
             allValues.visibleIf = ""
           }else{
+
             let operator = parsedQuestion["operator"]="EQUALS"?parsedQuestion["operator"] = "===":parsedQuestion["operator"]
+            
             allValues.visibleIf.push({
               operator:operator,
               value:parsedQuestion.value,
@@ -1314,7 +1362,7 @@ module.exports = class Criterias extends Abstract {
           allValues["fileName"] = []
           allValues["file"] = {}
 
-          if(parsedQuestion["File Upload"] != "NA"){
+          if(parsedQuestion["file"] != "NA"){
         
             allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
             allValues.file["type"] = new Array
@@ -1326,10 +1374,9 @@ module.exports = class Criterias extends Abstract {
 
     
           allValues["showRemarks"] = Boolean(gen.utils.lowerCase(parsedQuestion["showRemarks"]))
-          allValues["tip"] = parsedQuestion["Tip"]
+          allValues["tip"] = parsedQuestion["tip"]
 
-          allValues["questionGroup"] = new Array
-          allValues.questionGroup.push(parsedQuestion["questionGroup"])
+          allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
 
           allValues["modeOfCollection"] = parsedQuestion["modeOfCollection"]
           allValues["accessibility"] = parsedQuestion["accessibility"]
