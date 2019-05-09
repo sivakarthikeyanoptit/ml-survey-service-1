@@ -6,9 +6,9 @@ export const AppConfigs = {
   keyCloak: {
     getAccessToken: "/auth/realms/sunbird/protocol/openid-connect/token",
     redirection_url:
-      location.origin + "/" + environment.baseUrl + "oauth2callback",
+      location.origin + "/" + environment.keycloakBaseUrl + "oauth2callback",
     logout_redirect_url:
-      location.origin + "/" + environment.baseUrl + "oauthLogoutcallback"
+      location.origin + "/" + environment.keycloakBaseUrl + "oauthLogoutcallback"
   },
   survey: { submission: "/submissions/make/" }
 };

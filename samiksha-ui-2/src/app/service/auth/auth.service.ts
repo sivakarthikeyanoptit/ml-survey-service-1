@@ -24,7 +24,7 @@ export class AuthService {
   private logout_redirect_url: string;
 
   constructor(public http: Http, private localStorage: LocalStorageService) {
-    this.base_url = AppConfigs.app_url;
+    this.base_url = environment.keycloakBaseUrl;
     this.redirect_url = AppConfigs.keyCloak.redirection_url;
     this.auth_url =
       this.base_url +
@@ -92,7 +92,7 @@ export class AuthService {
         name: "userTokens"
       })
     );
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
       // //console.log("Refres token function");
       const body = new HttpParams();
       body.set("grant_type", "refresh_token");

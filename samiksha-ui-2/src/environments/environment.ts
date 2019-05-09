@@ -7,6 +7,7 @@ export const environment = {
   baseUrl: "assessment/web2/",
   // apiHost: "http://localhost:4201",
   apiHost: "https://staging.shikshalokam.org",
+  keycloakBaseUrl:"https://dev.shikshalokam.org",
   apiBaseEndpoint: "/assessment/"
 };
 
