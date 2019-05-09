@@ -1278,9 +1278,6 @@ module.exports = class Criterias extends Abstract {
           "deleted" : false,
           "canBeNotApplicable" : "false"
         }
-
-        console.log(evidenceCollectionMethodObject)
-        console.log(questionSection)
         
         let resultQuestion
 
@@ -1379,10 +1376,7 @@ module.exports = class Criterias extends Abstract {
           allValues["showRemarks"] = Boolean(gen.utils.lowerCase(parsedQuestion["showRemarks"]))
           allValues["tip"] = parsedQuestion["tip"]
 
-          // allValues["questionGroup"] = new Array
-
           allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
-          // allValues.questionGroup.push()
 
           allValues["modeOfCollection"] = parsedQuestion["modeOfCollection"]
           allValues["accessibility"] = parsedQuestion["accessibility"]
