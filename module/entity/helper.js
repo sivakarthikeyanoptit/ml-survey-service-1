@@ -313,7 +313,7 @@ module.exports = class entitiesHelper {
 
     }
 
-    async upload(query,userDetails,files) {
+    async upload(query, userDetails, files) {
 
         try {
 
@@ -321,6 +321,39 @@ module.exports = class entitiesHelper {
                 files.entities.data.toString()
             );
             const entitiesUploadCount = entityCSVData.length;
+
+            let programDocument = await database.models.programs.find(
+                {
+                    externalId: { $in: entityCSVData.map(entity => entity.programId) }
+                },
+                {
+                    _id: 1,
+                    externalId:1
+                }
+            );
+
+            const programsData = programDocument.reduce(
+                (ac, program) => ({
+                    ...ac, [program.externalId]: program._id
+                }), {})
+
+            let solutionsDocument = await database.models.solutions.find(
+                {
+                    externalId: { $in: entityCSVData.map(entity => entity.solutionId) }
+                },
+                {
+                    externalId: 1,
+                    subType: 1
+                }
+            );
+
+            const solutionsData = solutionsDocument.reduce(
+                (ac, solution) => ({
+                    ...ac, [solution.externalId]: {
+                        subType: solution.subType,
+                        _id: solution._id
+                    }
+                }), {})
 
             let entityType = await database.models.entityTypes.findOne({ name: query.type }, { _id: 1 })
 
@@ -358,7 +391,7 @@ module.exports = class entitiesHelper {
 
             await Promise.all(entityData.map(async (entity) => {
 
-                let entityDataToBeUpdated = await database.models.entity.findOne({ _id: ObjectId(entity.metaInformation.parentEntityId) });
+                let entityDataToBeUpdated = await database.models.entity.findOne({ "metaInformation.externalId": entity.metaInformation.parentEntityId });
 
                 if (!entityDataToBeUpdated.groups[query.type]) entityDataToBeUpdated.groups[query.type] = [];
 
@@ -372,7 +405,7 @@ module.exports = class entitiesHelper {
 
                     await database.models.entity.findOneAndUpdate(
                         {
-                            _id: ObjectId(entity.metaInformation.parentEntityId)
+                            "metaInformation.externalId": entity.metaInformation.parentEntityId
                         },
                         {
                             $set: {
@@ -386,7 +419,34 @@ module.exports = class entitiesHelper {
                             returnNewDocument: true
                         });
 
-                    console.log("updated parent entity.")
+                    if (solutionsData[entity.metaInformation.solutionId].subType == "individual") {
+
+                        let entityAssessorsDocument = {}
+                        entityAssessorsDocument.programId = programsData[entity.metaInformation.programId];
+                        entityAssessorsDocument.assessmentStatus = "pending";
+                        entityAssessorsDocument.parentId = "";
+                        entityAssessorsDocument["entities"] = [entity._id];
+                        entityAssessorsDocument.solutionId = solutionsData[entity.metaInformation.solutionId]["_id"];
+                        entityAssessorsDocument.role = entity.metaInformation.role;
+                        entityAssessorsDocument.userId = entity.metaInformation.userId;
+                        entityAssessorsDocument.externalId = entity.metaInformation.externalId;
+                        entityAssessorsDocument.name = entity.metaInformation.name;
+                        entityAssessorsDocument.email = entity.metaInformation.email;
+                        entityAssessorsDocument.createdBy = userDetails.id;
+                        entityAssessorsDocument.updatedBy = userDetails.id;
+                        await database.models.entityAssessors.findOneAndUpdate(
+                            { userId: entityAssessorsDocument.userId },
+                            entityAssessorsDocument,
+                            {
+                                upsert: true,
+                                new: true,
+                                setDefaultsOnInsert: true,
+                                returnNewDocument: true
+                            }
+                        );
+
+                    }
+
                 }
 
             }))
@@ -402,7 +462,7 @@ module.exports = class entitiesHelper {
         }
     }
 
-    async uploadForPortal(query,userDetails,files) {
+    async uploadForPortal(query, userDetails, files) {
         return new Promise(async (resolve, reject) => {
             try {
 
