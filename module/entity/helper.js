@@ -328,14 +328,11 @@ module.exports = class entitiesHelper {
                 },
                 {
                     _id: 1,
-                    externalId:1
+                    externalId: 1
                 }
             );
 
-            const programsData = programDocument.reduce(
-                (ac, program) => ({
-                    ...ac, [program.externalId]: program._id
-                }), {})
+            const programsData = programDocument.reduce((ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
 
             let solutionsDocument = await database.models.solutions.find(
                 {
@@ -347,13 +344,31 @@ module.exports = class entitiesHelper {
                 }
             );
 
-            const solutionsData = solutionsDocument.reduce(
-                (ac, solution) => ({
-                    ...ac, [solution.externalId]: {
-                        subType: solution.subType,
-                        _id: solution._id
-                    }
-                }), {})
+            const solutionsData = solutionsDocument.reduce((ac, solution) => ({
+                ...ac, [solution.externalId]: {
+                    subType: solution.subType,
+                    _id: solution._id
+                }
+            }), {})
+
+            //to update entity id in parent entity
+            let parentEntityDocument = await database.models.entity.find(
+                {
+                    "metaInformation.externalId": { $in: entityCSVData.map(entity => entity.parentEntityId) }
+                },
+                {
+                    _id: 1,
+                    groups: 1,
+                    "metaInformation.externalId": 1
+                }
+            );
+
+            const parentEntityData = parentEntityDocument.reduce((ac, entity) => ({
+                ...ac, [entity.metaInformation.externalId]: {
+                    _id: entity._id,
+                    groups: entity.groups
+                }
+            }), {})
 
             let entityType = await database.models.entityTypes.findOne({ name: query.type }, { _id: 1 })
 
@@ -391,7 +406,7 @@ module.exports = class entitiesHelper {
 
             await Promise.all(entityData.map(async (entity) => {
 
-                let entityDataToBeUpdated = await database.models.entity.findOne({ "metaInformation.externalId": entity.metaInformation.parentEntityId });
+                let entityDataToBeUpdated = parentEntityData[entity.metaInformation.parentEntityId];
 
                 if (!entityDataToBeUpdated.groups[query.type]) entityDataToBeUpdated.groups[query.type] = [];
 
