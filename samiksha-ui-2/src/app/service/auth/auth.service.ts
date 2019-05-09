@@ -178,7 +178,7 @@ export class AuthService {
         body.set("client_id", "sl-ionic-connect");
         body.set("refresh_token", userTokens.refreshToken);
         //console.log(userTokens.refreshToken);
-        const url = AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken;
+        const url = environment.keycloakBaseUrl + AppConfigs.keyCloak.getAccessToken;
         //console.log(url);
 
         this.http.post(url, body).subscribe(
