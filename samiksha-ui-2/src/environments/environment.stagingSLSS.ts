@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  baseUrl: "SLSS/web2/",
-  apiHost: "https://staging.shikshalokam.org",
-  apiBaseEndpoint: "/SLSS/"
+  baseUrl: "slss-assessment-service/web2/",
+  apiHost: "https://staginghome.shikshalokam.org",
+  apiBaseEndpoint: "/slss-assessment-service/web2/"
 };
