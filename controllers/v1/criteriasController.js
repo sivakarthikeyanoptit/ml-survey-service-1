@@ -526,7 +526,7 @@ module.exports = class Criterias extends Abstract {
 
           if(!questionIds.includes(parsedQuestion["externalId"])) questionIds.push(parsedQuestion["externalId"])
           
-          if (parsedQuestion["hasAParentQuestion"] !== "NO" && !questionIds.includes(parsedQuestion["Parent id"])) { 
+          if (parsedQuestion["hasAParentQuestion"] !== "NO" && !questionIds.includes(parsedQuestion["parentQuestionId"])) { 
             questionIds.push(parsedQuestion["parentQuestionId"]) 
           }
 
@@ -1303,11 +1303,11 @@ module.exports = class Criterias extends Abstract {
             allValues.visibleIf = ""
           }else{
 
-            let operator = parsedQuestion["operator"]="EQUALS"?parsedQuestion["operator"] = "===":parsedQuestion["operator"]
+            let operator = parsedQuestion["parentQuestionOperator"]="EQUALS"?parsedQuestion["parentQuestionOperator"] = "===":parsedQuestion["parentQuestionOperator"]
             
             allValues.visibleIf.push({
               operator:operator,
-              value:parsedQuestion.value,
+              value:parsedQuestion.parentQuestionValue,
               _id:questionCollection[parsedQuestion["parentQuestionId"]]._id
             })
           }
@@ -1328,7 +1328,7 @@ module.exports = class Criterias extends Abstract {
             allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
 
             if(parsedQuestion["responseType"] == "matrix"){
-              allValues["instanceIdentifier"] = parsedQuestion["Instance Identifier"]
+              allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
             }
             if(parsedQuestion["responseType"] == "date"){
               allValues["dateFormat"] = parsedQuestion.dateFormat
