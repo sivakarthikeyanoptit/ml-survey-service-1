@@ -24,6 +24,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
   public navMenu: any;
   public headerText: string;
   subscription;
+  basePath = environment.baseUrl;
 
   constructor(
     private breakpointObserver: BreakpointObserver,
@@ -31,8 +32,8 @@ export class NavigationComponent implements OnInit, OnDestroy {
     private headerTextService: HeaderTextService
   ) {
     this.navMenu = [
-      { label: "Criteria Details", url: environment.apiBaseEndpoint+"web2/criteria" },
-      { label: "Questions", url: environment.apiBaseEndpoint+"web2/questions/new" }
+      { label: "Criteria Details", url: "criteria" },
+      { label: "Questions", url: "questions/new" }
     ];
   }
   ngOnDestroy() {

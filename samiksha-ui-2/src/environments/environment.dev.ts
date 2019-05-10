@@ -3,5 +3,5 @@ export const environment = {
   baseUrl: "assessment/web2/",
   apiHost: "https://dev.shikshalokam.org",
   keycloakBaseUrl:"https://dev.shikshalokam.org",
-  apiBaseEndpoint: "/assessment/"
+  apiBaseEndpoint: "/assessment/web2/"
 };

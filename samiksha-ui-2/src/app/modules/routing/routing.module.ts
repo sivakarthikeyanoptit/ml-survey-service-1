@@ -31,7 +31,7 @@ const routes: Routes = [
   {
     path: "",
     // component: CriteriaComponent
-    redirectTo: environment.baseUrl+"criteria",
+    redirectTo: "criteria",
     pathMatch: "full"
   }
 ];
