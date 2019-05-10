@@ -6,6 +6,7 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material";
 import { Router } from "@angular/router";
 import { HeaderTextService } from "../../service/toolbar/header-text.service";
 import { ApiService } from "../../service/api/api.service";
+import { CriteriaComponent } from "../criteria/criteria.component";
 
 @Component({
   selector: "sl-add-question",
@@ -20,7 +21,7 @@ export class AddQuestionComponent implements OnInit {
   criteriaQuestions: any;
   myControl = new FormControl();
   filteredOptions: Observable<string[]>;
-
+   rubricLevel = ['L1','L2','L3'];
   toppings = new FormControl();
   constructor(
     private apiService: ApiService,
@@ -30,6 +31,8 @@ export class AddQuestionComponent implements OnInit {
   ) {
     this.reset();
   }
+
+
 
   openDialog(result: any): void {
     let self = this;
@@ -50,7 +53,7 @@ export class AddQuestionComponent implements OnInit {
       .reqHandler("getCriteriaAndQuestion", undefined)
       .then(result => {
         self.criteriaQuestions = result;
-        console.log(self.criteriaQuestions);
+       
       });
     this.question = {
       question: ["", ""],
@@ -60,6 +63,7 @@ export class AddQuestionComponent implements OnInit {
       instanceParentId:"",
       options: [{ value: "", label: "" }],
       visibleIf: [{}],
+      rubricLevel: "",
       file: {
         required: false,
         type: ["image/jpeg"],
@@ -89,7 +93,24 @@ export class AddQuestionComponent implements OnInit {
       }
     };
   }
+ _filter(value: string): string[] {
+   if( this.criteriaQuestions){
+    const filterValue = value.toLowerCase();
+    console.log(filterValue)
+    return this.criteriaQuestions.result.criteria.filter(option => 
+      option['name'].toLowerCase().includes(filterValue)
+      );
+   }
+   
+  }
   ngOnInit() {
+      this.filteredOptions = this.myControl.valueChanges
+        .pipe(
+          startWith(''),
+          map(value => this._filter(value))
+        );
+  
+  
     this.headerTextService.setHeader("Add Questions");
 
     this.evidences = [
@@ -385,7 +406,7 @@ export class AddQuestionComponent implements OnInit {
   }
 
   searchCriteria(value) {
-    console.log(value);
+    //console.log(value);
   }
 
   addOption() {
@@ -399,16 +420,18 @@ export class AddQuestionComponent implements OnInit {
 
   save(): void {
     this.question.file = this.question.file.required ? this.question.file : ""
+
+    console.log(this.question)
     this.apiService
       .reqHandler("saveQuestion", this.question)
       .then(result => {
-        console.log(result);
+        //console.log(result);
 
         this.openDialog(result);
       })
       .catch(error => {
         alert(error.message)
-        console.error(error);
+        //console.error(error);
       });
   }
 
@@ -417,10 +440,10 @@ export class AddQuestionComponent implements OnInit {
   }
 
   questionType(type) {
-    console.log(
-      this.question.responseType,
-      ["multiselect", "radio"].indexOf(this.question.responseType) > -1
-    );
+    // console.log(
+    //   this.question.responseType,
+    //   ["multiselect", "radio"].indexOf(this.question.responseType) > -1
+    // );
 
     if (type != "matrix") {
       delete this.question.instanceIdentifier;
@@ -454,14 +477,14 @@ export class DialogOverviewExampleDialog implements OnInit {
   // sections: any = [];
 
   ngOnInit(): void {
-    // console.log(this.question, this.criteria);
+    // //console.log(this.question, this.criteria);
   }
 
   constructor(
     public dialogRef: MatDialogRef<DialogOverviewExampleDialog>,
     @Inject(MAT_DIALOG_DATA) public question: any
   ) {
-    console.log(this.question);
+    //console.log(this.question);
   }
 
   save(): void {

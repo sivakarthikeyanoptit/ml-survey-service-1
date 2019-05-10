@@ -19,6 +19,10 @@ function camelCaseToTitleCase(in_camelCaseString) {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
+function lowerCase(str){
+  return str.toLowerCase()
+}
+
 function checkIfStringIsUrl(str) {
   var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
@@ -47,11 +51,57 @@ function getCriteriaIds(themes) {
     } else {
       criteriaIdArray = theme.criteria;
     }
-    criteriaIdArray.forEach(eachCriteriaId => {
-      allCriteriaIds.push(eachCriteriaId);
+    criteriaIdArray.forEach(eachCriteria => {
+      if(eachCriteria.criteriaId) {
+        allCriteriaIds.push(eachCriteria.criteriaId);
+      } else {
+        allCriteriaIds.push(eachCriteria);
+      }
     })
   })
   return allCriteriaIds;
+}
+
+function getCriteriaIdsAndWeightage(themes) {
+  let allCriteriaIds = [];
+  themes.forEach(theme => {
+    let criteriaIdArray = [];
+    if (theme.children) {
+      criteriaIdArray = this.getCriteriaIdsAndWeightage(theme.children);
+    } else {
+      criteriaIdArray = theme.criteria;
+    }
+    criteriaIdArray.forEach(eachCriteria => {
+        allCriteriaIds.push({
+          criteriaId:eachCriteria.criteriaId,
+          weightage:eachCriteria.weightage
+        });
+    })
+  })
+  return allCriteriaIds;
+}
+
+function getUserRole(userDetails, caseSensitive = false) {
+  if (userDetails && userDetails.allRoles.length) {
+    _.pull(userDetails.allRoles, 'PUBLIC');
+    let role = userDetails.allRoles[0];
+    if (caseSensitive == true) {
+      return mapUserRole(role)
+    }
+    return userDetails.allRoles[0];
+  } else {
+    return
+  }
+}
+
+function mapUserRole(role) {
+  let rolesObject = {
+    ASSESSOR: "assessors",
+    LEAD_ASSESSOR: "leadAssessors",
+    PROJECT_MANAGER: "projectManagers",
+    PROGRAM_MANAGER: "programManagers"
+  }
+  return rolesObject[role];
 }
 
 function getAllQuestionId(criteria) {
@@ -68,11 +118,25 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function valueParser(dataToBeParsed){
+  
+  let parsedData = {}
+
+  Object.keys(dataToBeParsed).forEach(eachDataToBeParsed=>{
+    parsedData[eachDataToBeParsed] = dataToBeParsed[eachDataToBeParsed].trim()
+  })
+  return parsedData
+}
 
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
+  lowerCase:lowerCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
-  getAllQuestionId: getAllQuestionId
+  getUserRole: getUserRole,
+  mapUserRole: mapUserRole,
+  valueParser:valueParser,
+  getAllQuestionId: getAllQuestionId,
+  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
 };

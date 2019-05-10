@@ -23,65 +23,6 @@ module.exports = class Programs extends Abstract {
     return super.find(req);
   }
 
-
-  /**
-* @api {get} /assessment/api/v1/programs/listByUser List all the programs which is part of the current user
-* @apiVersion 0.0.1
-* @apiName Fetch Program List By User
-* @apiGroup Program
-* @apiUse successBody
-* @apiUse errorBody
-*/
-
-  async listByUser(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let programQuery = {
-          $or: [
-            { "components.roles.assessors.users": req.userDetails.id },
-            { "components.roles.leadAssessors.users": req.userDetails.id },
-            { "components.roles.projectManagers.users": req.userDetails.id },
-            { "components.roles.programManagers.users": req.userDetails.id }
-          ]
-        }
-
-        let programProject = {
-          externalId: 1,
-          name: 1,
-          description: 1,
-        };
-
-        let programDocuments = await database.models.programs.find(programQuery, programProject).lean();
-        let responseMessage;
-        let response;
-
-        if (!programDocuments.length) {
-
-          responseMessage = "No programs data found for given params.";
-          response = { status: 404, message: responseMessage };
-
-        } else {
-
-          responseMessage = "Program information list fetched successfully.";
-          response = { message: responseMessage, result: programDocuments };
-
-        }
-
-        return resolve(response);
-
-      } catch (error) {
-
-        return reject({
-          status: 500,
-          message: error,
-          errorObject: error
-        });
-
-      }
-    });
-  }
-
   /**
 * @api {get} /assessment/api/v1/programs/list/ List all the programs
 * @apiVersion 0.0.1
@@ -199,70 +140,56 @@ module.exports = class Programs extends Abstract {
 
         let schoolName = {};
         let schoolExternalId = {};
+        let result = {};
+
+        let schoolStatusObject = {
+          inprogress: 'In Progress',
+          completed: 'Complete',
+          blocked: 'Blocked',
+          started: 'Started'
+        }
 
         if (req.searchText != "") {
           schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
           schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
         }
 
-        let programDocument = await database.models.programs.aggregate([
-          {
-            $match: {
-              _id: ObjectId(programId)
-            }
-          },
-          {
-            $unwind: "$components"
-          }, {
-            $match: {
-              "components.id": ObjectId(componentId)
-            }
-          }, { "$addFields": { "schoolIdInObjectIdForm": "$components.schools" } },
-          {
-            $lookup: {
-              from: "schools",
-              localField: "schoolIdInObjectIdForm",
-              foreignField: "_id",
-              as: "schoolInformation"
-            }
-          },
-          {
-            $project: {
-              "schoolInformation._id": 1,
-              "schoolInformation.externalId": 1,
-              "schoolInformation.name": 1,
-              "_id": 0
-            }
-          },
-          { $unwind: "$schoolInformation" },
-          { $match: { $or: [schoolName, schoolExternalId] } },
-          {
-            $facet: {
-              "totalCount": [
-                { "$count": "count" }
-              ],
-              "schoolInformationData": [
-                { $skip: req.pageSize * (req.pageNo - 1) },
-                { $limit: req.pageSize }
-              ],
-            }
-          }
-        ])
+        let programDocument = await database.models.programs.findOne({
+          _id: ObjectId(programId)
+        }, { "components.id": 1,"components.schools": 1 }).lean()
 
-        if (!programDocument) {
-          throw "Bad request"
+        let frameWork = programDocument.components.find(component => component.id.toString() == componentId)
+
+        if (!frameWork) {
+          throw 'No framework found'
+        }
+        let limitValue = (!req.pageSize) ? "" : req.pageSize;
+        let skipValue = (!req.pageNo) ? "" : (req.pageSize * (req.pageNo - 1));
+
+        let queryObject = {};
+        queryObject["_id"] = { $in: frameWork.schools };
+        if (req.searchText != "") {
+          queryObject["$or"] = [{ name: new RegExp(req.searchText, 'i') }, { externalId: new RegExp(req.searchText, 'i') }];
         }
 
-        let result = {};
-        let schoolInformation = [];
+        let schoolDocuments = await database.models.schools.find(queryObject,{
+          name:1,addressLine1:1,administration:1,externalId:1
+        }).limit(limitValue).skip(skipValue).lean();
 
-        result["totalCount"] = programDocument[0].totalCount[0].count;
+        let totalCount = await database.models.schools.countDocuments(queryObject);
 
-        programDocument[0].schoolInformationData.forEach(eachSchoolData => {
-          schoolInformation.push(eachSchoolData.schoolInformation)
+        let submissionDocument = await database.models.submissions.find({schoolId:{ $in: schoolDocuments.map(school=> school._id) }},{status:1,schoolId:1}).lean()
+        
+        let submissionSchoolMap = _.keyBy(submissionDocument,'schoolId');
+
+        result["totalCount"] = totalCount;
+
+        schoolDocuments.forEach(eachSchoolDocument => {
+          let status = submissionSchoolMap[eachSchoolDocument._id.toString()] ? submissionSchoolMap[eachSchoolDocument._id.toString()].status : ""
+          eachSchoolDocument['status'] = schoolStatusObject[status] || status;
         })
 
-        result["schoolInformation"] = schoolInformation;
+        result["schoolInformation"] = schoolDocuments;
 
         return resolve({ message: "List of schools fetched successfully", result: result })
       }
@@ -274,6 +201,119 @@ module.exports = class Programs extends Abstract {
       }
     })
   }
+
+
+  /**
+  * @api {get} /assessment/api/v1/programs/userSchoolList/ Fetch School List
+  * @apiVersion 0.0.1
+  * @apiName Fetch School List 
+  * @apiGroup Program
+  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async userSchoolList(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let insightController = new insightsBaseController;
+        let evaluationController = new evaluationFrameworksBaseController;
+
+        let programId = req.query.programId;
+
+        if (!programId || !req.userDetails.userId || req.userDetails.userId == "" ) {
+          throw "Invalid parameters."
+        }
+
+
+        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
+          _id: 1
+        }).lean();
+
+        let assessorSchoolsQueryObject = [
+          {
+            $match: {
+              userId: req.userDetails.userId,
+              programId: programDocument._id
+            }
+          },
+          {
+            $lookup: {
+              from: "schools",
+              localField: "schools",
+              foreignField: "_id",
+              as: "schoolDocuments"
+            }
+          },
+          {
+            $project: {
+              "schools": 1,
+              "schoolDocuments._id": 1,
+              "schoolDocuments.externalId": 1,
+              "schoolDocuments.name": 1,
+              "schoolDocuments.addressLine1": 1,
+              "schoolDocuments.addressLine2": 1,
+              "schoolDocuments.city": 1,
+              "schoolDocuments.state": 1
+            }
+          }
+        ];
+
+        const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
+        
+        let schoolIds = new Array
+
+        assessorsDocument[0].schoolDocuments.forEach( eachSchoolDocument=>{
+          schoolIds.push(eachSchoolDocument._id) 
+        })
+
+        let insightDocument = await insightController.insightsDocument(programId,schoolIds);
+
+        let singleEntityDrillDown
+
+        if(insightDocument.length>0){
+          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
+
+          if(evaluationFrameworkDocument){
+            singleEntityDrillDown = true
+          }else{
+            singleEntityDrillDown = false
+          }
+
+        }
+
+        assessorsDocument[0].schoolDocuments.forEach(eachSchoolDocument=>{
+          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolDocument._id.toString())){
+            eachSchoolDocument["isSingleEntityHighLevel"] = true
+            eachSchoolDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else{
+            eachSchoolDocument["isSingleEntityHighLevel"] = false
+            eachSchoolDocument["isSingleEntityDrillDown"] = false
+          }
+        })
+
+
+        return resolve({
+          message: "School list fetched successfully",
+          result: {
+            schools : assessorsDocument[0].schoolDocuments
+          }
+        });
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 
   /**
 * @api {get} /assessment/api/v1/programs/userList/ Fetch User List
@@ -384,6 +424,151 @@ module.exports = class Programs extends Abstract {
     })
   }
 
+
+  /**
+  * @api {get} /assessment/api/v1/programs/schoolBlocks/ Fetch User List
+  * @apiVersion 0.0.1
+  * @apiName Fetch User List 
+  * @apiGroup Program
+  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async schoolBlocks(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programId = req.query.programId
+
+        if (!programId) {
+          throw "Program id is missing"
+        }
+
+        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
+          _id: 1, name: 1, "components.schools": 1
+        }).lean();
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
+        let distinctSchoolBlocks = await database.models.schools.distinct('blockId', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
+
+        let result = {};
+
+        result["zones"] = distinctSchoolBlocks.map((zoneId) => { 
+          return {
+            id : zoneId,
+            label : 'Zone - ' + zoneId
+          }
+        })
+
+        return resolve({
+          message: "List of zones fetched successfully",
+          result: result
+        })
+
+      }
+      catch (error) {
+        return reject({
+          status: 400,
+          message: error
+        })
+      }
+    })
+  }
+
+
+  /**
+  * @api {get} /assessment/api/v1/programs/blockSchools/ Fetch User List
+  * @apiVersion 0.0.1
+  * @apiName Fetch User List 
+  * @apiGroup Program
+  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async blockSchools(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let evaluationController = new evaluationFrameworksBaseController;
+        let insightController = new insightsBaseController;
+        let programId = req.query.programId
+        let blockId = req.query.blockId
+
+        if (!programId || !blockId) {
+          throw "Invalid paramters."
+        }
+
+        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
+          _id: 1, name: 1, "components.schools": 1
+        }).lean();
+
+        if (!programDocument) {
+          throw "Bad request"
+        }
+
+        let schoolsInBlock = await database.models.schools.find(
+          { 
+            _id: { $in: programDocument.components[0].schools},
+            blockId: blockId
+          },
+          {name :1, externalId :1, addressLine1 : 1, addressLine2 : 1, city: 1}
+        ).lean().exec();
+
+        let schoolsIdArray = new Array
+
+        schoolsInBlock.forEach(eachSchoolsInBlock=>{
+          schoolsIdArray.push(eachSchoolsInBlock._id)
+        })
+
+        let insightDocument = await insightController.insightsDocument(programId,schoolsIdArray);
+
+        let singleEntityDrillDown
+
+        if(insightDocument.length>0){
+          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
+
+          if(evaluationFrameworkDocument){
+            singleEntityDrillDown = true
+          }else{
+            singleEntityDrillDown = false
+          }
+        }
+     
+        let result = {};
+
+        schoolsInBlock.forEach(eachSchoolInBlock=>{
+          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolInBlock._id.toString())){
+            eachSchoolInBlock["isSingleEntityHighLevel"] = true
+            eachSchoolInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else{
+            eachSchoolInBlock["isSingleEntityHighLevel"] = false
+            eachSchoolInBlock["isSingleEntityDrillDown"] = false
+          }
+        })
+
+        result["schools"] = schoolsInBlock
+
+        return resolve({
+          message: "List of schools fetched successfully",
+          result: result
+        })
+
+      }
+      catch (error) {
+        return reject({
+          status: 400,
+          message: error
+        })
+      }
+    })
+  }
+
 };
-
-

@@ -19,7 +19,7 @@ var cacheConfig = {
   ttl: process.env.sunbird_cache_ttl
 };
 
-var respUtil = function(resp) {
+var respUtil = function (resp) {
   return {
     status: resp.errCode,
     message: resp.errMsg,
@@ -27,10 +27,10 @@ var respUtil = function(resp) {
   };
 };
 
-var tokenAuthenticationFailureMessageToSlack = function (req,token,msg) {
+var tokenAuthenticationFailureMessageToSlack = function (req, token, msg) {
   let jwtInfomration = jwtDecode(token)
   jwtInfomration["x-authenticated-user-token"] = token
-  const tokenByPassAllowedLog = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields : jwtInfomration}
+  const tokenByPassAllowedLog = { method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: jwtInfomration }
   slackClient.sendExceptionLogMessage(tokenByPassAllowedLog)
 }
 
@@ -59,17 +59,54 @@ async function getAllRoles(obj) {
   return roles;
 }
 
-module.exports = function(req, res, next) {
+module.exports = async function (req, res, next) {
 
-  removedHeaders.forEach(function(e) {
+  if (req.path.includes("/sharedLinks/verify")) return next();
+
+  if (req.headers && req.headers.linkid) {
+
+    let isShareable = await database.models.sharedLink.findOne({ linkId: req.headers.linkid, isActive: true });
+
+    let requestURL = req.url.includes("?") ? req.url.split("?")[0] : req.url;
+
+    if (isShareable && requestURL.includes(isShareable.reportName)) {
+
+      req.url = (isShareable.queryParams) ? requestURL + "?" + isShareable.queryParams : requestURL;
+
+      req.userDetails = isShareable.userDetails;
+
+      return next();
+
+    } else {
+
+      let msg = "Bad request.";
+
+      const slackMessageForBadRequest = { userIP: req.headers["x-real-ip"], method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
+
+      slackClient.badSharedLinkAccessAttemptAlert(slackMessageForBadRequest);
+
+      let rspObj = {};
+
+      rspObj.errCode = 400;
+
+      rspObj.errMsg = msg;
+
+      rspObj.responseCode = 400;
+
+      return res.status(400).send(respUtil(rspObj));
+
+    }
+  }
+
+  removedHeaders.forEach(function (e) {
     delete req.headers[e];
   });
 
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
-  
-  if(req.path.includes("reports") && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
+
+  if ((req.path.includes("reports") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
     req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
     next();
     return
@@ -78,37 +115,37 @@ module.exports = function(req, res, next) {
   let tokenCheckByPassAllowedForURL = false
   let tokenCheckByPassAllowedForUser = false
   let tokenCheckByPassAllowedUserDetails = {}
-  if(process.env.DISABLE_TOKEN_ON_OFF && process.env.DISABLE_TOKEN_ON_OFF === "ON" && process.env.DISABLE_TOKEN_CHECK_FOR_API && process.env.DISABLE_TOKEN_CHECK_FOR_API != "") {
-      process.env.DISABLE_TOKEN_CHECK_FOR_API.split(',').forEach(allowedEndpoints =>{
-        if(req.path.includes(allowedEndpoints)) {
-          tokenCheckByPassAllowedForURL = true
-          let allowedUsersPath = "DISABLE_TOKEN_"+allowedEndpoints+"_USERS"
-          if(process.env[allowedUsersPath] && process.env[allowedUsersPath] == "ALL") {
-            tokenCheckByPassAllowedForUser = true
-            tokenCheckByPassAllowedUserDetails = {
-              id: process.env.DISABLE_TOKEN_DEFAULT_USERID,
-              userId:process.env.DISABLE_TOKEN_DEFAULT_USERID,
-              roles:[process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
-              name:process.env.DISABLE_TOKEN_DEFAULT_USER_NAME,
-              email:process.env.DISABLE_TOKEN_DEFAULT_USER_EMAIL,
-            }
-          } else if(process.env[allowedUsersPath]) {
-            let jwtInfo = jwtDecode(token)
-            process.env[allowedUsersPath].split(',').forEach(allowedUser => {
-              if(allowedUser == jwtInfo.sub) {
-                tokenCheckByPassAllowedForUser = true
-                tokenCheckByPassAllowedUserDetails = {
-                  id: jwtInfo.sub,
-                  userId: jwtInfo.sub,
-                  roles:[process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
-                  name:jwtInfo.name,
-                  email:jwtInfo.email,
-                }
-              }
-            })
+  if (process.env.DISABLE_TOKEN_ON_OFF && process.env.DISABLE_TOKEN_ON_OFF === "ON" && process.env.DISABLE_TOKEN_CHECK_FOR_API && process.env.DISABLE_TOKEN_CHECK_FOR_API != "") {
+    process.env.DISABLE_TOKEN_CHECK_FOR_API.split(',').forEach(allowedEndpoints => {
+      if (req.path.includes(allowedEndpoints)) {
+        tokenCheckByPassAllowedForURL = true
+        let allowedUsersPath = "DISABLE_TOKEN_" + allowedEndpoints + "_USERS"
+        if (process.env[allowedUsersPath] && process.env[allowedUsersPath] == "ALL") {
+          tokenCheckByPassAllowedForUser = true
+          tokenCheckByPassAllowedUserDetails = {
+            id: process.env.DISABLE_TOKEN_DEFAULT_USERID,
+            userId: process.env.DISABLE_TOKEN_DEFAULT_USERID,
+            roles: [process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
+            name: process.env.DISABLE_TOKEN_DEFAULT_USER_NAME,
+            email: process.env.DISABLE_TOKEN_DEFAULT_USER_EMAIL,
           }
+        } else if (process.env[allowedUsersPath]) {
+          let jwtInfo = jwtDecode(token)
+          process.env[allowedUsersPath].split(',').forEach(allowedUser => {
+            if (allowedUser == jwtInfo.sub) {
+              tokenCheckByPassAllowedForUser = true
+              tokenCheckByPassAllowedUserDetails = {
+                id: jwtInfo.sub,
+                userId: jwtInfo.sub,
+                roles: [process.env.DISABLE_TOKEN_DEFAULT_USER_ROLE],
+                name: jwtInfo.name,
+                email: jwtInfo.email,
+              }
+            }
+          })
         }
-      })
+      }
+    })
   }
 
   if (!token) {
@@ -119,9 +156,9 @@ module.exports = function(req, res, next) {
     return res.status(401).send(respUtil(rspObj));
   }
 
-  apiInterceptor.validateToken(token, function(err, tokenData) {
+  apiInterceptor.validateToken(token, function (err, tokenData) {
     // console.error(err, tokenData, rspObj);
-    
+
     if (err && tokenCheckByPassAllowedForURL && tokenCheckByPassAllowedForUser) {
       req.rspObj.userId = tokenCheckByPassAllowedUserDetails.userId;
       req.rspObj.userToken = req.headers["x-authenticated-user-token"];
@@ -132,16 +169,16 @@ module.exports = function(req, res, next) {
       req.userDetails = tokenCheckByPassAllowedUserDetails;
       req.userDetails.allRoles = tokenCheckByPassAllowedUserDetails.roles;
 
-      tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN BYPASS ALLOWED")
+      tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN BYPASS ALLOWED")
       next();
       return
     }
-    
+
     if (err) {
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
       rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
-      tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION WITH KEYCLOAK FAILED")
+      tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION WITH KEYCLOAK FAILED")
       return res.status(401).send(respUtil(rspObj));
     } else {
       req.rspObj.userId = tokenData.userId;
@@ -159,7 +196,7 @@ module.exports = function(req, res, next) {
             req.userDetails.allRoles = await getAllRoles(req.userDetails);
             next();
           } else {
-            tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION - FAILED TO GET USER DETAIL FROM LEARNER SERVICE")
+            tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION - FAILED TO GET USER DETAIL FROM LEARNER SERVICE")
             rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
             rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
             rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
@@ -167,7 +204,7 @@ module.exports = function(req, res, next) {
           }
         })
         .catch(error => {
-          tokenAuthenticationFailureMessageToSlack(req,token,"TOKEN VERIFICATION - ERROR FETCHING USER DETAIL FROM LEARNER SERVICE")
+          tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION - ERROR FETCHING USER DETAIL FROM LEARNER SERVICE")
           return res.status(401).send(error);
         });
     }

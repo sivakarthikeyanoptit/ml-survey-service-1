@@ -899,7 +899,7 @@ module.exports = class Reports {
 
               theme.criteria.forEach(criteria => {
 
-                  data[criteria._id.toString()]={
+                  data[criteria.criteriaId.toString()]={
                     parentPath:hierarchyTrackToUpdate.join("->")
                   }
 
@@ -2947,4 +2947,5 @@ async generateSubmissionReportsBySchoolId(req) {
     })
     return schoolFieldArray;
   }
+
 };

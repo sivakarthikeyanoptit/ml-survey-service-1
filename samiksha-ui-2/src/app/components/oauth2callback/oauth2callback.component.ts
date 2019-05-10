@@ -28,6 +28,8 @@ export class Oauth2callbackComponent implements OnInit {
         }
         console.log("result---->", result.ok);
       })
-      .catch(console.error);
+      .catch(
+        console.error
+        );
   }
 }
