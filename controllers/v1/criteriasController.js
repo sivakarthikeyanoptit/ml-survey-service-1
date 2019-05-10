@@ -573,26 +573,24 @@ module.exports = class Criterias extends Abstract {
 
         let pendingItems = new Array
 
-        await Promise.all(questionData.map(async (eachQuestion) => {
-
-          let parsedQuestion = gen.utils.valueParser(eachQuestion)
+        for(let pointerToQuestionData = 0;pointerToQuestionData<questionData.length;pointerToQuestionData++){
+          
+          let parsedQuestion = gen.utils.valueParser(questionData[pointerToQuestionData])
 
           let criteria = {}
           let ecm = {}
 
           ecm[parsedQuestion["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
           criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
-        
-          let criteriaToBeSent = await criteria
-          let evaluationFrameworkMethod = await ecm
-          let section = await evaluationFrameWorkDocument.sections[parsedQuestion.section]
+
+          let section = evaluationFrameWorkDocument.sections[parsedQuestion.section]
 
           if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
             
             pendingItems.push({
               parsedQuestion:parsedQuestion,
-              criteriaToBeSent:criteriaToBeSent,
-              evaluationFrameworkMethod:evaluationFrameworkMethod,
+              criteriaToBeSent:criteria,
+              evaluationFrameworkMethod:ecm,
               section:section
             })
             
@@ -600,7 +598,9 @@ module.exports = class Criterias extends Abstract {
 
             let question = {}
 
-            if(questionCollection[parsedQuestion["externalId"]]) questionCollection[parsedQuestion["externalId"]]
+            if(questionCollection[parsedQuestion["externalId"]]) {
+              question[parsedQuestion["externalId"]] = questionCollection[parsedQuestion["externalId"]]
+            }
 
             if(parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[parsedQuestion["instanceParentQuestionId"]]){
               question[parsedQuestion["instanceParentQuestionId"]] =  questionCollection[parsedQuestion["instanceParentQuestionId"]]
@@ -610,21 +610,20 @@ module.exports = class Criterias extends Abstract {
               question[parsedQuestion["parentQuestionId"]] =  questionCollection[parsedQuestion["parentQuestionId"]]
             }
 
-            let questionToBeSent = await question
-            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionToBeSent,criteriaToBeSent,evaluationFrameworkMethod,section)
+            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,question,criteria,ecm,section)
             
             if(resultFromCreateQuestions.result){
               questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
             }
             input.push(resultFromCreateQuestions.total[0])
           }
-        }))
+        }
 
         if(pendingItems){
 
-          await Promise.all(pendingItems.map(async eachPendingItem=>{
-            
+          for(let pointerToPendingData = 0;pointerToPendingData<pendingItems.length;pointerToPendingData++){
             let question = {}
+            let eachPendingItem = gen.utils.valueParser(pendingItems[pointerToPendingData])
             
             if(questionCollection[eachPendingItem.parsedQuestion["externalId"]]) {
               question[eachPendingItem.parsedQuestion["externalId"]] = questionCollection[eachPendingItem.parsedQuestion["externalId"]]
@@ -637,13 +636,10 @@ module.exports = class Criterias extends Abstract {
             if(eachPendingItem.parsedQuestion["hasAParentQuestion"] == "YES" && questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]){
               question[eachPendingItem.parsedQuestion["parentQuestionId"]] =  questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]
             }
-
-            let questionToBeSent = await question
-            let csvQuestionData = await this.createQuestions(eachPendingItem.parsedQuestion,questionToBeSent,eachPendingItem.criteriaToBeSent,eachPendingItem.evaluationFrameworkMethod,eachPendingItem.section)
+            let csvQuestionData = await this.createQuestions(eachPendingItem.parsedQuestion,question,eachPendingItem.criteriaToBeSent,eachPendingItem.evaluationFrameworkMethod,eachPendingItem.section)
             
             input.push(csvQuestionData.total[0])
-            
-          }))
+          }
         }
         
         input.push(null)
