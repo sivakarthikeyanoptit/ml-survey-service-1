@@ -526,7 +526,7 @@ module.exports = class Criterias extends Abstract {
 
           if(!questionIds.includes(parsedQuestion["externalId"])) questionIds.push(parsedQuestion["externalId"])
           
-          if (parsedQuestion["hasAParentQuestion"] !== "NO" && !questionIds.includes(parsedQuestion["Parent id"])) { 
+          if (parsedQuestion["hasAParentQuestion"] !== "NO" && !questionIds.includes(parsedQuestion["parentQuestionId"])) { 
             questionIds.push(parsedQuestion["parentQuestionId"]) 
           }
 
@@ -577,14 +577,30 @@ module.exports = class Criterias extends Abstract {
 
           let parsedQuestion = gen.utils.valueParser(eachQuestion)
 
-          if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] != "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
-            pendingItems.push(parsedQuestion)
+          let criteria = {}
+          let ecm = {}
+
+          ecm[parsedQuestion["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
+          criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
+        
+          let criteriaToBeSent = await criteria
+          let evaluationFrameworkMethod = await ecm
+          let section = await evaluationFrameWorkDocument.sections[parsedQuestion.section]
+
+          if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
+            
+            pendingItems.push({
+              parsedQuestion:parsedQuestion,
+              criteriaToBeSent:criteriaToBeSent,
+              evaluationFrameworkMethod:evaluationFrameworkMethod,
+              section:section
+            })
+            
           } else {
 
             let question = {}
-            let criteria = {}
 
-             if(questionCollection[parsedQuestion["externalId"]]) questionCollection[parsedQuestion["externalId"]]
+            if(questionCollection[parsedQuestion["externalId"]]) questionCollection[parsedQuestion["externalId"]]
 
             if(parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[parsedQuestion["instanceParentQuestionId"]]){
               question[parsedQuestion["instanceParentQuestionId"]] =  questionCollection[parsedQuestion["instanceParentQuestionId"]]
@@ -594,16 +610,7 @@ module.exports = class Criterias extends Abstract {
               question[parsedQuestion["parentQuestionId"]] =  questionCollection[parsedQuestion["parentQuestionId"]]
             }
 
-            let ecm = {}
-            ecm[parsedQuestion["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
-
-            criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
-          
-            let criteriaToBeSent = await criteria
             let questionToBeSent = await question
-            let evaluationFrameworkMethod = await ecm
-            let section = await evaluationFrameWorkDocument.sections[parsedQuestion.section]
-
             let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,questionToBeSent,criteriaToBeSent,evaluationFrameworkMethod,section)
             
             if(resultFromCreateQuestions.result){
@@ -614,32 +621,26 @@ module.exports = class Criterias extends Abstract {
         }))
 
         if(pendingItems){
+
           await Promise.all(pendingItems.map(async eachPendingItem=>{
             
-
             let question = {}
-            let criteria = {}
+            
+            if(questionCollection[eachPendingItem.parsedQuestion["externalId"]]) {
+              question[eachPendingItem.parsedQuestion["externalId"]] = questionCollection[eachPendingItem.parsedQuestion["externalId"]]
+            }
 
-            criteria[eachPendingItem.criteriaExternalId] = criteriaObject[eachPendingItem.criteriaExternalId]
-            if(questionCollection[eachPendingItem["externalId"]]) questionCollection[eachPendingItem["externalId"]]
-
-            if(eachPendingItem["instanceParentQuestionId"] !== "NA" && questionCollection[eachPendingItem["instanceParentQuestionId"]]){
-              question[eachPendingItem["instanceParentQuestionId"]] =  questionCollection[eachPendingItem["instanceParentQuestionId"]]
+            if(eachPendingItem.parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[eachPendingItem.parsedQuestion["instanceParentQuestionId"]]){
+              question[eachPendingItem.parsedQuestion["instanceParentQuestionId"]] =  questionCollection[eachPendingItem.parsedQuestion["instanceParentQuestionId"]]
             }
             
-            if(eachPendingItem["hasAParentQuestion"] == "YES" && questionCollection[eachPendingItem["parentQuestionId"]]){
-              question[eachPendingItem["parentQuestionId"]] =  questionCollection[eachPendingItem["parentQuestionId"]]
+            if(eachPendingItem.parsedQuestion["hasAParentQuestion"] == "YES" && questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]){
+              question[eachPendingItem.parsedQuestion["parentQuestionId"]] =  questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]
             }
 
-            let ecm = {}
-            ecm[eachPendingItem["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[eachPendingItem["evidenceMethod"]]
-
-            let criteriaToBeSent = await criteria
             let questionToBeSent = await question
-            let evaluationFrameworkMethod = await ecm
-            let section = await evaluationFrameWorkDocument.sections[eachPendingItem.section]
-
-            let csvQuestionData = await this.createQuestions(eachPendingItem,questionToBeSent,criteriaToBeSent,evaluationFrameworkMethod,section)
+            let csvQuestionData = await this.createQuestions(eachPendingItem.parsedQuestion,questionToBeSent,eachPendingItem.criteriaToBeSent,eachPendingItem.evaluationFrameworkMethod,eachPendingItem.section)
+            
             input.push(csvQuestionData.total[0])
             
           }))
@@ -1302,11 +1303,11 @@ module.exports = class Criterias extends Abstract {
             allValues.visibleIf = ""
           }else{
 
-            let operator = parsedQuestion["operator"]="EQUALS"?parsedQuestion["operator"] = "===":parsedQuestion["operator"]
+            let operator = parsedQuestion["parentQuestionOperator"]="EQUALS"?parsedQuestion["parentQuestionOperator"] = "===":parsedQuestion["parentQuestionOperator"]
             
             allValues.visibleIf.push({
               operator:operator,
-              value:parsedQuestion.value,
+              value:parsedQuestion.parentQuestionValue,
               _id:questionCollection[parsedQuestion["parentQuestionId"]]._id
             })
           }
@@ -1327,7 +1328,7 @@ module.exports = class Criterias extends Abstract {
             allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
 
             if(parsedQuestion["responseType"] == "matrix"){
-              allValues["instanceIdentifier"] = parsedQuestion["Instance Identifier"]
+              allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
             }
             if(parsedQuestion["responseType"] == "date"){
               allValues["dateFormat"] = parsedQuestion.dateFormat
