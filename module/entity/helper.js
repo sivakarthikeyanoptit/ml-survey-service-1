@@ -81,15 +81,8 @@ module.exports = class entitiesHelper {
                                 $set: {
                                     groups: entityDataToBeUpdated.groups
                                 }
-                            },
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true,
-                                returnNewDocument: true
                             });
 
-                        console.log("updated parent entity.")
                     }
 
                 }))
@@ -116,7 +109,7 @@ module.exports = class entitiesHelper {
 
             let queryObject = { _id: ObjectId(params._id) }
 
-            result = await database.models.entity.findOne(queryObject).lean();
+            result = await database.models.entity.findOne(queryObject, { groups: 1 }).lean();
 
             let entityIds = result.groups[query.type];
 
@@ -146,7 +139,7 @@ module.exports = class entitiesHelper {
         try {
             let result;
 
-            let entityType = await database.models.entityTypes.findOne({ name: query.type })
+            let entityType = await database.models.entityTypes.findOne({ name: query.type }, { profileForm: 1 })
 
             result = entityType.profileForm.length ? entityType.profileForm : [];
 
@@ -164,25 +157,23 @@ module.exports = class entitiesHelper {
 
         try {
 
-            let entityType = await database.models.entityTypes.findOne({ name: query.type }).lean();
+            let entityType = await database.models.entityTypes.findOne({ name: query.type }, { profileForm: 1 }).lean();
 
             let entityForm = entityType.profileForm;
 
             if (!entityForm.length) {
-                let responseMessage = `No form data available for ${query.type} entity type.`;
-                throw responseMessage;
+                throw `No form data available for ${query.type} entity type.`;
             }
 
             let entityInformation;
 
             if (params._id) {
                 entityInformation = await database.models.entity.findOne(
-                    { _id: ObjectId(params._id), entityType: query.type }
+                    { _id: ObjectId(params._id), entityType: query.type }, { metaInformation: 1 }
                 );
 
                 if (!entityInformation) {
-                    let responseMessage = `No ${query.type} information found for given params.`;
-                    throw responseMessage;
+                    throw `No ${query.type} information found for given params.`;
                 }
 
                 entityInformation = entityInformation.metaInformation;
@@ -227,7 +218,7 @@ module.exports = class entitiesHelper {
         try {
 
             const parentDocument = await database.models.entity.findOne(
-                { _id: ObjectId(params._id), entityType: query.type }
+                { _id: ObjectId(params._id), entityType: query.type }, { callResponse: 1 }
             );
 
             if (!parentDocument) throw "No such parent found"
@@ -301,11 +292,7 @@ module.exports = class entitiesHelper {
                 );
             }
 
-            let responseMessage = "Parent information updated successfully."
-
-            let response = { message: responseMessage, result: parentInformation };
-
-            return response;
+            return parentInformation;
 
         } catch (error) {
             throw error;
@@ -315,316 +302,182 @@ module.exports = class entitiesHelper {
 
     async upload(query, userDetails, files) {
 
-        try {
+        let entityCSVData = await csv().fromString(
+            files.entities.data.toString()
+        );
 
-            let entityCSVData = await csv().fromString(
-                files.entities.data.toString()
-            );
-            const entitiesUploadCount = entityCSVData.length;
+        let programIds = query.programId ? [query.programId] : entityCSVData.map(entity => entity.programId);
 
-            let programDocument = await database.models.programs.find(
-                {
-                    externalId: { $in: entityCSVData.map(entity => entity.programId) }
-                },
-                {
-                    _id: 1,
-                    externalId: 1
+        let programDocument = await database.models.programs.find(
+            {
+                externalId: { $in: programIds }
+            },
+            {
+                _id: 1,
+                externalId: 1
+            }
+        );
+
+        const programsData = programDocument.reduce((ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
+
+        let solutionIds = query.solutionId ? [query.solutionId] : entityCSVData.map(entity => entity.solutionId);
+
+        let solutionsDocument = await database.models.solutions.find(
+            {
+                externalId: { $in: solutionIds }
+            },
+            {
+                externalId: 1,
+                entities: 1,
+                subType: 1
+            }
+        );
+
+        const solutionsData = solutionsDocument.reduce((ac, solution) => ({
+            ...ac, [solution.externalId]: {
+                subType: solution.subType,
+                entities: solution.entities,
+                _id: solution._id
+            }
+        }), {})
+
+        //to update entity id in parent entity
+        let parentEntityDocument = await database.models.entity.find(
+            {
+                "metaInformation.externalId": { $in: entityCSVData.map(entity => entity.parentEntityId) }
+            },
+            {
+                _id: 1,
+                groups: 1,
+                "metaInformation.externalId": 1
+            }
+        );
+
+        const parentEntityData = parentEntityDocument.reduce((ac, entity) => ({
+            ...ac, [entity.metaInformation.externalId]: {
+                _id: entity._id,
+                groups: entity.groups
+            }
+        }), {})
+
+        let entityType = await database.models.entityTypes.findOne({ name: query.type }, { _id: 1 })
+
+        let arrayTypeFields = ["type", "questionGroup", "schoolTypes"];
+
+        let entityDocuments = [];
+
+        entityCSVData.forEach(singleEntity => {
+
+            Object.keys(singleEntity).forEach(data => {
+                if (arrayTypeFields.includes(data)) {
+                    singleEntity[data] = singleEntity[data].split(",")
                 }
-            );
-
-            const programsData = programDocument.reduce((ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
-
-            let solutionsDocument = await database.models.solutions.find(
-                {
-                    externalId: { $in: entityCSVData.map(entity => entity.solutionId) }
-                },
-                {
-                    externalId: 1,
-                    subType: 1
-                }
-            );
-
-            const solutionsData = solutionsDocument.reduce((ac, solution) => ({
-                ...ac, [solution.externalId]: {
-                    subType: solution.subType,
-                    _id: solution._id
-                }
-            }), {})
-
-            //to update entity id in parent entity
-            let parentEntityDocument = await database.models.entity.find(
-                {
-                    "metaInformation.externalId": { $in: entityCSVData.map(entity => entity.parentEntityId) }
-                },
-                {
-                    _id: 1,
-                    groups: 1,
-                    "metaInformation.externalId": 1
-                }
-            );
-
-            const parentEntityData = parentEntityDocument.reduce((ac, entity) => ({
-                ...ac, [entity.metaInformation.externalId]: {
-                    _id: entity._id,
-                    groups: entity.groups
-                }
-            }), {})
-
-            let entityType = await database.models.entityTypes.findOne({ name: query.type }, { _id: 1 })
-
-            let arrayTypeFields = ["type", "questionGroup", "schoolTypes"];
-
-            let entityDocuments = [];
-
-            entityCSVData.forEach(singleEntity => {
-
-                Object.keys(singleEntity).forEach(data => {
-                    if (arrayTypeFields.includes(data)) {
-                        singleEntity[data] = singleEntity[data].split(",")
-                    }
-                })
-
-                let entityDocument = {
-                    "entityTypeId": entityType._id,
-                    "entityType": query.type,
-                    "regsitryDetails": {},
-                    "groups": {},
-                    "metaInformation": singleEntity,
-                    "updatedBy": userDetails.id,
-                    "createdBy": userDetails.id
-                }
-
-                entityDocuments.push(entityDocument);
-
             })
 
-            let entityData = await database.models.entity.create(
-                entityDocuments
-            );
+            singleEntity["solutionExternalId"] = singleEntity.solutionId;
 
-            //update entity id in parent entity
+            singleEntity["solutionId"] = solutionsData[singleEntity.solutionId]["_id"];
 
-            await Promise.all(entityData.map(async (entity) => {
+            singleEntity["programExternalId"] = singleEntity.programId;
 
-                let entityDataToBeUpdated = parentEntityData[entity.metaInformation.parentEntityId];
+            singleEntity["programId"] = programsData[singleEntity.programId]["_id"];
 
-                if (!entityDataToBeUpdated.groups[query.type]) entityDataToBeUpdated.groups[query.type] = [];
+            singleEntity["parentEntityExternalId"] = singleEntity.parentEntityId;
 
-                let indexOfEntity = entityDataToBeUpdated.groups[query.type].find(groupEntity => {
-                    return groupEntity.toString() == entity._id.toString();
-                })
+            singleEntity["parentEntityId"] = parentEntityData[singleEntity.parentEntityId]["_id"];
 
-                if (!indexOfEntity) {
+            let entityDocument = {
+                "entityTypeId": entityType._id,
+                "entityType": query.type,
+                "regsitryDetails": {},
+                "groups": {},
+                "metaInformation": singleEntity,
+                "updatedBy": userDetails.id,
+                "createdBy": userDetails.id
+            }
 
-                    entityDataToBeUpdated.groups[query.type].push(entity._id);
+            entityDocuments.push(entityDocument);
 
-                    await database.models.entity.findOneAndUpdate(
+        })
+
+        let entityData = await database.models.entity.create(
+            entityDocuments
+        );
+
+        let groupedEntityDataBySolutionId = _.groupBy(entityData, function (entityData) { return entityData.metaInformation.solutionId })
+
+        //update entities in solution based on solutions
+        Object.keys(groupedEntityDataBySolutionId).forEach(async (solutionId) => {
+
+            let entityIds = groupedEntityDataBySolutionId[solutionId].map(entity => entity._id);
+
+            await database.models.solutions.updateOne({ _id: ObjectId(solutionId) }, { $addToSet: { entities: { $each: entityIds } } })
+        })
+
+        //update entity id in parent entity
+
+        await Promise.all(entityData.map(async (entity) => {
+
+            let entityDataToBeUpdated = parentEntityData[entity.metaInformation.parentEntityExternalId];
+
+            if (!entityDataToBeUpdated.groups[query.type]) entityDataToBeUpdated.groups[query.type] = [];
+
+            let indexOfEntity = entityDataToBeUpdated.groups[query.type].find(groupEntity => {
+                return groupEntity.toString() == entity._id.toString();
+            })
+
+            if (!indexOfEntity) {
+
+                entityDataToBeUpdated.groups[query.type].push(entity._id);
+
+                await database.models.entity.findOneAndUpdate(
+                    {
+                        "metaInformation.externalId": entity.metaInformation.parentEntityExternalId
+                    },
+                    {
+                        $set: {
+                            groups: entityDataToBeUpdated.groups
+                        }
+                    });
+
+                if (solutionsData[entity.metaInformation.solutionExternalId].subType == "individual") {
+
+                    let entityAssessorsDocument = {}
+                    entityAssessorsDocument.programId = entity.metaInformation.programId;
+                    entityAssessorsDocument.assessmentStatus = "pending";
+                    entityAssessorsDocument.parentId = "";
+                    entityAssessorsDocument["entities"] = [entity._id];
+                    entityAssessorsDocument.solutionId = entity.metaInformation.solutionId;
+                    entityAssessorsDocument.role = entity.metaInformation.role;
+                    entityAssessorsDocument.userId = entity.metaInformation.userId;
+                    entityAssessorsDocument.externalId = entity.metaInformation.externalId;
+                    entityAssessorsDocument.name = entity.metaInformation.name;
+                    entityAssessorsDocument.email = entity.metaInformation.email;
+                    entityAssessorsDocument.createdBy = userDetails.id;
+                    entityAssessorsDocument.updatedBy = userDetails.id;
+                    await database.models.entityAssessors.findOneAndUpdate(
                         {
-                            "metaInformation.externalId": entity.metaInformation.parentEntityId
+                            userId: entityAssessorsDocument.userId,
+                            programId: entityAssessorsDocument.programId,
+                            solutionId: entityAssessorsDocument.solutionId
                         },
-                        {
-                            $set: {
-                                groups: entityDataToBeUpdated.groups
-                            }
-                        },
+                        entityAssessorsDocument,
                         {
                             upsert: true,
                             new: true,
                             setDefaultsOnInsert: true,
                             returnNewDocument: true
-                        });
-
-                    if (solutionsData[entity.metaInformation.solutionId].subType == "individual") {
-
-                        let entityAssessorsDocument = {}
-                        entityAssessorsDocument.programId = programsData[entity.metaInformation.programId];
-                        entityAssessorsDocument.assessmentStatus = "pending";
-                        entityAssessorsDocument.parentId = "";
-                        entityAssessorsDocument["entities"] = [entity._id];
-                        entityAssessorsDocument.solutionId = solutionsData[entity.metaInformation.solutionId]["_id"];
-                        entityAssessorsDocument.role = entity.metaInformation.role;
-                        entityAssessorsDocument.userId = entity.metaInformation.userId;
-                        entityAssessorsDocument.externalId = entity.metaInformation.externalId;
-                        entityAssessorsDocument.name = entity.metaInformation.name;
-                        entityAssessorsDocument.email = entity.metaInformation.email;
-                        entityAssessorsDocument.createdBy = userDetails.id;
-                        entityAssessorsDocument.updatedBy = userDetails.id;
-                        await database.models.entityAssessors.findOneAndUpdate(
-                            { userId: entityAssessorsDocument.userId },
-                            entityAssessorsDocument,
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true,
-                                returnNewDocument: true
-                            }
-                        );
-
-                    }
+                        }
+                    );
 
                 }
 
-            }))
-
-            if (entitiesUploadCount != entityData.length) {
-                throw "Some entity information was not inserted!"
             }
 
-            return;
-
-        } catch (error) {
-            throw error;
+        }))
+        if (entityCSVData.length != entityData.length) {
+            throw "Some entity information was not inserted!"
         }
-    }
-
-    async uploadForPortal(query, userDetails, files) {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                if (query.type != "school") throw "invalid type";
-
-                if (!files || !files.schools) throw { status: 400, message: "Bad Request." };
-
-                let schoolsData = await csv().fromString(
-                    files.schools.data.toString()
-                );
-
-                const schoolsUploadCount = schoolsData.length;
-
-                let programId = query.programId
-
-                if (!programId) throw "Program Id is missing";
-
-                let solutionId = query.solutionId
-
-                if (!solutionId) throw "Component Id is missing.";
-
-                // let programDocument = await database.models.programs.find({ _id: programId }).lean();
-
-                // if (!programDocument) throw "Bad request"
-
-                // let solutionDocument = await database.models.solutions.find({
-                //     _id: { $in: solutionId }
-                // }).lean();
-
-                // if (!solutionDocument) throw "Bad request";
-
-                // const programsData = programDocument.reduce(
-                //     (ac, program) => ({ ...ac, [program._id]: program }),
-                //     {}
-                // );
-
-                // const solutionsData = solutionDocument.reduce(
-                //     (ac, solution) => ({
-                //         ...ac,
-                //         [solution._id]: solution
-                //     }),
-                //     {}
-                // );
-
-                let entityType = await database.models.entityTypes.find({ "entityType": "school" }, { _id: 1 }).lean();
-
-                const schoolUploadedData = await Promise.all(
-                    schoolsData.map(async school => {
-                        school.schoolTypes = await school.schoolType.split(",");
-                        const schoolCreateObject = await database.models.entity.findOneAndUpdate(
-                            {
-                                "metaInformation.externalId": school.externalId,
-                                "entityType": "school"
-                            },
-                            {
-                                "entityTypeId": entityType._id,
-                                "entityType": "school",
-                                "regsitryDetails": {},
-                                "groups": {},
-                                "metaInformation": school,
-                                "updatedBy": userDetails.id,
-                                "createdBy": userDetails.id
-                            },
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true,
-                                returnNewDocument: true
-                            }
-                        );
-
-                        return {
-                            _id: schoolCreateObject._id,
-                            externalId: school.externalId,
-                            programId: programId,
-                            solutionId: solutionId
-                        };
-                    })
-                );
-
-                // if (schoolsUploadCount === schoolUploadedData.length) {
-                //     let schoolElement = new Object();
-                //     let programFrameworkSchools = new Array();
-                //     let schoolCsvDataProgramId;
-                //     let schoolCsvDataSolutionId;
-
-                //     for (
-                //         let schoolIndexInData = 0;
-                //         schoolIndexInData < schoolUploadedData.length;
-                //         schoolIndexInData++
-                //     ) {
-                //         schoolElement = schoolUploadedData[schoolIndexInData];
-
-                //         schoolCsvDataProgramId = programId;
-                //         schoolCsvDataSolutionId =
-                //             solutionId;
-                //         programFrameworkSchools =
-                //             solutionsData[solutionId].entities;
-                //         if (
-                //             programFrameworkSchools.findIndex(
-                //                 school => school.toString() == schoolElement._id.toString()
-                //             ) < 0
-                //         ) {
-                //             programFrameworkSchools.push(
-                //                 ObjectId(schoolElement._id.toString())
-                //             );
-                //         }
-                //     }
-
-                // await Promise.all(
-                //     Object.values(programsData).map(async program => {
-                //         let queryObject = {
-                //             _id: ObjectId(program._id.toString())
-                //         };
-                //         let updateObject = {};
-
-                //         updateObject.$set = {
-                //             ["components"]: program.components
-                //         };
-
-                //         await database.models.programs.findOneAndUpdate(
-                //             queryObject,
-                //             updateObject
-                //         );
-
-                //         return;
-                //     })
-                // );
-                // } else {
-                //     throw "Something went wrong, not all records were inserted/updated.";
-                // }
-
-                if (schoolsUploadCount != schoolUploadedData.length) throw "Something went wrong, not all records were inserted/updated.";
-
-                let responseMessage = "School record created successfully.";
-
-                let response = { message: responseMessage };
-
-                return resolve(response);
-            } catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || error || "Oops! Something went wrong!",
-                    errorObject: error
-                });
-            }
-        })
     }
 
 };

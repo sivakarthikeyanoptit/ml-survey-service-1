@@ -265,7 +265,7 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entity/uploadForPortal?type=:entityType&programId=:programId&solutionId=:solutionId Upload Entity Information CSV Using Portal
+* @api {post} /assessment/api/v1/entity/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV Using Portal
 * @apiGroup Entity
@@ -281,7 +281,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        result = await this.entityHelper.uploadForPortal(req.query,req.userDetails,req.files);
+        result = await this.entityHelper.upload(req.query,req.userDetails,req.files);
 
       } catch (error) {
 
@@ -293,7 +293,11 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      return resolve(result);
+      let responseMessage = "Information updated successfully."
+
+      let response = { message: responseMessage };
+
+      return resolve(response);
 
     })
   }
