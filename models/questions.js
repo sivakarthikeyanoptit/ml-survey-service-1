@@ -34,6 +34,9 @@ module.exports = {
     canBeNotApplicable: "String",
     instanceQuestionsString: "String",
     instanceQuestions: Array,
-    isAGeneralQuestion: Boolean
+    isAGeneralQuestion: Boolean,
+    dateFormat:String,
+    autoCapture:String,
+    rubricLevel: String
   }
 };
