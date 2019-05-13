@@ -37,6 +37,7 @@ module.exports = {
     isAGeneralQuestion: Boolean,
     dateFormat:String,
     autoCapture:String,
-    rubricLevel: String
+    rubricLevel: String,
+    sectionHeader: String
   }
 };
