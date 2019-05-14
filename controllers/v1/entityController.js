@@ -10,6 +10,59 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
+* @api {post} /assessment/api/v1/entity/add?type=:entityType Entity add
+* @apiVersion 0.0.1
+* @apiName Entity add
+* @apiGroup Entity
+* @apiParamExample {json} Request-Body:
+* {
+*	"data": [
+*       {
+*	        "studentName" : "",
+*	        "grade" : "",
+*	        "name" : "",
+*	        "gender" : "",
+*   		  "type": "",
+*  		    "typeLabel":"",
+* 		    "phone1": "Phone",
+* 		    "phone2": "",
+* 		    "address": "",
+*	        "schoolId" : "",
+*   		  "schoolName": "",
+*  		    "programId": ""
+*      },
+*	]
+*}
+* @apiUse successBody
+* @apiUse errorBody
+*/
+  add(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = await this.entityHelper.add(req.query.type, req.body.data, req.userDetails);
+
+        return resolve({
+          message: "Entity information added successfully.",
+          result: result
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+
+  /**
 * @api {get} /assessment/api/v1/entity/list/:entityId?type=:entityType Entity list
 * @apiVersion 0.0.1
 * @apiName Entity list
@@ -22,11 +75,14 @@ module.exports = class Entity extends Abstract {
   list(req) {
     return new Promise(async (resolve, reject) => {
 
-      let result;
-
       try {
 
-        result = await this.entityHelper.list(req.query, req.params);
+        let result = await this.entityHelper.list(req.query.type, req.params._id);
+
+        return resolve({
+          message: "Information fetched successfully.",
+          result: result
+        });
 
       } catch (error) {
 
@@ -38,10 +94,6 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      return resolve({
-        message: "Information fetched successfully.",
-        result: result
-      });
 
     })
   }
@@ -60,11 +112,14 @@ module.exports = class Entity extends Abstract {
   form(req) {
     return new Promise(async (resolve, reject) => {
 
-      let result;
-
       try {
 
-        result = await this.entityHelper.form(req.query);
+        let result = await this.entityHelper.form(req.query.type);
+
+        return resolve({
+          message: "Information fetched successfully.",
+          result: result
+        });
 
       } catch (error) {
 
@@ -75,11 +130,6 @@ module.exports = class Entity extends Abstract {
         })
 
       }
-      let responseMessage = "Information fetched successfully."
-
-      let response = { message: responseMessage, result: result };
-
-      return resolve(response);
 
     })
   }
@@ -97,11 +147,14 @@ module.exports = class Entity extends Abstract {
   fetch(req) {
     return new Promise(async (resolve, reject) => {
 
-      let result;
-
       try {
 
-        result = await this.entityHelper.fetch(req.query,req.params);
+        let result = await this.entityHelper.fetch(req.query.type, req.params._id);
+
+        return resolve({
+          message: "Information fetched successfully.",
+          result: result
+        });
 
       } catch (error) {
 
@@ -113,65 +166,6 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      let responseMessage = "Information fetched successfully."
-
-      let response = { message: responseMessage, result: result };
-
-      return resolve(response);
-
-    })
-  }
-
-
-  /**
-  * @api {post} /assessment/api/v1/entity/add?type=:entityType Entity add
-  * @apiVersion 0.0.1
-  * @apiName Entity add
-  * @apiGroup Entity
-  * @apiParamExample {json} Request-Body:
-  * {
-  *	"data": [
-  *       {
-  *	        "studentName" : "",
-  *	        "grade" : "",
-  *	        "name" : "",
-  *	        "gender" : "",
-  *   		  "type": "",
-  *  		    "typeLabel":"",
-  * 		    "phone1": "Phone",
-  * 		    "phone2": "",
-  * 		    "address": "",
-  *	        "schoolId" : "",
-  *   		  "schoolName": "",
-  *  		    "programId": ""
-  *      },
-  *	]
-  *}
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
-  add(req) {
-    return new Promise(async (resolve, reject) => {
-
-      let result;
-
-      try {
-
-        result = await this.entityHelper.add(req.body, req.query, req.userDetails);
-
-      } catch (error) {
-
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
-          errorObject: error
-        })
-
-      }
-
-      let responseMessage = "Entity information added successfully.";
-
-      return resolve({ message: responseMessage, result: result });
 
     })
   }
@@ -203,11 +197,14 @@ module.exports = class Entity extends Abstract {
   update(req) {
     return new Promise(async (resolve, reject) => {
 
-      let result;
-
       try {
 
-        result = await this.entityHelper.update(req.params, req.query, req.body);
+        let result = await this.entityHelper.update(req.query.type, req.params._id, req.body);
+
+        return resolve({
+          message: "Information updated successfully.",
+          result: result
+        });
 
       } catch (error) {
 
@@ -219,11 +216,6 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      let responseMessage = "Information updated successfully."
-
-      let response = { message: responseMessage, result: result };
-
-      return resolve(response);
 
     })
   }
@@ -243,7 +235,11 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        await this.entityHelper.upload(req.query,req.userDetails,req.files);
+        await this.entityHelper.upload(req.query.type, null, null, req.userDetails, req.files);
+
+        return resolve({
+          message: "Information updated successfully."
+        });
 
       } catch (error) {
 
@@ -255,11 +251,6 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      let responseMessage = "Information updated successfully."
-
-      let response = { message: responseMessage };
-
-      return resolve(response);
 
     })
   }
@@ -277,11 +268,13 @@ module.exports = class Entity extends Abstract {
   uploadForPortal(req) {
     return new Promise(async (resolve, reject) => {
 
-      let result;
-
       try {
 
-        result = await this.entityHelper.upload(req.query,req.userDetails,req.files);
+        await this.entityHelper.upload(req.query.type, req.query.programId, req.query.solutionId, req.userDetails, req.files);
+
+        return resolve({
+          message: "Information updated successfully."
+        });
 
       } catch (error) {
 
@@ -293,11 +286,6 @@ module.exports = class Entity extends Abstract {
 
       }
 
-      let responseMessage = "Information updated successfully."
-
-      let response = { message: responseMessage };
-
-      return resolve(response);
 
     })
   }

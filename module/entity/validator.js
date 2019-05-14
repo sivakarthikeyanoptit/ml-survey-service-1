@@ -1,6 +1,6 @@
 module.exports = (req) => {
 
-    let entitiesValidator = {
+    let entityValidator = {
 
         update: function () {
             req.checkQuery('type').exists().withMessage("required type")
@@ -52,6 +52,7 @@ module.exports = (req) => {
         },
         add: function () {
             req.checkQuery('type').exists().withMessage("required type")
+            req.checkBody('data').exists().withMessage("required data")
         //     if (req.query.type == "parent") {
         //         req.check('parents.*.studentName').exists().withMessage("invalid student name")
         //         req.check('parents.*.grade').exists().withMessage("invalid grade")
@@ -108,6 +109,6 @@ module.exports = (req) => {
 
     }
 
-    if (entitiesValidator[req.params.method]) entitiesValidator[req.params.method]();
+    if (entityValidator[req.params.method]) entityValidator[req.params.method]();
 
 };
