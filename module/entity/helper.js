@@ -26,17 +26,9 @@ module.exports = class entitiesHelper {
 
                 if (!entityType) throw "No entity type found for given params"
 
-                let arrayTypeFields = ["type", "questionGroup", "schoolTypes"];
-
                 let entityDocuments = [];
 
                 body.data.forEach(singleEntity => {
-
-                    Object.keys(singleEntity).forEach(data => {
-                        if (arrayTypeFields.includes(data)) {
-                            singleEntity[data] = singleEntity[data].split(",")
-                        }
-                    })
 
                     let entityDocument = {
                         "entityTypeId": entityType._id,
