@@ -51,31 +51,23 @@ module.exports = class entitiesHelper {
 
                 //update entity id in parent entity
 
-                await Promise.all(entityData.map(async (entity) => {
+                let groupedEntityDataByParentEntityId = _.groupBy(entityData, function (entityData) { return entityData.metaInformation.parentEntityId })
 
-                    let entityDataToBeUpdated = await database.models.entity.findOne({ _id: ObjectId(entity.metaInformation.parentEntityId) });
+                let parentIds = Object.keys(groupedEntityDataByParentEntityId)
 
-                    if (!entityDataToBeUpdated.groups[query.type]) entityDataToBeUpdated.groups[query.type] = [];
+                await Promise.all(parentIds.map(async (parentId) => {
 
-                    let indexOfEntity = entityDataToBeUpdated.groups[query.type].find(groupEntity => {
-                        return groupEntity.toString() == entity._id.toString();
-                    })
+                    let entityIds = groupedEntityDataByParentEntityId[parentId].map(entity => entity._id);
 
-                    if (!indexOfEntity) {
-
-                        entityDataToBeUpdated.groups[query.type].push(entity._id);
-
-                        await database.models.entity.findOneAndUpdate(
-                            {
-                                _id: ObjectId(entity.metaInformation.parentEntityId)
-                            },
-                            {
-                                $set: {
-                                    groups: entityDataToBeUpdated.groups
-                                }
-                            });
-
-                    }
+                    await database.models.entity.findOneAndUpdate(
+                        {
+                            "metaInformation.externalId": parentId
+                        },
+                        {
+                            $addToSet: {
+                                [`groups.${query.type}`]: { $each: entityIds }
+                            }
+                        });
 
                 }))
 
@@ -365,16 +357,22 @@ module.exports = class entitiesHelper {
             entityDocuments
         );
 
-        let groupedEntityDataBySolutionId = _.groupBy(entityData, function (entityData) { return entityData.metaInformation.solutionId })
+        let entityByUser = _.keyBy(entityData, function (entityData) { return entityData.metaInformation.userId })
 
-        //update entities in solution based on solutions
+        //update entity id in solutions
 
-        Object.keys(groupedEntityDataBySolutionId).forEach(async (solutionId) => {
+        let entityDataForSolutionsToBeMapped = entityData.filter(entity=> entity.metaInformation.addEntityToSolution === "true")
 
-            let entityIds = groupedEntityDataBySolutionId[solutionId].map(entity => entity._id);
-
-            await database.models.solutions.updateOne({ _id: ObjectId(solutionsData[solutionId]._id) }, { $addToSet: { entities: { $each: entityIds } } })
-        })
+        if(entityDataForSolutionsToBeMapped.length){
+            let groupedEntityDataBySolutionId = _.groupBy(entityDataForSolutionsToBeMapped, function (entityData) { return entityData.metaInformation.solutionId })
+    
+            Object.keys(groupedEntityDataBySolutionId).forEach(async (solutionId) => {
+    
+                let entityIds = groupedEntityDataBySolutionId[solutionId].map(entity => entity._id);
+    
+                await database.models.solutions.updateOne({ _id: ObjectId(solutionsData[solutionId]._id) }, { $addToSet: { entities: { $each: entityIds } } })
+            })
+        }
 
         //update entity id in parent entity
 
@@ -398,47 +396,49 @@ module.exports = class entitiesHelper {
 
         }))
 
-        let entityByUser = _.keyBy(entityData, function (entityData) { return entityData.metaInformation.userId })
-
         entityCSVData.forEach(async (entity) => {
 
             if (entity.createEntityAssessor && entity.createEntityAssessor === "true") {
 
-                let entityAssessorsDocument = {}
-                entityAssessorsDocument.programId = programsData[entity.programId];
-                entityAssessorsDocument.assessmentStatus = "pending";
-                entityAssessorsDocument.parentId = "";
-                entityAssessorsDocument["entities"] = entityByUser[entity.userId]._id;
-                entityAssessorsDocument.solutionId = solutionsData[entity.solutionId]._id;
-                entityAssessorsDocument.role = entity.role;
-                entityAssessorsDocument.userId = entity.userId;
-                entityAssessorsDocument.externalId = entity.externalId;
-                entityAssessorsDocument.name = entity.name;
-                entityAssessorsDocument.email = entity.email;
-                entityAssessorsDocument.createdBy = userDetails.id;
-                entityAssessorsDocument.updatedBy = userDetails.id;
-                await database.models.entityAssessors.findOneAndUpdate(
-                    {
-                        userId: entityAssessorsDocument.userId,
-                        programId: entityAssessorsDocument.programId,
-                        solutionId: entityAssessorsDocument.solutionId
-                    },
-                    entityAssessorsDocument,
-                    {
-                        upsert: true,
-                        new: true,
-                        setDefaultsOnInsert: true,
-                        returnNewDocument: true
-                    }
-                );
+                let entityDocument = entityData.find(entityDocument=>{
+                    return (entityDocument.metaInformation.userId == entity.userId && entityDocument.metaInformation.solutionId == entity.solutionId)
+                })
+
+                if(entityDocument){
+                    let entityAssessorsDocument = {}
+                    entityAssessorsDocument.programId = programsData[entity.programId];
+                    entityAssessorsDocument.assessmentStatus = "pending";
+                    entityAssessorsDocument.parentId = "";
+                    entityAssessorsDocument["entities"] = entityDocument._id;
+                    entityAssessorsDocument.solutionId = solutionsData[entity.solutionId]._id;
+                    entityAssessorsDocument.role = entity.role;
+                    entityAssessorsDocument.userId = entity.userId;
+                    entityAssessorsDocument.externalId = entity.externalId;
+                    entityAssessorsDocument.name = entity.name;
+                    entityAssessorsDocument.email = entity.email;
+                    entityAssessorsDocument.createdBy = userDetails.id;
+                    entityAssessorsDocument.updatedBy = userDetails.id;
+                    await database.models.entityAssessors.findOneAndUpdate(
+                        {
+                            userId: entityAssessorsDocument.userId,
+                            programId: entityAssessorsDocument.programId,
+                            solutionId: entityAssessorsDocument.solutionId
+                        },
+                        entityAssessorsDocument,
+                        {
+                            upsert: true,
+                            new: true,
+                            setDefaultsOnInsert: true,
+                            returnNewDocument: true
+                        }
+                    );
+                }
+
 
             }
 
         })
 
-        if (entityCSVData.length != entityData.length) {
-            throw "Some entity information was not inserted!"
-        }
     }
 
 };
