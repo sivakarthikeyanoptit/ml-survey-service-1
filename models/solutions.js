@@ -25,6 +25,7 @@ module.exports = {
     programExternalId: String,
     programName: String,
     programDescription: String,
+    entityProfileFieldsPerSchoolTypes : Object,
     startDate: Date,
     endDate: Date,
     status: String,
@@ -36,7 +37,6 @@ module.exports = {
     parentSolutionId : "ObjectId",
     noOfRatingLevels: Number,
     isRubricDriven: Boolean,
-    roles: Object,
-    schoolProfileFieldsPerSchoolTypes: Object
+    roles: Object
   }
 };
