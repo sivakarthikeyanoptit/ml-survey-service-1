@@ -12,7 +12,7 @@ module.exports = class Entity extends Abstract {
 * @api {post} /assessment/api/v1/entities/add?type=:entityType Entity add
 * @apiVersion 0.0.1
 * @apiName Entity add
-* @apiGroup Entity
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * {
 *	"data": [
@@ -65,7 +65,7 @@ module.exports = class Entity extends Abstract {
 * @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
 * @apiVersion 0.0.1
 * @apiName Entity list
-* @apiGroup Entity
+* @apiGroup Entities
 * @apiHeader {String} X-authenticated-user-token Authenticity token
 * @apiSampleRequest /assessment/api/v1/entities/list/5bfe53ea1d0c350d61b78d0a?type=parent
 * @apiUse successBody
@@ -102,7 +102,7 @@ module.exports = class Entity extends Abstract {
   * @api {get} /assessment/api/v1/entities/form?type=:entityType Entity form
   * @apiVersion 0.0.1
   * @apiName Entity form
-  * @apiGroup Entity
+  * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/entities/form?type=parent
   * @apiUse successBody
@@ -137,7 +137,7 @@ module.exports = class Entity extends Abstract {
   * @api {get} /assessment/api/v1/entities/fetch/:entityId?type=:entityType Entity profile
   * @apiVersion 0.0.1
   * @apiName Entity profile
-  * @apiGroup Entity
+  * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/entities/fetch/5bfe53ea1d0c350d61b78d0a?type=parent
   * @apiUse successBody
@@ -173,7 +173,7 @@ module.exports = class Entity extends Abstract {
 * @api {post} /assessment/api/v1/entities/update/:entityId?type=:entityType Update Entity Information
 * @apiVersion 0.0.1
 * @apiName Update Entity Information
-* @apiGroup Entity
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	{
 *	        "studentName" : "",
@@ -223,7 +223,7 @@ module.exports = class Entity extends Abstract {
 * @api {post} /assessment/api/v1/entities/upload?type=:entityType Upload Entity Information CSV
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV
-* @apiGroup Entity
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	Upload CSV
 * @apiUse successBody
@@ -258,7 +258,7 @@ module.exports = class Entity extends Abstract {
 * @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV Using Portal
-* @apiGroup Entity
+* @apiGroup Entities
 * @apiParamExample {json} Request-Body:
 * 	Upload CSV
 * @apiUse successBody
