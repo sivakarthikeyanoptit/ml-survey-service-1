@@ -354,7 +354,7 @@ module.exports = class entityHelper {
 
             //update entity id in parent entity
 
-            await this.mapEntitiesToParentEntity(entityData);
+            // await this.mapEntitiesToParentEntity(entityData);
 
             entityCSVData.forEach(async (entity) => {
 
