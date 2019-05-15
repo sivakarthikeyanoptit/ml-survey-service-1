@@ -2,7 +2,6 @@ const entityHelper = require(ROOT_PATH + "/module/entity/helper")
 module.exports = class Entity extends Abstract {
   constructor() {
     super(entitySchema);
-    this.entityHelper = new entityHelper();
   }
 
   static get name() {
@@ -41,7 +40,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        let result = await this.entityHelper.add(req.query.type, req.body.data, req.userDetails);
+        let result = await entityHelper.add(req.query.type, req.body.data, req.userDetails);
 
         return resolve({
           message: "Entity information added successfully.",
@@ -77,7 +76,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        let result = await this.entityHelper.list(req.query.type, req.params._id);
+        let result = await entityHelper.list(req.query.type, req.params._id);
 
         return resolve({
           message: "Information fetched successfully.",
@@ -114,7 +113,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        let result = await this.entityHelper.form(req.query.type);
+        let result = await entityHelper.form(req.query.type);
 
         return resolve({
           message: "Information fetched successfully.",
@@ -149,7 +148,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        let result = await this.entityHelper.fetch(req.query.type, req.params._id);
+        let result = await entityHelper.fetch(req.query.type, req.params._id);
 
         return resolve({
           message: "Information fetched successfully.",
@@ -199,7 +198,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        let result = await this.entityHelper.update(req.query.type, req.params._id, req.body);
+        let result = await entityHelper.update(req.query.type, req.params._id, req.body);
 
         return resolve({
           message: "Information updated successfully.",
@@ -235,7 +234,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        await this.entityHelper.upload(req.query.type, null, null, req.userDetails, req.files);
+        await entityHelper.upload(req.query.type, null, null, req.userDetails, req.files);
 
         return resolve({
           message: "Information updated successfully."
@@ -270,7 +269,7 @@ module.exports = class Entity extends Abstract {
 
       try {
 
-        await this.entityHelper.upload(req.query.type, req.query.programId, req.query.solutionId, req.userDetails, req.files);
+        await entityHelper.upload(req.query.type, req.query.programId, req.query.solutionId, req.userDetails, req.files);
 
         return resolve({
           message: "Information updated successfully."
