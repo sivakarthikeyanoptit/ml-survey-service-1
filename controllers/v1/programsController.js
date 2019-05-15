@@ -204,9 +204,9 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/userSchoolList/ Fetch School List
+  * @api {get} /assessment/api/v1/programs/userSchoolList/ Fetch User School List
   * @apiVersion 0.0.1
-  * @apiName Fetch School List 
+  * @apiName Fetch User School List 
   * @apiGroup Program
   * @apiParam {String} ProgramId Program ID.
   * @apiParam {String} Page Page.
@@ -318,7 +318,7 @@ module.exports = class Programs extends Abstract {
   /**
 * @api {get} /assessment/api/v1/programs/userList/ Fetch User List
 * @apiVersion 0.0.1
-* @apiName Fetch User List 
+* @apiName Fetch User School List 
 * @apiGroup Program
 * @apiParam {String} ProgramId Program ID.
 * @apiParam {String} Page Page.
@@ -426,9 +426,9 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/schoolBlocks/ Fetch User List
+  * @api {get} /assessment/api/v1/programs/schoolBlocks/ Fetch Zone
   * @apiVersion 0.0.1
-  * @apiName Fetch User List 
+  * @apiName Fetch Zone 
   * @apiGroup Program
   * @apiParam {String} ProgramId Program ID.
   * @apiParam {String} Page Page.
@@ -483,9 +483,9 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/blockSchools/ Fetch User List
+  * @api {get} /assessment/api/v1/programs/blockSchools/ Block schools
   * @apiVersion 0.0.1
-  * @apiName Fetch User List 
+  * @apiName Block schools 
   * @apiGroup Program
   * @apiParam {String} ProgramId Program ID.
   * @apiParam {String} Page Page.
