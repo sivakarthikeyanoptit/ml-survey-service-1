@@ -1,7 +1,7 @@
 const csv = require("csvtojson");
 const entityAssessorsHelper = require("../entityAssessor/helper")
 
-module.exports = class entityHelper {
+module.exports = class entitiesHelper {
 
     static add(entityType, data, userDetails) {
         return new Promise(async (resolve, reject) => {
