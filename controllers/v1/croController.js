@@ -125,6 +125,12 @@ module.exports = class Cro {
                             assessor.schoolDocuments.forEach(assessorSchool => {
                                 programDocument[0].assessments[0].schools.push(assessorSchool)
                             })
+                            let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].findOne(
+                                { _id: programDocument[0].assessments[0].id },
+                                { name: 1, description: 1}
+                            ).lean();
+                            programDocument[0].assessments[0].name = evaluationFrameworkDocument.name
+                            programDocument[0].assessments[0].description = evaluationFrameworkDocument.description
                             programs.push(programDocument[0])
                         }
         
