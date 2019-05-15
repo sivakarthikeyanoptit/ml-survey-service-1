@@ -2304,7 +2304,7 @@ async generateSubmissionReportsBySchoolId(req) {
           schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
           schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
           schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
-          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('MM-DD-YYYY');
+          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('DD-MM-YYYY');
           input.push(schoolProfileObject);
 
           if (input.readableBuffer && input.readableBuffer.length) {
