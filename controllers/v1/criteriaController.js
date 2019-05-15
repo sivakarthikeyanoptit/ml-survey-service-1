@@ -1439,7 +1439,16 @@ module.exports = class Criteria extends Abstract {
             )
             }
 
-          let criteriaEvidences = criteriaObject[parsedQuestion["criteriaExternalId"]].evidences
+          let newCriteria = await database.models.criterias.findOne(
+            {
+              _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
+            },
+            {
+              evidences : 1
+            }
+          )
+          
+          let criteriaEvidences = newCriteria.evidences
           let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
 
           if (indexOfEvidenceMethodInCriteria < 0) {
