@@ -19,6 +19,10 @@ function camelCaseToTitleCase(in_camelCaseString) {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
+function lowerCase(str){
+  return str.toLowerCase()
+}
+
 function checkIfStringIsUrl(str) {
   var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
@@ -114,13 +118,25 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
+function valueParser(dataToBeParsed){
+  
+  let parsedData = {}
+
+  Object.keys(dataToBeParsed).forEach(eachDataToBeParsed=>{
+    parsedData[eachDataToBeParsed] = dataToBeParsed[eachDataToBeParsed].trim()
+  })
+  return parsedData
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
+  lowerCase:lowerCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   mapUserRole: mapUserRole,
+  valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
   getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
 };

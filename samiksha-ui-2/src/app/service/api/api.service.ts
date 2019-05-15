@@ -11,7 +11,7 @@ export class ApiService {
   api: any;
 
   constructor(private auth: AuthService, private http: HttpClient) {
-    this.host = environment.apiHost + environment.apiBaseEndpoint+ "api/v1";
+    this.host = environment.apiHost;
     this.api = {
       createCriteria: { uri: this.host + "/criterias/insert", method: "post" },
       getCriteriaAndQuestion: {
@@ -33,7 +33,7 @@ export class ApiService {
     var self = this;
     return new Promise((resolve, reject) => {
       this.auth.validateApiToken().then(tokens => {
-        console.log(tokens);
+        //console.log(tokens);
         let options = {
           headers: { "x-authenticated-user-token": tokens.accessToken }
         };

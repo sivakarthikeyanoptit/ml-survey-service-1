@@ -1,5 +1,5 @@
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-module.exports = class Entity extends Abstract {
+module.exports = class Entities extends Abstract {
   constructor() {
     super(entitiesSchema);
   }

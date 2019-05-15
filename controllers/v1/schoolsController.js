@@ -707,7 +707,8 @@ module.exports = class Schools extends Abstract {
       questionArrayElm[1]["payload"] = {
         criteriaId: questionArrayElm[1]["criteriaId"],
         responseType: questionArrayElm[1]["responseType"],
-        evidenceMethod: questionArrayElm[1].evidenceMethod
+        evidenceMethod: questionArrayElm[1].evidenceMethod,
+        rubricLevel: (questionArrayElm[1]["rubricLevel"]) ? questionArrayElm[1]["rubricLevel"] : ""
       }
       questionArrayElm[1]["startTime"] = ""
       questionArrayElm[1]["endTime"] = ""

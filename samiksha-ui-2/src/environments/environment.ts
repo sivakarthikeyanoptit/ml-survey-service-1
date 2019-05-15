@@ -2,11 +2,20 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+// export const environment = {
+//   production: false,
+//   baseUrl: "assessment/web2/",
+//   // apiHost: "http://localhost:4201",
+//   apiHost: "https://staginghome.shikshalokam.org/",
+//   keycloakBaseUrl:"https://dev.shikshalokam.org",
+//   apiBaseEndpoint: "assessment/web2/"
+// };
+
 export const environment = {
-  production: false,
+  production: true,
   baseUrl: "assessment/web2/",
-  apiHost: "http://localhost:4201",
-  apiBaseEndpoint: "/assessment/"
+  apiHost: "https://staginghome.shikshalokam.org/slss-assessment-service/api/v1",
+  keycloakBaseUrl:"https://staging.shikshalokam.org",
 };
 
 /*
