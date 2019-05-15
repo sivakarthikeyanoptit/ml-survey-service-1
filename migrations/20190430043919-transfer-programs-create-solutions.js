@@ -129,7 +129,12 @@ module.exports = {
         evaluationFrameworkDocument[0].entityType = (programs[programsCounter].components[0].entities && programs[programsCounter].components[0].entities.length > 0) ? teacherEntity[0].name : schoolEntity[0].name
 
         evaluationFrameworkDocument[0].type = "assessment"
-        evaluationFrameworkDocument[0].subType = (programs[programsCounter].components[0].entities && programs[programsCounter].components[0].entities.length > 0) ? "individual" : "institutional"
+        if(programs[programsCounter].components[0].subType) {
+          evaluationFrameworkDocument[0].subType = programs[programsCounter].components[0].subType
+        } else {
+          evaluationFrameworkDocument[0].subType = (programs[programsCounter].components[0].entities && programs[programsCounter].components[0].entities.length > 0) ? "individual" : "institutional"
+        }
+        
         evaluationFrameworkDocument[0].entities = (programs[programsCounter].components[0].entities && programs[programsCounter].components[0].entities.length > 0) ? programs[programsCounter].components[0].entities : programs[programsCounter].components[0].schools
         evaluationFrameworkDocument[0].roles = (programs[programsCounter].components[0].roles) ? programs[programsCounter].components[0].roles : ""
         evaluationFrameworkDocument[0].schoolProfileFieldsPerSchoolTypes = (programs[programsCounter].components[0].schoolProfileFieldsPerSchoolTypes) ? programs[programsCounter].components[0].schoolProfileFieldsPerSchoolTypes : ""

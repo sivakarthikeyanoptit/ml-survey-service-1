@@ -1,5 +1,17 @@
 module.exports = class AppAccessToken extends Abstract {
     
+    /**
+     * @apiDefine errorBody
+     * @apiError {String} status 4XX,5XX
+     * @apiError {String} message Error
+     */
+
+    /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
+
     constructor() {
         super(appAccessTokenSchema);
     }
@@ -7,6 +19,23 @@ module.exports = class AppAccessToken extends Abstract {
     static get name() {
         return "appAccessToken";
     }
+
+    /**
+    * @api {post} /assessment/api/v1/appAccessToken/verify App access token verify
+    * @apiVersion 0.0.1
+    * @apiName App access token verify
+    * @apiGroup appAccessToken
+    * @apiParamExample {json} Request-Body:
+    * 
+    *   {
+    *       "passcode" : "123123123"
+    *   }
+    *
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/appAccessToken/verify
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     verify(req) {
 
@@ -25,7 +54,7 @@ module.exports = class AppAccessToken extends Abstract {
                 let result = {}
 
                 if (tokenData) {
-                    result = _.pick(tokenData,["action","schoolId","evidenceCollectionMethod","successMessage"])
+                    result = _.pick(tokenData,["action","entityId","evidenceCollectionMethod","successMessage","programId","solutionId"])
                 } else {
                     throw "Bad Request"
                 }
@@ -57,6 +86,34 @@ module.exports = class AppAccessToken extends Abstract {
 
     }
 
+    /**
+    * @api {post} /assessment/api/v1/appAccessToken/create App access token create
+    * @apiVersion 0.0.1
+    * @apiName App access token create
+    * @apiGroup appAccessToken
+    * @apiParamExample {json} Request-Body:
+    * 
+    *   { 
+    *       "userId" : "e97b5582-471c-4649-8401-3cc4249359bb",
+    *       "userExternalId": "a1@shikshalokamdev",
+    *       "entityField" : "name",
+    *       "entityFieldValue" : "St.Ramjas Convent School, Plot No.342, Vill Bhalswa, Delhi",
+    *       "programId": "PROGID01",
+    *       "action" : [ 
+    *           "enableAutoSubmission"
+    *       ],
+    *       "evidenceCollectionMethod" : "BL",
+    *       "successMessage" : "Book Look will now be automatically submitted",
+    *       "reference": "Seva desk 160",
+    *       "requestedBy": "Bachi"   
+    *   }
+    *
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/appAccessToken/create
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
     create(req){
 
         return new Promise(async (resolve,reject)=>{
@@ -65,14 +122,23 @@ module.exports = class AppAccessToken extends Abstract {
 
                 let token = req.body;
 
-                let schoolDocument = await database.models.schools.findOne({externalId:token.schoolId},{_id:1});
+                let solutionDocument = await database.models.solutions.findOne({programExternalId:token.programId},{_id:1, entities : 1});
 
-                let programDocument = await database.models.programs.findOne({externalId:token.programId},{_id:1});
+                let entity = await database.models.entities.findOne({
+                    _id : {
+                        $in : solutionDocument.entities
+                    },
+                    [token.entityField]: token.entityFieldValue
+                },{
+                    _id:1
+                });
 
-                token.schoolExternalId = token.schoolId;
-                token.programExternalId = token.programId;
-                token.schoolId = schoolDocument._id;
-                token.programId = programDocument._id;
+                token.entityId = entity._id;
+                
+                token.solutionExternalId = solutionDocument.externalId;
+                token.solutionId = solutionDocument._id;
+                token.programExternalId = solutionDocument.programExternalId;
+                token.programId = solutionDocument.programId;
                 token.passcode = gen.utils.generateRandomCharacters(10);
                 token.createdBy = req.userDetails.userId
 

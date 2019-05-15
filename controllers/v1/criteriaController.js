@@ -508,8 +508,8 @@ module.exports = class Criteria extends Abstract {
         let questionCollection = {}
         let questionIds = new Array
         
-        let evaluationFrameWorkDocument = await database.models.evaluationFrameworks.findOne({ externalId: questionData[0]["evaluationFrameworkId"] },{"evidenceMethods":1,"sections":1,"themes":1}).lean();
-        let criteriasIdArray = gen.utils.getCriteriaIds(evaluationFrameWorkDocument.themes);
+        let solutionDocument = await database.models.solutions.findOne({ externalId: questionData[0]["solutionId"] },{"evidenceMethods":1,"sections":1,"themes":1}).lean();
+        let criteriasIdArray = gen.utils.getCriteriaIds(solutionDocument.themes);
         let criteriasArray = new Array;
 
         criteriasIdArray.forEach(eachCriteriaIdArray=>{
@@ -580,10 +580,10 @@ module.exports = class Criteria extends Abstract {
           let criteria = {}
           let ecm = {}
 
-          ecm[parsedQuestion["evidenceMethod"]] = evaluationFrameWorkDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
+          ecm[parsedQuestion["evidenceMethod"]] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
           criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
 
-          let section = evaluationFrameWorkDocument.sections[parsedQuestion.section]
+          let section = solutionDocument.sections[parsedQuestion.section]
 
           if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
             
