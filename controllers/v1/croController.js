@@ -125,7 +125,7 @@ module.exports = class Cro {
                             assessor.schoolDocuments.forEach(assessorSchool => {
                                 programDocument[0].assessments[0].schools.push(assessorSchool)
                             })
-                            programs.push(programDocument)
+                            programs.push(programDocument[0])
                         }
         
                     }
