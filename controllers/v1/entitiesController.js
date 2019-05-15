@@ -1,15 +1,15 @@
-const entityHelper = require(ROOT_PATH + "/module/entity/helper")
+const entityHelper = require(ROOT_PATH + "/module/entities/helper")
 module.exports = class Entity extends Abstract {
   constructor() {
-    super(entitySchema);
+    super(entitiesSchema);
   }
 
   static get name() {
-    return "entity";
+    return "entities";
   }
 
   /**
-* @api {post} /assessment/api/v1/entity/add?type=:entityType Entity add
+* @api {post} /assessment/api/v1/entities/add?type=:entityType Entity add
 * @apiVersion 0.0.1
 * @apiName Entity add
 * @apiGroup Entity
@@ -62,12 +62,12 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/entity/list/:entityId?type=:entityType Entity list
+* @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
 * @apiVersion 0.0.1
 * @apiName Entity list
 * @apiGroup Entity
 * @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/entity/list/5bfe53ea1d0c350d61b78d0a?type=parent
+* @apiSampleRequest /assessment/api/v1/entities/list/5bfe53ea1d0c350d61b78d0a?type=parent
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -99,12 +99,12 @@ module.exports = class Entity extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/entity/form?type=:entityType Entity form
+  * @api {get} /assessment/api/v1/entities/form?type=:entityType Entity form
   * @apiVersion 0.0.1
   * @apiName Entity form
   * @apiGroup Entity
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/entity/form?type=parent
+  * @apiSampleRequest /assessment/api/v1/entities/form?type=parent
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -134,12 +134,12 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/entity/fetch/:entityId?type=:entityType Entity profile
+  * @api {get} /assessment/api/v1/entities/fetch/:entityId?type=:entityType Entity profile
   * @apiVersion 0.0.1
   * @apiName Entity profile
   * @apiGroup Entity
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/entity/fetch/5bfe53ea1d0c350d61b78d0a?type=parent
+  * @apiSampleRequest /assessment/api/v1/entities/fetch/5bfe53ea1d0c350d61b78d0a?type=parent
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -170,7 +170,7 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entity/update/:entityId?type=:entityType Update Entity Information
+* @api {post} /assessment/api/v1/entities/update/:entityId?type=:entityType Update Entity Information
 * @apiVersion 0.0.1
 * @apiName Update Entity Information
 * @apiGroup Entity
@@ -220,7 +220,7 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entity/upload?type=:entityType Upload Entity Information CSV
+* @api {post} /assessment/api/v1/entities/upload?type=:entityType Upload Entity Information CSV
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV
 * @apiGroup Entity
@@ -255,7 +255,7 @@ module.exports = class Entity extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entity/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
+* @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
 * @apiVersion 0.0.1
 * @apiName Upload Entity Information CSV Using Portal
 * @apiGroup Entity

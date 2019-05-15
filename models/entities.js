@@ -1,5 +1,5 @@
 module.exports = {
-    name: "entity",
+    name: "entities",
     schema: {
       entityTypeId: "ObjectId",
       entityType: String,

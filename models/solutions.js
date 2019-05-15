@@ -12,7 +12,6 @@ module.exports = {
     keywords: Array,
     concepts: Array,
     createdFor: Array,
-    roles: Object,
     scoringSystem : String,
     levelToScoreMapping : Object,
     themes: Array,

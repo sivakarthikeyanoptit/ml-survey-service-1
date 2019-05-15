@@ -25,7 +25,7 @@ module.exports = class entityHelper {
 
                 })
 
-                let entityData = await database.models.entity.create(
+                let entityData = await database.models.entities.create(
                     entityDocuments
                 );
 
@@ -52,11 +52,11 @@ module.exports = class entityHelper {
                 let queryObject = { _id: ObjectId(entityId) };
                 let projectObject = { [`groups.${entityType}`]: 1 };
 
-                let result = await database.models.entity.findOne(queryObject, projectObject).lean();
+                let result = await database.models.entities.findOne(queryObject, projectObject).lean();
 
                 let entityIds = result.groups[entityType];
 
-                let entityData = await database.models.entity.find({ _id: { $in: entityIds } }, {
+                let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
                     metaInformation: 1
                 }).lean();
 
@@ -113,7 +113,7 @@ module.exports = class entityHelper {
                 let entityInformation;
 
                 if (entityId) {
-                    entityInformation = await database.models.entity.findOne(
+                    entityInformation = await database.models.entities.findOne(
                         { _id: ObjectId(entityId), entityType: entityType }, { metaInformation: 1 }
                     );
 
@@ -146,7 +146,7 @@ module.exports = class entityHelper {
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityType, entityId, data);
                 } else {
-                    entityInformation = await database.models.entity.findOneAndUpdate(
+                    entityInformation = await database.models.entities.findOneAndUpdate(
                         { _id: ObjectId(entityId), entityType: entityType },
                         { metaInformation: data },
                         { new: true }
@@ -165,7 +165,7 @@ module.exports = class entityHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                const parentDocument = await database.models.entity.findOne(
+                const parentDocument = await database.models.entities.findOne(
                     { _id: ObjectId(entityId), entityType: entityType }, { "metaInformation.callResponse": 1 }
                 );
 
@@ -181,7 +181,7 @@ module.exports = class entityHelper {
 
                 if (typeof (data.createdByProgramId) == "string") data.createdByProgramId = ObjectId(data.createdByProgramId);
 
-                let parentInformation = await database.models.entity.findOneAndUpdate(
+                let parentInformation = await database.models.entities.findOneAndUpdate(
                     { _id: ObjectId(entityId) },
                     { metaInformation: data },
                     { new: true }
@@ -289,7 +289,7 @@ module.exports = class entityHelper {
 
             let parentExternalIds = entityCSVData.map(entity => entity.parentEntityId);
 
-            let parentEntityDocument = await database.models.entity.find(
+            let parentEntityDocument = await database.models.entities.find(
                 {
                     "metaInformation.externalId": { $in: parentExternalIds }
                 },
@@ -332,7 +332,7 @@ module.exports = class entityHelper {
 
             })
 
-            let entityData = await database.models.entity.create(
+            let entityData = await database.models.entities.create(
                 entityDocuments
             );
 
@@ -366,6 +366,7 @@ module.exports = class entityHelper {
 
                     if (entityDocument) {
                         // createEntityAssessor(programId, solutionId, entityId, entity, userDetails) - for understanding purpose.
+                        entity.role = "ASSESSOR";
                         await entityAssessorsHelper.createEntityAssessor(programsData[entity.programId], solutionsData[entity.solutionId]._id, entityDocument._id, entity, userDetails);
                     }
 
@@ -381,7 +382,7 @@ module.exports = class entityHelper {
         return new Promise(async (resolve, reject) => {
             await Promise.all(entityData.map(async (entity) => {
 
-                await database.models.entity.findOneAndUpdate(
+                await database.models.entities.findOneAndUpdate(
                     {
                         _id: ObjectId(entity.metaInformation.parentEntityId),
                         "metaInformation.createdByProgramId": entity.metaInformation.createdByProgramId
