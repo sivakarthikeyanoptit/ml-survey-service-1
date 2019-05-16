@@ -330,11 +330,11 @@ module.exports = class Criterias extends Abstract {
   * },
   * "children": [],
   * "fileName": [],
-  * "showRemarks": Boolean,
-  * "isCompleted": Boolean,
+  * "showRemarks"
+  * "isCompleted"
   * "remarks": "",
   * "value": "",
-  * "canBeNotApplicable": Boolean,
+  * "canBeNotApplicable"
   * "notApplicable": "",
   * "usedForScoring": "",
   * "modeOfCollection": "",
@@ -1266,6 +1266,7 @@ module.exports = class Criterias extends Abstract {
     let csvArray = new Array
 
     return new Promise(async(resolve,reject)=>{
+      let questionDataModel = this.questionModelsData()
 
         let includeFieldByDefault = {
           "remarks" : "",
@@ -1275,6 +1276,8 @@ module.exports = class Criterias extends Abstract {
           "deleted" : false,
           "canBeNotApplicable" : "false"
         }
+
+        let fieldNotIncluded = ["name","instanceIdentifier","dateFormat","autoCapture","isAGeneralQuestion"]
         
         let resultQuestion
 
@@ -1311,8 +1314,6 @@ module.exports = class Criterias extends Abstract {
           allValues.question.push(
             parsedQuestion["question0"],
             parsedQuestion["question1"])
-
-          allValues["rubricLevel"] = parsedQuestion["rubricLevel"]?parsedQuestion["rubricLevel"]:""
           
           allValues["isAGeneralQuestion"] = Boolean(gen.utils.lowerCase(parsedQuestion["isAGeneralQuestion"]?parsedQuestion["isAGeneralQuestion"]:""))
 
@@ -1393,6 +1394,11 @@ module.exports = class Criterias extends Abstract {
             }
           }
     
+          Object.keys(parsedQuestion).forEach(parsedQuestionData=>{
+            if(!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)){
+              allValues[parsedQuestionData] = parsedQuestion[parsedQuestionData]
+            }
+          })
           let createQuestion = await database.models.questions.create(
             allValues
           )
@@ -1492,6 +1498,10 @@ module.exports = class Criterias extends Abstract {
       })
       
     })
+  }
+
+  questionModelsData(){
+    return Object.keys(questionsSchema.schema)
   }
  
 };
