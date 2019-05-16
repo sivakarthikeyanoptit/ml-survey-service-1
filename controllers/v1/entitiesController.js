@@ -63,15 +63,16 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
-* @apiVersion 0.0.1
-* @apiName Entity list
-* @apiGroup Entities
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/entities/list/5bfe53ea1d0c350d61b78d0a?type=parent
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
+  * @apiVersion 0.0.1
+  * @apiName Entity list
+  * @apiGroup Entities
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/entities/list/5bfe53ea1d0c350d61b78d0a?type=parent
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+ 
   list(req) {
     return new Promise(async (resolve, reject) => {
 
