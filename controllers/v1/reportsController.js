@@ -182,7 +182,7 @@ module.exports = class Reports {
         }
 
         const programQueryParams = {
-          externalId: req.params._id
+          externalId: req.params._id  
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
@@ -193,7 +193,7 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.entityAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
@@ -231,32 +231,32 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
-                  from: "schools",
-                  localField: "schoolIdInObjectIdForm",
+                  from: "entities",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
 
                 }
               }
             ];
 
-            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorentity => {
                 input.push({
                   "Assessor Id": assessor.externalId,
                   "Assessor UserId": assessor.userId,
-                  "Parent Id": assessor.parentId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
                   "Assessor Role": assessor.role,
                   "Program Id": req.params._id,
-                  "School Id": eachAssessorSchool.externalId,
-                  "School Name": eachAssessorSchool.name
+                  "Entity Id": eachAssessorentity.metaInformation.externalId,
+                  "Entity Name": eachAssessorentity.metaInformation.name
                 });
               })
             }))
