@@ -53,7 +53,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          ["programInformation.externalId"]: req.params._id
+          ["programExternalId"]: req.params._id
         }
 
         if (!req.params._id) {
@@ -105,11 +105,11 @@ module.exports = class Reports {
                 }
               },
               {
-                "schoolInformation.externalId": 1,
-                "schoolInformation.name": 1,
+                "entityInformation.externalId": 1,
+                "entityInformation.name": 1,
                 "programInformation.name": 1,
                 "programInformation.externalId": 1,
-                "schoolId": 1,
+                "entityId": 1,
                 "programId": 1,
                 "status": 1,
                 "evidencesStatus.isSubmitted": 1,
@@ -121,11 +121,11 @@ module.exports = class Reports {
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
-              if (eachSubmissionDocument.schoolInformation) {
-                result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
-                result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+              if (eachSubmissionDocument.entityInformation) {
+                result["School Id"] = eachSubmissionDocument.entityInformation.externalId;
+                result["School Name"] = eachSubmissionDocument.entityInformation.name;
               } else {
-                result["School Id"] = eachSubmissionDocument.schoolId;
+                result["School Id"] = eachSubmissionDocument.entityId;
               }
 
               if (eachSubmissionDocument.programInformation) {
@@ -231,7 +231,7 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$schools" } },
               {
                 $lookup: {
                   from: "schools",
@@ -612,7 +612,7 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
+                "entityInformation.name": 1,
                 "schoolInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
