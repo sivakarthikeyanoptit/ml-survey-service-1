@@ -4,9 +4,10 @@ module.exports = {
       userId: String,
       passcode: String,
       entityId: "ObjectId",
-      programId: String,
+      programId: "ObjectId",
       userExternalId: String,
-      entityExternalId: String,
+      entityField: String,
+      entityFieldValue: String,
       programExternalId: String,
       passcode: String,
       action: Array,
@@ -17,6 +18,7 @@ module.exports = {
       createdBy: String,
       requestedBy: String,
       successMessage: String,
+      solutionId: "ObjectId",
+      solutionExternalId: String
     }
   };
-  
