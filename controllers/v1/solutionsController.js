@@ -1,5 +1,17 @@
 module.exports = class Solutions extends Abstract {
 
+    /**
+        * @apiDefine errorBody
+        * @apiError {String} status 4XX,5XX
+        * @apiError {String} message Error
+        */
+
+    /**
+        * @apiDefine successBody
+        *  @apiSuccess {String} status 200
+        * @apiSuccess {String} result Data
+        */
+       
     constructor() {
       super(solutionsSchema);
     }
@@ -11,7 +23,7 @@ module.exports = class Solutions extends Abstract {
     /**
     * @api {get} /assessment/api/v1/solutions/details/:solutionInternalId
     * @apiVersion 0.0.1
-    * @apiName Framework + Rubric Details of a Solution
+    * @apiName Framework & Rubric Details of a Solution
     * @apiGroup Solutions
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/solutions/details/5b98fa069f664f7e1ae7498c
