@@ -21,7 +21,7 @@ module.exports = class Solutions extends Abstract {
     }
 
     /**
-    * @api {get} /assessment/api/v1/solutions/details/:solutionInternalId
+    * @api {get} /assessment/api/v1/solutions/details/:solutionInternalId Framework & Rubric Details
     * @apiVersion 0.0.1
     * @apiName Framework & Rubric Details of a Solution
     * @apiGroup Solutions
