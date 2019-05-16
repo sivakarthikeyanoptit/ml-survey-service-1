@@ -163,15 +163,9 @@ module.exports = class Criteria extends Abstract {
     })
   }
 
-
-  find(req) {
-    return super.find(req);
-  }
-
   async getEvidence(req) {
     let criteria = await this.getCriterias(req);
-    // log.debug(criteria);
-    // return criteria;
+
     return new Promise(async function (resolve, reject) {
       let merged = {},
         query = [],
@@ -182,15 +176,13 @@ module.exports = class Criteria extends Abstract {
       });
 
       let criterias = await database.models.criterias.find({ $or: query });
-      // log.debug(criterias);
-      // if (Array.isArray(criterias)) {
+
 
       await _.forEachRight(criterias, async function (crit, i) {
         await crit.evidences.forEach(async function (evidence, i) {
           if (!merged[evidence.externalId]) {
             merged[evidence.externalId] = evidence;
           } else {
-            log.debug("Already Done");
             merged[evidence.externalId] = Object.assign(
               merged[evidence.externalId],
               evidence
@@ -199,37 +191,13 @@ module.exports = class Criteria extends Abstract {
               _.forEachRight(
                 merged[evidence.externalId].sections,
                 (Msection, mi2) => {
-                  log.debug(
-                    merged[evidence.externalId].sections.length,
-                    evidence.sections.length
-                  );
+
                   if (Msection.name == section.name) {
-                    log.debug(
-                      Msection.name,
-                      "-----matched------>",
-                      section.name
-                    );
-                    // log.debug(
-                    //   merged[evidence.externalId].sections[mi2],
-                    //   section
-                    // );
 
                     merged[evidence.externalId].sections[mi2].questions.concat(
                       section.questions
                     );
-                    log.debug(
-                      evidence.externalId,
-                      "######################################333",
-                      merged[evidence.externalId].sections[mi2].questions,
-                      "######################################",
-                      section.questions
-                    );
-                  } else {
-                    log.debug(
-                      Msection.name,
-                      "-----not matched------>",
-                      section.name
-                    );
+
                   }
                 }
               );
@@ -237,21 +205,20 @@ module.exports = class Criteria extends Abstract {
           }
         });
       });
-      // }
 
       return resolve(Object.values(merged));
     });
   }
 
   /**
-* @api {get} /assessment/api/v1/criterias/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
-* @apiVersion 0.0.1
-* @apiName Get Criterias Parent Ques And Instance Parent Ques
-* @apiGroup criterias
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/criterias/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
+  * @apiVersion 0.0.1
+  * @apiName Get Criterias Parent Ques And Instance Parent Ques
+  * @apiGroup criterias
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async getCriteriasParentQuesAndInstParentQues(req) {
     return new Promise(async function (resolve, reject) {
@@ -261,6 +228,7 @@ module.exports = class Criteria extends Abstract {
       const questionQueryObject = {
         //responseType: "matrix"
       }
+
       let questionQueryResult = await database.models[
         "questions"
       ].find(questionQueryObject);
@@ -493,7 +461,8 @@ module.exports = class Criteria extends Abstract {
   uploadQuestion(req){
 
     return new Promise(async (resolve,reject)=>{
-      try{
+      
+      try {
 
         if (!req.files || !req.files.questions) {
           let responseMessage = "Bad request.";
@@ -533,6 +502,7 @@ module.exports = class Criteria extends Abstract {
           if (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionIds.includes(parsedQuestion["instanceParentQuestionId"])) { 
             questionIds.push(parsedQuestion["instanceParentQuestionId"]) 
           }
+
         })
        
         let criteriaDocument = await database.models.criterias.find({
@@ -559,7 +529,7 @@ module.exports = class Criteria extends Abstract {
           })
         }
 
-        const fileName = `upload question`;
+        const fileName = `Question-Upload-Result`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -616,12 +586,15 @@ module.exports = class Criteria extends Abstract {
               questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
             }
             input.push(resultFromCreateQuestions.total[0])
+
           }
+
         }
 
-        if(pendingItems){
+        if(pendingItems) {
 
-          for(let pointerToPendingData = 0;pointerToPendingData<pendingItems.length;pointerToPendingData++){
+          for(let pointerToPendingData = 0;pointerToPendingData<pendingItems.length;pointerToPendingData++) {
+            
             let question = {}
             let eachPendingItem = gen.utils.valueParser(pendingItems[pointerToPendingData])
             
@@ -640,6 +613,7 @@ module.exports = class Criteria extends Abstract {
             
             input.push(csvQuestionData.total[0])
           }
+
         }
         
         input.push(null)
@@ -651,6 +625,7 @@ module.exports = class Criteria extends Abstract {
       }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
     })
+
   }
 
   getEvidenceObjectsForDCPCR() {
@@ -934,6 +909,7 @@ module.exports = class Criteria extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
+
         let criteriaData = await csv().fromString(req.files.criteria.data.toString());
 
         let programQueryList = {}
@@ -1036,22 +1012,15 @@ module.exports = class Criteria extends Abstract {
           counter < programsData[programId].components.length;
           counter++
         ) {
-          let component = programsData[programId].components[counter];
 
-          let evaluationFrameworkQueryObject = [
-            { $match: { _id: ObjectId(component.id) } },
-            {
-              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
-            }
-          ];
-
-          let evaluationFrameworkDocument = await database.models[
-            "evaluationFrameworks"
-          ].aggregate(evaluationFrameworkQueryObject);
+          let solutionDocument = await database.models.solutions.findOne(
+            { _id: programsData[programId].components[counter] },
+            { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
+          );
 
           let criteriasId = new Array
           let criteriaObject = {}
-          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(evaluationFrameworkDocument[0].themes);
+          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
           criteriasIdArray.forEach(eachCriteriaId=>{
             criteriasId.push(eachCriteriaId.criteriaId)
@@ -1282,7 +1251,7 @@ module.exports = class Criteria extends Abstract {
         
         if (questionCollection && questionCollection[parsedQuestion["externalId"]]) {
           csvResult["internal id"] = "Question already exists"
-        } else{
+        } else {
     
           let allValues = {}
 
@@ -1295,9 +1264,9 @@ module.exports = class Criteria extends Abstract {
 
           let evidenceMethod = parsedQuestion["evidenceMethod"]
 
-          if(parsedQuestion["hasAParentQuestion"] !== "YES"){
+          if(parsedQuestion["hasAParentQuestion"] !== "YES") {
             allValues.visibleIf = ""
-          }else{
+          } else {
 
             let operator = parsedQuestion["parentQuestionOperator"]="EQUALS"?parsedQuestion["parentQuestionOperator"] = "===":parsedQuestion["parentQuestionOperator"]
             
@@ -1306,11 +1275,13 @@ module.exports = class Criteria extends Abstract {
               value:parsedQuestion.parentQuestionValue,
               _id:questionCollection[parsedQuestion["parentQuestionId"]]._id
             })
+
           }
     
           allValues.question.push(
             parsedQuestion["question0"],
-            parsedQuestion["question1"])
+            parsedQuestion["question1"]
+          )
 
           allValues["rubricLevel"] = parsedQuestion["rubricLevel"]?parsedQuestion["rubricLevel"]:""
           
@@ -1339,27 +1310,24 @@ module.exports = class Criteria extends Abstract {
               
               if(parsedQuestion["validationRegex"] == "IsNumber"){
                   allValues["validation"]["regex"] = "^[0-9s]*$"
-              }else{
-                  allValues["validation"]["regex"] = "^[A-Z]*$"
               }
               
             }
 
-            if(parsedQuestion["responseType"] == "slider"){
-               if(parsedQuestion["validationRegex"] == "IsNumber"){
+            if(parsedQuestion["responseType"] == "slider") {
+               if(parsedQuestion["validationRegex"] == "IsNumber") {
                   allValues["validation"]["regex"] = "^[0-9s]*$"
-                }else{
-                  allValues["validation"]["regex"] = "^[A-Z]*$"
                 }
               allValues["validation"]["validationMax"] = parsedQuestion.validationMax
               allValues["validation"]["validationMin"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
             }
+
           }
 
           allValues["fileName"] = []
           allValues["file"] = {}
 
-          if(parsedQuestion["file"] != "NA"){
+          if(parsedQuestion["file"] != "NA") {
         
             allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
             allValues.file["type"] = new Array
@@ -1423,73 +1391,76 @@ module.exports = class Criteria extends Abstract {
 
             if (parsedQuestion["instanceParentQuestionId"] != "NA") {
 
-            let queryInstanceParentQuestionObject = {
-              _id: questionCollection[parsedQuestion["instanceParentQuestionId"]]._id
+              let queryInstanceParentQuestionObject = {
+                _id: questionCollection[parsedQuestion["instanceParentQuestionId"]]._id
+              }
+
+              let updateInstanceParentQuestionObject = {}
+
+              updateInstanceParentQuestionObject.$push = {
+                ["instanceQuestions"]: createQuestion._id
+              }
+
+              await database.models.questions.findOneAndUpdate(
+                queryInstanceParentQuestionObject,
+                updateInstanceParentQuestionObject
+              )
+
             }
 
-            let updateInstanceParentQuestionObject = {}
-
-            updateInstanceParentQuestionObject.$push = {
-              ["instanceQuestions"]: createQuestion._id
-            }
-
-            await database.models.questions.findOneAndUpdate(
-              queryInstanceParentQuestionObject,
-              updateInstanceParentQuestionObject
+            let newCriteria = await database.models.criterias.findOne(
+              {
+                _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
+              },
+              {
+                evidences : 1
+              }
             )
-            }
-
-          let newCriteria = await database.models.criterias.findOne(
-            {
-              _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
-            },
-            {
-              evidences : 1
-            }
-          )
           
-          let criteriaEvidences = newCriteria.evidences
-          let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
+            let criteriaEvidences = newCriteria.evidences
+            let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
 
-          if (indexOfEvidenceMethodInCriteria < 0) {
-            evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
-            criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
-            indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+            if (indexOfEvidenceMethodInCriteria < 0) {
+              evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
+              criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
+              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+            }
+
+            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+      
+            if (indexOfSectionInEvidenceMethod < 0) {
+              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
+              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+            }
+
+            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+
+            let queryCriteriaObject = {
+              externalId: parsedQuestion["criteriaExternalId"]
+            }
+
+            let updateCriteriaObject = {}
+            updateCriteriaObject.$set = {
+              ["evidences"]: criteriaEvidences
+            }
+
+            await database.models.criterias.findOneAndUpdate(
+              queryCriteriaObject,
+              updateCriteriaObject
+            )
+
           }
 
-          let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
-    
-          if (indexOfSectionInEvidenceMethod < 0) {
-          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
-          indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
-          }
-
-          criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
-
-          let queryCriteriaObject = {
-          externalId: parsedQuestion["criteriaExternalId"]
-          }
-
-          let updateCriteriaObject = {}
-          updateCriteriaObject.$set = {
-            ["evidences"]: criteriaEvidences
-          }
-
-          await database.models.criterias.findOneAndUpdate(
-            queryCriteriaObject,
-            updateCriteriaObject
-          )
-          }
         }
 
-      csvResult["Question External Id"] = parsedQuestion["externalId"]
-      csvResult["Question Name"] = parsedQuestion["question0"]
-      csvArray.push(csvResult)
+        csvResult["Question External Id"] = parsedQuestion["externalId"]
+        csvResult["Question Name"] = parsedQuestion["question0"]
+        csvArray.push(csvResult)
 
-      return resolve({
-        total:csvArray,
-        result:resultQuestion
-      })
+        return resolve({
+          total:csvArray,
+          result:resultQuestion
+        })
       
     })
   }
