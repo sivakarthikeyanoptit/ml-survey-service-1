@@ -1,13 +1,13 @@
 const csv = require("csvtojson");
 
 module.exports = class Questions extends Abstract {
-  constructor() {
-    super(questionsSchema);
-  }
+    constructor() {
+      super(questionsSchema);
+    }
 
-  static get name() {
-    return "questions";
-  }
+    static get name() {
+      return "questions";
+    }
 
 
     /**
