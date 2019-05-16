@@ -612,7 +612,7 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation  .name": 1,
+                "schoolInformation.name": 1,
                 "schoolInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
