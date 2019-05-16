@@ -438,7 +438,7 @@ module.exports = class Submission extends Abstract {
 
         let updateEntityObject = {}
 
-        updateSchoolObject.$set = {}
+        updateEntityObject.$set = {}
 
         let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == parentInterviewEvidenceMethod);
 
@@ -553,7 +553,7 @@ module.exports = class Submission extends Abstract {
             "metaInformation.isParentInterviewCompleted" : true
           }
 
-          schoolUpdatedDocument = await database.models.entities.findOneAndUpdate(
+          entityUpdatedDocument = await database.models.entities.findOneAndUpdate(
             entityQueryObject,
             updateEntityObject,
             {}
@@ -963,7 +963,7 @@ module.exports = class Submission extends Abstract {
         }
 
         if(!entityId) {
-          throw "School Id is not found"
+          throw "Entity Id is not found"
         }
 
         let queryObject = {
@@ -973,7 +973,7 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { "answers": 1, "criterias": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile" : 1 , "programExternalId": 1 }
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile" : 1 , "programExternalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1957,13 +1957,13 @@ module.exports = class Submission extends Abstract {
           questionCodeIds.push(eachsubmissionUpdateData.questionCode)
         })
 
-        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
-          externalId: submissionUpdateData[0].evaluationFrameworkId
+        let solutionData = await database.models.solutions.findOne({
+          externalId: submissionUpdateData[0].solutionId
         }, { themes: 1 }).lean()
 
-        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
+        let criteriaIds = gen.utils.getCriteriaIds(solutionData.themes);
 
-        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
+        let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
         let questionIds = gen.utils.getAllQuestionId(allCriteriaDocument)
 
         let questionDocument = await database.models.questions.find({
@@ -1995,7 +1995,7 @@ module.exports = class Submission extends Abstract {
         const chunkOfsubmissionUpdateData = _.chunk(submissionUpdateData, 10)
 
         const skipQuestionTypes = ["matrix"]
-        let schoolHistoryUpdatedArray = []
+        let entityHistoryUpdatedArray = []
 
         for (let pointerTosubmissionUpdateData = 0; pointerTosubmissionUpdateData < chunkOfsubmissionUpdateData.length; pointerTosubmissionUpdateData++) {
 
@@ -2024,7 +2024,7 @@ module.exports = class Submission extends Abstract {
               let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
 
               let findQuery = {
-                schoolExternalId: eachQuestionRow.schoolId,
+                entityExternalId: eachQuestionRow.schoolId,
                 programExternalId: eachQuestionRow.programId,
                 [ecmByCsv]: { $exists: true },
                 [answers]: { $exists: true },
@@ -2050,8 +2050,8 @@ module.exports = class Submission extends Abstract {
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
                   }
                 }
-                if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
-                  schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
+                if (!entityHistoryUpdatedArray.includes(eachQuestionRow.entityId)) {
+                  entityHistoryUpdatedArray.push(eachQuestionRow.entityId)
                   csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
                   updateQuery["$addToSet"] = { "submissionsUpdatedHistory": csvUpdateHistory }
                 }
@@ -2090,18 +2090,18 @@ module.exports = class Submission extends Abstract {
           throw "Program id is missing"
         }
 
-        let schoolId = req.query.schoolId
+        let entityId = req.query.entityId
         let ecmToBeReset = req.query.ecm
         let evidencesToBeReset = "evidences." +ecmToBeReset
         let submissionUpdated=new Array
 
-          if (!schoolId) {
-          throw "School id is missing"
+        if (!entityId) {
+          throw "Entity id is missing"
         }
 
         let findQuery = {
           programExternalId:programId,
-          schoolExternalId:schoolId,
+          entityExternalId:entityId,
           [evidencesToBeReset]:{$ne:null},
           "evidencesStatus.externalId":req.query.ecm
         }
