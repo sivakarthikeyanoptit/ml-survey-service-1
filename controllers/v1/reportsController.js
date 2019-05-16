@@ -250,13 +250,13 @@ module.exports = class Reports {
                 input.push({
                   "Assessor Id": assessor.externalId,
                   "Assessor UserId": assessor.userId,
-                  "Parent Id": assessor.parentId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
                   "Assessor Role": assessor.role,
                   "Program Id": req.params._id,
-                  "School Id": eachAssessorSchool.externalId,
-                  "School Name": eachAssessorSchool.name
+                  "School Id": eachAssessorSchool.metaInformation.externalId,
+                  "School Name": eachAssessorSchool.metaInformation.name
                 });
               })
             }))
