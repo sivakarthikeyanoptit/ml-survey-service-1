@@ -15,7 +15,6 @@ module.exports = {
     remarks: "String",
     visibleIf: Object,
     createdBy: "String",
-    cro:String,
     // createdDate: { type: Date, default: Date.now },
     updatedBy: "String",
     // updatedDate: { type: Date, default: Date.now },
