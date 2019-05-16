@@ -1,4 +1,6 @@
 const moment = require("moment-timezone");
+const insightsHelper = require(ROOT_PATH + "/module/insights/helper")
+
 module.exports = class Insights extends Abstract {
   /**
      * @apiDefine errorBody
@@ -22,14 +24,14 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/insights/generateFromSubmissionId/:submissionId Generates insights from submission
-* @apiVersion 0.0.1
-* @apiName Generate Insights From Submissions
-* @apiSampleRequest /assessment/api/v1/insights/generateFromSubmissionId/5c5147ae95743c5718445eff
-* @apiGroup insights
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/insights/generateFromSubmissionId/:submissionId Generates insights from submission
+  * @apiVersion 0.0.1
+  * @apiName Generate Insights From Submissions
+  * @apiSampleRequest /assessment/api/v1/insights/generateFromSubmissionId/5c5147ae95743c5718445eff
+  * @apiGroup Insights
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async generateFromSubmissionId(req) {
     return new Promise(async (resolve, reject) => {
@@ -42,7 +44,7 @@ module.exports = class Insights extends Abstract {
 
         if(!submissionId) throw "Submission ID is mandatory."
 
-        let response = await this.generate(submissionId)
+        let response = await insightsHelper.generate(submissionId)
 
         return resolve(response);
 
@@ -57,198 +59,13 @@ module.exports = class Insights extends Abstract {
     })
   }
 
-  async generate(submissionId = false) {
-
-    try {
-
-      if(!submissionId) throw "Submission ID is mandatory."
-
-      let submissionsQueryObject = {
-        _id: submissionId,
-        ratingCompletedAt : {$exists : true}
-      }
-
-      let submissionsProjectionObject = {
-        schoolId: 1,
-        programId: 1,
-        "criterias.name": 1,
-        "criterias.score": 1,
-        "criterias._id": 1,
-        schoolExternalId: 1,
-        "schoolInformation.name" : 1,
-        programExternalId: 1,
-        createdAt: 1,
-        completedDate: 1,
-        ratingCompletedAt : 1,
-        evaluationFrameworkId: 1,
-        evaluationFrameworkExternalId: 1
-      }
-
-      let submissionDocument = await database.models.submissions.findOne(
-        submissionsQueryObject,
-        submissionsProjectionObject
-      ).lean();
-      
-      if(!submissionDocument._id) throw "No submission found"
-
-      let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne(
-        {_id : submissionDocument.evaluationFrameworkId},
-        {themes : 1, scoringSystem : 1, levelToScoreMapping : 1}
-      );
-
-      if(!evaluationFrameworkDocument._id) throw "No evaluation framework document found."
-      
-      let criteriaScore = _.keyBy(submissionDocument.criterias, '_id')
-
-      let scoreThemes =  function (themes,levelToScoreMapping,criteriaScore,hierarchyLevel = 0,hierarchyTrack = [],themeScores = [],criteriaScores = []) {
-        
-        themes.forEach(theme => {
-          if (theme.children) {
-            theme.hierarchyLevel = hierarchyLevel
-            theme.hierarchyTrack = hierarchyTrack
-
-            let hierarchyTrackToUpdate = [...hierarchyTrack]
-            hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
-
-            scoreThemes(theme.children,levelToScoreMapping,criteriaScore,hierarchyLevel+1,hierarchyTrackToUpdate,themeScores,criteriaScores)
-            let themeScore = 0
-            let criteriaLevelCount = {}
-            for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
-            let criteriaScoreNotAvailable = false
-
-            theme.children.forEach(subTheme => {
-              if(subTheme.score == "NA") {
-                criteriaScoreNotAvailable = true
-              } else {
-                if(subTheme.score) {
-                  themeScore += (subTheme.weightage * subTheme.score / 100 )
-                }
-                if(subTheme.criteriaLevelCount) {
-                  Object.keys(subTheme.criteriaLevelCount).forEach(level => {
-                    criteriaLevelCount[level] += subTheme.criteriaLevelCount[level]
-                  })
-                }
-              }
-            })
-            theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
-            theme.criteriaLevelCount = criteriaLevelCount
-
-            themeScores.push(_.omit(theme,["children"]))
-          } else {
-
-            theme.hierarchyLevel = hierarchyLevel
-            theme.hierarchyTrack = hierarchyTrack
-
-            let hierarchyTrackToUpdate = [...hierarchyTrack]
-            hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
-
-            let criteriaScoreArray = new Array
-            let themeScore = 0
-            let criteriaLevelCount = {}
-            for(var k in levelToScoreMapping) criteriaLevelCount[k]=0;
-            let criteriaScoreNotAvailable = false
-            theme.criteria.forEach(criteria => {
-              if(criteriaScore[criteria.criteriaId.toString()]) {
-                criteriaScoreArray.push({
-                  name : criteriaScore[criteria.criteriaId.toString()].name,
-                  level : criteriaScore[criteria.criteriaId.toString()].score,
-                  score : levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score] ? levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score].points : "NA",
-                  weight : criteria.weightage,
-                  hierarchyLevel : hierarchyLevel+1,
-                  hierarchyTrack : hierarchyTrackToUpdate
-                })
-                if(criteriaScoreArray[criteriaScoreArray.length - 1].score == "NA") {
-                  criteriaScoreNotAvailable = true
-                } else {
-                  themeScore += (criteria.weightage * levelToScoreMapping[criteriaScore[criteria.criteriaId.toString()].score].points / 100 )
-                  criteriaLevelCount[criteriaScore[criteria.criteriaId.toString()].score] += 1
-                }
-              }
-            })
-            theme.criteria = criteriaScoreArray
-            theme.score = (!criteriaScoreNotAvailable) ? themeScore.toFixed(2) : "NA"
-            theme.criteriaLevelCount = criteriaLevelCount
-
-            criteriaScores.push(...criteriaScoreArray)
-            themeScores.push(_.omit(theme,["criteria"]))
-          }
-        })
-
-        return {
-          themeScores : themeScores,
-          criteriaScores: criteriaScores
-        }
-      }
-
-      let themeAndCriteriaScores = scoreThemes(evaluationFrameworkDocument.themes,evaluationFrameworkDocument.levelToScoreMapping,criteriaScore,0,[])
-      _.merge(submissionDocument,themeAndCriteriaScores)
-
-      submissionDocument.submissionId = submissionDocument._id
-      submissionDocument.schoolName = submissionDocument.schoolInformation.name
-      _.merge(submissionDocument, _.omit(evaluationFrameworkDocument,["themes"]))
-
-      let score = 0
-      let criteriaLevelCount = {}
-      for(var k in evaluationFrameworkDocument.levelToScoreMapping) criteriaLevelCount[k]=0;
-      let criteriaScoreNotAvailable = false
-
-      evaluationFrameworkDocument.themes.forEach(theme => {
-        if(theme.score == "NA") {
-          criteriaScoreNotAvailable = true
-        } else {
-          if(theme.score) {
-            score += (theme.weightage * theme.score / 100 )
-          }
-          if(theme.criteriaLevelCount) {
-            Object.keys(theme.criteriaLevelCount).forEach(level => {
-              criteriaLevelCount[level] += theme.criteriaLevelCount[level]
-            })
-          }
-        }
-      })
-      
-      submissionDocument.score = (!criteriaScoreNotAvailable) ? score.toFixed(2) : "NA"
-      submissionDocument.criteriaLevelCount = criteriaLevelCount
-
-      submissionDocument.submissionStartedAt = submissionDocument.createdAt
-      submissionDocument.submissionCompletedAt = submissionDocument.completedDate
-
-      delete submissionDocument.createdAt
-      delete submissionDocument._id
-      delete submissionDocument.updatedAt
-
-      let insightsDocument = await database.models.insights.findOneAndUpdate(
-        {submissionId : submissionDocument.submissionId},
-        _.pick(submissionDocument,Object.keys(database.models.insights.schema.paths)),
-        {
-          upsert: true,
-          setDefaultsOnInsert: true,
-          returnNewDocument: true
-        }
-      );
-
-      return {
-        message : "Insights generated successfully."
-      };
-
-
-    } catch (error) {
-      return {
-        status: 500,
-        message: "Oops! Something went wrong!",
-        errorObject: error
-      }
-
-    }
-
-  }
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:schoolId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:entityId Return insights for a entity
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityDrillDownReport/5c5147ae95743c5718445eff
-  * @apiGroup insights
+  * @apiGroup Insights
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -261,19 +78,19 @@ module.exports = class Insights extends Abstract {
         req.body = req.body || {};
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
-        let schoolId = (req && req.query && req.query.school) ? req.query.school : ""
+        let entityId = (req && req.query && req.query.entity) ? req.query.entity : ""
 
         if(!programId) throw "Program ID is mandatory."
-        if(schoolId == "") throw "School ID is mandatory."
+        if(entityId == "") throw "Entity ID is mandatory."
 
         let insights = await database.models.insights.findOne(
           {
             programExternalId : programId,
-            schoolId : ObjectId(schoolId)
+            entityId : ObjectId(entityId)
           }
         );
 
-        if(!insights) throw "No insights found for this school"
+        if(!insights) throw "No insights found for this entity"
 
         let insightResult = {}
 
@@ -320,12 +137,12 @@ module.exports = class Insights extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance report for - "+insights.schoolName;
+        responseObject.heading = "Performance report for - "+insights.entityName;
         responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             title: "Name of Entity",
-            value: insights.schoolName
+            value: insights.entityName
           },
           {
             title:"Date of Assessment",
@@ -333,9 +150,9 @@ module.exports = class Insights extends Abstract {
           }
         ]
 
-        responseObject.frameworkUrl = {
-          label:"Framework Structure + rubric defintion",
-          link: "evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+        responseObject.solutionUrl = {
+          label:"Solution Framework Structure + rubric defintion",
+          link: "solutions/details/"+insights.solutionId.toString()
         }
 
         responseObject.sections = new Array
@@ -368,9 +185,9 @@ module.exports = class Insights extends Abstract {
 
             let sectionHeading = (hierarchyLevel > 0) ? parentThemeType + " - " + parentThemeName : "" 
             let graphTitle = (hierarchyLevel > 0) ? "Performance in " + parentThemeName : "Performance by "+subThemeLabel
-            let graphSubTitle = (hierarchyLevel > 0) ? "Performance of school in sub categories of "+parentThemeName : "Performance of school acorss "+ subThemeLabel + " in the school development framework" 
+            let graphSubTitle = (hierarchyLevel > 0) ? "Performance of entity in sub categories of "+parentThemeName : "Performance of entity acorss "+ subThemeLabel + " in the entity development framework" 
 
-            let graphHAxisTitle = (hierarchyLevel > 0) ?  "Categories within  "+parentThemeName : subThemeLabel+" in the school development framework"
+            let graphHAxisTitle = (hierarchyLevel > 0) ?  "Categories within  "+parentThemeName : subThemeLabel+" in the entity development framework"
 
             let eachSubSection = {
               table: true,
@@ -443,7 +260,7 @@ module.exports = class Insights extends Abstract {
             summaryTableData.push(tableSummaryTotal)
             summaryTableData.push(tableSummaryPercentage)
             
-            let summaryTableSectionHeading = (hierarchyLevel > 0) ? "Performance report for " +insights.schoolName + " for each " : "Performance Report for " + insights.schoolName + " by "
+            let summaryTableSectionHeading = (hierarchyLevel > 0) ? "Performance report for " +insights.entityName + " for each " : "Performance Report for " + insights.entityName + " by "
 
             let eachSummarySection = {
               table: true,
@@ -563,10 +380,10 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:schoolId Return high level insights for a school
+  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:entityId Return high level insights for a entity
   * @apiVersion 0.0.1
   * @apiName Fetch High Level Insights For Entity
-  * @apiSampleRequest /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?school=5c5147ae95743c5718445eff
+  * @apiSampleRequest /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?entity=5c5147ae95743c5718445eff
   * @apiGroup insights
   * @apiUse successBody
   * @apiUse errorBody
@@ -580,19 +397,19 @@ module.exports = class Insights extends Abstract {
         req.body = req.body || {};
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
-        let schoolId = (req && req.query && req.query.school) ? req.query.school : ""
+        let entityId = (req && req.query && req.query.entity) ? req.query.entity : ""
 
         if(!programId) throw "Program ID is mandatory."
-        if(schoolId == "") throw "School ID is mandatory."
+        if(entityId == "") throw "Entity ID is mandatory."
 
         let insights = await database.models.insights.findOne(
           {
             programExternalId : programId,
-            schoolId : ObjectId(schoolId)
+            entityId : ObjectId(entityId)
           }
         );
 
-        if(!insights) throw "No insights found for this school"
+        if(!insights) throw "No insights found for this entity"
 
         let insightResult = {}
         let hierarchyLevel = 0
@@ -624,12 +441,12 @@ module.exports = class Insights extends Abstract {
         }
 
         let responseObject = {}
-        responseObject.heading = insights.schoolName+" - (Performance across domains)";
+        responseObject.heading = insights.entityName+" - (Performance across domains)";
         responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
             title: "Name of Entity",
-            value: insights.schoolName
+            value: insights.entityName
           },
           {
             title:"Date of Assessment",
@@ -637,9 +454,9 @@ module.exports = class Insights extends Abstract {
           }
         ]
 
-        responseObject.frameworkUrl = {
-          label:"Framework Structure + rubric defintion",
-          link: "evaluationFrameworks/details/"+insights.evaluationFrameworkId.toString()
+        responseObject.solutionUrl = {
+          label:"Solution Framework Structure + rubric defintion",
+          link: "solutions/details/"+insights.solutionId.toString()
         }
 
         responseObject.sections = new Array
@@ -884,11 +701,11 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Return insights for a entity
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityHighLevelReport/5c5147ae95743c5718445eff
-  * @apiGroup insights
+  * @apiGroup Insights
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -901,28 +718,28 @@ module.exports = class Insights extends Abstract {
         req.body = req.body || {};
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
-        let schoolIdArray = (req && req.query && req.query.school) ? req.query.school.split(",") : []
+        let entityIdArray = (req && req.query && req.query.entity) ? req.query.entity.split(",") : []
         let blockName = (req && req.query && req.query.blockName) ? req.query.blockName : ""
 
         if(!programId) throw "Program ID is mandatory."
-        if(!(schoolIdArray.length > 0)) throw "School ID is mandatory."
+        if(!(entityIdArray.length > 0)) throw "Entity ID is mandatory."
 
         let insights = await database.models.insights.find(
           {
             programExternalId : programId,
-            schoolId : { $in: schoolIdArray }
+            entityId : { $in: entityIdArray }
           },
           {
-            schoolId : 1,
+            entityId : 1,
             themeScores : 1,
             criteriaScores : 1,
             programId: 1,
             levelToScoreMapping : 1,
-            evaluationFrameworkId: 1
+            solutionId: 1
           }
         );
 
-        if(!insights) throw "No insights found for given schools"
+        if(!insights) throw "No insights found for given entities"
         
         let insightResult = {}
         insights[0].themeScores.forEach(theme => {
@@ -950,7 +767,7 @@ module.exports = class Insights extends Abstract {
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance Summary for all School in "+blockName;
+        responseObject.heading = "Performance Summary for all entities in "+blockName;
         responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
@@ -958,7 +775,7 @@ module.exports = class Insights extends Abstract {
             value: blockName
           },
           {
-            label : "Total number of schools",
+            label : "Total number of entities",
             value: insights.length
           },
           {
@@ -966,11 +783,11 @@ module.exports = class Insights extends Abstract {
             value: moment().format('DD-MM-YYYY')
           }
         ]
-        responseObject.subTitle = "Categorization of schools at different level - %"
+        responseObject.subTitle = "Categorization of entities at different level - %"
 
-        responseObject.frameworkUrl = {
-          label:"Framework Structure + rubric defintion",
-          link: "evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+        responseObject.solutionUrl = {
+          label:"Solution Framework Structure + rubric defintion",
+          link: "solutions/details/"+insights[0].solutionId.toString()
         }
 
         responseObject.sections = new Array
@@ -996,17 +813,17 @@ module.exports = class Insights extends Abstract {
             heading: themeName,
             graphData: {
               title: 'Block performance report',
-              subTitle: 'Perfomance of schools in a block across core standards',
+              subTitle: 'Perfomance of entities in a block across core standards',
               chartType: 'BarChart',
               chartOptions: {
                 is3D: true,
                 isStacked: true,
                 vAxis: {
-                  title: 'Core standards of school improvement',
+                  title: 'Core standards of entity improvement',
                   minValue: 0
                 },
                 hAxis: {
-                  title: 'Percentage of Schools',
+                  title: 'Percentage of Entities',
                   showTextEvery: 1
                 }
               }
@@ -1046,7 +863,7 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Return insights for a school
+  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Return insights for a entities
   * @apiVersion 0.0.1
   * @apiName Generate Insights From Submissions
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityDrillDownReport/5c5147ae95743c5718445eff
@@ -1063,45 +880,45 @@ module.exports = class Insights extends Abstract {
         req.body = req.body || {};
 
         let programId = (req && req.params && req.params._id) ? req.params._id : false
-        let schoolIdArray = (req && req.query && req.query.school) ? req.query.school.split(",") : []
+        let entityIdArray = (req && req.query && req.query.entity) ? req.query.entity.split(",") : []
         let blockName = (req && req.query && req.query.blockName) ? req.query.blockName : ""
 
         if(!programId) throw "Program ID is mandatory."
-        if(!(schoolIdArray.length > 0)) throw "School ID is mandatory."
+        if(!(entityIdArray.length > 0)) throw "Entity ID is mandatory."
 
         let insights = await database.models.insights.find(
           {
             programExternalId : programId,
-            schoolId : { $in: schoolIdArray }
+            entityId : { $in: entityIdArray }
           },
           {
-            schoolId : 1,
-            schoolName : 1,
+            entityId : 1,
+            entityName : 1,
             themeScores : 1,
             criteriaScores : 1,
             programId: 1,
             levelToScoreMapping : 1,
-            evaluationFrameworkId: 1
+            solutionId: 1
           }
         );
 
-        if(!insights) throw "No insights found for given schools"
+        if(!insights) throw "No insights found for given entities"
         
         let insightResult = {}
         insights[0].themeScores.forEach(theme => {
           if(theme.hierarchyLevel == 0) {
-              (!insightResult[theme.name]) ? insightResult[theme.name] = {name: theme.name,schools: {}} : ""
+              (!insightResult[theme.name]) ? insightResult[theme.name] = {name: theme.name,entities: {}} : ""
               if(!insightResult[theme.name]) {
                 insightResult[theme.name] = {
                   name: theme.name,
-                  schools: {}
+                  entities: {}
                 }
               }
           }
         })
 
         let responseObject = {}
-        responseObject.heading = "Performance Summary for all School in "+blockName;
+        responseObject.heading = "Performance Summary for all Entities in "+blockName;
         responseObject.isShareable = (req.query && req.query.linkId) ? false : true;
         responseObject.summary = [
           {
@@ -1109,7 +926,7 @@ module.exports = class Insights extends Abstract {
             value: blockName
           },
           {
-            label : "Total number of schools",
+            label : "Total number of entities",
             value: insights.length
           },
           {
@@ -1122,17 +939,17 @@ module.exports = class Insights extends Abstract {
         let criteriaLevelCount = {}
         for(var k in insights[0].levelToScoreMapping) criteriaLevelCount[k] = 0
 
-        responseObject.subTitle = "Categorization of schools at different level - %"
+        responseObject.subTitle = "Categorization of entities at different level - %"
 
-        responseObject.frameworkUrl = {
-          label:"Framework Structure + rubric defintion",
-          link: "evaluationFrameworks/details/"+insights[0].evaluationFrameworkId.toString()
+        responseObject.solutionUrl = {
+          label:"Solution Framework Structure + rubric defintion",
+          link: "solutions/details/"+insights[0].solutionId.toString()
         }
 
         responseObject.sections = new Array
 
         let table1Header = {
-          name: "schoolName",
+          name: "entityName",
           value: "Core Standard"
         }
 
@@ -1157,7 +974,7 @@ module.exports = class Insights extends Abstract {
           }
         })
         responseObject.summary.push({
-            label : "Number of criteria in each school:",
+            label : "Number of criteria in each entity:",
             value: totalCriteriaCount
         })
           
@@ -1178,9 +995,9 @@ module.exports = class Insights extends Abstract {
               criteriaName: criteriaName
             }
             insights.forEach(insight => {
-              for (let schoolCriteriaScoresCounter = 0; schoolCriteriaScoresCounter < insight.criteriaScores.length; schoolCriteriaScoresCounter++) {
-                if(insight.criteriaScores[schoolCriteriaScoresCounter].name == criteriaName) {
-                  eachRow[insight.schoolName] = Number(insight.criteriaScores[schoolCriteriaScoresCounter].level.substr(1))
+              for (let entityCriteriaScoresCounter = 0; entityCriteriaScoresCounter < insight.criteriaScores.length; entityCriteriaScoresCounter++) {
+                if(insight.criteriaScores[entityCriteriaScoresCounter].name == criteriaName) {
+                  eachRow[insight.entityName] = Number(insight.criteriaScores[entityCriteriaScoresCounter].level.substr(1))
                   break
                 }
               }
@@ -1195,7 +1012,7 @@ module.exports = class Insights extends Abstract {
 
           insights.forEach(insight => {
             let eachRow = {
-              schoolName: insight.schoolName
+              entityName: insight.entityName
             }
             insight.criteriaScores.forEach(criteria => {
               if(criteria.hierarchyTrack[0].name == themeName) {
@@ -1205,8 +1022,8 @@ module.exports = class Insights extends Abstract {
             })
             table1Data.push(eachRow)
             table2Headers.push({
-              name: insight.schoolName,
-              value:insight.schoolName
+              name: insight.entityName,
+              value:insight.entityName
             })
           })
 
@@ -1215,8 +1032,8 @@ module.exports = class Insights extends Abstract {
             graph: true,
             heading: themeName,
             graphData: {
-              title: 'Cluster performance report across schools',
-              subTitle: 'Schools in the clusters performance across different core-standards in key domain: '+themeName,
+              title: 'Cluster performance report across entities',
+              subTitle: 'Entities in the clusters performance across different core-standards in key domain: '+themeName,
               chartType: 'ColumnChart',
               chartOptions: {
                 is3D: true,
@@ -1226,7 +1043,7 @@ module.exports = class Insights extends Abstract {
                   minValue: 0
                 },
                 hAxis: {
-                  title: 'Schools in the cluster',
+                  title: 'Entities in the cluster',
                   showTextEvery: 1
                 }
               }
@@ -1243,7 +1060,7 @@ module.exports = class Insights extends Abstract {
             heading: themeName,
             graphData: {
               title: 'Performance report across core standards',
-              subTitle: 'Schools in a clusters performance across different core-standards',
+              subTitle: 'Entities in a clusters performance across different core-standards',
               chartType: 'ColumnChart',
               chartOptions: {
                 is3D: true,
@@ -1299,13 +1116,5 @@ module.exports = class Insights extends Abstract {
     })
   }
 
-  async insightsDocument(programId,schoolIds) {
-
-    let insightDocument = await database.models.insights.find({
-      programExternalId:programId,
-      schoolId:{$in:schoolIds}
-    },{schoolId:1,evaluationFrameworkId:1}).lean()
-    return insightDocument
-  }
 
 };

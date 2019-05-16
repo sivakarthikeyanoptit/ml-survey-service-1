@@ -22,7 +22,7 @@ module.exports = class Export {
     }
     
     /**
-    * @api {get} /assessment/api/v1/export/program/:programExternalId
+    * @api {get} /assessment/api/v1/export/program/:programExternalId Export Program Document
     * @apiVersion 0.0.1
     * @apiName Export Program Document
     * @apiGroup Export
@@ -59,7 +59,7 @@ module.exports = class Export {
     }
 
     /**
-    * @api {get} /assessment/api/v1/export/solution/:solutionExternalId
+    * @api {get} /assessment/api/v1/export/solution/:solutionExternalId Export Solution Document
     * @apiVersion 0.0.1
     * @apiName Export Solution Document
     * @apiGroup Export
@@ -95,7 +95,7 @@ module.exports = class Export {
     }
 
     /**
-    * @api {get} /assessment/api/v1/export/framework/:frameworkExternalId
+    * @api {get} /assessment/api/v1/export/framework/:frameworkExternalId Export Framework Document
     * @apiVersion 0.0.1
     * @apiName Export Framework Document
     * @apiGroup Export
@@ -131,7 +131,7 @@ module.exports = class Export {
     }
 
     /**
-    * @api {get} /assessment/api/v1/export/frameworkCriteria/:frameworkExternalId
+    * @api {get} /assessment/api/v1/export/frameworkCriteria/:frameworkExternalId Export Framework Criteria Document
     * @apiVersion 0.0.1
     * @apiName Export Framework Criteria Document
     * @apiGroup Export
@@ -154,7 +154,7 @@ module.exports = class Export {
 
                 let filePath = await filesHelper.createFileWithName(`FrameworkCriteria_${req.params._id}`);
                 let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
-                let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } });
+                let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } });
 
                 return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allCriteriaDocument));
                 
@@ -169,7 +169,7 @@ module.exports = class Export {
     }
 
     /**
-    * @api {get} /assessment/api/v1/export/solutionCriteria/:frameworkExternalId
+    * @api {get} /assessment/api/v1/export/solutionCriteria/:frameworkExternalId Export Solution Criteria Document
     * @apiVersion 0.0.1
     * @apiName Export Solution Criteria Document
     * @apiGroup Export
@@ -192,7 +192,7 @@ module.exports = class Export {
 
                 let filePath = await filesHelper.createFileWithName(`SolutionCriteria_${req.params._id}`);
                 let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
-                let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } });
+                let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } });
 
                 return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allCriteriaDocument));
                 
@@ -207,7 +207,7 @@ module.exports = class Export {
     }
 
     /**
-    * @api {get} /assessment/api/v1/export/questions/:frameworkExternalId
+    * @api {get} /assessment/api/v1/export/questions/:frameworkExternalId Export Solution Questions Document
     * @apiVersion 0.0.1
     * @apiName Export Solution Questions Document
     * @apiGroup Export
