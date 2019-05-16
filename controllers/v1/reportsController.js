@@ -231,13 +231,13 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$entities" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
                   from: "entities",
-                  localField: "schoolIdInObjectIdForm",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
 
                 }
               }
@@ -246,7 +246,7 @@ module.exports = class Reports {
             assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorentity => {
                 input.push({
                   "Assessor Id": assessor.externalId,
                   "Assessor UserId": assessor.userId,
@@ -255,8 +255,8 @@ module.exports = class Reports {
                   "Assessor Email": assessor.email?assessor.email:"",
                   "Assessor Role": assessor.role,
                   "Program Id": req.params._id,
-                  "School Id": eachAssessorSchool.metaInformation.externalId,
-                  "School Name": eachAssessorSchool.metaInformation.name
+                  "Entity Id": eachAssessorentity.metaInformation.externalId,
+                  "Entity Name": eachAssessorentity.metaInformation.name
                 });
               })
             }))
