@@ -1277,7 +1277,7 @@ module.exports = class Criterias extends Abstract {
           "canBeNotApplicable" : "false"
         }
 
-        let fieldNotIncluded = ["name","instanceIdentifier","dateFormat","autoCapture","isAGeneralQuestion"]
+        let fieldNotIncluded = ["instanceIdentifier","dateFormat","autoCapture","isAGeneralQuestion"]
         
         let resultQuestion
 
