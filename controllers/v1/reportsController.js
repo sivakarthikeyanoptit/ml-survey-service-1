@@ -231,7 +231,7 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "entityIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
               {
                 $lookup: {
                   from: "schools",
@@ -612,7 +612,7 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "entityInformation.name": 1,
+                "schoolInformation  .name": 1,
                 "schoolInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
