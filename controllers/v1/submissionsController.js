@@ -25,59 +25,6 @@ module.exports = class Submission extends Abstract {
     return "submissions";
   }
 
-  async findSubmissionBySchoolProgram(document, requestObject) {
-
-    let queryObject = {
-      schoolId: document.schoolId,
-      programId: document.programId
-    };
-
-    let submissionDocument = await database.models.submissions.findOne(
-      queryObject
-    );
-
-    if (!submissionDocument) {
-      let schoolAssessorsQueryObject = [
-        {
-          $match: { schools: document.schoolId, programId: document.programId }
-        }
-      ];
-
-      document.assessors = await database.models[
-        "schoolAssessors"
-      ].aggregate(schoolAssessorsQueryObject);
-
-      let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-      if (assessorElement && assessorElement.externalId != "") {
-        assessorElement.assessmentStatus = "started"
-        assessorElement.userAgent = requestObject.headers['user-agent']
-      }
-
-      submissionDocument = await database.models.submissions.create(
-        document
-      );
-    } else {
-      let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-      if (assessorElement && assessorElement.externalId != "") {
-        assessorElement.assessmentStatus = "started"
-        assessorElement.userAgent = requestObject.headers['user-agent']
-        let updateObject = {}
-        updateObject.$set = {
-          assessors: submissionDocument.assessors
-        }
-        submissionDocument = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject
-        );
-      }
-    }
-
-    return {
-      message: "Submission found",
-      result: submissionDocument
-    };
-  }
-
   /**
   * @api {post} /assessment/api/v1/submissions/make/{{submissionId}} 
   * @apiVersion 0.0.1
@@ -272,8 +219,8 @@ module.exports = class Submission extends Abstract {
         let updateObject = {}
         let result = {}
 
-        if (req.body.schoolProfile) {
-          updateObject.$set = { schoolProfile: req.body.schoolProfile }
+        if (req.body.entityProfile) {
+          updateObject.$set = { entityProfile: req.body.entityProfile }
           runUpdateQuery = true
         }
 
@@ -483,17 +430,13 @@ module.exports = class Submission extends Abstract {
         updateObject.$set = {}
 
 
-        let schoolQueryObject = {
-          _id: ObjectId(submissionDocument.schoolId)
+        let entityQueryObject = {
+          _id: ObjectId(submissionDocument.entityId)
         }
 
-        let schoolDocument = await database.models.schools.findOne(
-          schoolQueryObject
-        );
+        let entityUpdatedDocument = {};
 
-        let schoolUpdatedDocument = {};
-
-        let updateSchoolObject = {}
+        let updateEntityObject = {}
 
         updateSchoolObject.$set = {}
 
@@ -606,13 +549,13 @@ module.exports = class Submission extends Abstract {
         } else {
 
 
-          updateSchoolObject.$set = {
-            isParentInterviewCompleted: true
+          updateEntityObject.$set = {
+            "metaInformation.isParentInterviewCompleted" : true
           }
 
-          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
-            schoolQueryObject,
-            updateSchoolObject,
+          schoolUpdatedDocument = await database.models.entities.findOneAndUpdate(
+            entityQueryObject,
+            updateEntityObject,
             {}
           );
 
@@ -651,13 +594,13 @@ module.exports = class Submission extends Abstract {
             );
           }
 
-          updateSchoolObject.$set = {
-            isParentInterviewCompleted: true
+          updateEntityObject.$set = {
+            "metaInformation.isParentInterviewCompleted": true
           }
 
-          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
-            schoolQueryObject,
-            updateSchoolObject,
+          entityUpdatedDocument = await database.models.entities.findOneAndUpdate(
+            entityQueryObject,
+            updateEntityObject,
             {}
           );
 
@@ -840,13 +783,14 @@ module.exports = class Submission extends Abstract {
 
         if (req.body.parentId && req.body.status && submissionDocument) {
 
-          let parentInformation = await database.models.parentRegistry.findOne(
-            { _id: ObjectId(req.body.parentId) }
-          );
+          let parentInformation = await database.models.entities.findOne(
+            { _id: ObjectId(req.body.parentId) },
+            {metaInformation : 1}
+          ).lean();
 
           if (parentInformation) {
             let parentInterview = {}
-            parentInterview.parentInformation = parentInformation
+            parentInterview.parentInformation = parentInformation.metaInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
             if (req.body.status == "completed") {
@@ -917,14 +861,14 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/submissions/getParentInterviewResponse/:submissionId Fetch Parent interview
-* @apiVersion 0.0.1
-* @apiName Fetch Parent Interview
-* @apiGroup submissions
-* @apiParam {String} parentId Parent ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/submissions/getParentInterviewResponse/:submissionId Fetch Parent interview
+  * @apiVersion 0.0.1
+  * @apiName Fetch Parent Interview
+  * @apiGroup submissions
+  * @apiParam {String} parentId Parent ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async getParentInterviewResponse(req) {
     return new Promise(async (resolve, reject) => {
@@ -949,12 +893,13 @@ module.exports = class Submission extends Abstract {
 
         if (req.query.parentId && submissionDocument) {
 
-          let parentInformation = await database.models.parentRegistry.findOne(
-            { _id: ObjectId(req.query.parentId) }
+          let parentInformation = await database.models.entities.findOne(
+            { _id: ObjectId(req.query.parentId) },
+            {metaInformation : 1}
           );
 
           if (parentInformation) {
-            result.parentInformation = parentInformation
+            result.parentInformation = parentInformation.metaInformation
             result.parentId = req.query.parentId
           }
 
@@ -1011,24 +956,24 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
-        let schoolId = req.params._id
+        let entityId = req.params._id
 
         if(!programId){
           throw "Program Id is not found"
         }
 
-        if(!schoolId){
+        if(!entityId) {
           throw "School Id is not found"
         }
 
         let queryObject = {
-          "schoolExternalId": schoolId,
-          "programExternalId":programId
+          "entityExternalId": entityId,
+          "programExternalId": programId
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { "answers": 1, "criterias": 1, "evidencesStatus": 1, "schoolInformation": 1, "schoolProfile" : 1 , "programInformation.externalId": 1 }
+          { "answers": 1, "criterias": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile" : 1 , "programExternalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1041,9 +986,10 @@ module.exports = class Submission extends Abstract {
         let allSubmittedEvidence = submissionDocument.evidencesStatus.every(this.allSubmission)
         
         if (allSubmittedEvidence) {
-          let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+          let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
             if(criteria.weightage > 0) {
+
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
@@ -1057,17 +1003,18 @@ module.exports = class Submission extends Abstract {
                 const questionValueExtractor = function (question) {
                   let result;
                   const questionArray = question.split('.')
-                  if(questionArray[0] === "schoolProfile") {
+                  if(questionArray[0] === "entityProfile") {
 
-                    if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionArray[1]]){
-                      result = submissionDocument.schoolProfile[questionArray[1]]
+                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionArray[1]]){
+                      result = submissionDocument.entityProfile[questionArray[1]]
                     } else {
-                      result = submissionDocument.schoolInformation[questionArray[1]]
-                  }
+                      result = submissionDocument.entityInformation[questionArray[1]]
+                    }
 
                     if(!result || result == "" || !(result.length>=0)) {
                       result = "NA"
-                   }
+                    }
+
                     submissionAnswers.push(result)
                     return result
                   }
@@ -1134,10 +1081,12 @@ module.exports = class Submission extends Abstract {
                           expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
                         }
 
-                          slackClient.rubricErrorLogs(errorObject)
+                        slackClient.rubricErrorLogs(errorObject)
 
                         errorWhileParsingCriteriaExpression = true
+
                       }
+
                     } else {
                       expressionResult[level] = {
                         expressionParsed: criteria.rubric.levels[level].expression,
@@ -1195,7 +1144,7 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData,
+              criteria: criteriaData,
               ratingCompletedAt : new Date()
             }
 
@@ -1239,24 +1188,24 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
-        let schoolId = req.query.schoolId.split(",")
+        let entityId = req.query.entityId.split(",")
 
         if(!programId){
           throw "Program Id is not found"
         }
 
-        if(!req.query.schoolId){
-          throw "School Id is not found"
+        if(!req.query.entityId){
+          throw "Entity Id is not found"
         }
 
         let queryObject = {
-          "schoolExternalId": {$in:schoolId},
+          "entityExternalId": {$in:entityId},
           "programExternalId":programId
         }
 
         let submissionDocument = await database.models.submissions.find(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolProfile:1, schoolInformation: 1, "programInformation.externalId": 1,schoolExternalId:1 }
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile:1, entityInformation: 1, "programExternalId": 1,entityExternalId:1 }
         ).lean();
 
         if (!submissionDocument) {
@@ -1272,7 +1221,7 @@ module.exports = class Submission extends Abstract {
           let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
 
           if (allSubmittedEvidence) {
-            let criteriaData = await Promise.all(eachSubmissionDocument.criterias.map(async (criteria) => {
+            let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
               
                 result[criteria.externalId] = {}
                 result[criteria.externalId].criteriaName = criteria.name
@@ -1289,12 +1238,12 @@ module.exports = class Submission extends Abstract {
                     let result;
                     const questionArray = question.split('.')
   
-                    if(questionArray[0] === "schoolProfile") {
+                    if(questionArray[0] === "entityProfile") {
   
-                    if(eachSubmissionDocument.schoolProfile && eachSubmissionDocument.schoolProfile[questionArray[1]]){
-                      result = eachSubmissionDocument.schoolProfile[questionArray[1]]
+                    if(eachSubmissionDocument.entityProfile && eachSubmissionDocument.entityProfile[questionArray[1]]){
+                      result = eachSubmissionDocument.entityProfile[questionArray[1]]
                     } else {
-                      result = eachSubmissionDocument.schoolInformation[questionArray[1]]
+                      result = eachSubmissionDocument.entityInformation[questionArray[1]]
                     }
   
                     if(!result || result == "" || !(result.length>=0)) {
@@ -1353,7 +1302,7 @@ module.exports = class Submission extends Abstract {
                           console.log("---------------Some exception caught ends---------------")
                           
                           let errorObject = {
-                            schoolId:eachSubmissionDocument.schoolExternalId,
+                            entityId:eachSubmissionDocument.entityExternalId,
                             errorName:error.message,
                             criteriaName:criteria.name,
                             expression:criteria.rubric.levels[level].expression,
@@ -1422,7 +1371,7 @@ module.exports = class Submission extends Abstract {
               let updateObject = {}
   
               updateObject.$set = {
-                criterias: criteriaData,
+                criteria: criteriaData,
                 ratingCompletedAt : new Date()
               }
   
@@ -1435,14 +1384,14 @@ module.exports = class Submission extends Abstract {
             }
   
             let response = {
-              schoolId:eachSubmissionDocument.schoolExternalId,
+              entityId:eachSubmissionDocument.entityExternalId,
               message: message
             };
 
             resultingArray.push(response)
           }else {
             resultingArray.push({
-              schoolId:eachSubmissionDocument.schoolExternalId,
+              entityId:eachSubmissionDocument.entityExternalId,
               message: "All ECM are not submitted"
             })
           }
@@ -1471,12 +1420,12 @@ module.exports = class Submission extends Abstract {
         let message = "Dummy Crtieria rating completed successfully"
 
         let queryObject = {
-          "schoolExternalId": req.params._id
+          "entityExternalId": req.params._id
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { criterias: 1}
+          { criteria: 1}
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1488,7 +1437,7 @@ module.exports = class Submission extends Abstract {
         let rubricLevels = ["L1", "L2", "L3", "L4"]
 
         if (true) {
-          let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+          let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
             if(!criteria.score || criteria.score != "" || criteria.score == "No Level Matched" || criteria.score == "NA") {
               criteria.score = rubricLevels[Math.floor(Math.random() * rubricLevels.length)];
@@ -1506,7 +1455,7 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData,
+              criteria: criteriaData,
               ratingCompletedAt : new Date()
             }
 
