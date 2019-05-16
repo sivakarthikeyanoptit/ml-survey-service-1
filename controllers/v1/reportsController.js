@@ -848,6 +848,7 @@ module.exports = class Reports {
           schoolId,
           {
             schoolExternalId:1,
+            "schoolInformation.name":1,
             criterias: 1,
             evaluationFrameworkId:1
           }
@@ -926,11 +927,15 @@ module.exports = class Reports {
 
 
         submissionDocument.forEach(eachSubmissionDocument=>{
+          
           let schoolId = eachSubmissionDocument.schoolExternalId
+          let schoolName = eachSubmissionDocument.schoolInformation.name
+
           eachSubmissionDocument.criterias && eachSubmissionDocument.criterias.forEach(submissionCriterias => {
           
             if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
               let criteriaReportObject = {
+                "schoolName":schoolName,
                 "School Id":schoolId,
                 "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
                 "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
