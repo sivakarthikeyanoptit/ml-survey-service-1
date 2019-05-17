@@ -599,8 +599,8 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
                 [pathToSubmissionSubmittedBy]: 1,
@@ -627,8 +627,8 @@ module.exports = class Reports {
                   Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
                       if(singleAnswer.value !== "NA"){
                         let singleAnswerRecord = {
-                        "School Name": submission.schoolInformation.name,
-                        "School Id": submission.schoolInformation.externalId,
+                        "Entity Name": submission.entityInformation.name,
+                        "Entity Id": submission.entityInformation.externalId,
                         "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                         "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
@@ -705,12 +705,12 @@ module.exports = class Reports {
                               instance < singleAnswer.value.length;
                               instance++
                             ) {
-
-                              Object.values(singleAnswer.value[instance]).forEach(
+                              
+                              singleAnswer.value[instance] && Object.values(singleAnswer.value[instance]).forEach(
                                 eachInstanceChildQuestion => {
                                   let eachInstanceChildRecord = {
-                                    "School Name": submission.schoolInformation.name,
-                                    "School Id": submission.schoolInformation.externalId,
+                                    "Entity Name": submission.entityInformation.name,
+                                    "Entity Id": submission.entityInformation.externalId,
                                     "Question": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                     "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
                                     "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
