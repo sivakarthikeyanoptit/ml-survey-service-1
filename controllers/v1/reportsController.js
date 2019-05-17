@@ -407,6 +407,9 @@ module.exports = class Reports {
         let entityDocument = database.models.entities.find(
           {
             _id: { $in: result.entityId }
+          },{
+            "metaInformation.name":1,
+            "metaInformation.externalId":1
           }
         ).exec()
 
