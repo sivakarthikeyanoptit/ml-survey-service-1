@@ -25,7 +25,7 @@ module.exports = class EntityAssessors extends Abstract {
               }
 
               let programs = new Array
-              let responseMessage = "Not authorized to fetch schools for this user"
+              let responseMessage = "Not authorized to fetch entities for this user"
       
               if (_.includes(req.userDetails.allRoles, "ASSESSOR") || _.includes(req.userDetails.allRoles, "LEAD_ASSESSOR")) {
       
@@ -47,6 +47,7 @@ module.exports = class EntityAssessors extends Abstract {
                         $project: {
                             "entities": 1,
                             "solutionId": 1,
+                            "programId": 1,
                             "entityDocuments._id": 1,
                             "entityDocuments.metaInformation.externalId": 1,
                             "entityDocuments.metaInformation.name": 1,
@@ -61,51 +62,81 @@ module.exports = class EntityAssessors extends Abstract {
                   const assessorsDocument = await database.models.entityAssessors.aggregate(assessorEntitiesQueryObject)
       
                   let assessor
+                  let solutionQueryObject = {};
+                  let programQueryObject = {};
+                  let program = {};
+                  let solution = {};
+                  let submissions
+                  let entityPAISubmissionStatus = new Array
                   
                   for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
       
-                  assessor = assessorsDocument[pointerToAssessorDocumentArray];
+                      assessor = assessorsDocument[pointerToAssessorDocumentArray];
 
 
-                      let solutionQueryObject = {};
                       solutionQueryObject["_id"] = assessor.solutionId;
                       solutionQueryObject["type"] = req.query.type;
                       solutionQueryObject["subType"] = req.query.subType;
+                      solutionQueryObject["status"] = "active";
+                      solutionQueryObject["isDeleted"] = false
 
-                      let programDocument = await database.models.solutions.aggregate([
-                          {
-                              $match: solutionQueryObject
-                          },
-                          {
-                              $project: {
-                                  'roles': 0,
-                                  'entities': 0,
-                                  'entityProfileFieldsPerSchoolTypes': 0,
-                                  'themes': 0 
-                              }
-                          },
-                          {
-                              $project: {
-                                  'assessments': '$components',
-                                  'externalId': 1,
-                                  'name': 1,
-                                  'description': 1
-                              }
-                          }
-                      ]);
+                      solution = await database.models.solutions.findOne(
+                        solutionQueryObject,
+                        {
+                          name: 1,
+                          description : 1,
+                          externalId: 1,
+                          type: 1,
+                          subType: 1
+                        }
+                      ).lean()
 
-                      if (programDocument && programDocument[0] && programDocument[0].assessments) {
-                          programDocument[0].assessments[0].schools = new Array
-                          assessor.schoolDocuments.forEach(assessorSchool => {
-                              programDocument[0].assessments[0].schools.push(assessorSchool)
+
+                      programQueryObject["_id"] = assessor.programId;
+                      programQueryObject["status"] = "active";
+                      programQueryObject["isDeleted"] = false
+
+                      program = await database.models.programs.findOne(
+                        programQueryObject,
+                        {
+                          name: 1,
+                          description : 1,
+                          externalId: 1,
+                          startDate: 1,
+                          endDate: 1
+                        }
+                      ).lean()
+
+
+                      if (solution && program) {
+
+                          submissions = await database.models.submissions.find(
+                            {
+                              entityId: {
+                                $in: assessor.entities
+                              }
+                            },
+                            {
+                              "entityId": 1,
+                              "evidences.PAI.isSubmitted" : 1
+                            }
+                          )
+
+                          entityPAISubmissionStatus = submissions.reduce(
+                            (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: (entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false }), {})
+
+                          let programDocument = program
+                          programDocument.solutions = new Array
+                          solution.entities = new Array
+                          assessor.entityDocuments.forEach(assessorEntity => {
+                            solution.entities.push({
+                              _id : assessorEntity._id,
+                              isParentInterviewCompleted : entityPAISubmissionStatus[assessorEntity._id.toString()],
+                              ...assessorEntity.metaInformation
+                            })
                           })
-                          let evaluationFrameworkDocument = await database.models["evaluationFrameworks"].findOne(
-                              { _id: programDocument[0].assessments[0].id },
-                              { name: 1, description: 1}
-                          ).lean();
-                          programDocument[0].assessments[0].name = evaluationFrameworkDocument.name
-                          programDocument[0].assessments[0].description = evaluationFrameworkDocument.description
-                          programs.push(programDocument[0])
+                          programDocument.solutions.push(solution)
+                          programs.push(programDocument)
                       }
       
                   }
@@ -126,114 +157,8 @@ module.exports = class EntityAssessors extends Abstract {
             });
           }
     
-        });
-
-  }
-
-    async entitiesOld(req) {
-      return new Promise(async (resolve, reject) => {
-        try {
-
-          let schools = new Array
-          let responseMessage = "Not authorized to fetch schools for this user"
-
-          if (_.includes(req.userDetails.allRoles, "ASSESSOR") || _.includes(req.userDetails.allRoles, "LEAD_ASSESSOR")) {
-
-            let assessorSchoolsQueryObject = [
-              {
-                $match: {
-                  userId: req.userDetails.userId
-                }
-              },
-              {
-                $lookup: {
-                  from: "schools",
-                  localField: "schools",
-                  foreignField: "_id",
-                  as: "schoolDocuments"
-                }
-              },
-              {
-                $project: {
-                  "schools": 1,
-                  "programId": 1,
-                  "schoolDocuments._id": 1,
-                  "schoolDocuments.externalId": 1,
-                  "schoolDocuments.name": 1,
-                  "schoolDocuments.addressLine1": 1,
-                  "schoolDocuments.addressLine2": 1,
-                  "schoolDocuments.city": 1,
-                  "schoolDocuments.state": 1
-                }
-              }
-            ];
-
-            const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
-
-            let assessor
-            let submissions
-            let schoolPAISubmissionStatus = new Array
-
-            for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
-
-              assessor = assessorsDocument[pointerToAssessorDocumentArray];
-
-              let programDocument = await database.models.programs.findOne(
-                {
-                  _id: assessor.programId
-                },
-                {
-                  "components.subType": 1
-                }
-              )
-
-              if (programDocument && programDocument.components && programDocument.components[0] && programDocument.components[0].subType == "cro") {
-                continue
-              }
-
-              submissions = await database.models.submissions.find(
-                {
-                  schoolId: {
-                    $in: assessor.schools
-                  },
-                  "evidences.PAI.isSubmitted": true
-                },
-                {
-                  "schoolId": 1
-                }
-              )
-
-              schoolPAISubmissionStatus = submissions.reduce(
-                (ac, school) => ({ ...ac, [school.schoolId.toString()]: true }), {})
-
-              assessor.schoolDocuments.forEach(assessorSchool => {
-                if (schoolPAISubmissionStatus[assessorSchool._id.toString()]) {
-                  assessorSchool.isParentInterviewCompleted = true
-                } else {
-                  assessorSchool.isParentInterviewCompleted = false
-                }
-                schools.push(assessorSchool)
-              })
-
-            }
-
-            responseMessage = "School list fetched successfully"
-          }
-
-          return resolve({
-            message: responseMessage,
-            result: schools
-          });
-
-        } catch (error) {
-          return reject({
-            status: 500,
-            message: error,
-            errorObject: error
-          });
-        }
-
       });
+
     }
 
     async upload(req) {
