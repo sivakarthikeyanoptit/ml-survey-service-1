@@ -382,55 +382,45 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
+* @api {get} /assessment/api/v1/reports/programEntityStatus/:programId Fetch entity status based on program Id
 * @apiVersion 0.0.1
-* @apiName Fetch school status based on program Id
+* @apiName Fetch entity status based on program Id
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-  async programSchoolsStatus(req) {
+  async programEntityStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let result = {};
         req.body = req.body || {};
 
-        let programQueryObject = {
-          externalId: req.params._id
-        };
-        let programDocument = await database.models.programs.findOne(
-          programQueryObject
-        );
+        result.entityId = new Array
 
-        if (!programDocument) {
-          return resolve({
-            status: 404,
-            message: "No programs found for given params."
-          });
-        }
+        let solutionDocument = await database.models.solutions.findOne({
+          programExternalId:req.params._id
+        },{entities:1}).lean()
 
-        result.id = programDocument._id;
-        result.schoolId = [];
+        result.entityId.push(...solutionDocument.entities)
 
-        programDocument.components.forEach(document => {
-          result.schoolId.push(...document.schools);
-        });
-
-        let schoolDocument = database.models.schools.find(
+        let entityDocument = database.models.entities.find(
           {
-            _id: { $in: result.schoolId }
+            _id: { $in: result.entityId }
+          },{
+            "metaInformation.name":1,
+            "metaInformation.externalId":1
           }
-        ).exec();
+        ).exec()
 
         let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
             {
-              $match: { programId: result.id }
+              $match: { programExternalId: req.params._id }
             },
             {
               $project: {
-                schoolId: 1,
+                entityId: 1,
                 status: 1,
                 completedDate: 1,
                 createdAt: 1,
@@ -465,12 +455,12 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([schoolDocument, submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument => {
-          let schoolDocument = submissionWithSchoolDocument[0];
-          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
-          let schoolSubmission = {};
+        Promise.all([entityDocument, submissionDataWithEvidencesCount]).then(submissionWithEntityDocument => {
+          let entityDocument = submissionWithEntityDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithEntityDocument[1];
+          let entitySubmission = {};
           submissionDataWithEvidencesCount.forEach(submission => {
-            schoolSubmission[submission.schoolId.toString()] = {
+            entitySubmission[submission.entityId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
@@ -479,39 +469,39 @@ module.exports = class Reports {
               submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
+          if (!entityDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
             });
           }
           else {
-            schoolDocument.forEach(school => {
-              let programSchoolStatusObject = {
-                "Program Id": programQueryObject.externalId,
-                "School Name": school.name,
-                "School Id": school.externalId
+            entityDocument.forEach(entity => {
+              let programEntityStatusObject = {
+                "Program Id": req.params._id,
+                "Entity Name": entity.metaInformation.name,
+                "Entity Id": entity.metaInformation.externalId
               }
 
-              if (schoolSubmission[school._id.toString()]) {
-                programSchoolStatusObject["Status"] = schoolSubmission[school._id.toString()].status;
-                programSchoolStatusObject["Created At"] = schoolSubmission[school._id.toString()].createdAt;
-                programSchoolStatusObject["Completed Date"] = schoolSubmission[school._id.toString()].completedDate
-                  ? schoolSubmission[school._id.toString()].completedDate
+              if (entitySubmission[entity._id.toString()]) {
+                programEntityStatusObject["Status"] = entitySubmission[entity._id.toString()].status;
+                programEntityStatusObject["Created At"] = entitySubmission[entity._id.toString()].createdAt;
+                programEntityStatusObject["Completed Date"] = entitySubmission[entity._id.toString()].completedDate
+                  ? entitySubmission[entity._id.toString()].completedDate
                   : "-";
-                programSchoolStatusObject["Submission Count"] =
-                  schoolSubmission[school._id.toString()].status == "started"
+                programEntityStatusObject["Submission Count"] =
+                  entitySubmission[entity._id.toString()].status == "started"
                     ? 0
-                    : schoolSubmission[school._id.toString()].submissionCount
+                    : entitySubmission[entity._id.toString()].submissionCount
               }
               else {
-                programSchoolStatusObject["Status"] = "pending";
-                programSchoolStatusObject["Created At"] = "-";
-                programSchoolStatusObject["Completed Date"] = "-";
-                programSchoolStatusObject["Submission Count"] = 0;
+                programEntityStatusObject["Status"] = "pending";
+                programEntityStatusObject["Created At"] = "-";
+                programEntityStatusObject["Completed Date"] = "-";
+                programEntityStatusObject["Submission Count"] = 0;
 
               }
-              input.push(programSchoolStatusObject)
+              input.push(programEntityStatusObject)
             });
           }
           input.push(null)
@@ -612,8 +602,8 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
                 [pathToSubmissionSubmittedBy]: 1,
@@ -640,8 +630,8 @@ module.exports = class Reports {
                   Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
                       if(singleAnswer.value !== "NA"){
                         let singleAnswerRecord = {
-                        "School Name": submission.schoolInformation.name,
-                        "School Id": submission.schoolInformation.externalId,
+                        "Entity Name": submission.entityInformation.name,
+                        "Entity Id": submission.entityInformation.externalId,
                         "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                         "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
@@ -718,12 +708,12 @@ module.exports = class Reports {
                               instance < singleAnswer.value.length;
                               instance++
                             ) {
-
-                              Object.values(singleAnswer.value[instance]).forEach(
+                              
+                              singleAnswer.value[instance] && Object.values(singleAnswer.value[instance]).forEach(
                                 eachInstanceChildQuestion => {
                                   let eachInstanceChildRecord = {
-                                    "School Name": submission.schoolInformation.name,
-                                    "School Id": submission.schoolInformation.externalId,
+                                    "Entity Name": submission.entityInformation.name,
+                                    "Entity Id": submission.entityInformation.externalId,
                                     "Question": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                     "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
                                     "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
