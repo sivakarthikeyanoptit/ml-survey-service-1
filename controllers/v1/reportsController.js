@@ -928,7 +928,7 @@ module.exports = class Reports {
           
             if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
               let criteriaReportObject = {
-                "School Id":entityId,
+                "Entity Id":entityId,
                 "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
                 "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
                 "Score": submissionCriterias.score
