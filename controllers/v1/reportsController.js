@@ -382,15 +382,15 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
+* @api {get} /assessment/api/v1/reports/programEntityStatus/:programId Fetch entity status based on program Id
 * @apiVersion 0.0.1
-* @apiName Fetch school status based on program Id
+* @apiName Fetch entity status based on program Id
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-  async programSchoolsStatus(req) {
+  async programEntityStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let result = {};
@@ -401,7 +401,7 @@ module.exports = class Reports {
         };
         let programDocument = await database.models.programs.findOne(
           programQueryObject
-        );
+        ).lean();
 
         if (!programDocument) {
           return resolve({
@@ -411,17 +411,19 @@ module.exports = class Reports {
         }
 
         result.id = programDocument._id;
-        result.schoolId = [];
+        result.entityId = new Array
 
-        programDocument.components.forEach(document => {
-          result.schoolId.push(...document.schools);
-        });
+        let solutionDocument = await database.models.solutions.findOne({
+          _id:programDocument.components[0]
+        },{entities:1}).lean()
 
-        let schoolDocument = database.models.schools.find(
+        result.entityId.push(...solutionDocument.entities)
+
+        let entityDocument = database.models.entities.find(
           {
-            _id: { $in: result.schoolId }
+            _id: { $in: result.entityId }
           }
-        ).exec();
+        ).exec()
 
         let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
@@ -430,7 +432,7 @@ module.exports = class Reports {
             },
             {
               $project: {
-                schoolId: 1,
+                entityId: 1,
                 status: 1,
                 completedDate: 1,
                 createdAt: 1,
@@ -465,12 +467,12 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([schoolDocument, submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument => {
-          let schoolDocument = submissionWithSchoolDocument[0];
-          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
-          let schoolSubmission = {};
+        Promise.all([entityDocument, submissionDataWithEvidencesCount]).then(submissionWithEntityDocument => {
+          let entityDocument = submissionWithEntityDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithEntityDocument[1];
+          let entitySubmission = {};
           submissionDataWithEvidencesCount.forEach(submission => {
-            schoolSubmission[submission.schoolId.toString()] = {
+            entitySubmission[submission.entityId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
                 ? this.gmtToIst(submission.completedDate)
@@ -479,39 +481,39 @@ module.exports = class Reports {
               submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
+          if (!entityDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
             });
           }
           else {
-            schoolDocument.forEach(school => {
-              let programSchoolStatusObject = {
+            entityDocument.forEach(entity => {
+              let programEntityStatusObject = {
                 "Program Id": programQueryObject.externalId,
-                "School Name": school.name,
-                "School Id": school.externalId
+                "Entity Name": entity.metaInformation.name,
+                "Entity Id": entity.metaInformation.externalId
               }
 
-              if (schoolSubmission[school._id.toString()]) {
-                programSchoolStatusObject["Status"] = schoolSubmission[school._id.toString()].status;
-                programSchoolStatusObject["Created At"] = schoolSubmission[school._id.toString()].createdAt;
-                programSchoolStatusObject["Completed Date"] = schoolSubmission[school._id.toString()].completedDate
-                  ? schoolSubmission[school._id.toString()].completedDate
+              if (entitySubmission[entity._id.toString()]) {
+                programEntityStatusObject["Status"] = entitySubmission[entity._id.toString()].status;
+                programEntityStatusObject["Created At"] = entitySubmission[entity._id.toString()].createdAt;
+                programEntityStatusObject["Completed Date"] = entitySubmission[entity._id.toString()].completedDate
+                  ? entitySubmission[entity._id.toString()].completedDate
                   : "-";
-                programSchoolStatusObject["Submission Count"] =
-                  schoolSubmission[school._id.toString()].status == "started"
+                programEntityStatusObject["Submission Count"] =
+                  entitySubmission[entity._id.toString()].status == "started"
                     ? 0
-                    : schoolSubmission[school._id.toString()].submissionCount
+                    : entitySubmission[entity._id.toString()].submissionCount
               }
               else {
-                programSchoolStatusObject["Status"] = "pending";
-                programSchoolStatusObject["Created At"] = "-";
-                programSchoolStatusObject["Completed Date"] = "-";
-                programSchoolStatusObject["Submission Count"] = 0;
+                programEntityStatusObject["Status"] = "pending";
+                programEntityStatusObject["Created At"] = "-";
+                programEntityStatusObject["Completed Date"] = "-";
+                programEntityStatusObject["Submission Count"] = 0;
 
               }
-              input.push(programSchoolStatusObject)
+              input.push(programEntityStatusObject)
             });
           }
           input.push(null)
