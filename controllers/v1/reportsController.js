@@ -960,48 +960,48 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
+* @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
 * @apiVersion 0.0.1
-* @apiName Fetch school submission status
+* @apiName Fetch Entity submission status
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-async generateSubmissionReportsBySchoolId(req) {
+async generateSubmissionReportsByEntityId(req) {
   return new Promise(async (resolve, reject) => {
     try {
 
-      let schoolSubmissionQuery = {
-        ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
+      let entitySubmissionQuery = {
+        ["entityExternalId"]: {$in:req.query.entityId.split(",")}
       };
 
-      let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
-        schoolSubmissionQuery,
+      let submissionForSolutionId = await database.models.submissions.findOne(
+        entitySubmissionQuery,
         {
-          evaluationFrameworkId: 1
+          solutionId: 1
         }
       ).lean();
 
-      let evaluationFrameworkThemes = await database.models.evaluationFrameworks.findOne({ _id: submissionForEvaluationFrameworkId.evaluationFrameworkId }, { themes: 1 }).lean();
+      let solutionDocument = await database.models.solutions.findOne({ _id: submissionForSolutionId.solutionId }, { themes: 1 }).lean();
 
-      let criteriaIdsByFramework = gen.utils.getCriteriaIds(evaluationFrameworkThemes.themes);
+      let criteriaIdsByFramework = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-      let allCriterias = database.models.criterias.find(
+      let allCriterias = database.models.criteria.find(
         { _id: { $in: criteriaIdsByFramework } },
         { evidences: 1, name: 1 }
       ).lean().exec();
 
       let schoolSubmissionDocument = database.models.submissions.find(
-        schoolSubmissionQuery,
+        entitySubmissionQuery,
         {
-          schoolExternalId:1,
+          entityExternalId:1,
           answers: 1,
-          criterias: 1
+          criteria: 1
         }
       ).lean().exec();
 
-      const fileName = `generateSubmissionReportsBySchoolId_`;
+      const fileName = `generateSubmissionReportsByEntityId`;
       let fileStream = new FileStream(fileName);
       let input = fileStream.initStream();
 
@@ -1019,7 +1019,7 @@ async generateSubmissionReportsBySchoolId(req) {
       Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
 
         let allCriterias = documents[0];
-        let schoolSubmissionDocument = documents[1];
+        let entitySubmissionDocument = documents[1];
         let criteriaQuestionDetailsObject = {};
         let questionOptionObject = {};
 
@@ -1066,9 +1066,9 @@ async generateSubmissionReportsBySchoolId(req) {
           }
         });
 
-        schoolSubmissionDocument.forEach(singleSchoolSubmission => {
+        entitySubmissionDocument.forEach(singleEntitySubmission => {
           let criteriaScoreObject = {};
-          singleSchoolSubmission.criterias.forEach(singleCriteria => {
+          singleEntitySubmission.criteria.forEach(singleCriteria => {
             criteriaScoreObject[singleCriteria._id.toString()] = {
               id: singleCriteria._id,
               externalId:singleCriteria.externalId,
@@ -1076,19 +1076,19 @@ async generateSubmissionReportsBySchoolId(req) {
             };
           });
 
-          if (!Object.values(singleSchoolSubmission.answers).length) {
+          if (!Object.values(singleEntitySubmission.answers).length) {
             return resolve({
               status: 404,
               message: "No submissions found for given params."
             });
           } else {
 
-            Object.values(singleSchoolSubmission.answers).forEach(singleAnswer => {
+            Object.values(singleEntitySubmission.answers).forEach(singleAnswer => {
                 
               if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
 
                 let singleAnswerRecord = {
-                    "School Id":singleSchoolSubmission.schoolExternalId,
+                    "Entity Id":singleEntitySubmission.entityExternalId,
                     "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
                     "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
                     "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
@@ -1154,7 +1154,7 @@ async generateSubmissionReportsBySchoolId(req) {
                     input.push(singleAnswerRecord);
                     
                   } else if (singleAnswer.responseType == "matrix") {
-                    let schoolId = singleSchoolSubmission.schoolExternalId
+                    let entityId = singleEntitySubmission.entityExternalId
                     singleAnswerRecord["Answer"] = "Instance Question";
 
                     input.push(singleAnswerRecord);
@@ -1168,7 +1168,7 @@ async generateSubmissionReportsBySchoolId(req) {
                           if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
                           
                             let eachInstanceChildRecord = {
-                              "School Id":schoolId,
+                              "Entity Id":entityId,
                               "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
                               "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
                               "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
@@ -2755,7 +2755,7 @@ async generateSubmissionReportsBySchoolId(req) {
           throw "Component id is missing"
         }
 
-        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
+        let componentDocumentId = await database.models.solutions.findOne({
           externalId:componentId
         },{_id:1}).lean()
 
