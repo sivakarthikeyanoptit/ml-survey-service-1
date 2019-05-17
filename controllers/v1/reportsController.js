@@ -396,25 +396,10 @@ module.exports = class Reports {
         let result = {};
         req.body = req.body || {};
 
-        let programQueryObject = {
-          externalId: req.params._id
-        };
-        let programDocument = await database.models.programs.findOne(
-          programQueryObject
-        ).lean();
-
-        if (!programDocument) {
-          return resolve({
-            status: 404,
-            message: "No programs found for given params."
-          });
-        }
-
-        result.id = programDocument._id;
         result.entityId = new Array
 
         let solutionDocument = await database.models.solutions.findOne({
-          _id:programDocument.components[0]
+          programExternalId:req.params._id
         },{entities:1}).lean()
 
         result.entityId.push(...solutionDocument.entities)
@@ -428,7 +413,7 @@ module.exports = class Reports {
         let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
             {
-              $match: { programId: result.id }
+              $match: { programExternalId: req.params._id }
             },
             {
               $project: {
@@ -490,7 +475,7 @@ module.exports = class Reports {
           else {
             entityDocument.forEach(entity => {
               let programEntityStatusObject = {
-                "Program Id": programQueryObject.externalId,
+                "Program Id": req.params._id,
                 "Entity Name": entity.metaInformation.name,
                 "Entity Id": entity.metaInformation.externalId
               }
