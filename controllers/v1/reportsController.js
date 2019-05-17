@@ -829,27 +829,27 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
+* @api {get} /assessment/api/v1/reports/generateCriteriasByEntityId/:entityExternalId Fetch criterias based on schoolId
 * @apiVersion 0.0.1
-* @apiName Fetch criterias based on schoolId
+* @apiName Fetch criteria based on entityId
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-  async generateCriteriasBySchoolId(req) {
+  async generateCriteriasByEntityId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let schoolId = {
-          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
+        let entityId = {
+          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
         };
 
         let submissionDocument = await database.models.submissions.find(
-          schoolId,
+          entityId,
           {
-            schoolExternalId:1,
-            criterias: 1,
-            evaluationFrameworkId:1
+            entityExternalId:1,
+            criteria: 1,
+            solutionId:1
           }
         ).lean()
 
@@ -860,13 +860,11 @@ module.exports = class Reports {
           });
         }
 
-        let evaluationFrameworksDocuments = await database.models[
-          "evaluationFrameworks"
-        ].findOne({_id:submissionDocument[0].evaluationFrameworkId}, { themes: 1 }).lean()
+        let solutionDocuments = await database.models.solutions.findOne({_id:submissionDocument[0].solutionId}, { themes: 1 }).lean()
 
         let criteriaName = {}
-        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworksDocuments.themes);
-        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } },{name:1});
+        let criteriaIds = gen.utils.getCriteriaIds(solutionDocuments.themes);
+        let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } },{name:1});
         
         allCriteriaDocument.forEach(eachCriteria=>{
           criteriaName[eachCriteria._id.toString()]={
@@ -910,9 +908,9 @@ module.exports = class Reports {
 
         }
 
-        getCriteriaPath(evaluationFrameworksDocuments.themes)
+        getCriteriaPath(solutionDocuments.themes)
 
-        const fileName = `generateCriteriasBySchoolId_schoolId_`;
+        const fileName = `generateCriteriasByEntityId`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -924,14 +922,13 @@ module.exports = class Reports {
           });
         }());
 
-
         submissionDocument.forEach(eachSubmissionDocument=>{
-          let schoolId = eachSubmissionDocument.schoolExternalId
-          eachSubmissionDocument.criterias && eachSubmissionDocument.criterias.forEach(submissionCriterias => {
+          let entityId = eachSubmissionDocument.entityExternalId
+          eachSubmissionDocument.criteria && eachSubmissionDocument.criteria.forEach(submissionCriterias => {
           
             if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
               let criteriaReportObject = {
-                "School Id":schoolId,
+                "School Id":entityId,
                 "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
                 "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
                 "Score": submissionCriterias.score
