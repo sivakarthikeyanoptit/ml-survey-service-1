@@ -2755,7 +2755,7 @@ async generateSubmissionReportsByEntityId(req) {
           throw "Component id is missing"
         }
 
-        let componentDocumentId = await database.models.solutions.findOne({
+        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
           externalId:componentId
         },{_id:1}).lean()
 
