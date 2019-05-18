@@ -1,5 +1,5 @@
 const csv = require("csvtojson");
-const entityAssessorsHelper = require("../entityAssessor/helper")
+const entityAssessorsHelper = require("../entityAssessors/helper")
 
 module.exports = class entitiesHelper {
 
