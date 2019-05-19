@@ -53,7 +53,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          ["programInformation.externalId"]: req.params._id
+          ["programExternalId"]: req.params._id
         }
 
         if (!req.params._id) {
@@ -105,11 +105,11 @@ module.exports = class Reports {
                 }
               },
               {
-                "schoolInformation.externalId": 1,
-                "schoolInformation.name": 1,
+                "entityInformation.externalId": 1,
+                "entityInformation.name": 1,
                 "programInformation.name": 1,
                 "programInformation.externalId": 1,
-                "schoolId": 1,
+                "entityId": 1,
                 "programId": 1,
                 "status": 1,
                 "evidencesStatus.isSubmitted": 1,
@@ -121,11 +121,11 @@ module.exports = class Reports {
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
-              if (eachSubmissionDocument.schoolInformation) {
-                result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
-                result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+              if (eachSubmissionDocument.entityInformation) {
+                result["School Id"] = eachSubmissionDocument.entityInformation.externalId;
+                result["School Name"] = eachSubmissionDocument.entityInformation.name;
               } else {
-                result["School Id"] = eachSubmissionDocument.schoolId;
+                result["School Id"] = eachSubmissionDocument.entityId;
               }
 
               if (eachSubmissionDocument.programInformation) {
@@ -182,7 +182,7 @@ module.exports = class Reports {
         }
 
         const programQueryParams = {
-          externalId: req.params._id
+          externalId: req.params._id  
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
@@ -193,7 +193,7 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.entityAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
@@ -231,32 +231,32 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
-                  from: "schools",
-                  localField: "schoolIdInObjectIdForm",
+                  from: "entities",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
 
                 }
               }
             ];
 
-            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorentity => {
                 input.push({
                   "Assessor Id": assessor.externalId,
                   "Assessor UserId": assessor.userId,
-                  "Parent Id": assessor.parentId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
                   "Assessor Role": assessor.role,
                   "Program Id": req.params._id,
-                  "School Id": eachAssessorSchool.externalId,
-                  "School Name": eachAssessorSchool.name
+                  "Entity Id": eachAssessorentity.metaInformation.externalId,
+                  "Entity Name": eachAssessorentity.metaInformation.name
                 });
               })
             }))
@@ -274,15 +274,15 @@ module.exports = class Reports {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/schoolAssessors/ Fetch school wise assessor reports
+ * @api {get} /assessment/api/v1/reports/entityAssessors/ Fetch entity wise assessor reports
  * @apiVersion 0.0.1
- * @apiName Fetch school wise assessor reports
+ * @apiName Fetch entity wise assessor reports
  * @apiGroup Report
  * @apiUse successBody
  * @apiUse errorBody
  */
 
-  async schoolAssessors(req) {
+  async entityAssessors(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -302,9 +302,9 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.entityAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
-        const fileName = `schoolAssessors`;
+        const fileName = `entityAssessors`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -339,29 +339,29 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
-                  from: "schools",
-                  localField: "schoolIdInObjectIdForm",
+                  from: "entities",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
                 }
               }
             ];
 
-            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorEntity => {
                 input.push({
-                  "Assessor School Id": eachAssessorSchool.externalId,
-                  "Assessor School Name": eachAssessorSchool.name,
+                  "Assessor entity Id": eachAssessorEntity.metaInformation.externalId,
+                  "Assessor entity Name": eachAssessorEntity.metaInformation.name,
                   "Assessor User Id": assessor.userId,
                   "Assessor Id": assessor.externalId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
-                  "Parent Id": assessor.parentId,
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
                   "Assessor Role": assessor.role,
                   "Program Id": assessor.programId.toString()
                 });
