@@ -19,6 +19,8 @@ module.exports = {
 
     let oldSubmissionDocumentsArray = new Array
 
+    let newSubmissionDocumentsArray = new Array
+
     await db.collection('submissions').createIndex( { entityId: 1} )
 
     await db.collection('submissions').createIndex( { entityExternalId: 1} )
@@ -37,6 +39,16 @@ module.exports = {
       chunkOfSubmissionsIdsDocument[pointerTosubmissionIdDocument].forEach(submissionId => {
         fetchSubmissionIds.push(submissionId._id)
       })
+
+      newSubmissionDocumentsArray = await db.collection('submissions').find(
+        {
+          _id: {
+            $in: fetchSubmissionIds
+          }
+        }
+      ).project({_id: 1}).toArray();
+
+      if(newSubmissionDocumentsArray.length == fetchSubmissionIds.length) continue
 
       oldSubmissionDocumentsArray = await sourceDB.collection('submissions').find(
         {
