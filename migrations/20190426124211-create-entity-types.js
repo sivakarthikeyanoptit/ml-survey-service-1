@@ -12,6 +12,48 @@ module.exports = {
       createdBy: "SYSTEM",
       updatedBy: "SYSTEM",
       isDeleted: false,
+      types: [
+        {
+          type : "A1",
+          label: "All"
+        },
+        {
+          type : "A2",
+          label: "All (if applicable)"
+        },
+        {
+          type : "A3",
+          label: "All Govt."
+        },
+        {
+          type : "A4",
+          label: "All Private"
+        },
+        {
+          type : "A5",
+          label: "All (6th-12th)"
+        },
+        {
+          type : "A6",
+          label: "All (Nursery-5th)"
+        },
+        {
+          type : "A7",
+          label: "Govt. DOE (6th-12th)"
+        },
+        {
+          type : "A8",
+          label: "Private (Nursery-5th)"
+        },
+        {
+          type : "A9",
+          label: "Private (Nursery-8th/10th)"
+        },
+        {
+          type : "A10",
+          label: "All Aided"
+        }
+      ],
       profileForm : [
         {
             "field": "presenceOfSignMarkingSchoolEntrance",
@@ -268,6 +310,56 @@ module.exports = {
             "visible": "",
             "editable": "",
             "input": "text"
+        },
+        {
+          "field": "types",
+          "label": "Types",
+          "value": "",
+          "visible": "",
+          "editable": "",
+          "options": [
+            {
+              "value" : "A1",
+              "label": "All"
+            },
+            {
+              "value" : "A2",
+              "label": "All (if applicable)"
+            },
+            {
+              "value" : "A3",
+              "label": "All Govt."
+            },
+            {
+              "value" : "A4",
+              "label": "All Private"
+            },
+            {
+              "value" : "A5",
+              "label": "All (6th-12th)"
+            },
+            {
+              "value" : "A6",
+              "label": "All (Nursery-5th)"
+            },
+            {
+              "value" : "A7",
+              "label": "Govt. DOE (6th-12th)"
+            },
+            {
+              "value" : "A8",
+              "label": "Private (Nursery-5th)"
+            },
+            {
+              "value" : "A9",
+              "label": "Private (Nursery-8th/10th)"
+            },
+            {
+              "value" : "A10",
+              "label": "All Aided"
+            }
+          ],
+          "input": "radio"
         },
         {
             "field": "addressLine1",

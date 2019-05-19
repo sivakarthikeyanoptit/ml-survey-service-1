@@ -64,16 +64,21 @@ module.exports = {
         eachSubmissionDocument.entityTypeId = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityTypeId
         eachSubmissionDocument.entityType = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityType
 
-        await db.collection('submissions').insertOne(_.omit(eachSubmissionDocument,[
-          "schoolProfile",
-          "schoolInformation",
-          "schoolExternalId",
-          "schoolId",
-          "criterias",
-          "evaluationFrameworkExternalId",
-          "evaluationFrameworkId",
-          "deleted"
-        ]));
+        try {
+          await db.collection('submissions').insertOne(_.omit(eachSubmissionDocument,[
+            "schoolProfile",
+            "schoolInformation",
+            "schoolExternalId",
+            "schoolId",
+            "criterias",
+            "evaluationFrameworkExternalId",
+            "evaluationFrameworkId",
+            "deleted"
+          ]));
+        } catch (error) {
+          console.log(eachSubmissionDocument._id)
+          console.log(error)
+        }
 
         return true
 

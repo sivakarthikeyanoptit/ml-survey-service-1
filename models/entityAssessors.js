@@ -7,7 +7,7 @@ module.exports = {
     role: String,
     programId: "ObjectId",
     parentId: String,
-    entities: [{ type: "ObjectId", ref: "entities" }],
+    entities: [],
     createdBy: String,
     updatedBy: String,
     externalId: String,
