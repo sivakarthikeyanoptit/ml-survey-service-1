@@ -95,13 +95,18 @@ function getUserRole(userDetails, caseSensitive = false) {
 }
 
 function mapUserRole(role) {
-  let rolesObject = {
+  let allRoles = assessmentRoles()
+  return allRoles[role];
+}
+
+function assessmentRoles() {
+  let allRoles = {
     ASSESSOR: "assessors",
     LEAD_ASSESSOR: "leadAssessors",
     PROJECT_MANAGER: "projectManagers",
     PROGRAM_MANAGER: "programManagers"
   }
-  return rolesObject[role];
+  return allRoles;
 }
 
 function getAllQuestionId(criteria) {
@@ -138,5 +143,6 @@ module.exports = {
   mapUserRole: mapUserRole,
   valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
-  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage
+  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage,
+  assessmentRoles:assessmentRoles
 };

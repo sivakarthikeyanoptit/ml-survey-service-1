@@ -81,32 +81,8 @@ module.exports = {
                 "rubric" : {
                     "$first" : "$rubric"
                 },
-                "evidenceExternalId" : {
-                    "$first" : "$evidences.externalId"
-                },
-                "evidenceName" : {
-                    "$first" : "$evidences.name"
-                },
-                "evidenceTip" : {
-                    "$first" : "$evidences.tip"
-                },
-                "evidenceDescription" : {
-                    "$first" : "$evidences.description"
-                },
-                "evidenceStartTime" : {
-                    "$first" : "$evidences.startTime"
-                },
-                "evidenceEndTime" : {
-                    "$first" : "$evidences.endTime"
-                },
-                "evidenceIsSubmitted" : {
-                    "$first" : "$evidences.isSubmitted"
-                },
-                "evidenceModeOfCollection" : {
-                    "$first" : "$evidences.modeOfCollection"
-                },
-                "evidenceCanBeNotApplicable" : {
-                    "$first" : "$evidences.canBeNotApplicable"
+                "evidenceCode" : {
+                    "$first" : "$evidences.code"
                 },
                 "sections" : {
                     "$push" : "$evidences.sections"
@@ -169,15 +145,7 @@ module.exports = {
                 },
                 "evidences" : {
                     "$push" : {
-                        "name" : "$evidenceName",
-                        "externalId" : "$evidenceExternalId",
-                        "tip" : "$evidenceTip",
-                        "description" : "$evidenceDescription",
-                        "startTime" : "$evidenceStartTime",
-                        "endTime" : "$evidenceEndTime",
-                        "isSubmitted" : "$evidenceIsSubmitted",
-                        "modeOfCollection" : "$evidenceModeOfCollection",
-                        "canBeNotApplicable" : "$evidenceCanBeNotApplicable",
+                        "code" : "$evidenceCode",
                         "sections" : "$sections"
                     }
                 }
