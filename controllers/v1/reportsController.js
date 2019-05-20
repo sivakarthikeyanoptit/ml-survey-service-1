@@ -1276,17 +1276,21 @@ async generateSubmissionReportsBySchoolId(req) {
         };
 
         let programsDocumentIds = await database.models.programs.findOne(programQueryParams, { externalId: 1 }).lean()
+        
+        let entitySchool = {}
 
-        // if (!programsDocumentIds.length) {
-        //   return resolve({
-        //     status: 404,
-        //     message: "No parent registry found for given parameters."
-        //   });
-        // }
+        let entityForSchoolDocument = await database.models.entities.find({
+          entityType:"school",
+          "metaInformation.createdByProgramId":programsDocumentIds._id
+        },{"metaInformation.externalId":1,"metaInformation.name":1})
 
-        // let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        // let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        // toDate.setHours(23, 59, 59)
+        entityForSchoolDocument.forEach(eachEntityForSchool=>{
+          
+          entitySchool[eachEntityForSchool.metaInformation.name]={
+            entitySchoolId:eachEntityForSchool.metaInformation.externalId
+          }
+
+        })
 
         if (req.query.fromDate > req.query.toDate) {
           return resolve({
@@ -1323,7 +1327,7 @@ async generateSubmissionReportsBySchoolId(req) {
         if (!parentRegistryIdsArray.length) {
           return resolve({
             status: 404,
-            message: "No submissions found for given params."
+            message: "No Parents found for given params."
           });
         }
 
@@ -1340,46 +1344,28 @@ async generateSubmissionReportsBySchoolId(req) {
               return parentRegistryModel._id
             });
 
-            let parentRegistryQueryObject = [
-              {
-                $match: {
-                  _id: {
-                    $in: parentRegistryId
-                  }
-                }
-              },
-              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
-              {
-                $lookup: {
-                  from: "schools",
-                  localField: "schoolId",
-                  foreignField: "_id",
-                  as: "schoolDocument"
-                }
-              },
-              {
-                $unwind: '$schoolDocument'
-              },
-              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
-              {
-                $project: {
-                  "schoolDocument": 0
-                }
+            let parentRegistryQueryObject = {
+              _id:{
+                $in:parentRegistryId
               }
-            ];
+            }
 
-            parentRegistryDocuments = await database.models.parentRegistry.aggregate(parentRegistryQueryObject);
+            parentRegistryDocuments = await database.models.entities.find(parentRegistryQueryObject,{
+              "metaInformation":1,
+              "createdAt":1,
+              "updatedAt":1
+            });
 
             await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
               let parentRegistryObject = {};
-              Object.keys(parentRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry[singleKey];
+              Object.keys(parentRegistry.metaInformation).forEach(singleKey => {
+                if (["deleted", "_id", "__v", "createdByProgramId"].indexOf(singleKey) == -1) {
+                  parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry.metaInformation[singleKey];
                 }
               })
 
               parentRegistryObject['Program External Id'] = programQueryParams.externalId;
-              parentRegistryObject['School External Id'] = parentRegistry.schoolId;
+              parentRegistryObject['Entity External Id'] = entitySchool[parentRegistry.metaInformation.schoolName].entitySchoolId;
               (parentRegistry.createdAt) ? parentRegistryObject['Created At'] = this.gmtToIst(parentRegistry.createdAt) : parentRegistryObject['Created At'] = "";
               (parentRegistry.updatedAt) ? parentRegistryObject['Updated At'] = this.gmtToIst(parentRegistry.updatedAt) : parentRegistryObject['Updated At'] = "";
               input.push(parentRegistryObject);
