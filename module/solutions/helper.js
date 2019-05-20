@@ -62,4 +62,14 @@ module.exports = class solutionsHelper {
 
     }
 
+    static getEntityProfileFields(entityProfileFieldsPerEntityTypes) {
+        let entityFieldArray = [];
+      
+        Object.values(entityProfileFieldsPerEntityTypes).forEach(eachEntityProfileFieldPerEntityType => {
+          eachEntityProfileFieldPerEntityType.forEach(eachEntityField => {
+            entityFieldArray.push(eachEntityField)
+          })
+        })
+        return entityFieldArray;
+    }
 };
