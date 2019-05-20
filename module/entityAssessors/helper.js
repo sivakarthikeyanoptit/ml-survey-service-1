@@ -158,7 +158,8 @@ module.exports = class entityAssessorHelper {
                 let entityTypeQueryList = {};
                 let solutionQueryList = {};
                 let skippedDocumentCount = 0;
-
+                let userExternalIds = [];
+                
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
@@ -170,6 +171,8 @@ module.exports = class entityAssessorHelper {
                     entityTypeQueryList[assessor.externalId] = assessor.entityType
 
                     solutionQueryList[assessor.externalId] = solutionId ? solutionId : assessor.solutionId
+                    userExternalIds.push(assessor.userId);
+                    if (assessor.parentId) userExternalIds.push(assessor.parentId);
 
                 });
 
@@ -193,20 +196,7 @@ module.exports = class entityAssessorHelper {
                     name: { $in: Object.values(entityTypeQueryList) }
                 }, { name: 1 }).lean();
 
-                let userExternalIds = assessorData.map(assessor => assessor.externalId);
-                let parentExternalIds = assessorData.map(assessor => assessor.parentId);
-
-                userExternalIds.push(...parentExternalIds);
-
-                let userIds = await Promise.all(userExternalIds.map(async(loginId) => {
-                    return this.getInternalUserIdByExternalId(token, loginId)
-                }))
-
-                let userIdByExternalId={};
-
-                userIds.forEach(userId=>{
-                    if(userId) userIdByExternalId[Object.keys(userId)[0]] = Object.values(userId)[0].userId;
-                })
+                let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
                 let entityAssessorDocument = await database.models.entityAssessors.find({ userId: { $in: Object.values(userIdByExternalId) } }, { entities: 1, userId: 1 }).lean();
 
@@ -228,7 +218,7 @@ module.exports = class entityAssessorHelper {
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
-                    if(assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
+                    if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
                     let assessorEntityArray = new Array
                     assessor.entities.split(",").forEach(assessorEntity => {
                         if (entityData[assessorEntity.trim()])
@@ -236,12 +226,7 @@ module.exports = class entityAssessorHelper {
                     })
 
                     assessor.entities = assessorEntityArray
-                    if (programsData[assessor.programId]) {
-                        assessor.programId = programsData[assessor.programId];
-                    } else {
-                        assessor.programId = null;
-                        skippedDocumentCount += 1;
-                    }
+                    assessor.programId = programsData[assessor.programId];
                     assessor.createdBy = assessor.updatedBy = creatorId;
 
                     let entities = (!entityAssessorByUserId || !entityAssessorByUserId[assessor.userId] || !entityAssessorByUserId[assessor.userId].entities.length) ? [] : entityAssessorByUserId[assessor.userId].entities;
@@ -269,7 +254,8 @@ module.exports = class entityAssessorHelper {
                         "programId": assessor.programId
                     }
 
-                    await this.uploadEntityAssessorTracker(entityAssessorDocument)
+                    await this.uploadEntityAssessorTracker(entityAssessorDocument);
+
                     delete assessor.entityOperation;
                     assessor.solutionId = solutionData[assessor.solutionId];
                     let updateObject = {
@@ -281,7 +267,7 @@ module.exports = class entityAssessorHelper {
                             ...assessor
                         }
                     }
-                    return database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
+                    return database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: assessor.solutionId }, updateObject,
                         {
                             upsert: true,
                             new: true,
@@ -309,28 +295,30 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static getInternalUserIdByExternalId(token, loginId) {
+    static getInternalUserIdByExternalId(token, userExternalIds) {
+
         return new Promise(async (resolve, reject) => {
-            if (!this.externalIdToUserIdMap) {
-                this.externalIdToUserIdMap = {}
-            }
 
-            if (Object.keys(this.externalIdToUserIdMap).includes(loginId)) {
-                return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
-            }
+            try {
 
-            else {
-                let userId = await shikshalokam
-                    .getKeycloakUserIdByLoginId(token, loginId)
+                userExternalIds = _.compact(userExternalIds);
 
-                if (userId.length) {
-                    this.externalIdToUserIdMap[loginId] = {
-                        userId: userId[0].userLoginId
-                    }
-                    return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
-                }else{
-                    return resolve()
-                }
+                let externalIdToUserIdMap = {};
+
+                let result = await Promise.all(userExternalIds.map(userExternalId => {
+                    return shikshalokam.getKeycloakUserIdByLoginId(token, userExternalId)
+                }))
+
+                userExternalIds.forEach((loginId, index) => {
+                    externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                })
+
+                return resolve(externalIdToUserIdMap);
+
+            } catch (error) {
+
+                return reject(error);
+
             }
 
         })
