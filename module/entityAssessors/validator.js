@@ -3,8 +3,6 @@ module.exports = (req) => {
     let entityAssessorValidator = {
 
         entities: function () {
-            req.checkQuery('type').exists().withMessage("required type")
-            req.checkQuery('subType').exists().withMessage("required sub type")
         },
         
         uploadForPortal: function () {
