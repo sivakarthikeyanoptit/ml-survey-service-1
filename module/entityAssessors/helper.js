@@ -24,7 +24,7 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static uploadAssessorSchoolTracker(entityAssessor) {
+    static uploadEntityAssessorTracker(entityAssessor) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -155,7 +155,7 @@ module.exports = class entityAssessorHelper {
 
                 let assessorData = await csv().fromString(files.assessors.data.toString());
 
-                let schoolQueryList = {};
+                let entityQueryList = {};
                 let programQueryList = {};
                 let entityTypeQueryList = {};
                 let solutionQueryList = {};
@@ -164,7 +164,7 @@ module.exports = class entityAssessorHelper {
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
-                            schoolQueryList[entityAssessor.trim()] = entityAssessor.trim()
+                            entityQueryList[entityAssessor.trim()] = entityAssessor.trim()
                     })
 
                     programQueryList[assessor.externalId] = programId ? programId : assessor.programId
@@ -177,7 +177,7 @@ module.exports = class entityAssessorHelper {
 
 
                 let entityFromDatabase = await database.models.entities.find({
-                    "metaInformation.externalId": { $in: Object.values(schoolQueryList) }
+                    "metaInformation.externalId": { $in: Object.values(entityQueryList) }
                 }, {
                         "metaInformation.externalId": 1
                     }).lean();
@@ -228,9 +228,9 @@ module.exports = class entityAssessorHelper {
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
                     let assessorEntityArray = new Array
-                    assessor.entities.split(",").forEach(assessorSchool => {
-                        if (entityData[assessorSchool.trim()])
-                            assessorEntityArray.push(entityData[assessorSchool.trim()])
+                    assessor.entities.split(",").forEach(assessorEntity => {
+                        if (entityData[assessorEntity.trim()])
+                            assessorEntityArray.push(entityData[assessorEntity.trim()])
                     })
 
                     assessor.entities = assessorEntityArray
@@ -268,7 +268,7 @@ module.exports = class entityAssessorHelper {
                         "programId": assessor.programId
                     }
 
-                    await this.uploadAssessorSchoolTracker(entityAssessorDocument)
+                    await this.uploadEntityAssessorTracker(entityAssessorDocument)
                     delete assessor.entityOperation;
                     assessor.solutionId = solutionData[assessor.solutionId];
                     let updateObject = {
