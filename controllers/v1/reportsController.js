@@ -1463,7 +1463,7 @@ async generateSubmissionReportsByEntityId(req) {
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         
         if(req.query.entityId && req.query.entityId != "" && req.query.entityId.split(",").length > 0) {
-          fetchRequiredSubmissionDocumentIdQueryObj["schoolExternalId"] = {$in:req.query.entityId.split(",")}
+          fetchRequiredSubmissionDocumentIdQueryObj["entityExternalId"] = {$in:req.query.entityId.split(",")}
         }
         
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
