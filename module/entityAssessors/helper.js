@@ -1,5 +1,7 @@
 const csv = require("csvtojson");
 const moment = require("moment");
+let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+
 module.exports = class entityAssessorHelper {
 
     static createEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
@@ -146,7 +148,7 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static upload(files, programId, solutionId, userId) {
+    static upload(files, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!files || !files.assessors) throw { status: 400, message: "Bad request." };
@@ -193,9 +195,19 @@ module.exports = class entityAssessorHelper {
                     name: { $in: Object.values(entityTypeQueryList) }
                 }, { name: 1 }).lean();
 
-                let userIds = assessorData.map(assessor => assessor.userId);
+                let userEmails = assessorData.map(assessor => assessor.externalId);
 
-                let entityAssessorDocument = await database.models.entityAssessors.find({ userId: { $in: userIds } }, { entities: 1, userId: 1 }).lean();
+                let userIds = await Promise.all(userEmails.map(async(loginId) => {
+                    return this.getInternalUserIdByExternalId(token, loginId)
+                }))
+
+                let userIdByExternalId={};
+
+                userIds.forEach(userId=>{
+                    if(userId) userIdByExternalId[Object.keys(userId)[0]] = Object.values(userId)[0].userId;
+                })
+
+                let entityAssessorDocument = await database.models.entityAssessors.find({ userId: { $in: Object.values(userIdByExternalId) } }, { entities: 1, userId: 1 }).lean();
 
                 let entityAssessorByUserId = _.keyBy(entityAssessorDocument, 'userId');
 
@@ -214,6 +226,7 @@ module.exports = class entityAssessorHelper {
                 let creatorId = userId;
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
+                    assessor["userId"] = userIdByExternalId[assessor.externalId];
                     let assessorEntityArray = new Array
                     assessor.entities.split(",").forEach(assessorSchool => {
                         if (entityData[assessorSchool.trim()])
@@ -295,5 +308,32 @@ module.exports = class entityAssessorHelper {
         })
     }
 
+    static getInternalUserIdByExternalId(token, loginId) {
+        return new Promise(async (resolve, reject) => {
+            if (!this.externalIdToUserIdMap) {
+                this.externalIdToUserIdMap = {}
+            }
+
+            if (Object.keys(this.externalIdToUserIdMap).includes(loginId)) {
+                return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+            }
+
+            else {
+                let userId = await shikshalokam
+                    .getKeycloakUserIdByLoginId(token, loginId)
+
+                if (userId.length) {
+                    this.externalIdToUserIdMap[loginId] = {
+                        userId: userId[0].userLoginId
+                    }
+                    return resolve({ [loginId]: this.externalIdToUserIdMap[loginId] });
+                }else{
+                    return resolve()
+                }
+            }
+
+        })
+
+    }
 
 };
