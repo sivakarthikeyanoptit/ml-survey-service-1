@@ -162,7 +162,7 @@ module.exports = class entityAssessorHelper {
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
-                            entityQueryList[entityAssessor.trim()] = entityAssessor.trim()
+                            entityQueryList[entityAssessor.trim()] = ObjectId(entityAssessor.trim())
                     })
 
                     programQueryList[assessor.externalId] = programId ? programId : assessor.programId
@@ -175,7 +175,7 @@ module.exports = class entityAssessorHelper {
 
 
                 let entityFromDatabase = await database.models.entities.find({
-                    "metaInformation.externalId": { $in: Object.values(entityQueryList) }
+                    "_id": { $in: Object.values(entityQueryList) }
                 }, {
                         "metaInformation.externalId": 1
                     }).lean();
@@ -183,7 +183,7 @@ module.exports = class entityAssessorHelper {
 
                 let programsFromDatabase = await database.models.programs.find({
                     externalId: { $in: Object.values(programQueryList) }
-                }).lean();
+                }, { externalId: 1 }).lean();
 
                 let solutionsFromDatabase = await database.models.solutions.find({
                     externalId: { $in: Object.values(solutionQueryList) }
@@ -210,10 +210,10 @@ module.exports = class entityAssessorHelper {
                 let entityAssessorByUserId = _.keyBy(entityAssessorDocument, 'userId');
 
                 let entityData = entityFromDatabase.reduce(
-                    (ac, entity) => ({ ...ac, [entity.metaInformation.externalId]: entity._id }), {})
+                    (ac, entity) => ({ ...ac, [entity._id]: entity._id }), {})
 
                 let programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program }), {})
+                    (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
 
                 let solutionData = solutionsFromDatabase.reduce(
                     (ac, solution) => ({ ...ac, [solution.externalId]: solution._id }), {})
@@ -233,7 +233,7 @@ module.exports = class entityAssessorHelper {
 
                     assessor.entities = assessorEntityArray
                     if (programsData[assessor.programId]) {
-                        assessor.programId = programsData[assessor.programId]._id;
+                        assessor.programId = programsData[assessor.programId];
                     } else {
                         assessor.programId = null;
                         skippedDocumentCount += 1;
