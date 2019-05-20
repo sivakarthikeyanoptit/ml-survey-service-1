@@ -51,6 +51,22 @@ module.exports = class FileUpload {
         });
     }
 
+    /**
+    * @api {post} /assessment/api/v1/files/getImageUploadUrl Get File Upload URL
+    * @apiVersion 0.0.1
+    * @apiName Get File Upload URL
+    * @apiGroup Files
+    * @apiParamExample {json} Request-Body:
+    * 
+    *   "files" : [
+    *     "23-Oct-2018-8AM-image121.jpg",
+    *     "23-Oct-2018-8AM-image222.jpg",
+    *     "23-Oct-2018-8AM-image323.jpg"
+    *   ],
+    *   "submissionId": "5bee56b30cd752559fd13012"
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
     async getImageUploadUrl(req) {
         return new Promise( async (resolve,reject) => {
 

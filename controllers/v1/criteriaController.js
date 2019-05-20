@@ -23,10 +23,10 @@ module.exports = class Criteria extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/criterias/insert Add Criterias
+  * @api {post} /assessment/api/v1/criteria/insert Add Criterias
   * @apiVersion 0.0.1
   * @apiName Add Criterias
-  * @apiGroup criterias
+  * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
 * {
   "externalId": "",
@@ -163,6 +163,15 @@ module.exports = class Criteria extends Abstract {
     })
   }
 
+  /**
+  * @api {get} /assessment/api/v1/criteria/getEvidence/ Get Criteria Evidences
+  * @apiVersion 0.0.1
+  * @apiName Get Criteria Evidences
+  * @apiGroup Criteria
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   async getEvidence(req) {
     let criteria = await this.getCriterias(req);
 
@@ -211,10 +220,10 @@ module.exports = class Criteria extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/criterias/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
+  * @api {get} /assessment/api/v1/criteria/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
   * @apiVersion 0.0.1
   * @apiName Get Criterias Parent Ques And Instance Parent Ques
-  * @apiGroup criterias
+  * @apiGroup Criteria
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiUse successBody
   * @apiUse errorBody
@@ -274,10 +283,10 @@ module.exports = class Criteria extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/criterias/addQuestion Add Criteria Question
+  * @api {post} /assessment/api/v1/criteria/addQuestion Add Criteria Question
   * @apiVersion 0.0.1
   * @apiName Add Criteria Question
-  * @apiGroup criterias
+  * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
   * {
   * "question": [],
@@ -456,176 +465,6 @@ module.exports = class Criteria extends Abstract {
       }
 
     })
-  }
-
-  uploadQuestion(req){
-
-    return new Promise(async (resolve,reject)=>{
-      
-      try {
-
-        if (!req.files || !req.files.questions) {
-          let responseMessage = "Bad request.";
-          return resolve({ status: 400, message: responseMessage })
-        }
-
-        let questionData = await csv().fromString(req.files.questions.data.toString());
-        
-        let criteriaIds = new Array
-        let criteriaObject = {}
-
-        let questionCollection = {}
-        let questionIds = new Array
-        
-        let solutionDocument = await database.models.solutions.findOne({ externalId: questionData[0]["solutionId"] },{"evidenceMethods":1,"sections":1,"themes":1}).lean();
-        let criteriasIdArray = gen.utils.getCriteriaIds(solutionDocument.themes);
-        let criteriasArray = new Array;
-
-        criteriasIdArray.forEach(eachCriteriaIdArray=>{
-          criteriasArray.push(eachCriteriaIdArray._id.toString())
-        })
-
-        questionData.forEach(eachQuestionData=>{
-
-          let parsedQuestion = gen.utils.valueParser(eachQuestionData)
-
-          if(!criteriaIds.includes(parsedQuestion["criteriaExternalId"])){
-            criteriaIds.push(parsedQuestion["criteriaExternalId"])
-          }
-
-          if(!questionIds.includes(parsedQuestion["externalId"])) questionIds.push(parsedQuestion["externalId"])
-          
-          if (parsedQuestion["hasAParentQuestion"] !== "NO" && !questionIds.includes(parsedQuestion["parentQuestionId"])) { 
-            questionIds.push(parsedQuestion["parentQuestionId"]) 
-          }
-
-          if (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionIds.includes(parsedQuestion["instanceParentQuestionId"])) { 
-            questionIds.push(parsedQuestion["instanceParentQuestionId"]) 
-          }
-
-        })
-       
-        let criteriaDocument = await database.models.criterias.find({
-          externalId:{$in:criteriaIds}
-        }).lean()
-
-        if(!criteriaDocument.length>0){
-          throw "Criteria is not found"
-        }
-
-        criteriaDocument.forEach(eachCriteriaDocument=>{
-          if(criteriasArray.includes(eachCriteriaDocument._id.toString())){
-            criteriaObject[eachCriteriaDocument.externalId]= eachCriteriaDocument
-          }
-        })
-
-        let questionsFromDatabase = await database.models.questions.find({
-          externalId: { $in: questionIds }
-        }).lean();
-
-        if (questionsFromDatabase.length > 0) {
-          questionsFromDatabase.forEach(question => {
-            questionCollection[question.externalId] = question
-          })
-        }
-
-        const fileName = `Question-Upload-Result`;
-        let fileStream = new FileStream(fileName);
-        let input = fileStream.initStream();
-
-        (async function () {
-          await fileStream.getProcessorPromise();
-          return resolve({
-            isResponseAStream: true,
-            fileNameWithPath: fileStream.fileNameWithPath()
-          });
-        }());
-
-        let pendingItems = new Array
-
-        for(let pointerToQuestionData = 0;pointerToQuestionData<questionData.length;pointerToQuestionData++){
-          
-          let parsedQuestion = gen.utils.valueParser(questionData[pointerToQuestionData])
-
-          let criteria = {}
-          let ecm = {}
-
-          ecm[parsedQuestion["evidenceMethod"]] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
-          criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
-
-          let section = solutionDocument.sections[parsedQuestion.section]
-
-          if ((parsedQuestion["hasAParentQuestion"] == "YES" && !questionCollection[parsedQuestion["parentQuestionId"]]) || (parsedQuestion["instanceParentQuestionId"] !== "NA" && !questionCollection[parsedQuestion["instanceParentQuestionId"]])) {
-            
-            pendingItems.push({
-              parsedQuestion:parsedQuestion,
-              criteriaToBeSent:criteria,
-              evaluationFrameworkMethod:ecm,
-              section:section
-            })
-            
-          } else {
-
-            let question = {}
-
-            if(questionCollection[parsedQuestion["externalId"]]) {
-              question[parsedQuestion["externalId"]] = questionCollection[parsedQuestion["externalId"]]
-            }
-
-            if(parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[parsedQuestion["instanceParentQuestionId"]]){
-              question[parsedQuestion["instanceParentQuestionId"]] =  questionCollection[parsedQuestion["instanceParentQuestionId"]]
-            }
-            
-            if(parsedQuestion["hasAParentQuestion"] == "YES" && questionCollection[parsedQuestion["parentQuestionId"]]){
-              question[parsedQuestion["parentQuestionId"]] =  questionCollection[parsedQuestion["parentQuestionId"]]
-            }
-
-            let resultFromCreateQuestions = await this.createQuestions(parsedQuestion,question,criteria,ecm,section)
-            
-            if(resultFromCreateQuestions.result){
-              questionCollection[resultFromCreateQuestions.result.externalId] = resultFromCreateQuestions.result
-            }
-            input.push(resultFromCreateQuestions.total[0])
-
-          }
-
-        }
-
-        if(pendingItems) {
-
-          for(let pointerToPendingData = 0;pointerToPendingData<pendingItems.length;pointerToPendingData++) {
-            
-            let question = {}
-            let eachPendingItem = gen.utils.valueParser(pendingItems[pointerToPendingData])
-            
-            if(questionCollection[eachPendingItem.parsedQuestion["externalId"]]) {
-              question[eachPendingItem.parsedQuestion["externalId"]] = questionCollection[eachPendingItem.parsedQuestion["externalId"]]
-            }
-
-            if(eachPendingItem.parsedQuestion["instanceParentQuestionId"] !== "NA" && questionCollection[eachPendingItem.parsedQuestion["instanceParentQuestionId"]]){
-              question[eachPendingItem.parsedQuestion["instanceParentQuestionId"]] =  questionCollection[eachPendingItem.parsedQuestion["instanceParentQuestionId"]]
-            }
-            
-            if(eachPendingItem.parsedQuestion["hasAParentQuestion"] == "YES" && questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]){
-              question[eachPendingItem.parsedQuestion["parentQuestionId"]] =  questionCollection[eachPendingItem.parsedQuestion["parentQuestionId"]]
-            }
-            let csvQuestionData = await this.createQuestions(eachPendingItem.parsedQuestion,question,eachPendingItem.criteriaToBeSent,eachPendingItem.evaluationFrameworkMethod,eachPendingItem.section)
-            
-            input.push(csvQuestionData.total[0])
-          }
-
-        }
-        
-        input.push(null)
-
-      }catch(error){
-        reject({
-          message:error
-        })
-      }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-
-    })
-
   }
 
   getEvidenceObjectsForDCPCR() {
@@ -904,7 +743,16 @@ module.exports = class Criteria extends Abstract {
     }
   }
 
-  async uploadRubricLevels(req) {
+  /**
+  * @api {post} /assessment/api/v1/criteria/uploadRubricExpressions Upload Rubric Expressions
+  * @apiVersion 0.0.1
+  * @apiName Upload Rubric Expressions
+  * @apiGroup Criteria
+  * @apiParam {File} criteria     Mandatory criteria file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadRubricExpressions(req) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -1074,14 +922,23 @@ module.exports = class Criteria extends Abstract {
     })
   }
 
-  async uploadCriterias(req) {
+  /**
+  * @api {post} /assessment/api/v1/criteria/upload Upload Criteria CSV
+  * @apiVersion 0.0.1
+  * @apiName Upload Criteria CSV
+  * @apiGroup Criteria
+  * @apiParam {File} criteria     Mandatory criteria file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.criterias) {
           throw "Csv file for criterias should be selected"
         }
 
-        let criteriaData = await csv().fromString(req.files.criterias.data.toString())
+        let criteriaData = await csv().fromString(req.files.criteria.data.toString())
 
         const fileName = `upload Criteria`;
         let fileStream = new FileStream(fileName);
@@ -1228,251 +1085,6 @@ module.exports = class Criteria extends Abstract {
         });
       }
     })
-  }
-
-  async createQuestions(parsedQuestion,questionCollection,criteriaObject,evidenceCollectionMethodObject,questionSection){
-
-    let csvArray = new Array
-
-    return new Promise(async(resolve,reject)=>{
-      let questionDataModel = this.questionModelsData()
-
-        let includeFieldByDefault = {
-          "remarks" : "",
-          "value" : "",
-          "usedForScoring" : "",
-          "questionType" : "auto",
-          "deleted" : false,
-          "canBeNotApplicable" : "false"
-        }
-
-        let fieldNotIncluded = ["instanceIdentifier","dateFormat","autoCapture","isAGeneralQuestion"]
-        
-        let resultQuestion
-
-        let csvResult = {}
-        
-        if (questionCollection && questionCollection[parsedQuestion["externalId"]]) {
-          csvResult["internal id"] = "Question already exists"
-        } else {
-    
-          let allValues = {}
-
-          Object.keys(includeFieldByDefault).forEach(eachFieldToBeIncluded=>{
-            allValues[eachFieldToBeIncluded] = includeFieldByDefault[eachFieldToBeIncluded]
-          })
-
-          allValues["visibleIf"]= new Array
-          allValues["question"] = new Array
-
-          let evidenceMethod = parsedQuestion["evidenceMethod"]
-
-          if(parsedQuestion["hasAParentQuestion"] !== "YES") {
-            allValues.visibleIf = ""
-          } else {
-
-            let operator = parsedQuestion["parentQuestionOperator"]="EQUALS"?parsedQuestion["parentQuestionOperator"] = "===":parsedQuestion["parentQuestionOperator"]
-            
-            allValues.visibleIf.push({
-              operator:operator,
-              value:parsedQuestion.parentQuestionValue,
-              _id:questionCollection[parsedQuestion["parentQuestionId"]]._id
-            })
-
-          }
-    
-          allValues.question.push(
-            parsedQuestion["question0"],
-            parsedQuestion["question1"]
-          )
-          
-          allValues["isAGeneralQuestion"] = Boolean(gen.utils.lowerCase(parsedQuestion["isAGeneralQuestion"]?parsedQuestion["isAGeneralQuestion"]:""))
-
-          allValues["externalId"] = parsedQuestion["externalId"]
-
-          if(parsedQuestion["responseType"] !== ""){
-            allValues["responseType"] = parsedQuestion["responseType"]
-            allValues["validation"] = {}
-            allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
-
-            if(parsedQuestion["responseType"] == "matrix"){
-              allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
-            }
-            if(parsedQuestion["responseType"] == "date"){
-              allValues["dateFormat"] = parsedQuestion.dateFormat
-              allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture)
-              allValues["validation"]["validationMax"] = parsedQuestion.validationMax
-              allValues["validation"]["validationMin"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
-            }
-
-            if(parsedQuestion["responseType"] == "number"){
-
-              allValues["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["validationIsNumber"])
-              
-              if(parsedQuestion["validationRegex"] == "IsNumber"){
-                  allValues["validation"]["regex"] = "^[0-9s]*$"
-              }
-              
-            }
-
-            if(parsedQuestion["responseType"] == "slider") {
-               if(parsedQuestion["validationRegex"] == "IsNumber") {
-                  allValues["validation"]["regex"] = "^[0-9s]*$"
-                }
-              allValues["validation"]["validationMax"] = parsedQuestion.validationMax
-              allValues["validation"]["validationMin"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
-            }
-
-          }
-
-          allValues["fileName"] = []
-          allValues["file"] = {}
-
-          if(parsedQuestion["file"] != "NA") {
-        
-            allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
-            allValues.file["type"] = new Array
-            allValues.file.type.push(parsedQuestion["fileUploadType"])
-            allValues.file["minCount"] = parsedQuestion["minFileCount"]
-            allValues.file["maxCount"] = parsedQuestion["maxFileCount"]
-            allValues.file["caption"] = parsedQuestion["caption"]
-          }
-
-    
-          allValues["showRemarks"] = Boolean(gen.utils.lowerCase(parsedQuestion["showRemarks"]))
-          allValues["tip"] = parsedQuestion["tip"]
-
-          allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
-
-          allValues["modeOfCollection"] = parsedQuestion["modeOfCollection"]
-          allValues["accessibility"] = parsedQuestion["accessibility"]
-
-          allValues["options"] = new Array
-          allValues["isCompleted"] = false
-          allValues["value"] = ""
-
-          for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
-            let responseValue = "R"+pointerToResponseCount
-
-            if(parsedQuestion[responseValue] && parsedQuestion[responseValue] != ""){
-              allValues.options.push({
-                value:responseValue,
-                label:parsedQuestion[responseValue]
-              })
-            }
-          }
-    
-          Object.keys(parsedQuestion).forEach(parsedQuestionData=>{
-            if(!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)){
-              allValues[parsedQuestionData] = parsedQuestion[parsedQuestionData]
-            }
-          })
-          let createQuestion = await database.models.questions.create(
-            allValues
-          )
-
-          if(!createQuestion._id){
-            csvResult["internal id"] = "Not Created"
-          } else{
-            resultQuestion = createQuestion
-            csvResult["internal id"] = createQuestion._id
-
-            if (parsedQuestion["parentQuestionId"] != "") {
-
-            let queryParentQuestionObject = {
-              _id: questionCollection[parsedQuestion["parentQuestionId"]]._id
-            }
-
-            let updateParentQuestionObject = {}
-
-            updateParentQuestionObject.$push = {
-              ["children"]: createQuestion._id
-            }
-
-            await database.models.questions.findOneAndUpdate(
-              queryParentQuestionObject,
-              updateParentQuestionObject
-            )
-            }
-
-            if (parsedQuestion["instanceParentQuestionId"] != "NA") {
-
-              let queryInstanceParentQuestionObject = {
-                _id: questionCollection[parsedQuestion["instanceParentQuestionId"]]._id
-              }
-
-              let updateInstanceParentQuestionObject = {}
-
-              updateInstanceParentQuestionObject.$push = {
-                ["instanceQuestions"]: createQuestion._id
-              }
-
-              await database.models.questions.findOneAndUpdate(
-                queryInstanceParentQuestionObject,
-                updateInstanceParentQuestionObject
-              )
-
-            }
-
-            let newCriteria = await database.models.criterias.findOne(
-              {
-                _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
-              },
-              {
-                evidences : 1
-              }
-            )
-          
-            let criteriaEvidences = newCriteria.evidences
-            let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
-
-            if (indexOfEvidenceMethodInCriteria < 0) {
-              evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
-              criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
-              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
-            }
-
-            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
-      
-            if (indexOfSectionInEvidenceMethod < 0) {
-              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
-              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
-            }
-
-            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
-
-            let queryCriteriaObject = {
-              externalId: parsedQuestion["criteriaExternalId"]
-            }
-
-            let updateCriteriaObject = {}
-            updateCriteriaObject.$set = {
-              ["evidences"]: criteriaEvidences
-            }
-
-            await database.models.criterias.findOneAndUpdate(
-              queryCriteriaObject,
-              updateCriteriaObject
-            )
-
-          }
-
-        }
-
-        csvResult["Question External Id"] = parsedQuestion["externalId"]
-        csvResult["Question Name"] = parsedQuestion["question0"]
-        csvArray.push(csvResult)
-
-        return resolve({
-          total:csvArray,
-          result:resultQuestion
-        })
-      
-    })
-  }
-
-  questionModelsData(){
-    return Object.keys(questionsSchema.schema)
   }
  
 };
