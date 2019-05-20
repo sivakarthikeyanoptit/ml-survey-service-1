@@ -193,9 +193,12 @@ module.exports = class entityAssessorHelper {
                     name: { $in: Object.values(entityTypeQueryList) }
                 }, { name: 1 }).lean();
 
-                let userEmails = assessorData.map(assessor => assessor.externalId);
+                let userExternalIds = assessorData.map(assessor => assessor.externalId);
+                let parentExternalIds = assessorData.map(assessor => assessor.parentId);
 
-                let userIds = await Promise.all(userEmails.map(async(loginId) => {
+                userExternalIds.push(...parentExternalIds);
+
+                let userIds = await Promise.all(userExternalIds.map(async(loginId) => {
                     return this.getInternalUserIdByExternalId(token, loginId)
                 }))
 
@@ -225,6 +228,7 @@ module.exports = class entityAssessorHelper {
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
+                    if(assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
                     let assessorEntityArray = new Array
                     assessor.entities.split(",").forEach(assessorEntity => {
                         if (entityData[assessorEntity.trim()])
