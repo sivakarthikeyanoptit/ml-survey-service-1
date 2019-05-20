@@ -76,8 +76,6 @@ module.exports = class entityAssessorHelper {
 
                 trackerObject.assessorId = entityAssessorsTrackersDocument.assessorId;
 
-                trackerObject.type = entityAssessor.type;
-
                 trackerObject.programId = entityAssessor.programId;
 
                 trackerObject.dateOfOperation = new Date;
@@ -263,7 +261,6 @@ module.exports = class entityAssessorHelper {
                     let entityAssessorDocument = {
                         "action": assessor.entityOperation,
                         "entities": assessor.entities,
-                        "type": "ASSESSOR",
                         "assessorId": assessor.userId,
                         "programId": assessor.programId
                     }
