@@ -1640,15 +1640,15 @@ async generateSubmissionReportsByEntityId(req) {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/schoolProfileInformation/:programId Fetch School Profile Information
+  * @api {get} /assessment/api/v1/reports/entityProfileInformation/:programId Fetch Entity Profile Information
   * @apiVersion 0.0.1
-  * @apiName Fetch School Profile Information
+  * @apiName Fetch Entity Profile Information
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async schoolProfileInformation(req) {
+  async entityProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let queryParams = {
@@ -1659,13 +1659,13 @@ async generateSubmissionReportsByEntityId(req) {
           _id: 1
         })
 
-        const programsDocument = await database.models.programs.findOne({
-          externalId: req.params._id
-        }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
+        const solutionDocuments = await database.models.solutions.findOne({
+          programExternalId:req.params._id
+        },{entityProfileFieldsPerEntityTypes:1}).lean()
 
-        let schoolProfileFields = await this.getSchoolProfileFields(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
+        let entityProfileFields = await gen.utils.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
 
-        const fileName = `schoolProfileInformation`;
+        const fileName = `entityProfileInformation`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1687,37 +1687,37 @@ async generateSubmissionReportsByEntityId(req) {
         else {
           let chunkOfSubmissionIds = _.chunk(submissionIds, 10)
           let submissionIdArray
-          let schoolProfileSubmissionDocuments
+          let entityProfileSubmissionDocuments
 
           for (let pointerToSchoolProfileSubmissionArray = 0; pointerToSchoolProfileSubmissionArray < chunkOfSubmissionIds.length; pointerToSchoolProfileSubmissionArray++) {
             submissionIdArray = chunkOfSubmissionIds[pointerToSchoolProfileSubmissionArray].map(eachSubmissionId => {
               return eachSubmissionId._id
             })
 
-            schoolProfileSubmissionDocuments = await database.models.submissions.find(
+            entityProfileSubmissionDocuments = await database.models.submissions.find(
               {
                 _id: {
                   $in: submissionIdArray
                 }
               }, {
-                "schoolProfile": 1,
+                "entityProfile": 1,
                 "_id": 1,
                 "programExternalId": 1,
-                "schoolExternalId": 1
+                "entityExternalId": 1
               })
 
-            await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
+            await Promise.all(entityProfileSubmissionDocuments.map(async (entityProfileSubmissionDocument) => {
 
-              let schoolProfile = _.omit(eachSchoolProfileSubmissionDocument.schoolProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
-              if (schoolProfile) {
-                let schoolProfileObject = {};
-                schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
-                schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
+              let entityProfile = _.omit(entityProfileSubmissionDocument.entityProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
+              if (entityProfile) {
+                let entityProfileObject = {};
+                entityProfileObject['Entity External Id'] = entityProfileSubmissionDocument.entityExternalId;
+                entityProfileObject['Program External Id'] = entityProfileSubmissionDocument.programExternalId;
 
-                schoolProfileFields.forEach(eachSchoolField => {
-                  schoolProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = schoolProfile[eachSchoolField] ? schoolProfile[eachSchoolField] : ""
+                entityProfileFields.forEach(eachSchoolField => {
+                  entityProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = entityProfile[eachSchoolField] ? entityProfile[eachSchoolField] : ""
                 })
-                input.push(schoolProfileObject);
+                input.push(entityProfileObject);
               }
             }))
           }
@@ -2902,15 +2902,6 @@ async generateSubmissionReportsByEntityId(req) {
     return istStart;
   }
 
-  getSchoolProfileFields(schoolProfileFieldsPerSchoolTypes) {
-    let schoolFieldArray = [];
 
-    Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
-      eachSchoolProfileFieldPerSchoolType.forEach(eachSchoolField => {
-        schoolFieldArray.push(eachSchoolField)
-      })
-    })
-    return schoolFieldArray;
-  }
 
 };
