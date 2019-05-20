@@ -20,26 +20,6 @@ module.exports = class Reports {
     return "submissions";
   }
 
-  async dataFix(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let dataFixer = require(ROOT_PATH + "/generics/helpers/dataFixer");
-        dataFixer.processData(req.params._id);
-
-        return resolve({
-          status: 200,
-          message: "All good! for " + req.params._id
-        });
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
-
   /**
  * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for school
  * @apiVersion 0.0.1
