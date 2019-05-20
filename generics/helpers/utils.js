@@ -133,17 +133,6 @@ function valueParser(dataToBeParsed){
   return parsedData
 }
 
-function getEntityProfileFields(entityProfileFieldsPerEntityTypes) {
-  let entityFieldArray = [];
-
-  Object.values(entityProfileFieldsPerEntityTypes).forEach(eachEntityProfileFieldPerSchoolType => {
-    eachEntityProfileFieldPerSchoolType.forEach(eachEntityField => {
-      entityFieldArray.push(eachEntityField)
-    })
-  })
-  return entityFieldArray;
-}
-
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
   lowerCase:lowerCase,
@@ -155,6 +144,5 @@ module.exports = {
   valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,
   getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage,
-  assessmentRoles:assessmentRoles,
-  getEntityProfileFields:getEntityProfileFields
+  assessmentRoles:assessmentRoles
 };

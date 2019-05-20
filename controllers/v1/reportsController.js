@@ -1,5 +1,7 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const solutionModule = require(ROOT_PATH + "/module/solutions/helper")
+
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 module.exports = class Reports {
   /**
@@ -1663,7 +1665,7 @@ async generateSubmissionReportsByEntityId(req) {
           programExternalId:req.params._id
         },{entityProfileFieldsPerEntityTypes:1}).lean()
 
-        let entityProfileFields = await gen.utils.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
+        let entityProfileFields = await solutionModule.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
 
         const fileName = `entityProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -2901,7 +2903,5 @@ async generateSubmissionReportsByEntityId(req) {
     }
     return istStart;
   }
-
-
 
 };
