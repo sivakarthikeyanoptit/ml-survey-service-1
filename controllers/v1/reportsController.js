@@ -1297,7 +1297,8 @@ async generateSubmissionReportsBySchoolId(req) {
             [groupType]:{$exists:true} 
           },{
             [groupType]:1,
-            "metaInformation.externalId":1
+            "metaInformation.externalId":1,
+            "metaInformation.name":1
           }).lean()
 
           let fileName =  `${req.query.type} registry`;
@@ -1348,7 +1349,8 @@ async generateSubmissionReportsBySchoolId(req) {
       
               allregistryObject['Program External Id'] = req.params._id;
               allregistryObject['Entity Type'] = singleRegistry.entityType
-              allregistryObject['Entity External Id'] = entitiesDocument[pointerToRegistryDocument].metaInformation.externalId;
+              allregistryObject['Parent Entity External Id'] = entitiesDocument[pointerToRegistryDocument].metaInformation.externalId;
+              allregistryObject['Parent Entity Name'] = entitiesDocument[pointerToRegistryDocument].metaInformation.name;
               (singleRegistry.createdAt) ? allregistryObject['Created At'] = this.gmtToIst(singleRegistry.createdAt) : allregistryObject['Created At'] = "";
               (singleRegistry.updatedAt) ? allregistryObject['Updated At'] = this.gmtToIst(singleRegistry.updatedAt) : allregistryObject['Updated At'] = "";
               input.push(allregistryObject);
