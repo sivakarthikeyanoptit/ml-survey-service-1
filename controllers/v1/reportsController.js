@@ -1275,20 +1275,20 @@ async generateSubmissionReportsBySchoolId(req) {
           externalId: req.params._id
         };
 
-        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+        let programsDocumentIds = await database.models.programs.findOne(programQueryParams, { externalId: 1 }).lean()
 
-        if (!programsDocumentIds.length) {
-          return resolve({
-            status: 404,
-            message: "No parent registry found for given parameters."
-          });
-        }
+        // if (!programsDocumentIds.length) {
+        //   return resolve({
+        //     status: 404,
+        //     message: "No parent registry found for given parameters."
+        //   });
+        // }
 
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        // let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
+        // let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        // toDate.setHours(23, 59, 59)
 
-        if (fromDateValue > toDate) {
+        if (req.query.fromDate > req.query.toDate) {
           return resolve({
             status: 400,
             message: "From Date cannot be greater than to date !!!"
@@ -1297,16 +1297,17 @@ async generateSubmissionReportsBySchoolId(req) {
 
         let parentRegistryQueryParams = {}
 
-        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
+        parentRegistryQueryParams["metaInformation.createdByProgramId"] = programsDocumentIds._id;
+        parentRegistryQueryParams["entityType"] = "parent"
         parentRegistryQueryParams['createdAt'] = {}
-        parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        parentRegistryQueryParams['createdAt']["$lte"] = toDate
+        parentRegistryQueryParams['createdAt']["$gte"] = req.query.fromDate
+        parentRegistryQueryParams['createdAt']["$lte"] = req.query.toDate
 
-        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 })
+        const parentRegistryIdsArray = await database.models.entities.find(parentRegistryQueryParams, { _id: 1 })
 
         let fileName = "parentRegistry";
-        (fromDateValue != "") ? fileName += " from " + fromDateValue : "";
-        (toDate != "") ? fileName += " to " + toDate : "";
+        (req.query.fromDate != "") ? fileName += " from " + req.query.fromDate : "";
+        (req.query.toDate != "") ? fileName += " to " + req.query.toDate : "";
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1334,6 +1335,7 @@ async generateSubmissionReportsBySchoolId(req) {
 
 
           for (let pointerToParentRegistryIdArray = 0; pointerToParentRegistryIdArray < chunkOfParentRegistryDocument.length; pointerToParentRegistryIdArray++) {
+            
             parentRegistryId = chunkOfParentRegistryDocument[pointerToParentRegistryIdArray].map(parentRegistryModel => {
               return parentRegistryModel._id
             });
