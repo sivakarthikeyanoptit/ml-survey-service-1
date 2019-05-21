@@ -72,4 +72,59 @@ module.exports = class solutionsHelper {
         })
         return entityFieldArray;
     }
+
+
+    static allSubGroupEntityIdsByGroupName(programExternalId= "", groupName="") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (programExternalId == "" || groupName == "") {
+                    throw "Invalid paramters"
+                }
+
+                let solutionEntities = await database.models.solutions.findOne({
+                    programExternalId: programExternalId
+                }, {
+                    entities : 1
+                });
+
+                let allSubGroupEntityIdToParentMap = {}
+
+                if (!(solutionEntities.entities.length > 0) ) {
+                    return resolve(allSubGroupEntityIdToParentMap)
+                }
+
+
+                let groupType = "groups."+groupName
+
+                let entitiyDocuments = await database.models.entities.find({
+                    _id:{
+                        $in: solutionEntities.entities
+                    },
+                    [groupType]:{$exists:true} 
+                  },{
+                        "metaInformation.name":1,
+                        "metaInformation.externalId":1,
+                        [groupType]:1
+                  }).lean()
+
+                entitiyDocuments.forEach(entitiyDocument => {
+                    entitiyDocument.groups[groupName].forEach(eachSubEntity => {
+                        allSubGroupEntityIdToParentMap[eachSubEntity.toString()] = {
+                            parentEntityId: eachSubEntity._id.toString(),
+                            parentEntityName: (entitiyDocument.metaInformation.name) ? entitiyDocument.metaInformation.name : "",
+                            parentEntityExternalId: (entitiyDocument.metaInformation.externalId) ? entitiyDocument.metaInformation.externalId : ""
+                        }
+                    })
+                })
+
+                return resolve(allSubGroupEntityIdToParentMap)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
+
 };
