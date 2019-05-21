@@ -1892,17 +1892,6 @@ module.exports = class Reports {
           })
         }
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          return resolve({
-            status: 400,
-            message: "From Date cannot be greater than to date !!!"
-          })
-        }
-
         const fileName = `ecmSubmissionByDate`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1933,7 +1922,7 @@ module.exports = class Reports {
             $project: { 'entityName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', entityExternalId: 1 }
           },
           {
-            $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
+            $match: { submmissionDate: { $gte: req.query.fromDate, $lte: req.query.toDate } }
           }
         ]);
 
@@ -2080,7 +2069,7 @@ module.exports = class Reports {
               Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
 
               eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
-                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt <= toDate)) {
+                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= req.query.fromDate && eachParentInterviewResponse.completedAt <= req.query.toDate)) {
 
                   result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
                   eachParentInterviewResponse.parentType.forEach(eachParentType => {
