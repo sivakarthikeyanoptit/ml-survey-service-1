@@ -153,52 +153,58 @@ module.exports = class entityAssessorHelper {
 
                 let assessorData = await csv().fromString(files.assessors.data.toString());
 
-                let entityQueryList = {};
-                let programQueryList = {};
-                let entityTypeQueryList = {};
-                let solutionQueryList = {};
+                let entityIds = [];
+                let programIds = [];
+                let entityTypeIds = [];
+                let solutionIds = [];
                 let userExternalIds = [];
 
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
-                            entityQueryList[entityAssessor.trim()] = ObjectId(entityAssessor.trim())
+                            entityIds.push(entityAssessor.trim())
                     })
 
-                    programQueryList[assessor.externalId] = programId ? programId : assessor.programId
+                    programIds.push(programId ? programId : assessor.programId);
 
-                    entityTypeQueryList[assessor.externalId] = assessor.entityType
+                    entityTypeIds.push(assessor.entityType);
 
-                    solutionQueryList[assessor.externalId] = solutionId ? solutionId : assessor.solutionId
+                    solutionIds.push(solutionId ? solutionId : assessor.solutionId);
+
                     userExternalIds.push(assessor.userId);
                     if (assessor.parentId) userExternalIds.push(assessor.parentId);
 
                 });
 
-
-                let entityFromDatabase = await database.models.entities.find({
-                    "_id": { $in: Object.values(entityQueryList) }
-                }, {
-                        "metaInformation.externalId": 1
-                    }).lean();
-
-
                 let programsFromDatabase = await database.models.programs.find({
-                    externalId: { $in: Object.values(programQueryList) }
+                    externalId: { $in: programIds }
                 }, { externalId: 1 }).lean();
 
                 let solutionsFromDatabase = await database.models.solutions.find({
-                    externalId: { $in: Object.values(solutionQueryList) }
+                    externalId: { $in: solutionIds }
                 }, { externalId: 1 }).lean();
 
                 let entityTypeFromDatabase = await database.models.entityTypes.find({
-                    name: { $in: Object.values(entityTypeQueryList) }
+                    name: { $in: entityTypeIds }
                 }, { name: 1 }).lean();
+
+                let entityFromDatabase = await database.models.entities.find({
+                    "metaInformation.externalId": { $in: entityIds }, "metaInformation.createdByProgramId": { $in: programsFromDatabase.map(program => program._id) }
+                }, {
+                        "metaInformation.externalId": 1,
+                        "metaInformation.createdByProgramId": 1
+                    }).lean();
 
                 let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
                 let entityData = entityFromDatabase.reduce(
-                    (ac, entity) => ({ ...ac, [entity._id]: entity._id }), {})
+                    (ac, entity) => ({
+                        ...ac, [entity.metaInformation.externalId]: {
+                            entityId: entity._id,
+                            entityExternalId: entity.metaInformation.externalId,
+                            entityProgramId: entity.metaInformation.createdByProgramId,
+                        }
+                    }), {})
 
                 let programsData = programsFromDatabase.reduce(
                     (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
@@ -209,25 +215,29 @@ module.exports = class entityAssessorHelper {
                 let entityTypeData = entityTypeFromDatabase.reduce(
                     (ac, entityType) => ({ ...ac, [entityType.name]: entityType._id }), {})
 
-                let creatorId = userId;
-
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
                     if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
                     let assessorEntityArray = new Array
-                    assessor.entities.split(",").forEach(assessorEntity => {
-                        if (entityData[assessorEntity.trim()])
-                            assessorEntityArray.push(entityData[assessorEntity.trim()])
-                    })
 
-                    assessor.entities = assessorEntityArray;
                     assessor.programId = programsData[assessor.programId];
-                    assessor.createdBy = assessor.updatedBy = creatorId;
+                    assessor.createdBy = assessor.updatedBy = userId;
                     assessor.solutionId = solutionData[assessor.solutionId];
                     assessor.entityTypeId = entityTypeData[assessor.entityType];
 
+                    assessor.entities.split(",").forEach(assessorEntity => {
+                        assessorEntity = entityData[assessorEntity.trim()];
+                        if (assessorEntity) {
+                            if (assessor.programId.toString() == assessorEntity.entityProgramId.toString()) {
+                                if (assessorEntity.entityId) assessorEntityArray.push(assessorEntity.entityId)
+                            }
+                        }
+                    })
+
+                    assessor.entities = assessorEntityArray;
+
                     let fieldsWithOutSchool = {};
-                    
+
                     Object.keys(database.models.entityAssessors.schema.paths).forEach(fieldName => {
                         if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
                     })
