@@ -197,10 +197,6 @@ module.exports = class entityAssessorHelper {
 
                 let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
-                let entityAssessorDocument = await database.models.entityAssessors.find({ userId: { $in: Object.values(userIdByExternalId) } }, { entities: 1, userId: 1 }).lean();
-
-                let entityAssessorByUserId = _.keyBy(entityAssessorDocument, 'userId');
-
                 let entityData = entityFromDatabase.reduce(
                     (ac, entity) => ({ ...ac, [entity._id]: entity._id }), {})
 
@@ -224,55 +220,48 @@ module.exports = class entityAssessorHelper {
                             assessorEntityArray.push(entityData[assessorEntity.trim()])
                     })
 
-                    assessor.entities = assessorEntityArray
+                    assessor.entities = assessorEntityArray;
                     assessor.programId = programsData[assessor.programId];
                     assessor.createdBy = assessor.updatedBy = creatorId;
+                    assessor.solutionId = solutionData[assessor.solutionId];
+                    assessor.entityTypeId = entityTypeData[assessor.entityType];
 
-                    let entities = (!entityAssessorByUserId || !entityAssessorByUserId[assessor.userId] || !entityAssessorByUserId[assessor.userId].entities.length) ? [] : entityAssessorByUserId[assessor.userId].entities;
+                    let fieldsWithOutSchool = {};
+                    
+                    Object.keys(database.models.entityAssessors.schema.paths).forEach(fieldName => {
+                        if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+                    })
 
+                    let updateObject;
                     if (assessor.entityOperation == "OVERRIDE") {
-                        entities = assessor.entities
+                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutSchool } }
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
-                        entities.push(...assessor.entities)
+                        updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutSchool };
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
-                        entities = entities.map(entity => entity.toString);
-                        assessor.entities = assessor.entities.map(entity => entity.toString);
-                        _.pullAll(entities, assessor.entities);
-                        entities = entities.map(entity => ObjectId(entity));
+                        updateObject = { $pull: { entities: { $in: assessor.entities } }, $set: fieldsWithOutSchool };
                     }
 
-                    //entity assessor tracker
-                    let entityAssessorDocument = {
-                        "action": assessor.entityOperation,
-                        "entities": assessor.entities,
-                        "assessorId": assessor.userId,
-                        "programId": assessor.programId
-                    }
-
-                    await this.uploadEntityAssessorTracker(entityAssessorDocument);
-
-                    delete assessor.entityOperation;
-                    assessor.solutionId = solutionData[assessor.solutionId];
-                    let updateObject = {
-                        $set:
-                        {
-                            entities: entities,
-                            entityType: assessor.entityType,
-                            entityTypeId: entityTypeData[assessor.entityType],
-                            ...assessor
-                        }
-                    }
-                    return database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: assessor.solutionId }, updateObject,
+                    let updatedEntityAssessorDocument = await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutSchool["solutionId"] }, updateObject,
                         {
                             upsert: true,
                             new: true,
                             setDefaultsOnInsert: true,
                             returnNewDocument: true
                         });
+
+                    //entity assessor tracker
+                    let entityAssessorDocument = {
+                        "action": assessor.entityOperation,
+                        "entities": updatedEntityAssessorDocument.entities,
+                        "assessorId": assessor.userId,
+                        "programId": assessor.programId
+                    }
+
+                    await this.uploadEntityAssessorTracker(entityAssessorDocument);
 
                 })).catch(error => {
                     return reject({
