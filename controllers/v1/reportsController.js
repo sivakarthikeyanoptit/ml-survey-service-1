@@ -1780,19 +1780,11 @@ async generateSubmissionReportsByEntityId(req) {
 
       try {
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          throw "From date cannot be greater than to date."
-        }
-
         let submissionQueryObject = {};
         submissionQueryObject.programExternalId = req.params._id
         submissionQueryObject["feedback.submissionDate"] = {}
-        submissionQueryObject["feedback.submissionDate"]["$gte"] = fromDate
-        submissionQueryObject["feedback.submissionDate"]["$lte"] = toDate
+        submissionQueryObject["feedback.submissionDate"]["$gte"] = req.query.fromDate
+        submissionQueryObject["feedback.submissionDate"]["$lte"] = req.query.toDate
 
         if (!req.params._id) {
           throw "Program ID missing."
@@ -1839,7 +1831,7 @@ async generateSubmissionReportsByEntityId(req) {
                   $in: submissionId
                 }
               },
-              { feedback: 1, assessors: 1,schoolExternalId:1}
+              { feedback: 1, assessors: 1,entityExternalId:1}
             ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
               let result = {};
@@ -1854,8 +1846,8 @@ async generateSubmissionReportsByEntityId(req) {
                 result["Q2"] = eachFeedback.q2;
                 result["Q3"] = eachFeedback.q3;
                 result["Q4"] = eachFeedback.q4;
-                result["School Id"] = eachSubmission.schoolExternalId;
-                result["School Name"] = eachFeedback.schoolName;
+                result["Entity Id"] = eachSubmission.entityExternalId;
+                result["Entity Name"] = eachFeedback.schoolName;
                 result["Program Id"] = eachFeedback.programId;
                 result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
                 result["Submission Date"] = eachFeedback.submissionDate;
