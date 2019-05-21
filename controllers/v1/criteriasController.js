@@ -1330,8 +1330,8 @@ module.exports = class Criterias extends Abstract {
             if(parsedQuestion["responseType"] == "date"){
               allValues["dateFormat"] = parsedQuestion.dateFormat
               allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture)
-              allValues["validation"]["validationMax"] = parsedQuestion.validationMax
-              allValues["validation"]["validationMin"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
+              allValues["validation"]["max"] = parsedQuestion.validationMax
+              allValues["validation"]["min"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
             }
 
             if(parsedQuestion["responseType"] == "number"){
@@ -1352,8 +1352,8 @@ module.exports = class Criterias extends Abstract {
                 }else{
                   allValues["validation"]["regex"] = "^[A-Z]*$"
                 }
-              allValues["validation"]["validationMax"] = parsedQuestion.validationMax
-              allValues["validation"]["validationMin"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
+              allValues["validation"]["max"] = parsedQuestion.validationMax
+              allValues["validation"]["min"] = parsedQuestion.validationMin?parsedQuestion.validationMin:parsedQuestion.validationMin=""
             }
           }
 
