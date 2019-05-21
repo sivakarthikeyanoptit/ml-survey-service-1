@@ -1460,35 +1460,17 @@ async generateSubmissionReportsByEntityId(req) {
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!req.query.fromDate) {
-          return resolve({
-            status: 404,
-            message: "From date is a mandatory field."
-          });
-        }
-
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          return resolve({
-            status: 400,
-            message: "From date cannot be greater than to date."
-          });
-        }
-
-
+        
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         
-        if(req.query.schoolId && req.query.schoolId != "" && req.query.schoolId.split(",").length > 0) {
-          fetchRequiredSubmissionDocumentIdQueryObj["schoolExternalId"] = {$in:req.query.schoolId.split(",")}
+        if(req.query.entityId && req.query.entityId != "" && req.query.entityId.split(",").length > 0) {
+          fetchRequiredSubmissionDocumentIdQueryObj["entityExternalId"] = {$in:req.query.entityId.split(",")}
         }
         
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = req.query.fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = req.query.toDate
 
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
@@ -1512,8 +1494,8 @@ async generateSubmissionReportsByEntityId(req) {
         })
 
         let fileName = `EcmReport`;
-        (fromDate) ? fileName += moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "-" + moment(toDate).format('DD-MM-YYYY') : moment(fromDate).format('DD-MM-YYYY');
+        (req.query.fromDate) ? fileName += moment(req.query.fromDate).format('DD-MM-YYYY') : "";
+        (req.query.toDate) ? fileName += "-" + moment(req.query.toDate).format('DD-MM-YYYY') :"";
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1553,8 +1535,8 @@ async generateSubmissionReportsByEntityId(req) {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
                 "evidences": 1,
                 status: 1,
               }
@@ -1577,13 +1559,13 @@ async generateSubmissionReportsByEntityId(req) {
 
                     let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
  
-                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= req.query.fromDate && evidenceSubmission.submissionDate < req.query.toDate)) {
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
 
                               let singleAnswerRecord = {
-                                "School Name": submission.schoolInformation.name,
-                                "School Id": submission.schoolInformation.externalId,
+                                "Entity Name": submission.entityInformation.name,
+                                "Entity Id": submission.entityInformation.externalId,
                                 "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                                 "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                                 "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
@@ -1664,8 +1646,8 @@ async generateSubmissionReportsByEntityId(req) {
                                   singleAnswer.value[instance] != null && Object.values(singleAnswer.value[instance]).forEach(
                                     eachInstanceChildQuestion => {
                                       let eachInstanceChildRecord = {
-                                        "School Name": submission.schoolInformation.name,
-                                        "School Id": submission.schoolInformation.externalId,
+                                        "Entity Name": submission.entityInformation.name,
+                                        "Entity Id": submission.entityInformation.externalId,
                                         "Question":(questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
                                         "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
@@ -2523,85 +2505,6 @@ async generateSubmissionReportsByEntityId(req) {
         });
       }
     });
-  }
-
-/**
-  * @api {get} /assessment/api/v1/reports/teacherRegistry/:programExternalId Fetch Teacher list based on programId 
-* @apiVersion 0.0.1
-* @apiName Fetch Teacher list
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async teacherRegistry(req) {
-    return (new Promise(async (resolve, reject) => {
-      try {
-        const programsQueryParams = {
-          externalId: req.params._id
-        }
-        const programsDocument = await database.models.programs.findOne(programsQueryParams, {
-          _id: 1
-        }).lean()
-
-        const teacherRegistryDocument = await database.models.teacherRegistry.find({programId:programsDocument._id}, { _id: 1 }).lean()
-
-        let fileName = "Teacher Registry";
-
-        let fileStream = new FileStream(fileName);
-        let input = fileStream.initStream();
-
-        (async function () {
-          await fileStream.getProcessorPromise();
-          return resolve({
-            isResponseAStream: true,
-            fileNameWithPath: fileStream.fileNameWithPath()
-          });
-        }());
-
-        if (!teacherRegistryDocument.length) {
-          return resolve({
-            status: 404,
-            message: "No document found for given params."
-          });
-        }
-
-        else {
-          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
-          let teacherRegistryIds
-          let teacherRegistryData
-
-          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
-            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
-              return teacherRegistryId._id
-            })
-
-            let teacherRegistryParams = {_id: {$in: teacherRegistryIds}}
-
-
-            teacherRegistryData = await database.models.teacherRegistry.find(teacherRegistryParams).lean()
-
-            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
-
-              let teacherRegistryObject = {};
-              Object.keys(teacherRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
-                }
-              })
-              input.push(teacherRegistryObject);
-            }))
-          }
-        }
-        input.push(null);
-      }
-      catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    }))
   }
 
   gmtToIst(gmtTime) {
