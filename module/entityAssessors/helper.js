@@ -157,9 +157,8 @@ module.exports = class entityAssessorHelper {
                 let programQueryList = {};
                 let entityTypeQueryList = {};
                 let solutionQueryList = {};
-                let skippedDocumentCount = 0;
                 let userExternalIds = [];
-                
+
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
@@ -283,7 +282,7 @@ module.exports = class entityAssessorHelper {
                     });
                 });
 
-                return resolve(skippedDocumentCount);
+                return resolve();
 
             } catch (error) {
                 return reject({

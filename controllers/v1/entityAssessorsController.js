@@ -180,16 +180,9 @@ module.exports = class EntityAssessors extends Abstract {
 
       try {
 
-        let skippedDocumentCount = await entityAssessorsHelper.upload(req.files, null, null, req.userDetails.userId, req.rspObj.userToken);
+        await entityAssessorsHelper.upload(req.files, null, null, req.userDetails.userId, req.rspObj.userToken);
 
-        if (skippedDocumentCount > 0) {
-          let responseMessage = `Not all records were inserted/updated.`;
-          return resolve({ status: 400, message: responseMessage })
-        }
-
-        let responseMessage = "Assessor record created successfully."
-
-        let response = { message: responseMessage };
+        let response = { message: "Assessor record created successfully." };
 
         return resolve(response)
 
@@ -227,16 +220,9 @@ module.exports = class EntityAssessors extends Abstract {
         let programId = req.query.programId;
         let solutionId = req.query.solutionId;
 
-        let skippedDocumentCount = await entityAssessorsHelper.upload(req.files, programId, solutionId, req.userDetails.userId, req.rspObj.userToken);
+        await entityAssessorsHelper.upload(req.files, programId, solutionId, req.userDetails.userId, req.rspObj.userToken);
 
-        if (skippedDocumentCount > 0) {
-          let responseMessage = `Not all records were inserted/updated.`;
-          return resolve({ status: 400, message: responseMessage })
-        }
-
-        let responseMessage = "Assessor record created successfully.";
-
-        let response = { message: responseMessage };
+        let response = { message: "Assessor record created successfully." };
 
         return resolve(response);
 
