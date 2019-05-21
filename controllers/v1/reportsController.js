@@ -2046,6 +2046,12 @@ module.exports = class Reports {
           let submissionIds
           let submissionDocuments
 
+          let parentTypes = await database.models.entityTypes.find({
+            name: "parent"
+          }, {
+              "types": 1
+            }
+          ).lean()
 
           for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
 
@@ -2056,9 +2062,9 @@ module.exports = class Reports {
             submissionDocuments = await database.models.submissions.find({
               _id: { $in: submissionIds }
             }, {
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
-                "schoolInformation.administration": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
+                "entityInformation.administration": 1,
                 "parentInterviewResponsesStatus.status": 1,
                 "parentInterviewResponsesStatus.completedAt": 1,
                 "parentInterviewResponsesStatus.parentType": 1,
@@ -2068,36 +2074,17 @@ module.exports = class Reports {
             await Promise.all(submissionDocuments.map(async (eachSubmission) => {
               let result = {}
 
-              let parentTypeObject = {
-                "P1": {
-                  name: "Parent only",
-                  count: 0
-                },
-                "P2": {
-                  name: "SMC Parent Member",
-                  count: 0
-                },
-                "P3": {
-                  name: "Safety Committee Member",
-                  count: 0
-                },
-                "P4": {
-                  name: "EWS-DG Parent",
-                  count: 0
-                },
-                "P5": {
-                  name: "Social Worker",
-                  count: 0
-                },
-                "P6": {
-                  name: "Elected Representative Nominee",
+              let parentTypeObject = {}
+              parentTypes.types.forEach(parentType => {
+                parentTypeObject[parentType.type] = {
+                  name: parentType.label,
                   count: 0
                 }
-              }
+              })
 
-              result["schoolId"] = eachSubmission.schoolInformation.externalId;
-              result["schoolName"] = eachSubmission.schoolInformation.name;
-              result["School (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.schoolInformation.administration;
+              result["entityId"] = eachSubmission.entityInformation.externalId;
+              result["entityName"] = eachSubmission.entityInformation.name;
+              result["Entity (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.entityInformation.administration;
 
               Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
 
@@ -2112,6 +2099,7 @@ module.exports = class Reports {
                 }
               })
               if (result["Date"] && result["Date"] != "") input.push(result);
+              
             }))
 
 
@@ -2266,7 +2254,7 @@ module.exports = class Reports {
   async parentInterviewCallResponseByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        
+
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
