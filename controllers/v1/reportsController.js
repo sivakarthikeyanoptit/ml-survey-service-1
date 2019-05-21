@@ -1,6 +1,7 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const reportsHelper = require(ROOT_PATH + "/module/reports/helper")
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports {
@@ -445,9 +446,9 @@ module.exports = class Reports {
             entitySubmission[submission.entityId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
-                ? this.gmtToIst(submission.completedDate)
+                ? reportsHelper.gmtToIst(submission.completedDate)
                 : "-",
-              createdAt: this.gmtToIst(submission.createdAt),
+              createdAt: reportsHelper.gmtToIst(submission.createdAt),
               submissionCount: submission.submissionCount
             };
           });
@@ -619,10 +620,10 @@ module.exports = class Reports {
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                         "Assessor Id": asssessorId,
                         "Remarks": singleAnswer.remarks || "",
-                        "Start Time": this.gmtToIst(singleAnswer.startTime),
-                        "End Time": this.gmtToIst(singleAnswer.endTime),
+                        "Start Time": reportsHelper.gmtToIst(singleAnswer.startTime),
+                        "End Time": reportsHelper.gmtToIst(singleAnswer.endTime),
                         "Files": "",
-                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                        "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate)
                         }
 
                         if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
@@ -698,12 +699,12 @@ module.exports = class Reports {
                                     "Entity Id": submission.entityInformation.externalId,
                                     "Question": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                     "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
-                                    "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
+                                    "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate),
                                     "Answer": "",
                                     "Assessor Id": asssessorId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
-                                    "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
-                                    "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                    "Start Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.startTime),
+                                    "End Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.endTime),
                                     "Files": ""
                                   };
 
@@ -1330,8 +1331,8 @@ module.exports = class Reports {
               allregistryObject['Entity Type'] = singleRegistry.entityType
               allregistryObject['Parent Entity External Id'] = entitiesDocument[pointerToRegistryDocument].metaInformation.externalId;
               allregistryObject['Parent Entity Name'] = entitiesDocument[pointerToRegistryDocument].metaInformation.name;
-              (singleRegistry.createdAt) ? allregistryObject['Created At'] = this.gmtToIst(singleRegistry.createdAt) : allregistryObject['Created At'] = "";
-              (singleRegistry.updatedAt) ? allregistryObject['Updated At'] = this.gmtToIst(singleRegistry.updatedAt) : allregistryObject['Updated At'] = "";
+              (singleRegistry.createdAt) ? allregistryObject['Created At'] = reportsHelper.gmtToIst(singleRegistry.createdAt) : allregistryObject['Created At'] = "";
+              (singleRegistry.updatedAt) ? allregistryObject['Updated At'] = reportsHelper.gmtToIst(singleRegistry.updatedAt) : allregistryObject['Updated At'] = "";
               input.push(allregistryObject);
 
             }))
@@ -1573,11 +1574,11 @@ module.exports = class Reports {
                                 "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                                 "Assessor Id": asssessorId,
                                 "Remarks": singleAnswer.remarks || "",
-                                "Start Time": this.gmtToIst(singleAnswer.startTime),
-                                "End Time": this.gmtToIst(singleAnswer.endTime),
+                                "Start Time": reportsHelper.gmtToIst(singleAnswer.startTime),
+                                "End Time": reportsHelper.gmtToIst(singleAnswer.endTime),
                                 "Files": "",
                                 "ECM": evidenceSubmission.externalId,
-                                "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                                "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate)
                             }
 
                             if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
@@ -1652,12 +1653,12 @@ module.exports = class Reports {
                                         "Entity Id": submission.entityInformation.externalId,
                                         "Question":(questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
-                                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
+                                        "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
-                                        "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
-                                        "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                        "Start Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.startTime),
+                                        "End Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.endTime),
                                         "Files": "",
                                         "ECM": evidenceSubmission.externalId
                                       };
@@ -2265,6 +2266,7 @@ module.exports = class Reports {
   async parentInterviewCallResponseByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
+        
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
@@ -2386,59 +2388,45 @@ module.exports = class Reports {
     })
   }
 
-    /**
-* @api {get} /assessment/api/v1/reports/schoolList/:programExternalId Fetch School list based on programId and evaluationFrameworkId
-* @apiVersion 0.0.1
-* @apiName Fetch school list
-* @apiGroup Report
-* @apiParam {String} componentId evaluationFramework Id.
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async schoolList(req) {
+  /**
+  * @api {get} /assessment/api/v1/reports/entityList/:solutionExternalId Fetch Entity list based on solutionId
+  * @apiVersion 0.0.1
+  * @apiName Fetch Entity list based on solutionId
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.params._id
+        let solutionExternalId = req.params._id
 
-        if (!programId) {
-          throw "Program id is missing"
+        if (!solutionExternalId) {
+          throw "Solution ID is missing"
         }
 
-        let componentId = req.query.componentId
-
-          if (!componentId) {
-          throw "Component id is missing"
-        }
-
-        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
-          externalId:componentId
-        },{_id:1}).lean()
-
-        let programDocument = await database.models.programs.aggregate([
+        let solutionEntities = await database.models.solutions.findOne(
           {
-            $match: {
-              externalId: programId
-            }
-          },   {
-            $unwind: "$components"
-          }, {
-            $match: {
-              "components.id": componentDocumentId._id
+            externalId:solutionExternalId
+          },
+          {
+            entities:1
+          }
+        ).lean()
+
+        let entityDocumentList = await database.models.entities.find(
+          {
+            _id:  {
+              $in:solutionEntities.entities
             }
           },
           {
-            $project:{
-              "components.schools":1  
-            }
+            _id:1
           }
-        ])
+        ).lean()
 
-        let schoolDocumentList = await database.models.schools.find({
-          _id:{$in:programDocument[0].components.schools}
-        },{_id:1}).lean()
-
-        const fileName = `School List`;
+        const fileName = `Entity List`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -2450,43 +2438,47 @@ module.exports = class Reports {
           });
         }());
 
-        if (!schoolDocumentList.length) {
+        if (!entityDocumentList.length) {
           return resolve({
             status: 404,
-            message: "No school found for given params."
+            message: "No entity found for given params."
           });
         }
 
         else {
-          let chunkOfSchoolDocument = _.chunk(schoolDocumentList, 10)
-          let schoolId
-          let schoolDocumentsArray
+          let chunkOfEntityDocument = _.chunk(entityDocumentList, 10)
+          let entityId
+          let entityDocumentsArray
 
-
-          for (let pointerToSchoolDocument = 0; pointerToSchoolDocument < chunkOfSchoolDocument.length; pointerToSchoolDocument++) {
-            schoolId = chunkOfSchoolDocument[pointerToSchoolDocument].map(schoolModel => {
-              return schoolModel._id
+          for (let pointerToEntityDocument = 0; pointerToEntityDocument < chunkOfEntityDocument.length; pointerToEntityDocument++) {
+            
+            entityId = chunkOfEntityDocument[pointerToEntityDocument].map(entityModel => {
+              return entityModel._id
             });
 
-            schoolDocumentsArray = await database.models.schools.find(
+            entityDocumentsArray = await database.models.entities.find(
               {
                 _id: {
-                  $in: schoolId
+                  $in: entityId
                 }
               }
             ).lean()
 
-            await Promise.all(schoolDocumentsArray.map(async (eachSchoolDocument) => {
+            await Promise.all(entityDocumentsArray.map(async (eachEntityDocument) => {
+              
               let result = {};
 
-              Object.keys(eachSchoolDocument).forEach(singleKey => {
-                if (["schoolTypes", "_id","_v"].indexOf(singleKey) == -1) {
-                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachSchoolDocument[singleKey];
+              Object.keys(eachEntityDocument.metaInformation).forEach(singleKey => {
+                if (["types","questionGroup", "_id","_v"].indexOf(singleKey) == -1) {
+                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachEntityDocument.metaInformation[singleKey];
                 }
               })
-                result["schoolTypes"] = eachSchoolDocument.schoolTypes.join(",")
-                input.push(result);
+
+              result["types"] = eachEntityDocument.metaInformation.types.join(",")
+              input.push(result);
+
             }))
+
           }
         }
         input.push(null);
@@ -2499,17 +2491,6 @@ module.exports = class Reports {
         });
       }
     });
-  }
-
-  gmtToIst(gmtTime) {
-    let istStart = moment(gmtTime)
-      .tz("Asia/Kolkata")
-      .format("YYYY-MM-DD HH:mm:ss");
-
-    if (istStart == "Invalid date") {
-      istStart = "-";
-    }
-    return istStart;
   }
 
 };
