@@ -1,8 +1,8 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const solutionModule = require(ROOT_PATH + "/module/solutions/helper")
-
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
+
 module.exports = class Reports {
   /**
    * @apiDefine errorBody
@@ -23,13 +23,13 @@ module.exports = class Reports {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for school
- * @apiVersion 0.0.1
- * @apiName Fetch submission reports for school
- * @apiGroup Report
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for entity
+   * @apiVersion 0.0.1
+   * @apiName Fetch submission reports for entity
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
   async status(req) {
     return new Promise(async (resolve, reject) => {
@@ -148,15 +148,15 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/assessorSchools/ Fetch assessors reports for school
-* @apiVersion 0.0.1
-* @apiName Fetch assessors reports for school
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/assessorEntities/ Fetch assessors reports for entities
+  * @apiVersion 0.0.1
+  * @apiName Fetch assessors reports for entities
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-  async assessorSchools(req) {
+  async assessorEntities(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.params._id) {
@@ -256,13 +256,13 @@ module.exports = class Reports {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/entityAssessors/ Fetch entity wise assessor reports
- * @apiVersion 0.0.1
- * @apiName Fetch entity wise assessor reports
- * @apiGroup Report
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/entityAssessors/ Fetch entity wise assessor reports
+   * @apiVersion 0.0.1
+   * @apiName Fetch entity wise assessor reports
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
   async entityAssessors(req) {
     return new Promise(async (resolve, reject) => {
@@ -364,13 +364,13 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programEntityStatus/:programId Fetch entity status based on program Id
-* @apiVersion 0.0.1
-* @apiName Fetch entity status based on program Id
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/programEntityStatus/:programExternalId Fetch entity status based on program Id
+  * @apiVersion 0.0.1
+  * @apiName Fetch entity status based on program external Id
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async programEntityStatus(req) {
     return new Promise(async (resolve, reject) => {
@@ -500,14 +500,14 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId Fetch program submission status
-* @apiVersion 0.0.1
-* @apiName Fetch program submission status
-* @apiGroup Report
-* @apiParam {String} evidenceId Evidence ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId?evidenceId=LW Fetch program submission status
+  * @apiVersion 0.0.1
+  * @apiName Fetch program submission status
+  * @apiGroup Report
+  * @apiParam {String} evidenceId Evidence ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
@@ -801,13 +801,13 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateCriteriasByEntityId/:entityExternalId Fetch criterias based on schoolId
-* @apiVersion 0.0.1
-* @apiName Fetch criteria based on entityId
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/generateCriteriasByEntityId/:entityExternalId Fetch criterias based on schoolId
+  * @apiVersion 0.0.1
+  * @apiName Fetch criteria based on entityId
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async generateCriteriasByEntityId(req) {
     return new Promise(async (resolve, reject) => {
@@ -929,311 +929,311 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
-* @apiVersion 0.0.1
-* @apiName Fetch Entity submission status
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
+  * @apiVersion 0.0.1
+  * @apiName Fetch Entity submission status
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-async generateSubmissionReportsByEntityId(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
+  async generateSubmissionReportsByEntityId(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
 
-      let entitySubmissionQuery = {
-        ["entityExternalId"]: {$in:req.query.entityId.split(",")}
-      };
+        let entitySubmissionQuery = {
+          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
+        };
 
-      let submissionForSolutionId = await database.models.submissions.findOne(
-        entitySubmissionQuery,
-        {
-          solutionId: 1
-        }
-      ).lean();
+        let submissionForSolutionId = await database.models.submissions.findOne(
+          entitySubmissionQuery,
+          {
+            solutionId: 1
+          }
+        ).lean();
 
-      let solutionDocument = await database.models.solutions.findOne({ _id: submissionForSolutionId.solutionId }, { themes: 1 }).lean();
+        let solutionDocument = await database.models.solutions.findOne({ _id: submissionForSolutionId.solutionId }, { themes: 1 }).lean();
 
-      let criteriaIdsByFramework = gen.utils.getCriteriaIds(solutionDocument.themes);
+        let criteriaIdsByFramework = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-      let allCriterias = database.models.criteria.find(
-        { _id: { $in: criteriaIdsByFramework } },
-        { evidences: 1, name: 1 }
-      ).lean().exec();
+        let allCriterias = database.models.criteria.find(
+          { _id: { $in: criteriaIdsByFramework } },
+          { evidences: 1, name: 1 }
+        ).lean().exec();
 
-      let schoolSubmissionDocument = database.models.submissions.find(
-        entitySubmissionQuery,
-        {
-          entityExternalId:1,
-          answers: 1,
-          criteria: 1
-        }
-      ).lean().exec();
+        let schoolSubmissionDocument = database.models.submissions.find(
+          entitySubmissionQuery,
+          {
+            entityExternalId:1,
+            answers: 1,
+            criteria: 1
+          }
+        ).lean().exec();
 
-      const fileName = `generateSubmissionReportsByEntityId`;
-      let fileStream = new FileStream(fileName);
-      let input = fileStream.initStream();
+        const fileName = `generateSubmissionReportsByEntityId`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
 
-      (async function () {
-        await fileStream.getProcessorPromise();
-        return resolve({
-          isResponseAStream: true,
-          fileNameWithPath: fileStream.fileNameWithPath()
-        });
-      }());
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
 
-      let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
-      "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
+        let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
+        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
 
-      Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
+        Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
 
-        let allCriterias = documents[0];
-        let entitySubmissionDocument = documents[1];
-        let criteriaQuestionDetailsObject = {};
-        let questionOptionObject = {};
+          let allCriterias = documents[0];
+          let entitySubmissionDocument = documents[1];
+          let criteriaQuestionDetailsObject = {};
+          let questionOptionObject = {};
 
-        allCriterias.forEach(eachCriteria => {
-          eachCriteria.evidences.forEach(eachEvidence => {
-            eachEvidence.sections.forEach(eachSection => {
-              eachSection.questions.forEach(eachquestion => {
-                criteriaQuestionDetailsObject[eachquestion.toString()] = {
-                  criteriaId: eachCriteria._id,
-                  criteriaName: eachCriteria.name,
-                  questionId: eachquestion.toString()
-                };
+          allCriterias.forEach(eachCriteria => {
+            eachCriteria.evidences.forEach(eachEvidence => {
+              eachEvidence.sections.forEach(eachSection => {
+                eachSection.questions.forEach(eachquestion => {
+                  criteriaQuestionDetailsObject[eachquestion.toString()] = {
+                    criteriaId: eachCriteria._id,
+                    criteriaName: eachCriteria.name,
+                    questionId: eachquestion.toString()
+                  };
+                });
               });
             });
           });
-        });
 
-        let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
+          let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
 
-        let allQuestionWithOptions = await database.models.questions.find(
-          { _id: { $in: questionIds }},
-          { options: 1,question:1, externalId :1 }
-        ).lean();
+          let allQuestionWithOptions = await database.models.questions.find(
+            { _id: { $in: questionIds }},
+            { options: 1,question:1, externalId :1 }
+          ).lean();
 
-        allQuestionWithOptions.forEach(question => {
-          if (question.options && question.options.length > 0) {
-            let optionString = "";
-            question.options.forEach(option => {
-              optionString += option.label + ",";
-            });
-            optionString = optionString.replace(/,\s*$/, "");
+          allQuestionWithOptions.forEach(question => {
+            if (question.options && question.options.length > 0) {
+              let optionString = "";
+              question.options.forEach(option => {
+                optionString += option.label + ",";
+              });
+              optionString = optionString.replace(/,\s*$/, "");
 
-            questionOptionObject[question._id.toString()] = {
-              questionOptions:question.options,
-              questionOptionString:optionString,
-              questionName:question.question,
-              externalId:question.externalId
-            };
-          } else {
-            questionOptionObject[question._id.toString()] = {
-              questionName:question.question,
-              externalId:question.externalId
-            };
-          }
-        });
-
-        entitySubmissionDocument.forEach(singleEntitySubmission => {
-          let criteriaScoreObject = {};
-          singleEntitySubmission.criteria.forEach(singleCriteria => {
-            criteriaScoreObject[singleCriteria._id.toString()] = {
-              id: singleCriteria._id,
-              externalId:singleCriteria.externalId,
-              score: singleCriteria.score
-            };
+              questionOptionObject[question._id.toString()] = {
+                questionOptions:question.options,
+                questionOptionString:optionString,
+                questionName:question.question,
+                externalId:question.externalId
+              };
+            } else {
+              questionOptionObject[question._id.toString()] = {
+                questionName:question.question,
+                externalId:question.externalId
+              };
+            }
           });
 
-          if (!Object.values(singleEntitySubmission.answers).length) {
-            return resolve({
-              status: 404,
-              message: "No submissions found for given params."
+          entitySubmissionDocument.forEach(singleEntitySubmission => {
+            let criteriaScoreObject = {};
+            singleEntitySubmission.criteria.forEach(singleCriteria => {
+              criteriaScoreObject[singleCriteria._id.toString()] = {
+                id: singleCriteria._id,
+                externalId:singleCriteria.externalId,
+                score: singleCriteria.score
+              };
             });
-          } else {
 
-            Object.values(singleEntitySubmission.answers).forEach(singleAnswer => {
-                
-              if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
+            if (!Object.values(singleEntitySubmission.answers).length) {
+              return resolve({
+                status: 404,
+                message: "No submissions found for given params."
+              });
+            } else {
 
-                let singleAnswerRecord = {
-                    "Entity Id":singleEntitySubmission.entityExternalId,
-                    "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
-                    "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
-                    "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
-                    "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
-                    "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                    "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
-                    "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
-                    "Remarks": singleAnswer.remarks || "",
-                    "Files": "",
-                };
+              Object.values(singleEntitySubmission.answers).forEach(singleAnswer => {
+                  
+                if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
 
-                if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
-                  singleAnswer.fileName.forEach(file => {
-                    singleAnswerRecord.Files +=
-                      imageBaseUrl + file.sourcePath + ",";
-                  });
-                  singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
-                    /,\s*$/,
-                    ""
-                  );
-                }
+                  let singleAnswerRecord = {
+                      "Entity Id":singleEntitySubmission.entityExternalId,
+                      "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
+                      "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
+                      "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
+                      "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
+                      "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                      "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
+                      "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
+                      "Remarks": singleAnswer.remarks || "",
+                      "Files": "",
+                  };
 
-                if (!singleAnswer.notApplicable) {
-                  if (singleAnswer.responseType != "matrix" && singleAnswer.value != undefined) {
-                    let radioResponse = {};
-                    let multiSelectResponse = {};
-                    let multiSelectResponseArray = [];
+                  if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
+                    singleAnswer.fileName.forEach(file => {
+                      singleAnswerRecord.Files +=
+                        imageBaseUrl + file.sourcePath + ",";
+                    });
+                    singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                      /,\s*$/,
+                      ""
+                    );
+                  }
 
-                    if (
-                      singleAnswer.responseType == "radio"
-                    ) {
-                      questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                        option => {
+                  if (!singleAnswer.notApplicable) {
+                    if (singleAnswer.responseType != "matrix" && singleAnswer.value != undefined) {
+                      let radioResponse = {};
+                      let multiSelectResponse = {};
+                      let multiSelectResponseArray = [];
 
-                          radioResponse[option.value] = option.label;
-                        }
-                      );
-                      singleAnswerRecord.Answer =
-                        radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
-                    }
-                    else if (singleAnswer.responseType == "multiselect") {
+                      if (
+                        singleAnswer.responseType == "radio"
+                      ) {
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
 
-                      questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                        option => {
-                          multiSelectResponse[option.value] =
-                            option.label;
-                        }
-                      );
-                      if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
-                        if (singleAnswer.value) {
-                          singleAnswer.value.forEach(value => {
-                            multiSelectResponseArray.push(
-                              multiSelectResponse[value]
-                          );
-                        });
+                            radioResponse[option.value] = option.label;
+                          }
+                        );
+                        singleAnswerRecord.Answer =
+                          radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
                       }
-                    }
-                      singleAnswerRecord.Answer = multiSelectResponseArray.toString();
-                    } else {
-                      singleAnswerRecord.Answer = singleAnswer.value
-                    }
+                      else if (singleAnswer.responseType == "multiselect") {
 
-                    input.push(singleAnswerRecord);
-                    
-                  } else if (singleAnswer.responseType == "matrix") {
-                    let entityId = singleEntitySubmission.entityExternalId
-                    singleAnswerRecord["Answer"] = "Instance Question";
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
+                            multiSelectResponse[option.value] =
+                              option.label;
+                          }
+                        );
+                        if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                          if (singleAnswer.value) {
+                            singleAnswer.value.forEach(value => {
+                              multiSelectResponseArray.push(
+                                multiSelectResponse[value]
+                            );
+                          });
+                        }
+                      }
+                        singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                      } else {
+                        singleAnswerRecord.Answer = singleAnswer.value
+                      }
 
-                    input.push(singleAnswerRecord);
-
-                    if (singleAnswer.value || singleAnswer.value == 0) {
+                      input.push(singleAnswerRecord);
                       
-                      for (let instance = 0;instance < singleAnswer.value.length;instance++) {
+                    } else if (singleAnswer.responseType == "matrix") {
+                      let entityId = singleEntitySubmission.entityExternalId
+                      singleAnswerRecord["Answer"] = "Instance Question";
 
-                        Object.values(singleAnswer.value[instance]).forEach(eachInstanceChildQuestion => {
-                          
-                          if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
-                          
-                            let eachInstanceChildRecord = {
-                              "Entity Id":entityId,
-                              "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
-                              "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
-                              "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
-                              "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
-                              "Answer": eachInstanceChildQuestion.value,
-                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
-                                  ? "No Options"
-                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
-                              "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
-                              "Remarks": eachInstanceChildQuestion.remarks || "",
-                              "Files": "",
-                            };
+                      input.push(singleAnswerRecord);
 
-                            if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
-                              eachInstanceChildQuestion.fileName.forEach(
-                                file => {
-                                  eachInstanceChildRecord["Files"] +=
-                                    imageBaseUrl + file + ",";
-                                }
-                              );
-                              eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
-                                /,\s*$/,
-                                ""
-                              );
-                            }
+                      if (singleAnswer.value || singleAnswer.value == 0) {
+                        
+                        for (let instance = 0;instance < singleAnswer.value.length;instance++) {
 
+                          Object.values(singleAnswer.value[instance]).forEach(eachInstanceChildQuestion => {
+                            
+                            if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
+                            
+                              let eachInstanceChildRecord = {
+                                "Entity Id":entityId,
+                                "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
+                                "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
+                                "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
+                                "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
+                                "Answer": eachInstanceChildQuestion.value,
+                                "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
+                                "Remarks": eachInstanceChildQuestion.remarks || "",
+                                "Files": "",
+                              };
 
-                            let radioResponse = {};
-                            let multiSelectResponse = {};
-                            let multiSelectResponseArray = [];
-
-                            if (eachInstanceChildQuestion.responseType == "radio") {
-
-                              questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                option => {
-                                  radioResponse[option.value] = option.label;
-                                }
-                              );
-                              eachInstanceChildRecord["Answer"] =
-                                radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
-                            } else if (eachInstanceChildQuestion.responseType == "multiselect") {
-                              
-                              questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                option => {
-                                  multiSelectResponse[option.value] =
-                                    option.label;
-                                }
-                              );
-
-                              if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
-                                eachInstanceChildQuestion.value.forEach(value => {
-                                  multiSelectResponseArray.push(
-                                    multiSelectResponse[value]
-                                  );
-                                });
-                                eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
-                              } else {
-                                eachInstanceChildRecord["Answer"] = "No value given";
+                              if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
+                                eachInstanceChildQuestion.fileName.forEach(
+                                  file => {
+                                    eachInstanceChildRecord["Files"] +=
+                                      imageBaseUrl + file + ",";
+                                  }
+                                );
+                                eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
+                                  /,\s*$/,
+                                  ""
+                                );
                               }
 
+
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (eachInstanceChildQuestion.responseType == "radio") {
+
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    radioResponse[option.value] = option.label;
+                                  }
+                                );
+                                eachInstanceChildRecord["Answer"] =
+                                  radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                                
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  }
+                                );
+
+                                if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
+                                  eachInstanceChildQuestion.value.forEach(value => {
+                                    multiSelectResponseArray.push(
+                                      multiSelectResponse[value]
+                                    );
+                                  });
+                                  eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                } else {
+                                  eachInstanceChildRecord["Answer"] = "No value given";
+                                }
+
+                              }
+
+                              input.push(eachInstanceChildRecord);
+
                             }
+                            
+                          });
 
-                            input.push(eachInstanceChildRecord);
-
-                          }
-                          
-                        });
+                        }
 
                       }
 
                     }
-
                   }
+
                 }
 
-              }
+              });
 
-            });
+            }
+          
+          });
 
-          }
-         
+          input.push(null)
+          
+        })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
         });
-
-        input.push(null)
-        
-      })
-
-    } catch (error) {
-      return reject({
-        status: 500,
-        message: "Oops! Something went wrong!",
-        errorObject: error
-      });
-    }
-  });
-}
+      }
+    });
+  }
 
   /**
   * @api {get} /assessment/api/v1/reports/registryDetails/:programExternalId fetch registry details
@@ -1321,10 +1321,10 @@ async generateSubmissionReportsByEntityId(req) {
 
               Object.keys(singleRegistry.metaInformation).forEach(singleKey => {
                       
-              if (["deleted", "_id", "__v", "createdByProgramId"].indexOf(singleKey) == -1) {
+                if (["deleted", "_id", "__v", "createdByProgramId"].indexOf(singleKey) == -1) {
                     allregistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = singleRegistry.metaInformation[singleKey];
-                  }
-                })
+                }
+              })
       
               allregistryObject['Program External Id'] = req.params._id;
               allregistryObject['Entity Type'] = singleRegistry.entityType
@@ -1338,9 +1338,10 @@ async generateSubmissionReportsByEntityId(req) {
           }
 
           input.push(null);
-        }else{
+        } else {
           throw "Type is invalid"
         }
+
       } catch (error) {
         return reject({
           status: 500,
@@ -1376,7 +1377,7 @@ async generateSubmissionReportsByEntityId(req) {
           programExternalId:req.params._id
         },{entityProfileFieldsPerEntityTypes:1}).lean()
 
-        let entityProfileFields = await solutionModule.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
+        let entityProfileFields = await solutionsHelper.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
 
         const fileName = `entityProfileInformation`;
         let fileStream = new FileStream(fileName);
@@ -1447,15 +1448,16 @@ async generateSubmissionReportsByEntityId(req) {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
- * @apiVersion 0.0.1
- * @apiName Generate all ecm report by date
- * @apiGroup Report
- * @apiParam {String} fromDate From Date
- * @apiParam {String} toDate To Date
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
+   * @apiVersion 0.0.1
+   * @apiName Generate all ecm report by date
+   * @apiGroup Report
+   * @apiParam {String} fromDate From Date
+   * @apiParam {String} toDate To Date
+   * @apiParam {entityExternalId} entityExternalId Comma separated external entity Ids
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
@@ -1913,12 +1915,12 @@ async generateSubmissionReportsByEntityId(req) {
           });
         }());
 
-        let schoolProfileSubmissionDocuments = await database.models.submissions.aggregate([
+        let entityProfileSubmissionDocuments = await database.models.submissions.aggregate([
           {
             $match: { programExternalId: req.params._id }
           },
           {
-            $project: { 'schoolId': 1, 'evidencesStatus': 1, 'schoolName': '$schoolInformation.name', schoolExternalId: 1 }
+            $project: { 'entityId': 1, 'evidencesStatus': 1, 'entityName': '$entityInformation.name', entityExternalId: 1 }
           },
           {
             $unwind: "$evidencesStatus"
@@ -1927,14 +1929,14 @@ async generateSubmissionReportsByEntityId(req) {
             $unwind: "$evidencesStatus.submissions"
           },
           {
-            $project: { 'schoolName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', schoolExternalId: 1 }
+            $project: { 'entityName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', entityExternalId: 1 }
           },
           {
             $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
           }
         ]);
 
-        if (!schoolProfileSubmissionDocuments.length) {
+        if (!entityProfileSubmissionDocuments.length) {
           return resolve({
             status: 200,
             message: "No data found for given params."
@@ -1949,17 +1951,17 @@ async generateSubmissionReportsByEntityId(req) {
 
         for (
           let counter = 0;
-          counter < schoolProfileSubmissionDocuments.length;
+          counter < entityProfileSubmissionDocuments.length;
           counter++
         ) {
 
-          let schoolProfileObject = {};
-          schoolProfileObject['School External Id'] = schoolProfileSubmissionDocuments[counter].schoolExternalId;
-          schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
-          schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
-          schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
-          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('DD-MM-YYYY');
-          input.push(schoolProfileObject);
+          let entityProfileObject = {};
+          entityProfileObject['Entity External Id'] = entityProfileSubmissionDocuments[counter].entityExternalId;
+          entityProfileObject['Entity Name'] = entityProfileSubmissionDocuments[counter].entityName;
+          entityProfileObject['ECM Name'] = entityProfileSubmissionDocuments[counter].ecmName;
+          entityProfileObject['ECM External Id'] = entityProfileSubmissionDocuments[counter].ecmExternalId;
+          entityProfileObject['Submmission Date'] = moment(entityProfileSubmissionDocuments[counter].submmissionDate).format('DD-MM-YYYY');
+          input.push(entityProfileObject);
 
           if (input.readableBuffer && input.readableBuffer.length) {
             while (input.readableBuffer.length > 20000) {
