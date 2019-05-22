@@ -78,6 +78,12 @@ module.exports = class entityAssessorHelper {
 
                 trackerObject.programId = entityAssessor.programId;
 
+                trackerObject.solutionId = entityAssessor.solutionId;
+
+                trackerObject.entityType = entityAssessor.entityType;
+                
+                trackerObject.entityTypeId = entityAssessor.entityTypeId;
+
                 trackerObject.dateOfOperation = new Date;
 
                 trackerObject.validFrom = moment().startOf('day');
