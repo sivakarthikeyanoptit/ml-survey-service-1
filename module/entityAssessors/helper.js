@@ -167,7 +167,7 @@ module.exports = class entityAssessorHelper {
 
                     programIds.push(programId ? programId : assessor.programId);
 
-                    entityTypeIds.push(assessor.entityType);
+                    // entityTypeIds.push(assessor.entityType);
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
@@ -182,18 +182,38 @@ module.exports = class entityAssessorHelper {
 
                 let solutionsFromDatabase = await database.models.solutions.find({
                     externalId: { $in: solutionIds }
-                }, { externalId: 1 }).lean();
+                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1 }).lean();
 
-                let entityTypeFromDatabase = await database.models.entityTypes.find({
-                    name: { $in: entityTypeIds }
-                }, { name: 1 }).lean();
+                // let entityTypeFromDatabase = await database.models.entityTypes.find({
+                //     name: { $in: entityTypeIds }
+                // }, { name: 1 }).lean();
 
-                let entityFromDatabase = await database.models.entities.find({
-                    "metaInformation.externalId": { $in: entityIds }, "metaInformation.createdByProgramId": { $in: programsFromDatabase.map(program => program._id) }
-                }, {
-                        "metaInformation.externalId": 1,
-                        "metaInformation.createdByProgramId": 1
-                    }).lean();
+                // let entityFromDatabase = await database.models.entities.find({
+                //     "metaInformation.externalId": { $in: entityIds }, "metaInformation.createdByProgramId": { $in: programsFromDatabase.map(program => program._id) }
+                // }, {
+                //         "metaInformation.externalId": 1,
+                //         "metaInformation.createdByProgramId": 1
+                //     }).lean();
+
+                let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
+
+                // let entityFromDatabase = await database.models.entities.aggregate([
+                //     {
+                //     _id: { $in: entitiesBySolution }
+                // }, { "metaInformation.externalId": 1 }]).lean();
+
+                let entityFromDatabase = await database.models.entities.aggregate([
+                    {
+                        $match: { _id: { $in: entitiesBySolution } }
+                    },
+                    {
+                        $project: {
+                            externalId: "$metaInformation.externalId"
+                        }
+                    }
+                ])
+
+                let entityDataByExternalId = _.keyBy(entityFromDatabase, "externalId")
 
                 let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
@@ -210,10 +230,16 @@ module.exports = class entityAssessorHelper {
                     (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
 
                 let solutionData = solutionsFromDatabase.reduce(
-                    (ac, solution) => ({ ...ac, [solution.externalId]: solution._id }), {})
+                    (ac, solution) => ({
+                        ...ac, [solution.externalId]: {
+                            solutionId: solution._id,
+                            entityType: solution.entityType,
+                            entityTypeId: solution.entityTypeId,
+                        }
+                    }), {})
 
-                let entityTypeData = entityTypeFromDatabase.reduce(
-                    (ac, entityType) => ({ ...ac, [entityType.name]: entityType._id }), {})
+                // let entityTypeData = entityTypeFromDatabase.reduce(
+                //     (ac, entityType) => ({ ...ac, [entityType.name]: entityType._id }), {})
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
@@ -222,8 +248,10 @@ module.exports = class entityAssessorHelper {
 
                     assessor.programId = programsData[assessor.programId];
                     assessor.createdBy = assessor.updatedBy = userId;
-                    assessor.solutionId = solutionData[assessor.solutionId];
-                    assessor.entityTypeId = entityTypeData[assessor.entityType];
+                    assessor.entityType = solutionData[assessor.solutionId].entityType;
+                    assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
+                    assessor.solutionId = solutionData[assessor.solutionId].solutionId;
+                    // assessor.entityTypeId = entityTypeData[assessor.entityType];
 
                     assessor.entities.split(",").forEach(assessorEntity => {
                         assessorEntity = entityData[assessorEntity.trim()];
@@ -268,7 +296,10 @@ module.exports = class entityAssessorHelper {
                         "action": assessor.entityOperation,
                         "entities": updatedEntityAssessorDocument.entities,
                         "assessorId": assessor.userId,
-                        "programId": assessor.programId
+                        "programId": assessor.programId,
+                        "solutionId": assessor.solutionId,
+                        "entityType": assessor.entityType,
+                        "entityTypeId": assessor.entityTypeId,
                     }
 
                     await this.uploadEntityAssessorTracker(entityAssessorDocument);
