@@ -1149,13 +1149,13 @@ module.exports = class Submission extends Abstract {
 
                 let score = "NA"
                 if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4.result) {
+                  if (expressionResult.L4 && expressionResult.L4.result) {
                     score = "L4"
-                  } else if (expressionResult.L3.result) {
+                  } else if (expressionResult.L3 && expressionResult.L3.result) {
                     score = "L3"
-                  } else if (expressionResult.L2.result) {
+                  } else if (expressionResult.L2 && expressionResult.L2.result) {
                     score = "L2"
-                  } else if (expressionResult.L1.result) {
+                  } else if (expressionResult.L1 && expressionResult.L1.result) {
                     score = "L1"
                   } else {
                     score = "No Level Matched"
