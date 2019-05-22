@@ -155,7 +155,6 @@ module.exports = class entityAssessorHelper {
 
                 let entityIds = [];
                 let programIds = [];
-                let entityTypeIds = [];
                 let solutionIds = [];
                 let userExternalIds = [];
 
@@ -166,8 +165,6 @@ module.exports = class entityAssessorHelper {
                     })
 
                     programIds.push(programId ? programId : assessor.programId);
-
-                    // entityTypeIds.push(assessor.entityType);
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
@@ -184,23 +181,7 @@ module.exports = class entityAssessorHelper {
                     externalId: { $in: solutionIds }
                 }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1 }).lean();
 
-                // let entityTypeFromDatabase = await database.models.entityTypes.find({
-                //     name: { $in: entityTypeIds }
-                // }, { name: 1 }).lean();
-
-                // let entityFromDatabase = await database.models.entities.find({
-                //     "metaInformation.externalId": { $in: entityIds }, "metaInformation.createdByProgramId": { $in: programsFromDatabase.map(program => program._id) }
-                // }, {
-                //         "metaInformation.externalId": 1,
-                //         "metaInformation.createdByProgramId": 1
-                //     }).lean();
-
                 let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
-
-                // let entityFromDatabase = await database.models.entities.aggregate([
-                //     {
-                //     _id: { $in: entitiesBySolution }
-                // }, { "metaInformation.externalId": 1 }]).lean();
 
                 let entityFromDatabase = await database.models.entities.aggregate([
                     {
@@ -217,15 +198,6 @@ module.exports = class entityAssessorHelper {
 
                 let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
-                let entityData = entityFromDatabase.reduce(
-                    (ac, entity) => ({
-                        ...ac, [entity.metaInformation.externalId]: {
-                            entityId: entity._id,
-                            entityExternalId: entity.metaInformation.externalId,
-                            entityProgramId: entity.metaInformation.createdByProgramId,
-                        }
-                    }), {})
-
                 let programsData = programsFromDatabase.reduce(
                     (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
 
@@ -238,9 +210,6 @@ module.exports = class entityAssessorHelper {
                         }
                     }), {})
 
-                // let entityTypeData = entityTypeFromDatabase.reduce(
-                //     (ac, entityType) => ({ ...ac, [entityType.name]: entityType._id }), {})
-
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
                     assessor["userId"] = userIdByExternalId[assessor.externalId];
                     if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
@@ -251,14 +220,11 @@ module.exports = class entityAssessorHelper {
                     assessor.entityType = solutionData[assessor.solutionId].entityType;
                     assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
                     assessor.solutionId = solutionData[assessor.solutionId].solutionId;
-                    // assessor.entityTypeId = entityTypeData[assessor.entityType];
 
                     assessor.entities.split(",").forEach(assessorEntity => {
-                        assessorEntity = entityData[assessorEntity.trim()];
+                        assessorEntity = entityDataByExternalId[assessorEntity.trim()];
                         if (assessorEntity) {
-                            if (assessor.programId.toString() == assessorEntity.entityProgramId.toString()) {
-                                if (assessorEntity.entityId) assessorEntityArray.push(assessorEntity.entityId)
-                            }
+                            if (assessorEntity._id) assessorEntityArray.push(assessorEntity._id)
                         }
                     })
 
