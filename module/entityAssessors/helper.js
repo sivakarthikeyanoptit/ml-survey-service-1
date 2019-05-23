@@ -174,8 +174,8 @@ module.exports = class entityAssessorHelper {
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
-                    userExternalIds.push(assessor.userId);
-                    if (assessor.parentId) userExternalIds.push(assessor.parentId);
+                    if(!userExternalIds.includes(assessor.externalId))userExternalIds.push(assessor.externalId);
+                    if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
 
                 });
 
