@@ -4,7 +4,7 @@ module.exports = (req) => {
 
         entities: function () {
             req.checkQuery('type').exists().withMessage("required type")
-            req.checkQuery('subType').exists().withMessage("required sub type")
+            req.checkQuery('subType').exists().withMessage("required subType")
         },
         
         uploadForPortal: function () {

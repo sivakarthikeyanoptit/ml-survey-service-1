@@ -1,5 +1,7 @@
 const csv = require("csvtojson");
 const moment = require("moment");
+let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+
 module.exports = class entityAssessorHelper {
 
     static createEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
@@ -22,7 +24,7 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static uploadAssessorSchoolTracker(entityAssessor) {
+    static uploadEntityAssessorTracker(entityAssessor) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -74,9 +76,13 @@ module.exports = class entityAssessorHelper {
 
                 trackerObject.assessorId = entityAssessorsTrackersDocument.assessorId;
 
-                trackerObject.type = entityAssessor.type;
-
                 trackerObject.programId = entityAssessor.programId;
+
+                trackerObject.solutionId = entityAssessor.solutionId;
+
+                trackerObject.entityType = entityAssessor.entityType;
+                
+                trackerObject.entityTypeId = entityAssessor.entityTypeId;
 
                 trackerObject.dateOfOperation = new Date;
 
@@ -146,134 +152,129 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static upload(files, programId, solutionId, userId) {
+    static upload(files, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!files || !files.assessors) throw { status: 400, message: "Bad request." };
 
                 let assessorData = await csv().fromString(files.assessors.data.toString());
 
-                let schoolQueryList = {};
-                let programQueryList = {};
-                let entityTypeQueryList = {};
-                let solutionQueryList = {};
-                let skippedDocumentCount = 0;
+                let entityIds = [];
+                let programIds = [];
+                let solutionIds = [];
+                let userExternalIds = [];
 
                 assessorData.forEach(assessor => {
                     assessor.entities.split(",").forEach(entityAssessor => {
                         if (entityAssessor)
-                            schoolQueryList[entityAssessor.trim()] = entityAssessor.trim()
+                            entityIds.push(entityAssessor.trim())
                     })
 
-                    programQueryList[assessor.externalId] = programId ? programId : assessor.programId
+                    programIds.push(programId ? programId : assessor.programId);
 
-                    entityTypeQueryList[assessor.externalId] = assessor.entityType
+                    solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
-                    solutionQueryList[assessor.externalId] = solutionId ? solutionId : assessor.solutionId
+                    if(!userExternalIds.includes(assessor.externalId))userExternalIds.push(assessor.externalId);
+                    if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
 
                 });
 
-
-                let entityFromDatabase = await database.models.entities.find({
-                    "metaInformation.externalId": { $in: Object.values(schoolQueryList) }
-                }, {
-                        "metaInformation.externalId": 1
-                    }).lean();
-
-
                 let programsFromDatabase = await database.models.programs.find({
-                    externalId: { $in: Object.values(programQueryList) }
-                }).lean();
-
-                let solutionsFromDatabase = await database.models.solutions.find({
-                    externalId: { $in: Object.values(solutionQueryList) }
+                    externalId: { $in: programIds }
                 }, { externalId: 1 }).lean();
 
-                let entityTypeFromDatabase = await database.models.entityTypes.find({
-                    name: { $in: Object.values(entityTypeQueryList) }
-                }, { name: 1 }).lean();
+                let solutionsFromDatabase = await database.models.solutions.find({
+                    externalId: { $in: solutionIds }
+                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1 }).lean();
 
-                let userIds = assessorData.map(assessor => assessor.userId);
+                let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
 
-                let entityAssessorDocument = await database.models.entityAssessors.find({ userId: { $in: userIds } }, { entities: 1, userId: 1 }).lean();
+                let entityFromDatabase = await database.models.entities.aggregate([
+                    {
+                        $match: { _id: { $in: entitiesBySolution } }
+                    },
+                    {
+                        $project: {
+                            externalId: "$metaInformation.externalId"
+                        }
+                    }
+                ])
 
-                let entityAssessorByUserId = _.keyBy(entityAssessorDocument, 'userId');
+                let entityDataByExternalId = _.keyBy(entityFromDatabase, "externalId")
 
-                let entityData = entityFromDatabase.reduce(
-                    (ac, entity) => ({ ...ac, [entity.metaInformation.externalId]: entity._id }), {})
+                let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
 
                 let programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program }), {})
+                    (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
 
                 let solutionData = solutionsFromDatabase.reduce(
-                    (ac, solution) => ({ ...ac, [solution.externalId]: solution._id }), {})
-
-                let entityTypeData = entityTypeFromDatabase.reduce(
-                    (ac, entityType) => ({ ...ac, [entityType.name]: entityType._id }), {})
-
-                let creatorId = userId;
+                    (ac, solution) => ({
+                        ...ac, [solution.externalId]: {
+                            solutionId: solution._id,
+                            entityType: solution.entityType,
+                            entityTypeId: solution.entityTypeId,
+                        }
+                    }), {})
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
+                    assessor["userId"] = userIdByExternalId[assessor.externalId];
+                    if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
                     let assessorEntityArray = new Array
-                    assessor.entities.split(",").forEach(assessorSchool => {
-                        if (entityData[assessorSchool.trim()])
-                            assessorEntityArray.push(entityData[assessorSchool.trim()])
+
+                    assessor.programId = programsData[assessor.programId];
+                    assessor.createdBy = assessor.updatedBy = userId;
+                    assessor.entityType = solutionData[assessor.solutionId].entityType;
+                    assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
+                    assessor.solutionId = solutionData[assessor.solutionId].solutionId;
+
+                    assessor.entities.split(",").forEach(assessorEntity => {
+                        assessorEntity = entityDataByExternalId[assessorEntity.trim()];
+                        if (assessorEntity) {
+                            if (assessorEntity._id) assessorEntityArray.push(assessorEntity._id)
+                        }
                     })
 
-                    assessor.entities = assessorEntityArray
-                    if (programsData[assessor.programId]) {
-                        assessor.programId = programsData[assessor.programId]._id;
-                    } else {
-                        assessor.programId = null;
-                        skippedDocumentCount += 1;
-                    }
-                    assessor.createdBy = assessor.updatedBy = creatorId;
+                    assessor.entities = assessorEntityArray;
 
-                    let entities = (!entityAssessorByUserId || !entityAssessorByUserId[assessor.userId] || !entityAssessorByUserId[assessor.userId].entities.length) ? [] : entityAssessorByUserId[assessor.userId].entities;
+                    let fieldsWithOutEntity = {};
 
+                    Object.keys(database.models.entityAssessors.schema.paths).forEach(fieldName => {
+                        if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutEntity[fieldName] = assessor[fieldName];
+                    })
+
+                    let updateObject;
                     if (assessor.entityOperation == "OVERRIDE") {
-                        entities = assessor.entities
+                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } }
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
-                        entities.push(...assessor.entities)
+                        updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutEntity };
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
-                        entities = entities.map(entity => entity.toString);
-                        assessor.entities = assessor.entities.map(entity => entity.toString);
-                        _.pullAll(entities, assessor.entities);
-                        entities = entities.map(entity => ObjectId(entity));
+                        updateObject = { $pull: { entities: { $in: assessor.entities } }, $set: fieldsWithOutEntity };
                     }
 
-                    //entity assessor tracker
-                    let entityAssessorDocument = {
-                        "action": assessor.entityOperation,
-                        "entities": assessor.entities,
-                        "type": "ASSESSOR",
-                        "assessorId": assessor.userId,
-                        "programId": assessor.programId
-                    }
-
-                    await this.uploadAssessorSchoolTracker(entityAssessorDocument)
-                    delete assessor.entityOperation;
-                    assessor.solutionId = solutionData[assessor.solutionId];
-                    let updateObject = {
-                        $set:
-                        {
-                            entities: entities,
-                            entityType: assessor.entityType,
-                            entityTypeId: entityTypeData[assessor.entityType],
-                            ...assessor
-                        }
-                    }
-                    return database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId }, updateObject,
+                    let updatedEntityAssessorDocument = await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutEntity["solutionId"] }, updateObject,
                         {
                             upsert: true,
                             new: true,
                             setDefaultsOnInsert: true,
                             returnNewDocument: true
                         });
+
+                    //entity assessor tracker
+                    let entityAssessorDocument = {
+                        "action": assessor.entityOperation,
+                        "entities": updatedEntityAssessorDocument.entities,
+                        "assessorId": assessor.userId,
+                        "programId": assessor.programId,
+                        "solutionId": assessor.solutionId,
+                        "entityType": assessor.entityType,
+                        "entityTypeId": assessor.entityTypeId,
+                    }
+
+                    await this.uploadEntityAssessorTracker(entityAssessorDocument);
 
                 })).catch(error => {
                     return reject({
@@ -283,7 +284,7 @@ module.exports = class entityAssessorHelper {
                     });
                 });
 
-                return resolve(skippedDocumentCount);
+                return resolve();
 
             } catch (error) {
                 return reject({
@@ -295,5 +296,34 @@ module.exports = class entityAssessorHelper {
         })
     }
 
+    static getInternalUserIdByExternalId(token, userExternalIds) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                userExternalIds = _.compact(userExternalIds);
+
+                let externalIdToUserIdMap = {};
+
+                let result = await Promise.all(userExternalIds.map(userExternalId => {
+                    return shikshalokam.getKeycloakUserIdByLoginId(token, userExternalId)
+                }))
+
+                userExternalIds.forEach((loginId, index) => {
+                    externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                })
+
+                return resolve(externalIdToUserIdMap);
+
+            } catch (error) {
+
+                return reject(error);
+
+            }
+
+        })
+
+    }
 
 };
