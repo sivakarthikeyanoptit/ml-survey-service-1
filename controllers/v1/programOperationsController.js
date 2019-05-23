@@ -42,10 +42,12 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userRole = gen.utils.getUserRole(req.userDetails, true);
+                let userRole = gen.utils.getUserRole(req.userDetails, false);
+
+                let entityAssessorDocumentByUser = await database.models.entityAssessors.find({ userId: req.userDetails.id, role: userRole }, { solutionId: 1 }).lean();
 
                 let solutionsDocuments = await database.models.solutions.aggregate([
-                    { "$match": { [`roles.${userRole}.users`]: req.userDetails.id } },
+                    { "$match": { "_id": { $in: entityAssessorDocumentByUser.map(solution => solution.solutionId) } } },
                     {
                         $project: {
                             "externalId": "$programExternalId",
@@ -58,18 +60,20 @@ module.exports = class ProgramOperations {
                             "assessmentDescription": "$description"
                         }
                     },
-                    { 
-                        $group : {
-                            _id : "$_id",
-                            name : {$first : "$name"},
-                            description : {$first : "$description"},
-                            externalId : {$first : "$externalId"},
-                            assessments : { $push :{
-                                "_id": "$assessmentId",
-                                "externalId": "$assessmentExternalId",
-                                "name": "$assessmentName",
-                                "description": "$assessmentDescription" 
-                            }},
+                    {
+                        $group: {
+                            _id: "$_id",
+                            name: { $first: "$name" },
+                            description: { $first: "$description" },
+                            externalId: { $first: "$externalId" },
+                            assessments: {
+                                $push: {
+                                    "_id": "$assessmentId",
+                                    "externalId": "$assessmentExternalId",
+                                    "name": "$assessmentName",
+                                    "description": "$assessmentDescription"
+                                }
+                            },
                         }
                     },
                 ]
@@ -381,7 +385,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/managerProfile 
+    * @api {get} /assessment/api/v1/programOperations/managerProfile/:programExternalId
     * @apiVersion 0.0.1
     * @apiName Manager profile
     * @apiGroup programOperations
@@ -407,7 +411,7 @@ module.exports = class ProgramOperations {
                     programManagers: "Program Managers"
                 };
 
-                let programDocument = await this.getProgram(req.params._id);
+                let programDocument = await this.getProgram(req.params._id, false);
 
                 let result = [
                     {
@@ -531,7 +535,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/reportFilters 
+    * @api {get} /assessment/api/v1/programOperations/reportFilters/:programExternalId 
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Drop down contents) for Reports
     * @apiGroup programOperations
@@ -546,8 +550,8 @@ module.exports = class ProgramOperations {
 
                 let programDocument = await this.getProgram(req.params._id);
 
-                let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.entities } }).lean().exec();
-                let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.entities } }).lean().exec();
+                let schoolTypes = database.models.entities.distinct('metaInformation.types', { _id: { $in: programDocument.entities } }).lean().exec();
+                let administrationTypes = database.models.entities.distinct('metaInformation.administration', { _id: { $in: programDocument.entities } }).lean().exec();
                 let types = await Promise.all([schoolTypes, administrationTypes]);
 
                 schoolTypes = _.compact(types[0]);
@@ -672,7 +676,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/searchSchool 
+    * @api {get} /assessment/api/v1/programOperations/searchSchool/:programExternalId?id=schoolId 
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
@@ -689,28 +693,29 @@ module.exports = class ProgramOperations {
                 let programDocument = await this.getProgram(req.params._id);
 
                 if (!req.query.id) {
-                    throw { status: 400, message: 'School id required.' }
+                    throw { status: 400, message: 'Entity id required.' }
                 }
 
-                let schoolIdAndName = await database.models.entities.find(
+                let entityIdAndName = await database.models.entities.find(
                     {
                         _id: { $in: programDocument.entities },
+                        "entityType": "school",
                         "metaInformation.externalId": new RegExp(req.query.id, 'i')
                     },
                     {
-                        "metaInformation.externalId": 1, "metaInformation.name": 1
+                        "metaInformation.externalId": 1,
+                        "metaInformation.name": 1
                     }
                 ).limit(5).lean();//autocomplete needs only 5 dataset
 
-                schoolIdAndName = schoolIdAndName.map(schoolIdAndName=>{
-                    schoolIdAndName.metaInformation._id = schoolIdAndName._id;
-
-                    return schoolIdAndName.metaInformation;
+                entityIdAndName = entityIdAndName.map(entityIdAndName => {
+                    entityIdAndName.metaInformation._id = entityIdAndName._id;
+                    return entityIdAndName.metaInformation;
                 })
 
                 return resolve({
                     status: 200,
-                    result: schoolIdAndName
+                    result: entityIdAndName
                 })
 
             } catch (error) {
@@ -807,7 +812,7 @@ module.exports = class ProgramOperations {
         })
     }
 
-    async getProgram(programExternalId) {
+    async getProgram(programExternalId, needEntities = true) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -815,20 +820,25 @@ module.exports = class ProgramOperations {
                     throw { status: 400, message: 'Program id required.' }
 
                 let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    _id: 1, name: 1, "solutions": 1
+                    name: 1, components: 1
                 }).lean();
 
                 if (!programDocument) {
                     throw { status: 400, message: 'Program not found for given params.' }
                 }
 
-                let solutionDocument = await database.models.solutions.findOne({ _id: programDocument.solutions[0] }, {
-                    "entities": 1
-                }).lean();
+                if (needEntities) {
 
-                programDocument["entities"] = solutionDocument.entities
+                    let solutionDocument = await database.models.solutions.find({ _id: programDocument.components }, {
+                        "entities": 1
+                    }).lean();
+
+                    programDocument["entities"] = _.flattenDeep(solutionDocument.map(solution => solution.entities))
+
+                }
 
                 return resolve(programDocument);
+
 
             } catch (error) {
                 return reject({

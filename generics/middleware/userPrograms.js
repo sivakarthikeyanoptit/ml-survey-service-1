@@ -8,7 +8,9 @@ module.exports = async (req, res, next) => {
             }
         })
 
-        let solutions = await database.models.solutions.find({ $or: queryParams }, {
+        let entityAssessorDocumentByUser = await database.models.entityAssessors.find({userId:req.userDetails.id},{solutionId:1}).lean();
+
+        let solutions = await database.models.solutions.find({ "_id": {$in: entityAssessorDocumentByUser.map(solution=>solution.solutionId)} }, {
             programId: 1,
             programExternalId: 1
         }).lean();
