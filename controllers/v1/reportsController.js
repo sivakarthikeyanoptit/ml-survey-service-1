@@ -1,5 +1,7 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const reportsHelper = require(ROOT_PATH + "/module/reports/helper")
 const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
 
 module.exports = class Reports {
@@ -21,40 +23,20 @@ module.exports = class Reports {
     return "submissions";
   }
 
-  async dataFix(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let dataFixer = require(ROOT_PATH + "/generics/helpers/dataFixer");
-        dataFixer.processData(req.params._id);
-
-        return resolve({
-          status: 200,
-          message: "All good! for " + req.params._id
-        });
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
-
   /**
- * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for school
- * @apiVersion 0.0.1
- * @apiName Fetch submission reports for school
- * @apiGroup Report
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/status/ Fetch submission reports for entity
+   * @apiVersion 0.0.1
+   * @apiName Fetch submission reports for entity
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
   async status(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          ["programInformation.externalId"]: req.params._id
+          ["programExternalId"]: req.params._id
         }
 
         if (!req.params._id) {
@@ -106,11 +88,11 @@ module.exports = class Reports {
                 }
               },
               {
-                "schoolInformation.externalId": 1,
-                "schoolInformation.name": 1,
+                "entityInformation.externalId": 1,
+                "entityInformation.name": 1,
                 "programInformation.name": 1,
                 "programInformation.externalId": 1,
-                "schoolId": 1,
+                "entityId": 1,
                 "programId": 1,
                 "status": 1,
                 "evidencesStatus.isSubmitted": 1,
@@ -122,11 +104,11 @@ module.exports = class Reports {
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
-              if (eachSubmissionDocument.schoolInformation) {
-                result["School Id"] = eachSubmissionDocument.schoolInformation.externalId;
-                result["School Name"] = eachSubmissionDocument.schoolInformation.name;
+              if (eachSubmissionDocument.entityInformation) {
+                result["School Id"] = eachSubmissionDocument.entityInformation.externalId;
+                result["School Name"] = eachSubmissionDocument.entityInformation.name;
               } else {
-                result["School Id"] = eachSubmissionDocument.schoolId;
+                result["School Id"] = eachSubmissionDocument.entityId;
               }
 
               if (eachSubmissionDocument.programInformation) {
@@ -167,15 +149,15 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/assessorSchools/ Fetch assessors reports for school
-* @apiVersion 0.0.1
-* @apiName Fetch assessors reports for school
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/assessorEntities/ Fetch assessors reports for entities
+  * @apiVersion 0.0.1
+  * @apiName Fetch assessors reports for entities
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-  async assessorSchools(req) {
+  async assessorEntities(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.params._id) {
@@ -183,7 +165,7 @@ module.exports = class Reports {
         }
 
         const programQueryParams = {
-          externalId: req.params._id
+          externalId: req.params._id  
         };
         const programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
 
@@ -194,7 +176,7 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.entityAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
@@ -232,32 +214,32 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
-                  from: "schools",
-                  localField: "schoolIdInObjectIdForm",
+                  from: "entities",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
 
                 }
               }
             ];
 
-            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorentity => {
                 input.push({
                   "Assessor Id": assessor.externalId,
                   "Assessor UserId": assessor.userId,
-                  "Parent Id": assessor.parentId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
                   "Assessor Role": assessor.role,
                   "Program Id": req.params._id,
-                  "School Id": eachAssessorSchool.externalId,
-                  "School Name": eachAssessorSchool.name
+                  "Entity Id": eachAssessorentity.metaInformation.externalId,
+                  "Entity Name": eachAssessorentity.metaInformation.name
                 });
               })
             }))
@@ -275,15 +257,15 @@ module.exports = class Reports {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/schoolAssessors/ Fetch school wise assessor reports
- * @apiVersion 0.0.1
- * @apiName Fetch school wise assessor reports
- * @apiGroup Report
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/entityAssessors/ Fetch entity wise assessor reports
+   * @apiVersion 0.0.1
+   * @apiName Fetch entity wise assessor reports
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
-  async schoolAssessors(req) {
+  async entityAssessors(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -303,9 +285,9 @@ module.exports = class Reports {
           });
         }
 
-        const assessorDocument = await database.models.schoolAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
+        const assessorDocument = await database.models.entityAssessors.find({ programId: programsDocumentIds[0]._id }, { _id: 1 })
 
-        const fileName = `schoolAssessors`;
+        const fileName = `entityAssessors`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -340,29 +322,29 @@ module.exports = class Reports {
                     $in: assessorId
                   }
                 }
-              }, { "$addFields": { "schoolIdInObjectIdForm": "$schools" } },
+              }, { "$addFields": { "entityIdInObjectIdForm": "$entities" } },
               {
                 $lookup: {
-                  from: "schools",
-                  localField: "schoolIdInObjectIdForm",
+                  from: "entities",
+                  localField: "entityIdInObjectIdForm",
                   foreignField: "_id",
-                  as: "schoolDocument"
+                  as: "entityDocument"
                 }
               }
             ];
 
-            assessorsDocuments = await database.models.schoolAssessors.aggregate(assessorQueryObject)
+            assessorsDocuments = await database.models.entityAssessors.aggregate(assessorQueryObject)
 
             await Promise.all(assessorsDocuments.map(async (assessor) => {
-              assessor.schoolDocument.forEach(eachAssessorSchool => {
+              assessor.entityDocument.forEach(eachAssessorEntity => {
                 input.push({
-                  "Assessor School Id": eachAssessorSchool.externalId,
-                  "Assessor School Name": eachAssessorSchool.name,
+                  "Assessor entity Id": eachAssessorEntity.metaInformation.externalId,
+                  "Assessor entity Name": eachAssessorEntity.metaInformation.name,
                   "Assessor User Id": assessor.userId,
                   "Assessor Id": assessor.externalId,
-                  "Assessor Name": assessor.name,
-                  "Assessor Email": assessor.email,
-                  "Parent Id": assessor.parentId,
+                  "Assessor Name": assessor.name?assessor.name:"",
+                  "Assessor Email": assessor.email?assessor.email:"",
+                  "Parent Id": assessor.parentId?assessor.parentId:"",
                   "Assessor Role": assessor.role,
                   "Program Id": assessor.programId.toString()
                 });
@@ -383,55 +365,45 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programSchoolsStatus/:programId Fetch school status based on program Id
-* @apiVersion 0.0.1
-* @apiName Fetch school status based on program Id
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/programEntityStatus/:programExternalId Fetch entity status based on program Id
+  * @apiVersion 0.0.1
+  * @apiName Fetch entity status based on program external Id
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-  async programSchoolsStatus(req) {
+  async programEntityStatus(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let result = {};
         req.body = req.body || {};
 
-        let programQueryObject = {
-          externalId: req.params._id
-        };
-        let programDocument = await database.models.programs.findOne(
-          programQueryObject
-        );
+        result.entityId = new Array
 
-        if (!programDocument) {
-          return resolve({
-            status: 404,
-            message: "No programs found for given params."
-          });
-        }
+        let solutionDocument = await database.models.solutions.findOne({
+          programExternalId:req.params._id
+        },{entities:1}).lean()
 
-        result.id = programDocument._id;
-        result.schoolId = [];
+        result.entityId.push(...solutionDocument.entities)
 
-        programDocument.components.forEach(document => {
-          result.schoolId.push(...document.schools);
-        });
-
-        let schoolDocument = database.models.schools.find(
+        let entityDocument = database.models.entities.find(
           {
-            _id: { $in: result.schoolId }
+            _id: { $in: result.entityId }
+          },{
+            "metaInformation.name":1,
+            "metaInformation.externalId":1
           }
-        ).exec();
+        ).exec()
 
         let submissionDataWithEvidencesCount = database.models.submissions.aggregate(
           [
             {
-              $match: { programId: result.id }
+              $match: { programExternalId: req.params._id }
             },
             {
               $project: {
-                schoolId: 1,
+                entityId: 1,
                 status: 1,
                 completedDate: 1,
                 createdAt: 1,
@@ -466,53 +438,53 @@ module.exports = class Reports {
           });
         }());
 
-        Promise.all([schoolDocument, submissionDataWithEvidencesCount]).then(submissionWithSchoolDocument => {
-          let schoolDocument = submissionWithSchoolDocument[0];
-          let submissionDataWithEvidencesCount = submissionWithSchoolDocument[1];
-          let schoolSubmission = {};
+        Promise.all([entityDocument, submissionDataWithEvidencesCount]).then(submissionWithEntityDocument => {
+          let entityDocument = submissionWithEntityDocument[0];
+          let submissionDataWithEvidencesCount = submissionWithEntityDocument[1];
+          let entitySubmission = {};
           submissionDataWithEvidencesCount.forEach(submission => {
-            schoolSubmission[submission.schoolId.toString()] = {
+            entitySubmission[submission.entityId.toString()] = {
               status: submission.status,
               completedDate: submission.completedDate
-                ? this.gmtToIst(submission.completedDate)
+                ? reportsHelper.gmtToIst(submission.completedDate)
                 : "-",
-              createdAt: this.gmtToIst(submission.createdAt),
+              createdAt: reportsHelper.gmtToIst(submission.createdAt),
               submissionCount: submission.submissionCount
             };
           });
-          if (!schoolDocument.length || !submissionDataWithEvidencesCount.length) {
+          if (!entityDocument.length || !submissionDataWithEvidencesCount.length) {
             return resolve({
               status: 404,
               message: "No data found for given params."
             });
           }
           else {
-            schoolDocument.forEach(school => {
-              let programSchoolStatusObject = {
-                "Program Id": programQueryObject.externalId,
-                "School Name": school.name,
-                "School Id": school.externalId
+            entityDocument.forEach(entity => {
+              let programEntityStatusObject = {
+                "Program Id": req.params._id,
+                "Entity Name": entity.metaInformation.name,
+                "Entity Id": entity.metaInformation.externalId
               }
 
-              if (schoolSubmission[school._id.toString()]) {
-                programSchoolStatusObject["Status"] = schoolSubmission[school._id.toString()].status;
-                programSchoolStatusObject["Created At"] = schoolSubmission[school._id.toString()].createdAt;
-                programSchoolStatusObject["Completed Date"] = schoolSubmission[school._id.toString()].completedDate
-                  ? schoolSubmission[school._id.toString()].completedDate
+              if (entitySubmission[entity._id.toString()]) {
+                programEntityStatusObject["Status"] = entitySubmission[entity._id.toString()].status;
+                programEntityStatusObject["Created At"] = entitySubmission[entity._id.toString()].createdAt;
+                programEntityStatusObject["Completed Date"] = entitySubmission[entity._id.toString()].completedDate
+                  ? entitySubmission[entity._id.toString()].completedDate
                   : "-";
-                programSchoolStatusObject["Submission Count"] =
-                  schoolSubmission[school._id.toString()].status == "started"
+                programEntityStatusObject["Submission Count"] =
+                  entitySubmission[entity._id.toString()].status == "started"
                     ? 0
-                    : schoolSubmission[school._id.toString()].submissionCount
+                    : entitySubmission[entity._id.toString()].submissionCount
               }
               else {
-                programSchoolStatusObject["Status"] = "pending";
-                programSchoolStatusObject["Created At"] = "-";
-                programSchoolStatusObject["Completed Date"] = "-";
-                programSchoolStatusObject["Submission Count"] = 0;
+                programEntityStatusObject["Status"] = "pending";
+                programEntityStatusObject["Created At"] = "-";
+                programEntityStatusObject["Completed Date"] = "-";
+                programEntityStatusObject["Submission Count"] = 0;
 
               }
-              input.push(programSchoolStatusObject)
+              input.push(programEntityStatusObject)
             });
           }
           input.push(null)
@@ -529,14 +501,14 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId Fetch program submission status
-* @apiVersion 0.0.1
-* @apiName Fetch program submission status
-* @apiGroup Report
-* @apiParam {String} evidenceId Evidence ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/programsSubmissionStatus/:programId?evidenceId=LW Fetch program submission status
+  * @apiVersion 0.0.1
+  * @apiName Fetch program submission status
+  * @apiGroup Report
+  * @apiParam {String} evidenceId Evidence ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async programsSubmissionStatus(req) {
     return new Promise(async (resolve, reject) => {
@@ -613,8 +585,8 @@ module.exports = class Reports {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
                 status: 1,
                 [pathToSubmissionAnswers]: 1,
                 [pathToSubmissionSubmittedBy]: 1,
@@ -641,17 +613,17 @@ module.exports = class Reports {
                   Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
                       if(singleAnswer.value !== "NA"){
                         let singleAnswerRecord = {
-                        "School Name": submission.schoolInformation.name,
-                        "School Id": submission.schoolInformation.externalId,
+                        "Entity Name": submission.entityInformation.name,
+                        "Entity Id": submission.entityInformation.externalId,
                         "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                         "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                         "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                         "Assessor Id": asssessorId,
                         "Remarks": singleAnswer.remarks || "",
-                        "Start Time": this.gmtToIst(singleAnswer.startTime),
-                        "End Time": this.gmtToIst(singleAnswer.endTime),
+                        "Start Time": reportsHelper.gmtToIst(singleAnswer.startTime),
+                        "End Time": reportsHelper.gmtToIst(singleAnswer.endTime),
                         "Files": "",
-                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                        "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate)
                         }
 
                         if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
@@ -719,20 +691,20 @@ module.exports = class Reports {
                               instance < singleAnswer.value.length;
                               instance++
                             ) {
-
-                              Object.values(singleAnswer.value[instance]).forEach(
+                              
+                              singleAnswer.value[instance] && Object.values(singleAnswer.value[instance]).forEach(
                                 eachInstanceChildQuestion => {
                                   let eachInstanceChildRecord = {
-                                    "School Name": submission.schoolInformation.name,
-                                    "School Id": submission.schoolInformation.externalId,
+                                    "Entity Name": submission.entityInformation.name,
+                                    "Entity Id": submission.entityInformation.externalId,
                                     "Question": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                     "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
-                                    "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
+                                    "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate),
                                     "Answer": "",
                                     "Assessor Id": asssessorId,
                                     "Remarks": eachInstanceChildQuestion.remarks || "",
-                                    "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
-                                    "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                    "Start Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.startTime),
+                                    "End Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.endTime),
                                     "Files": ""
                                   };
 
@@ -830,27 +802,27 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
-* @apiVersion 0.0.1
-* @apiName Fetch criterias based on schoolId
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:entityExternalId Fetch criterias based on schoolId
+  * @apiVersion 0.0.1
+  * @apiName Fetch criteria based on entityId
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-  async generateCriteriasBySchoolId(req) {
+  async generateCriteriaByEntityId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let schoolId = {
-          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
+        let entityId = {
+          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
         };
 
         let submissionDocument = await database.models.submissions.find(
-          schoolId,
+          entityId,
           {
-            schoolExternalId:1,
-            criterias: 1,
-            evaluationFrameworkId:1
+            entityExternalId:1,
+            criteria: 1,
+            solutionId:1
           }
         ).lean()
 
@@ -861,13 +833,11 @@ module.exports = class Reports {
           });
         }
 
-        let evaluationFrameworksDocuments = await database.models[
-          "evaluationFrameworks"
-        ].findOne({_id:submissionDocument[0].evaluationFrameworkId}, { themes: 1 }).lean()
+        let solutionDocuments = await database.models.solutions.findOne({_id:submissionDocument[0].solutionId}, { themes: 1 }).lean()
 
         let criteriaName = {}
-        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworksDocuments.themes);
-        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } },{name:1});
+        let criteriaIds = gen.utils.getCriteriaIds(solutionDocuments.themes);
+        let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } },{name:1});
         
         allCriteriaDocument.forEach(eachCriteria=>{
           criteriaName[eachCriteria._id.toString()]={
@@ -911,9 +881,9 @@ module.exports = class Reports {
 
         }
 
-        getCriteriaPath(evaluationFrameworksDocuments.themes)
+        getCriteriaPath(solutionDocuments.themes)
 
-        const fileName = `generateCriteriasBySchoolId_schoolId_`;
+        const fileName = `generateCriteriasByEntityId`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -925,14 +895,13 @@ module.exports = class Reports {
           });
         }());
 
-
         submissionDocument.forEach(eachSubmissionDocument=>{
-          let schoolId = eachSubmissionDocument.schoolExternalId
-          eachSubmissionDocument.criterias && eachSubmissionDocument.criterias.forEach(submissionCriterias => {
+          let entityId = eachSubmissionDocument.entityExternalId
+          eachSubmissionDocument.criteria && eachSubmissionDocument.criteria.forEach(submissionCriterias => {
           
             if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
               let criteriaReportObject = {
-                "School Id":schoolId,
+                "Entity Id":entityId,
                 "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
                 "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
                 "Score": submissionCriterias.score
@@ -961,364 +930,48 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
-* @apiVersion 0.0.1
-* @apiName Fetch school submission status
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
-
-async generateSubmissionReportsBySchoolId(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-
-      let schoolSubmissionQuery = {
-        ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
-      };
-
-      let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
-        schoolSubmissionQuery,
-        {
-          evaluationFrameworkId: 1
-        }
-      ).lean();
-
-      let evaluationFrameworkThemes = await database.models.evaluationFrameworks.findOne({ _id: submissionForEvaluationFrameworkId.evaluationFrameworkId }, { themes: 1 }).lean();
-
-      let criteriaIdsByFramework = gen.utils.getCriteriaIds(evaluationFrameworkThemes.themes);
-
-      let allCriterias = database.models.criterias.find(
-        { _id: { $in: criteriaIdsByFramework } },
-        { evidences: 1, name: 1 }
-      ).lean().exec();
-
-      let schoolSubmissionDocument = database.models.submissions.find(
-        schoolSubmissionQuery,
-        {
-          schoolExternalId:1,
-          answers: 1,
-          criterias: 1
-        }
-      ).lean().exec();
-
-      const fileName = `generateSubmissionReportsBySchoolId_`;
-      let fileStream = new FileStream(fileName);
-      let input = fileStream.initStream();
-
-      (async function () {
-        await fileStream.getProcessorPromise();
-        return resolve({
-          isResponseAStream: true,
-          fileNameWithPath: fileStream.fileNameWithPath()
-        });
-      }());
-
-      let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
-      "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
-
-      Promise.all([allCriterias, schoolSubmissionDocument]).then(async (documents) => {
-
-        let allCriterias = documents[0];
-        let schoolSubmissionDocument = documents[1];
-        let criteriaQuestionDetailsObject = {};
-        let questionOptionObject = {};
-
-        allCriterias.forEach(eachCriteria => {
-          eachCriteria.evidences.forEach(eachEvidence => {
-            eachEvidence.sections.forEach(eachSection => {
-              eachSection.questions.forEach(eachquestion => {
-                criteriaQuestionDetailsObject[eachquestion.toString()] = {
-                  criteriaId: eachCriteria._id,
-                  criteriaName: eachCriteria.name,
-                  questionId: eachquestion.toString()
-                };
-              });
-            });
-          });
-        });
-
-        let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
-
-        let allQuestionWithOptions = await database.models.questions.find(
-          { _id: { $in: questionIds }},
-          { options: 1,question:1, externalId :1 }
-        ).lean();
-
-        allQuestionWithOptions.forEach(question => {
-          if (question.options.length > 0) {
-            let optionString = "";
-            question.options.forEach(option => {
-              optionString += option.label + ",";
-            });
-            optionString = optionString.replace(/,\s*$/, "");
-
-            questionOptionObject[question._id.toString()] = {
-              questionOptions:question.options,
-              questionOptionString:optionString,
-              questionName:question.question,
-              externalId:question.externalId
-            };
-          } else {
-            questionOptionObject[question._id.toString()] = {
-              questionName:question.question,
-              externalId:question.externalId
-            };
-          }
-        });
-
-        schoolSubmissionDocument.forEach(singleSchoolSubmission => {
-          let criteriaScoreObject = {};
-          singleSchoolSubmission.criterias.forEach(singleCriteria => {
-            criteriaScoreObject[singleCriteria._id.toString()] = {
-              id: singleCriteria._id,
-              externalId:singleCriteria.externalId,
-              score: singleCriteria.score
-            };
-          });
-
-          if (!Object.values(singleSchoolSubmission.answers).length) {
-            return resolve({
-              status: 404,
-              message: "No submissions found for given params."
-            });
-          } else {
-
-            Object.values(singleSchoolSubmission.answers).forEach(singleAnswer => {
-                
-              if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
-
-                let singleAnswerRecord = {
-                    "School Id":singleSchoolSubmission.schoolExternalId,
-                    "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
-                    "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
-                    "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
-                    "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
-                    "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
-                    "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
-                    "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
-                    "Remarks": singleAnswer.remarks || "",
-                    "Files": "",
-                };
-
-                if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
-                  singleAnswer.fileName.forEach(file => {
-                    singleAnswerRecord.Files +=
-                      imageBaseUrl + file.sourcePath + ",";
-                  });
-                  singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
-                    /,\s*$/,
-                    ""
-                  );
-                }
-
-                if (!singleAnswer.notApplicable) {
-                  if (singleAnswer.responseType != "matrix" && singleAnswer.value != undefined) {
-                    let radioResponse = {};
-                    let multiSelectResponse = {};
-                    let multiSelectResponseArray = [];
-
-                    if (
-                      singleAnswer.responseType == "radio"
-                    ) {
-                      questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                        option => {
-
-                          radioResponse[option.value] = option.label;
-                        }
-                      );
-                      singleAnswerRecord.Answer =
-                        radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
-                    }
-                    else if (singleAnswer.responseType == "multiselect") {
-
-                      questionOptionObject[singleAnswer.qid].questionOptions.forEach(
-                        option => {
-                          multiSelectResponse[option.value] =
-                            option.label;
-                        }
-                      );
-                      if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
-                        if (singleAnswer.value) {
-                          singleAnswer.value.forEach(value => {
-                            multiSelectResponseArray.push(
-                              multiSelectResponse[value]
-                          );
-                        });
-                      }
-                    }
-                      singleAnswerRecord.Answer = multiSelectResponseArray.toString();
-                    } else {
-                      singleAnswerRecord.Answer = singleAnswer.value
-                    }
-
-                    input.push(singleAnswerRecord);
-                    
-                  } else if (singleAnswer.responseType == "matrix") {
-                    let schoolId = singleSchoolSubmission.schoolExternalId
-                    singleAnswerRecord["Answer"] = "Instance Question";
-
-                    input.push(singleAnswerRecord);
-
-                    if (singleAnswer.value || singleAnswer.value == 0) {
-                      
-                      for (let instance = 0;instance < singleAnswer.value.length;instance++) {
-
-                        Object.values(singleAnswer.value[instance]).forEach(eachInstanceChildQuestion => {
-                          
-                          if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
-                          
-                            let eachInstanceChildRecord = {
-                              "School Id":schoolId,
-                              "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
-                              "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
-                              "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
-                              "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
-                              "Answer": eachInstanceChildQuestion.value,
-                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
-                                  ? "No Options"
-                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
-                              "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
-                              "Remarks": eachInstanceChildQuestion.remarks || "",
-                              "Files": "",
-                            };
-
-                            if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
-                              eachInstanceChildQuestion.fileName.forEach(
-                                file => {
-                                  eachInstanceChildRecord["Files"] +=
-                                    imageBaseUrl + file + ",";
-                                }
-                              );
-                              eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
-                                /,\s*$/,
-                                ""
-                              );
-                            }
-
-
-                            let radioResponse = {};
-                            let multiSelectResponse = {};
-                            let multiSelectResponseArray = [];
-
-                            if (eachInstanceChildQuestion.responseType == "radio") {
-
-                              questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                option => {
-                                  radioResponse[option.value] = option.label;
-                                }
-                              );
-                              eachInstanceChildRecord["Answer"] =
-                                radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
-                            } else if (eachInstanceChildQuestion.responseType == "multiselect") {
-                              
-                              questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
-                                option => {
-                                  multiSelectResponse[option.value] =
-                                    option.label;
-                                }
-                              );
-
-                              if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
-                                eachInstanceChildQuestion.value.forEach(value => {
-                                  multiSelectResponseArray.push(
-                                    multiSelectResponse[value]
-                                  );
-                                });
-                                eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
-                              } else {
-                                eachInstanceChildRecord["Answer"] = "No value given";
-                              }
-
-                            }
-
-                            input.push(eachInstanceChildRecord);
-
-                          }
-                          
-                        });
-
-                      }
-
-                    }
-
-                  }
-                }
-
-              }
-
-            });
-
-          }
-         
-        });
-
-        input.push(null)
-        
-      })
-
-    } catch (error) {
-      return reject({
-        status: 500,
-        message: "Oops! Something went wrong!",
-        errorObject: error
-      });
-    }
-  });
-}
-
-  /**
-  * @api {get} /assessment/api/v1/reports/parentRegistry/:programId Fetch Parent Registry
+  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
   * @apiVersion 0.0.1
-  * @apiName Fetch Parent Registry
+  * @apiName Fetch Entity submission status
   * @apiGroup Report
-  * @apiParam {String} fromDate From Date
-  * @apiParam {String} toDate To Date
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async parentRegistry(req) {
+  async generateSubmissionReportsByEntityId(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        const programQueryParams = {
-          externalId: req.params._id
+        let entitySubmissionQuery = {
+          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
         };
 
-        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
+        let submissionForSolutionId = await database.models.submissions.findOne(
+          entitySubmissionQuery,
+          {
+            solutionId: 1
+          }
+        ).lean();
 
-        if (!programsDocumentIds.length) {
-          return resolve({
-            status: 404,
-            message: "No parent registry found for given parameters."
-          });
-        }
+        let solutionDocument = await database.models.solutions.findOne({ _id: submissionForSolutionId.solutionId }, { themes: 1 }).lean();
 
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let criteriaIdsByFramework = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-        if (fromDateValue > toDate) {
-          return resolve({
-            status: 400,
-            message: "From Date cannot be greater than to date !!!"
-          })
-        }
+        let allCriterias = database.models.criteria.find(
+          { _id: { $in: criteriaIdsByFramework } },
+          { evidences: 1, name: 1 }
+        ).lean().exec();
 
-        let parentRegistryQueryParams = {}
+        let entitySubmissionDocument = database.models.submissions.find(
+          entitySubmissionQuery,
+          {
+            entityExternalId:1,
+            answers: 1,
+            criteria: 1
+          }
+        ).lean().exec();
 
-        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
-        parentRegistryQueryParams['createdAt'] = {}
-        parentRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        parentRegistryQueryParams['createdAt']["$lte"] = toDate
-
-        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 })
-
-        let fileName = "parentRegistry";
-        (fromDateValue != "") ? fileName += " from " + fromDateValue : "";
-        (toDate != "") ? fileName += " to " + toDate : "";
-
+        const fileName = `generateSubmissionReportsByEntityId`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1330,73 +983,249 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }());
 
-        if (!parentRegistryIdsArray.length) {
-          return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+        let criteriasThatIsNotIncluded = ["CS/II/c1","CS/II/c2","CS/II/b1","CS/I/b1","TL/VI/b1","TL/VI/b2","TL/VI/b5","TL/VI/b6",
+        "TL/V/a1","TL/V/b1","TL/IV/b1","TL/IV/b2","TL/II/b2","TL/II/a1","TL/II/a2","TL/II/a3","TL/I/a4","TL/I/a5","SS/V/a3","SS/III/c3","SS/III/c1","SS/III/b1","SS/III/a1","SS/I/c3","SS/II/a1","SS/I/c2"]
+
+        Promise.all([allCriterias, entitySubmissionDocument]).then(async (documents) => {
+
+          let allCriterias = documents[0];
+          let entitySubmissionDocument = documents[1];
+          let criteriaQuestionDetailsObject = {};
+          let questionOptionObject = {};
+
+          allCriterias.forEach(eachCriteria => {
+            eachCriteria.evidences.forEach(eachEvidence => {
+              eachEvidence.sections.forEach(eachSection => {
+                eachSection.questions.forEach(eachquestion => {
+                  criteriaQuestionDetailsObject[eachquestion.toString()] = {
+                    criteriaId: eachCriteria._id,
+                    criteriaName: eachCriteria.name,
+                    questionId: eachquestion.toString()
+                  };
+                });
+              });
+            });
           });
-        }
 
-        else {
+          let questionIds = Object.values(criteriaQuestionDetailsObject).map(criteria => criteria.questionId);
 
-          let chunkOfParentRegistryDocument = _.chunk(parentRegistryIdsArray, 10)
-          let parentRegistryId
-          let parentRegistryDocuments
+          let allQuestionWithOptions = await database.models.questions.find(
+            { _id: { $in: questionIds }},
+            { options: 1,question:1, externalId :1 }
+          ).lean();
 
+          allQuestionWithOptions.forEach(question => {
+            if (question.options && question.options.length > 0) {
+              let optionString = "";
+              question.options.forEach(option => {
+                optionString += option.label + ",";
+              });
+              optionString = optionString.replace(/,\s*$/, "");
 
-          for (let pointerToParentRegistryIdArray = 0; pointerToParentRegistryIdArray < chunkOfParentRegistryDocument.length; pointerToParentRegistryIdArray++) {
-            parentRegistryId = chunkOfParentRegistryDocument[pointerToParentRegistryIdArray].map(parentRegistryModel => {
-              return parentRegistryModel._id
+              questionOptionObject[question._id.toString()] = {
+                questionOptions:question.options,
+                questionOptionString:optionString,
+                questionName:question.question,
+                externalId:question.externalId
+              };
+            } else {
+              questionOptionObject[question._id.toString()] = {
+                questionName:question.question,
+                externalId:question.externalId
+              };
+            }
+          });
+
+          entitySubmissionDocument.forEach(singleEntitySubmission => {
+            let criteriaScoreObject = {};
+            singleEntitySubmission.criteria.forEach(singleCriteria => {
+              criteriaScoreObject[singleCriteria._id.toString()] = {
+                id: singleCriteria._id,
+                externalId:singleCriteria.externalId,
+                score: singleCriteria.score
+              };
             });
 
-            let parentRegistryQueryObject = [
-              {
-                $match: {
-                  _id: {
-                    $in: parentRegistryId
+            if (!Object.values(singleEntitySubmission.answers).length) {
+              return resolve({
+                status: 404,
+                message: "No submissions found for given params."
+              });
+            } else {
+
+              Object.values(singleEntitySubmission.answers).forEach(singleAnswer => {
+                  
+                if (criteriaScoreObject[singleAnswer.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[singleAnswer.criteriaId].externalId)) {
+
+                  let singleAnswerRecord = {
+                      "Entity Id":singleEntitySubmission.entityExternalId,
+                      "Criteria Id": criteriaScoreObject[singleAnswer.criteriaId].externalId,
+                      "Criteria Name": criteriaQuestionDetailsObject[singleAnswer.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[singleAnswer.qid].criteriaName,
+                      "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
+                      "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
+                      "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                      "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
+                      "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
+                      "Remarks": singleAnswer.remarks || "",
+                      "Files": "",
+                  };
+
+                  if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
+                    singleAnswer.fileName.forEach(file => {
+                      singleAnswerRecord.Files +=
+                        imageBaseUrl + file.sourcePath + ",";
+                    });
+                    singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                      /,\s*$/,
+                      ""
+                    );
                   }
-                }
-              },
-              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
-              {
-                $lookup: {
-                  from: "schools",
-                  localField: "schoolId",
-                  foreignField: "_id",
-                  as: "schoolDocument"
-                }
-              },
-              {
-                $unwind: '$schoolDocument'
-              },
-              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
-              {
-                $project: {
-                  "schoolDocument": 0
-                }
-              }
-            ];
 
-            parentRegistryDocuments = await database.models.parentRegistry.aggregate(parentRegistryQueryObject);
+                  if (!singleAnswer.notApplicable) {
+                    if (singleAnswer.responseType != "matrix" && singleAnswer.value != undefined) {
+                      let radioResponse = {};
+                      let multiSelectResponse = {};
+                      let multiSelectResponseArray = [];
 
-            await Promise.all(parentRegistryDocuments.map(async (parentRegistry) => {
-              let parentRegistryObject = {};
-              Object.keys(parentRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  parentRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = parentRegistry[singleKey];
+                      if (
+                        singleAnswer.responseType == "radio"
+                      ) {
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
+
+                            radioResponse[option.value] = option.label;
+                          }
+                        );
+                        singleAnswerRecord.Answer =
+                          radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                      }
+                      else if (singleAnswer.responseType == "multiselect") {
+
+                        questionOptionObject[singleAnswer.qid].questionOptions.forEach(
+                          option => {
+                            multiSelectResponse[option.value] =
+                              option.label;
+                          }
+                        );
+                        if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
+                          if (singleAnswer.value) {
+                            singleAnswer.value.forEach(value => {
+                              multiSelectResponseArray.push(
+                                multiSelectResponse[value]
+                            );
+                          });
+                        }
+                      }
+                        singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                      } else {
+                        singleAnswerRecord.Answer = singleAnswer.value
+                      }
+
+                      input.push(singleAnswerRecord);
+                      
+                    } else if (singleAnswer.responseType == "matrix") {
+                      let entityId = singleEntitySubmission.entityExternalId
+                      singleAnswerRecord["Answer"] = "Instance Question";
+
+                      input.push(singleAnswerRecord);
+
+                      if (singleAnswer.value || singleAnswer.value == 0) {
+                        
+                        for (let instance = 0;instance < singleAnswer.value.length;instance++) {
+
+                          Object.values(singleAnswer.value[instance]).forEach(eachInstanceChildQuestion => {
+                            
+                            if (criteriaScoreObject[eachInstanceChildQuestion.criteriaId] && !criteriasThatIsNotIncluded.includes(criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId)) {
+                            
+                              let eachInstanceChildRecord = {
+                                "Entity Id":entityId,
+                                "Criteria Id": criteriaScoreObject[eachInstanceChildQuestion.criteriaId].externalId,
+                                "Criteria Name":criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid] == undefined ? "Question Deleted Post Submission" : criteriaQuestionDetailsObject[eachInstanceChildQuestion.qid].criteriaName,
+                                "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
+                                "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
+                                "Answer": eachInstanceChildQuestion.value,
+                                "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
+                                "Remarks": eachInstanceChildQuestion.remarks || "",
+                                "Files": "",
+                              };
+
+                              if (eachInstanceChildQuestion.fileName && eachInstanceChildQuestion.fileName.length > 0) {
+                                eachInstanceChildQuestion.fileName.forEach(
+                                  file => {
+                                    eachInstanceChildRecord["Files"] +=
+                                      imageBaseUrl + file + ",";
+                                  }
+                                );
+                                eachInstanceChildRecord["Files"] = eachInstanceChildRecord["Files"].replace(
+                                  /,\s*$/,
+                                  ""
+                                );
+                              }
+
+
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (eachInstanceChildQuestion.responseType == "radio") {
+
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    radioResponse[option.value] = option.label;
+                                  }
+                                );
+                                eachInstanceChildRecord["Answer"] =
+                                  radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              } else if (eachInstanceChildQuestion.responseType == "multiselect") {
+                                
+                                questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
+                                  option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  }
+                                );
+
+                                if(eachInstanceChildQuestion.value != "" &&  eachInstanceChildQuestion.value != "NA") {
+                                  eachInstanceChildQuestion.value.forEach(value => {
+                                    multiSelectResponseArray.push(
+                                      multiSelectResponse[value]
+                                    );
+                                  });
+                                  eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                } else {
+                                  eachInstanceChildRecord["Answer"] = "No value given";
+                                }
+
+                              }
+
+                              input.push(eachInstanceChildRecord);
+
+                            }
+                            
+                          });
+
+                        }
+
+                      }
+
+                    }
+                  }
+
                 }
-              })
 
-              parentRegistryObject['Program External Id'] = programQueryParams.externalId;
-              parentRegistryObject['School External Id'] = parentRegistry.schoolId;
-              (parentRegistry.createdAt) ? parentRegistryObject['Created At'] = this.gmtToIst(parentRegistry.createdAt) : parentRegistryObject['Created At'] = "";
-              (parentRegistry.updatedAt) ? parentRegistryObject['Updated At'] = this.gmtToIst(parentRegistry.updatedAt) : parentRegistryObject['Updated At'] = "";
-              input.push(parentRegistryObject);
-            }))
-          }
-        }
+              });
 
-        input.push(null);
+            }
+          
+          });
+
+          input.push(null)
+          
+        })
+
       } catch (error) {
         return reject({
           status: 500,
@@ -1408,281 +1237,133 @@ async generateSubmissionReportsBySchoolId(req) {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/teacherRegistry/:programId Fetch Teacher Registry
- * @apiVersion 0.0.1
- * @apiName Fetch Teacher Registry
- * @apiGroup Report
- * @apiParam {String} fromDate From Date
- * @apiParam {String} toDate To Date
- * @apiUse successBody
- * @apiUse errorBody
- */
-
-  async teacherRegistry(req) {
-    return (new Promise(async (resolve, reject) => {
-      try {
-        const programsQueryParams = {
-          externalId: req.params._id
-        }
-        const programsDocument = await database.models.programs.find(programsQueryParams, {
-          externalId: 1
-        })
-
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDateValue > toDate) {
-          return resolve({
-            status: 400,
-            message: "From Date cannot be greater than to date !!!"
-          })
-        }
-
-        let teacherRegistryQueryParams = {}
-
-        teacherRegistryQueryParams['programId'] = programsDocument[0]._id
-
-        teacherRegistryQueryParams['createdAt'] = {}
-        teacherRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        teacherRegistryQueryParams['createdAt']["$lte"] = toDate
-
-        const teacherRegistryDocument = await database.models.teacherRegistry.find(teacherRegistryQueryParams, { _id: 1 })
-
-        let fileName = "Teacher Registry";
-        (fromDateValue) ? fileName += "from" + fromDateValue : "";
-        (toDate) ? fileName += "to" + toDate : "";
-
-        let fileStream = new FileStream(fileName);
-        let input = fileStream.initStream();
-
-        (async function () {
-          await fileStream.getProcessorPromise();
-          return resolve({
-            isResponseAStream: true,
-            fileNameWithPath: fileStream.fileNameWithPath()
-          });
-        }());
-
-        if (!teacherRegistryDocument.length) {
-          return resolve({
-            status: 404,
-            message: "No submissions found for given params."
-          });
-        }
-
-        else {
-          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
-          let teacherRegistryIds
-          let teacherRegistryData
-
-          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
-            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
-              return teacherRegistryId._id
-            })
-
-            let teacherRegistryParams = [
-              {
-                $match: {
-                  _id: {
-                    $in: teacherRegistryIds
-                  }
-                }
-              },
-              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
-              {
-                $lookup: {
-                  from: "schools",
-                  localField: "schoolId",
-                  foreignField: "_id",
-                  as: "schoolDocument"
-                }
-              },
-              {
-                $unwind: '$schoolDocument'
-              },
-              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
-              {
-                $project: {
-                  "schoolDocument": 0
-                }
-              }
-            ];
-
-
-            teacherRegistryData = await database.models.teacherRegistry.aggregate(teacherRegistryParams)
-
-            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
-
-              let teacherRegistryObject = {};
-              Object.keys(teacherRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
-                }
-              })
-              teacherRegistryObject['Program External Id'] = programsQueryParams.externalId;
-              teacherRegistryObject['School External Id'] = teacherRegistry.schoolId;
-              (teacherRegistry.createdAt) ? teacherRegistryObject['Created At'] = this.gmtToIst(teacherRegistry.createdAt) : teacherRegistryObject['Created At'] = "";
-              (teacherRegistry.updatedAt) ? teacherRegistryObject['Updated At'] = this.gmtToIst(teacherRegistry.updatedAt) : teacherRegistryObject['Updated At'] = "";
-              input.push(teacherRegistryObject);
-            }))
-          }
-        }
-        input.push(null);
-      }
-      catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    }))
-  }
-
-  /**
-* @api {get} /assessment/api/v1/reports/schoolLeaderRegistry/:programId Fetch School Leader Information
-* @apiVersion 0.0.1
-* @apiName Fetch School Leader Registry Information
-* @apiGroup Report
-* @apiParam {String} fromDate From Date
-* @apiParam {String} toDate To Date
-* @apiUse successBody
-* @apiUse errorBody
-*/
-
-  async schoolLeaderRegistry(req) {
-    return (new Promise(async (resolve, reject) => {
-      try {
-        const programsQueryParams = {
-          externalId: req.params._id
-        }
-        const programsDocument = await database.models.programs.find(programsQueryParams, {
-          externalId: 1
-        })
-
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDateValue > toDate) {
-          return resolve({
-            status: 400,
-            message: "From Date cannot be greater than to date !!!"
-          })
-        }
-
-        let schoolLeaderRegistryQueryParams = {}
-
-        schoolLeaderRegistryQueryParams['programId'] = programsDocument[0]._id
-
-        schoolLeaderRegistryQueryParams['createdAt'] = {}
-        schoolLeaderRegistryQueryParams['createdAt']["$gte"] = fromDateValue
-        schoolLeaderRegistryQueryParams['createdAt']["$lte"] = toDate
-
-        const schoolLeaderRegistryDocument = await database.models.schoolLeaderRegistry.find(schoolLeaderRegistryQueryParams, { _id: 1 })
-
-        let fileName = "School Leader Registry";
-        (fromDateValue) ? fileName += "from" + fromDateValue : "";
-        (toDate) ? fileName += "to" + toDate : "";
-
-        let fileStream = new FileStream(fileName);
-        let input = fileStream.initStream();
-
-        (async function () {
-          await fileStream.getProcessorPromise();
-          return resolve({
-            isResponseAStream: true,
-            fileNameWithPath: fileStream.fileNameWithPath()
-          });
-        }());
-
-        if (!schoolLeaderRegistryDocument.length) {
-          return resolve({
-            status: 404,
-            message: "No submissions found for given params."
-          });
-        }
-
-        else {
-          let schoolLeaderChunkData = _.chunk(schoolLeaderRegistryDocument, 10)
-          let schoolLeaderRegistryIds
-          let schoolLeaderRegistryData
-
-          for (let pointerToSchoolLeaderRegistry = 0; pointerToSchoolLeaderRegistry < schoolLeaderChunkData.length; pointerToSchoolLeaderRegistry++) {
-            schoolLeaderRegistryIds = schoolLeaderChunkData[pointerToSchoolLeaderRegistry].map(schoolLeaderRegistryId => {
-              return schoolLeaderRegistryId._id
-            })
-
-            let schoolLeaderRegistryParams = [
-              {
-                $match: {
-                  _id: {
-                    $in: schoolLeaderRegistryIds
-                  }
-                }
-              },
-              { "$addFields": { "schoolId": { "$toObjectId": "$schoolId" } } },
-              {
-                $lookup: {
-                  from: "schools",
-                  localField: "schoolId",
-                  foreignField: "_id",
-                  as: "schoolDocument"
-                }
-              },
-              {
-                $unwind: '$schoolDocument'
-              },
-              { "$addFields": { "schoolId": "$schoolDocument.externalId" } },
-              {
-                $project: {
-                  "schoolDocument": 0
-                }
-              }
-            ];
-
-
-            schoolLeaderRegistryData = await database.models.schoolLeaderRegistry.aggregate(schoolLeaderRegistryParams)
-
-            await Promise.all(schoolLeaderRegistryData.map(async (schoolLeaderRegistry) => {
-
-              let schoolLeaderRegistryObject = {};
-              Object.keys(schoolLeaderRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  schoolLeaderRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = schoolLeaderRegistry[singleKey];
-                }
-              })
-              schoolLeaderRegistryObject['Program External Id'] = programsQueryParams.externalId;
-              schoolLeaderRegistryObject['School External Id'] = schoolLeaderRegistry.schoolId;
-              (schoolLeaderRegistry.createdAt) ? schoolLeaderRegistryObject['Created At'] = this.gmtToIst(schoolLeaderRegistry.createdAt) : schoolLeaderRegistryObject['Created At'] = "";
-              (schoolLeaderRegistry.updatedAt) ? schoolLeaderRegistryObject['Updated At'] = this.gmtToIst(schoolLeaderRegistry.updatedAt) : schoolLeaderRegistryObject['Updated At'] = "";
-              input.push(schoolLeaderRegistryObject);
-            }))
-          }
-        }
-        input.push(null);
-      }
-      catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    }))
-  }
-
-  /**
-  * @api {get} /assessment/api/v1/reports/schoolProfileInformation/:programId Fetch School Profile Information
+  * @api {get} /assessment/api/v1/reports/registryDetails/:programExternalId fetch registry details
   * @apiVersion 0.0.1
-  * @apiName Fetch School Profile Information
+  * @apiName Fetch Registry details
+  * @apiGroup Report
+  * @apiParam {String} fromDate From Date
+  * @apiParam {String} toDate To Date
+  * @apiParam {String} solutionExternalId solution externalId 
+  * @apiParam {String} type registry type 
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async registryDetails(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (req.query.fromDate > req.query.toDate) {
+          return resolve({
+            status: 400,
+            message: "From Date cannot be greater than to date !!!"
+          })
+        }
+        
+        let solutionDocument = await database.models.solutions.findOne({
+          programExternalId:req.params._id,
+          externalId:req.query.solutionExternalId     
+        },{
+          registry:1,
+          entities:1
+        }).lean()
+
+        if(solutionDocument.registry.includes(req.query.type)){
+
+          let groupType = "groups."+req.query.type
+
+          let entitiesDocument = await database.models.entities.find({
+            _id:{$in:solutionDocument.entities},
+            [groupType]:{$exists:true} 
+          },{
+            [groupType]:1,
+            "metaInformation.externalId":1,
+            "metaInformation.name":1
+          }).lean()
+
+          let fileName =  `${req.query.type} registry`;
+          (req.query.fromDate != "") ? fileName += " from " + moment(req.query.fromDate).format("YYYY-MM-DD") : "";
+          (req.query.toDate != "") ? fileName += " to " + moment(req.query.toDate).format("YYYY-MM-DD") : "";
+  
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+  
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          let registryDocuments
+
+          for(let pointerToRegistryDocument = 0;pointerToRegistryDocument<entitiesDocument.length;pointerToRegistryDocument++){
+            
+            let registryQueryObject = {
+              _id:{
+                $in:entitiesDocument[pointerToRegistryDocument].groups[req.query.type]
+              },
+              entityType:req.query.type,
+              createdAt:{$gte:req.query.fromDate},
+              createdAt:{$lte:req.query.toDate}
+            }
+
+            registryDocuments = await database.models.entities.find(registryQueryObject,{
+              "metaInformation":1,
+              "createdAt":1,
+              "updatedAt":1,
+              "entityType":1
+            }).lean();
+
+            await Promise.all(registryDocuments.map(async (singleRegistry)=>{
+
+              let allregistryObject = {};
+
+              Object.keys(singleRegistry.metaInformation).forEach(singleKey => {
+                      
+                if (["deleted", "_id", "__v", "createdByProgramId"].indexOf(singleKey) == -1) {
+                    allregistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = singleRegistry.metaInformation[singleKey];
+                }
+              })
+      
+              allregistryObject['Program External Id'] = req.params._id;
+              allregistryObject['Entity Type'] = singleRegistry.entityType
+              allregistryObject['Parent Entity External Id'] = entitiesDocument[pointerToRegistryDocument].metaInformation.externalId;
+              allregistryObject['Parent Entity Name'] = entitiesDocument[pointerToRegistryDocument].metaInformation.name;
+              (singleRegistry.createdAt) ? allregistryObject['Created At'] = reportsHelper.gmtToIst(singleRegistry.createdAt) : allregistryObject['Created At'] = "";
+              (singleRegistry.updatedAt) ? allregistryObject['Updated At'] = reportsHelper.gmtToIst(singleRegistry.updatedAt) : allregistryObject['Updated At'] = "";
+              input.push(allregistryObject);
+
+            }))
+          }
+
+          input.push(null);
+        } else {
+          throw "Type is invalid"
+        }
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+
+  /**
+  * @api {get} /assessment/api/v1/reports/entityProfileInformation/:programId Fetch Entity Profile Information
+  * @apiVersion 0.0.1
+  * @apiName Fetch Entity Profile Information
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async schoolProfileInformation(req) {
+  async entityProfileInformation(req) {
     return new Promise(async (resolve, reject) => {
       try {
         let queryParams = {
@@ -1693,13 +1374,13 @@ async generateSubmissionReportsBySchoolId(req) {
           _id: 1
         })
 
-        const programsDocument = await database.models.programs.findOne({
-          externalId: req.params._id
-        }, { "components.schoolProfileFieldsPerSchoolTypes": 1 })
+        const solutionDocuments = await database.models.solutions.findOne({
+          programExternalId:req.params._id
+        },{entityProfileFieldsPerEntityTypes:1}).lean()
 
-        let schoolProfileFields = await this.getSchoolProfileFields(programsDocument.components[0].schoolProfileFieldsPerSchoolTypes);
+        let entityProfileFields = await solutionsHelper.getEntityProfileFields(solutionDocuments.entityProfileFieldsPerEntityTypes);
 
-        const fileName = `schoolProfileInformation`;
+        const fileName = `entityProfileInformation`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1721,37 +1402,37 @@ async generateSubmissionReportsBySchoolId(req) {
         else {
           let chunkOfSubmissionIds = _.chunk(submissionIds, 10)
           let submissionIdArray
-          let schoolProfileSubmissionDocuments
+          let entityProfileSubmissionDocuments
 
           for (let pointerToSchoolProfileSubmissionArray = 0; pointerToSchoolProfileSubmissionArray < chunkOfSubmissionIds.length; pointerToSchoolProfileSubmissionArray++) {
             submissionIdArray = chunkOfSubmissionIds[pointerToSchoolProfileSubmissionArray].map(eachSubmissionId => {
               return eachSubmissionId._id
             })
 
-            schoolProfileSubmissionDocuments = await database.models.submissions.find(
+            entityProfileSubmissionDocuments = await database.models.submissions.find(
               {
                 _id: {
                   $in: submissionIdArray
                 }
               }, {
-                "schoolProfile": 1,
+                "entityProfile": 1,
                 "_id": 1,
                 "programExternalId": 1,
-                "schoolExternalId": 1
+                "entityExternalId": 1
               })
 
-            await Promise.all(schoolProfileSubmissionDocuments.map(async (eachSchoolProfileSubmissionDocument) => {
+            await Promise.all(entityProfileSubmissionDocuments.map(async (entityProfileSubmissionDocument) => {
 
-              let schoolProfile = _.omit(eachSchoolProfileSubmissionDocument.schoolProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
-              if (schoolProfile) {
-                let schoolProfileObject = {};
-                schoolProfileObject['School External Id'] = eachSchoolProfileSubmissionDocument.schoolExternalId;
-                schoolProfileObject['Program External Id'] = eachSchoolProfileSubmissionDocument.programExternalId;
+              let entityProfile = _.omit(entityProfileSubmissionDocument.entityProfile, ["deleted", "_id", "_v", "createdAt", "updatedAt"]);
+              if (entityProfile) {
+                let entityProfileObject = {};
+                entityProfileObject['Entity External Id'] = entityProfileSubmissionDocument.entityExternalId;
+                entityProfileObject['Program External Id'] = entityProfileSubmissionDocument.programExternalId;
 
-                schoolProfileFields.forEach(eachSchoolField => {
-                  schoolProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = schoolProfile[eachSchoolField] ? schoolProfile[eachSchoolField] : ""
+                entityProfileFields.forEach(eachSchoolField => {
+                  entityProfileObject[gen.utils.camelCaseToTitleCase(eachSchoolField)] = entityProfile[eachSchoolField] ? entityProfile[eachSchoolField] : ""
                 })
-                input.push(schoolProfileObject);
+                input.push(entityProfileObject);
               }
             }))
           }
@@ -1768,48 +1449,31 @@ async generateSubmissionReportsBySchoolId(req) {
   }
 
   /**
- * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
- * @apiVersion 0.0.1
- * @apiName Generate all ecm report by date
- * @apiGroup Report
- * @apiParam {String} fromDate From Date
- * @apiParam {String} toDate To Date
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:programId Generate all ecm report by date
+   * @apiVersion 0.0.1
+   * @apiName Generate all ecm report by date
+   * @apiGroup Report
+   * @apiParam {String} fromDate From Date
+   * @apiParam {String} toDate To Date
+   * @apiParam {entityExternalId} entityExternalId Comma separated external entity Ids
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
   async generateEcmReportByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!req.query.fromDate) {
-          return resolve({
-            status: 404,
-            message: "From date is a mandatory field."
-          });
-        }
-
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          return resolve({
-            status: 400,
-            message: "From date cannot be greater than to date."
-          });
-        }
-
-
+        
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         
-        if(req.query.schoolId && req.query.schoolId != "" && req.query.schoolId.split(",").length > 0) {
-          fetchRequiredSubmissionDocumentIdQueryObj["schoolExternalId"] = {$in:req.query.schoolId.split(",")}
+        if(req.query.entityId && req.query.entityId != "" && req.query.entityId.split(",").length > 0) {
+          fetchRequiredSubmissionDocumentIdQueryObj["entityExternalId"] = {$in:req.query.entityId.split(",")}
         }
         
         fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$gte"] = req.query.fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["evidencesStatus.submissions.submissionDate"]["$lte"] = req.query.toDate
 
         fetchRequiredSubmissionDocumentIdQueryObj["status"] = {
           $nin:
@@ -1833,8 +1497,8 @@ async generateSubmissionReportsBySchoolId(req) {
         })
 
         let fileName = `EcmReport`;
-        (fromDate) ? fileName += moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "-" + moment(toDate).format('DD-MM-YYYY') : moment(fromDate).format('DD-MM-YYYY');
+        (req.query.fromDate) ? fileName += moment(req.query.fromDate).format('DD-MM-YYYY') : "";
+        (req.query.toDate) ? fileName += "-" + moment(req.query.toDate).format('DD-MM-YYYY') :"";
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -1874,8 +1538,8 @@ async generateSubmissionReportsBySchoolId(req) {
               {
                 "assessors.userId": 1,
                 "assessors.externalId": 1,
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
                 "evidences": 1,
                 status: 1,
               }
@@ -1883,7 +1547,6 @@ async generateSubmissionReportsBySchoolId(req) {
 
 
             await Promise.all(submissionDocuments.map(async (submission) => {
-
               let assessors = {}
 
               submission.assessors.forEach(assessor => {
@@ -1891,30 +1554,31 @@ async generateSubmissionReportsBySchoolId(req) {
                   externalId: assessor.externalId
                 };
               });
-
+              
               Object.values(submission.evidences).forEach(singleEvidence => {
+
                 if (singleEvidence.submissions) {
                   singleEvidence.submissions && singleEvidence.submissions.forEach(evidenceSubmission => {
 
                     let asssessorId = (assessors[evidenceSubmission.submittedBy.toString()]) ? assessors[evidenceSubmission.submittedBy.toString()].externalId : (evidenceSubmission.submittedByName ? evidenceSubmission.submittedByName.replace(' null', '') : null);
  
-                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= fromDate && evidenceSubmission.submissionDate < toDate)) {
+                    if ((evidenceSubmission.isValid === true) && (evidenceSubmission.submissionDate >= req.query.fromDate && evidenceSubmission.submissionDate < req.query.toDate)) {
 
                       Object.values(evidenceSubmission.answers).forEach(singleAnswer => {
 
                               let singleAnswerRecord = {
-                                "School Name": submission.schoolInformation.name,
-                                "School Id": submission.schoolInformation.externalId,
+                                "Entity Name": submission.entityInformation.name,
+                                "Entity Id": submission.entityInformation.externalId,
                                 "Question":  (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionName[0] : "",
                                 "Question Id": (questionIdObject[singleAnswer.qid]) ? questionIdObject[singleAnswer.qid].questionExternalId : "",
                                 "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
                                 "Assessor Id": asssessorId,
                                 "Remarks": singleAnswer.remarks || "",
-                                "Start Time": this.gmtToIst(singleAnswer.startTime),
-                                "End Time": this.gmtToIst(singleAnswer.endTime),
+                                "Start Time": reportsHelper.gmtToIst(singleAnswer.startTime),
+                                "End Time": reportsHelper.gmtToIst(singleAnswer.endTime),
                                 "Files": "",
                                 "ECM": evidenceSubmission.externalId,
-                                "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate)
+                                "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate)
                             }
 
                             if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
@@ -1981,21 +1645,20 @@ async generateSubmissionReportsBySchoolId(req) {
                                   let instance = 0;
                                   instance < singleAnswer.value.length;
                                   instance++
-                                ) {
-
-                                  Object.values(singleAnswer.value[instance]).forEach(
+                                ) { 
+                                  singleAnswer.value[instance] != null && Object.values(singleAnswer.value[instance]).forEach(
                                     eachInstanceChildQuestion => {
                                       let eachInstanceChildRecord = {
-                                        "School Name": submission.schoolInformation.name,
-                                        "School Id": submission.schoolInformation.externalId,
+                                        "Entity Name": submission.entityInformation.name,
+                                        "Entity Id": submission.entityInformation.externalId,
                                         "Question":(questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionName[0] : "",
                                         "Question Id": (questionIdObject[eachInstanceChildQuestion.qid]) ? questionIdObject[eachInstanceChildQuestion.qid].questionExternalId : "",
-                                        "Submission Date": this.gmtToIst(evidenceSubmission.submissionDate),
+                                        "Submission Date": reportsHelper.gmtToIst(evidenceSubmission.submissionDate),
                                         "Answer": "",
                                         "Assessor Id": asssessorId,
                                         "Remarks": eachInstanceChildQuestion.remarks || "",
-                                        "Start Time": this.gmtToIst(eachInstanceChildQuestion.startTime),
-                                        "End Time": this.gmtToIst(eachInstanceChildQuestion.endTime),
+                                        "Start Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.startTime),
+                                        "End Time": reportsHelper.gmtToIst(eachInstanceChildQuestion.endTime),
                                         "Files": "",
                                         "ECM": evidenceSubmission.externalId
                                       };
@@ -2120,19 +1783,11 @@ async generateSubmissionReportsBySchoolId(req) {
 
       try {
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          throw "From date cannot be greater than to date."
-        }
-
         let submissionQueryObject = {};
         submissionQueryObject.programExternalId = req.params._id
         submissionQueryObject["feedback.submissionDate"] = {}
-        submissionQueryObject["feedback.submissionDate"]["$gte"] = fromDate
-        submissionQueryObject["feedback.submissionDate"]["$lte"] = toDate
+        submissionQueryObject["feedback.submissionDate"]["$gte"] = req.query.fromDate
+        submissionQueryObject["feedback.submissionDate"]["$lte"] = req.query.toDate
 
         if (!req.params._id) {
           throw "Program ID missing."
@@ -2179,7 +1834,7 @@ async generateSubmissionReportsBySchoolId(req) {
                   $in: submissionId
                 }
               },
-              { feedback: 1, assessors: 1,schoolExternalId:1}
+              { feedback: 1, assessors: 1,entityExternalId:1}
             ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmission) => {
               let result = {};
@@ -2194,8 +1849,8 @@ async generateSubmissionReportsBySchoolId(req) {
                 result["Q2"] = eachFeedback.q2;
                 result["Q3"] = eachFeedback.q3;
                 result["Q4"] = eachFeedback.q4;
-                result["School Id"] = eachSubmission.schoolExternalId;
-                result["School Name"] = eachFeedback.schoolName;
+                result["Entity Id"] = eachSubmission.entityExternalId;
+                result["Entity Name"] = eachFeedback.schoolName;
                 result["Program Id"] = eachFeedback.programId;
                 result["User Id"] = assessorObject[eachFeedback.userId] ? assessorObject[eachFeedback.userId].externalId : " ";
                 result["Submission Date"] = eachFeedback.submissionDate;
@@ -2237,17 +1892,6 @@ async generateSubmissionReportsBySchoolId(req) {
           })
         }
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          return resolve({
-            status: 400,
-            message: "From Date cannot be greater than to date !!!"
-          })
-        }
-
         const fileName = `ecmSubmissionByDate`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2261,12 +1905,12 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }());
 
-        let schoolProfileSubmissionDocuments = await database.models.submissions.aggregate([
+        let entityProfileSubmissionDocuments = await database.models.submissions.aggregate([
           {
             $match: { programExternalId: req.params._id }
           },
           {
-            $project: { 'schoolId': 1, 'evidencesStatus': 1, 'schoolName': '$schoolInformation.name', schoolExternalId: 1 }
+            $project: { 'entityId': 1, 'evidencesStatus': 1, 'entityName': '$entityInformation.name', entityExternalId: 1 }
           },
           {
             $unwind: "$evidencesStatus"
@@ -2275,14 +1919,14 @@ async generateSubmissionReportsBySchoolId(req) {
             $unwind: "$evidencesStatus.submissions"
           },
           {
-            $project: { 'schoolName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', schoolExternalId: 1 }
+            $project: { 'entityName': 1, 'ecmName': '$evidencesStatus.name', 'ecmExternalId': '$evidencesStatus.externalId', 'submmissionDate': '$evidencesStatus.submissions.submissionDate', entityExternalId: 1 }
           },
           {
-            $match: { submmissionDate: { $gte: fromDate, $lte: toDate } }
+            $match: { submmissionDate: { $gte: req.query.fromDate, $lte: req.query.toDate } }
           }
         ]);
 
-        if (!schoolProfileSubmissionDocuments.length) {
+        if (!entityProfileSubmissionDocuments.length) {
           return resolve({
             status: 200,
             message: "No data found for given params."
@@ -2297,17 +1941,17 @@ async generateSubmissionReportsBySchoolId(req) {
 
         for (
           let counter = 0;
-          counter < schoolProfileSubmissionDocuments.length;
+          counter < entityProfileSubmissionDocuments.length;
           counter++
         ) {
 
-          let schoolProfileObject = {};
-          schoolProfileObject['School External Id'] = schoolProfileSubmissionDocuments[counter].schoolExternalId;
-          schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
-          schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
-          schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
-          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('MM-DD-YYYY');
-          input.push(schoolProfileObject);
+          let entityProfileObject = {};
+          entityProfileObject['Entity External Id'] = entityProfileSubmissionDocuments[counter].entityExternalId;
+          entityProfileObject['Entity Name'] = entityProfileSubmissionDocuments[counter].entityName;
+          entityProfileObject['ECM Name'] = entityProfileSubmissionDocuments[counter].ecmName;
+          entityProfileObject['ECM External Id'] = entityProfileSubmissionDocuments[counter].ecmExternalId;
+          entityProfileObject['Submmission Date'] = moment(entityProfileSubmissionDocuments[counter].submmissionDate).format('DD-MM-YYYY');
+          input.push(entityProfileObject);
 
           if (input.readableBuffer && input.readableBuffer.length) {
             while (input.readableBuffer.length > 20000) {
@@ -2347,20 +1991,12 @@ async generateSubmissionReportsBySchoolId(req) {
           throw "From Date is mandatory"
         }
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          throw "From date cannot be greater than to date."
-        }
-
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
         fetchRequiredSubmissionDocumentIdQueryObj["programExternalId"] = req.params._id
         fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponses"] = { $exists: true }
         fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"] = {}
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = fromDate
-        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = toDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$gte"] = req.query.fromDate
+        fetchRequiredSubmissionDocumentIdQueryObj["parentInterviewResponsesStatus.completedAt"]["$lte"] = req.query.toDate
 
         const submissionDocumentIdsToProcess = await database.models.submissions.find(
           fetchRequiredSubmissionDocumentIdQueryObj,
@@ -2368,8 +2004,8 @@ async generateSubmissionReportsBySchoolId(req) {
         ).lean()
 
         let fileName = `ParentInterview-Completed`;
-        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (req.query.fromDate) ? fileName += "fromDate_" + moment(req.query.fromDate).format('DD-MM-YYYY') : "";
+        (req.query.toDate) ? fileName += "toDate_" + moment(req.query.toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2384,13 +2020,18 @@ async generateSubmissionReportsBySchoolId(req) {
 
         if (!submissionDocumentIdsToProcess) {
           throw "No submissions found"
-        }
-        else {
+        } else {
 
           const chunkOfSubmissionIds = _.chunk(submissionDocumentIdsToProcess, 20)
           let submissionIds
           let submissionDocuments
 
+          let parentTypes = await database.models.entityTypes.findOne({
+            name: "parent"
+          }, {
+              "types": 1
+            }
+          ).lean()
 
           for (let pointerToSubmissionIdChunkArray = 0; pointerToSubmissionIdChunkArray < chunkOfSubmissionIds.length; pointerToSubmissionIdChunkArray++) {
 
@@ -2401,9 +2042,9 @@ async generateSubmissionReportsBySchoolId(req) {
             submissionDocuments = await database.models.submissions.find({
               _id: { $in: submissionIds }
             }, {
-                "schoolInformation.name": 1,
-                "schoolInformation.externalId": 1,
-                "schoolInformation.administration": 1,
+                "entityInformation.name": 1,
+                "entityInformation.externalId": 1,
+                "entityInformation.administration": 1,
                 "parentInterviewResponsesStatus.status": 1,
                 "parentInterviewResponsesStatus.completedAt": 1,
                 "parentInterviewResponsesStatus.parentType": 1,
@@ -2413,41 +2054,22 @@ async generateSubmissionReportsBySchoolId(req) {
             await Promise.all(submissionDocuments.map(async (eachSubmission) => {
               let result = {}
 
-              let parentTypeObject = {
-                "P1": {
-                  name: "Parent only",
-                  count: 0
-                },
-                "P2": {
-                  name: "SMC Parent Member",
-                  count: 0
-                },
-                "P3": {
-                  name: "Safety Committee Member",
-                  count: 0
-                },
-                "P4": {
-                  name: "EWS-DG Parent",
-                  count: 0
-                },
-                "P5": {
-                  name: "Social Worker",
-                  count: 0
-                },
-                "P6": {
-                  name: "Elected Representative Nominee",
+              let parentTypeObject = {}
+              parentTypes.types.forEach(parentType => {
+                parentTypeObject[parentType.type] = {
+                  name: parentType.label,
                   count: 0
                 }
-              }
+              })
 
-              result["schoolId"] = eachSubmission.schoolInformation.externalId;
-              result["schoolName"] = eachSubmission.schoolInformation.name;
-              result["School (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.schoolInformation.administration;
+              result["entityId"] = eachSubmission.entityInformation.externalId;
+              result["entityName"] = eachSubmission.entityInformation.name;
+              result["Entity (SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private)"] = eachSubmission.entityInformation.administration;
 
               Object.values(parentTypeObject).forEach(type => result[type.name] = 0)
 
               eachSubmission.parentInterviewResponsesStatus.forEach(eachParentInterviewResponse => {
-                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= fromDate && eachParentInterviewResponse.completedAt <= toDate)) {
+                if ((eachParentInterviewResponse.status === 'completed' && eachParentInterviewResponse.completedAt >= req.query.fromDate && eachParentInterviewResponse.completedAt <= req.query.toDate)) {
 
                   result["Date"] = moment(eachParentInterviewResponse.completedAt).format('DD-MM-YYYY');
                   eachParentInterviewResponse.parentType.forEach(eachParentType => {
@@ -2457,6 +2079,7 @@ async generateSubmissionReportsBySchoolId(req) {
                 }
               })
               if (result["Date"] && result["Date"] != "") input.push(result);
+              
             }))
 
 
@@ -2493,48 +2116,30 @@ async generateSubmissionReportsBySchoolId(req) {
           throw "From Date is mandatory"
         }
 
-        const programQueryParams = {
-          externalId: req.params._id
-        };
+        let allParentsInProgram = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.params._id,"parent")
 
-        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
-
-        if (!programsDocumentIds.length) {
+        if (!Object.keys(allParentsInProgram).length) {
           return resolve({
             status: 404,
-            message: "No program document was found for given parameters."
+            message: "No parents found."
           });
-        }
-
-        let schoolExternalId = {}
-        let schoolDocument = await database.models.schools.find({}, { externalId: 1 })
-        schoolDocument.forEach(eachSchool => {
-          schoolExternalId[eachSchool._id.toString()] = {
-            externalId: eachSchool.externalId
-          }
-        })
-
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          throw "From date cannot be greater than to date."
         }
 
         let parentRegistryQueryParams = {}
 
-        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
-        parentRegistryQueryParams["callResponse"] = "R2"
-        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
-        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
-        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+        parentRegistryQueryParams["_id"] = {
+          $in: Object.keys(allParentsInProgram)
+        }
+        parentRegistryQueryParams["metaInformation.callResponse"] = "R2"
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime']["$gte"] = req.query.fromDate
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime']["$lte"] = req.query.toDate
 
-        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { _id: 1 }).lean()
+        const parentRegistryIdsArray = await database.models.entities.find(parentRegistryQueryParams, { _id: 1 }).lean()
 
         let fileName = `ParentInterview-CallNotPickedupReport`;
-        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (req.query.fromDate) ? fileName += "fromDate_" + moment(req.query.fromDate).format('DD-MM-YYYY') : "";
+        (req.query.toDate) ? fileName += "toDate_" + moment(req.query.toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2563,25 +2168,23 @@ async generateSubmissionReportsBySchoolId(req) {
               return parentModel._id
             });
 
-            parentRegistryDocuments = await database.models.parentRegistry.find({
+            parentRegistryDocuments = await database.models.entities.find({
               _id: { $in: parentIds }
             }, {
-                callResponseUpdatedTime: 1,
-                name: 1,
-                callResponse: 1,
-                phone1: 1,
-                schoolName: 1,
-                schoolId: 1
+                "metaInformation.callResponseUpdatedTime": 1,
+                "metaInformation.name": 1,
+                "metaInformation.callResponse": 1,
+                "metaInformation.phone1": 1
               }
             ).lean()
 
             await Promise.all(parentRegistryDocuments.map(async (eachParentRegistry) => {
               let result = {}
-              result["Date"] = moment(eachParentRegistry.callResponseUpdatedTime).format('DD-MM-YYYY')
-              result["School Name"] = eachParentRegistry.schoolName
-              result["School Id"] = schoolExternalId[eachParentRegistry.schoolId].externalId
-              result["Parents Name"] = eachParentRegistry.name
-              result["Mobile number"] = eachParentRegistry.phone1
+              result["Date"] = moment(eachParentRegistry.metaInformation.callResponseUpdatedTime).format('DD-MM-YYYY')
+              result["School Name"] = allParentsInProgram[eachParentRegistry._id.toString()].parentEntityName
+              result["School Id"] = allParentsInProgram[eachParentRegistry._id.toString()].parentEntityExternalId
+              result["Parents Name"] = eachParentRegistry.metaInformation.name
+              result["Mobile number"] = eachParentRegistry.metaInformation.phone1
               input.push(result)
             }))
           }
@@ -2611,43 +2214,34 @@ async generateSubmissionReportsBySchoolId(req) {
   async parentInterviewCallResponseByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         if (!req.query.fromDate) {
           throw "From Date is mandatory"
         }
 
-        const programQueryParams = {
-          externalId: req.params._id
-        };
+        let allParentsInProgram = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.params._id,"parent")
 
-        let programsDocumentIds = await database.models.programs.find(programQueryParams, { externalId: 1 })
-
-        if (!programsDocumentIds.length) {
+        if (!Object.keys(allParentsInProgram).length) {
           return resolve({
             status: 404,
-            message: "No program document was found for given parameters."
+            message: "No parents found."
           });
-        }
-
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
-
-        if (fromDate > toDate) {
-          throw "From date cannot be greater than to date."
         }
 
         let parentRegistryQueryParams = {}
 
-        parentRegistryQueryParams["programId"] = programsDocumentIds[0]._id;
-        parentRegistryQueryParams['callResponseUpdatedTime'] = {}
-        parentRegistryQueryParams['callResponseUpdatedTime']["$gte"] = fromDate
-        parentRegistryQueryParams['callResponseUpdatedTime']["$lte"] = toDate
+        parentRegistryQueryParams["_id"] = {
+          $in: Object.keys(allParentsInProgram)
+        }
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime'] = {}
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime']["$gte"] = req.query.fromDate
+        parentRegistryQueryParams['metaInformation.callResponseUpdatedTime']["$lte"] = req.query.toDate
 
-        const parentRegistryIdsArray = await database.models.parentRegistry.find(parentRegistryQueryParams, { callResponse: 1, callResponseUpdatedTime: 1 }).lean()
+        const parentRegistryIdsArray = await database.models.entities.find(parentRegistryQueryParams, { "metaInformation.callResponse": 1, "metaInformation.callResponseUpdatedTime": 1 }).lean()
 
         let fileName = `ParentInterview-CallResponsesReport`;
-        (fromDate) ? fileName += "fromDate_" + moment(fromDate).format('DD-MM-YYYY') : "";
-        (toDate) ? fileName += "toDate_" + moment(toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
+        (req.query.fromDate) ? fileName += "fromDate_" + moment(req.query.fromDate).format('DD-MM-YYYY') : "";
+        (req.query.toDate) ? fileName += "toDate_" + moment(req.query.toDate).format('DD-MM-YYYY') : moment().format('DD-MM-YYYY');
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
@@ -2667,41 +2261,27 @@ async generateSubmissionReportsBySchoolId(req) {
 
           let arrayOfDate = [];
 
-          let callResponseObj = {
-            "R1": {
-              name: "Call not initiated"
-            },
-            "R2": {
-              name: "Did not pick up"
-            },
-            "R3": {
-              name: "Not reachable"
-            },
-            "R4": {
-              name: "Call back later"
-            },
-            "R5": {
-              name: "Wrong number"
-            },
-            "R6": {
-              name: "Call disconnected mid way"
-            },
-            "R7": {
-              name: "Completed"
-            },
-            "R00": {
-              name: "Call Response Completed But Survey Not Completed."
+          let parentInterviewCallResponseTypes = await database.models.entityTypes.findOne({
+            name: "parent"
+          }, {
+              "callResponseTypes": 1
             }
-          }
+          ).lean()
+
+          let callResponseObj = {}
+          parentInterviewCallResponseTypes.callResponseTypes.forEach(callResponse => {
+            callResponseObj[callResponse.type] = {
+              name: callResponse.label
+            }
+          })
 
           await Promise.all(parentRegistryIdsArray.map(async (eachParentRegistry) => {
-            if (eachParentRegistry.callResponseUpdatedTime >= fromDate && eachParentRegistry.callResponseUpdatedTime <= toDate && eachParentRegistry.callResponse) {
+            if (eachParentRegistry.metaInformation.callResponseUpdatedTime >= req.query.fromDate && eachParentRegistry.metaInformation.callResponseUpdatedTime <= req.query.toDate && eachParentRegistry.metaInformation.callResponse) {
               arrayOfDate.push({
-                date: moment(eachParentRegistry.callResponseUpdatedTime).format('YYYY-MM-DD'),
-                callResponse: eachParentRegistry.callResponse
+                date: moment(eachParentRegistry.metaInformation.callResponseUpdatedTime).format('YYYY-MM-DD'),
+                callResponse: eachParentRegistry.metaInformation.callResponse
               })
             }
-
           }))
 
           let groupByDate = _.mapValues(_.groupBy(arrayOfDate, "date"), v => _.sortBy(v, "date"))
@@ -2732,59 +2312,45 @@ async generateSubmissionReportsBySchoolId(req) {
     })
   }
 
-    /**
-* @api {get} /assessment/api/v1/reports/schoolList/:programExternalId Fetch School list based on programId and evaluationFrameworkId
-* @apiVersion 0.0.1
-* @apiName Fetch school list
-* @apiGroup Report
-* @apiParam {String} componentId evaluationFramework Id.
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async schoolList(req) {
+  /**
+  * @api {get} /assessment/api/v1/reports/entityList/:solutionExternalId Fetch Entity list based on solutionId
+  * @apiVersion 0.0.1
+  * @apiName Fetch Entity list based on solutionId
+  * @apiGroup Report
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.params._id
+        let solutionExternalId = req.params._id
 
-        if (!programId) {
-          throw "Program id is missing"
+        if (!solutionExternalId) {
+          throw "Solution ID is missing"
         }
 
-        let componentId = req.query.componentId
-
-          if (!componentId) {
-          throw "Component id is missing"
-        }
-
-        let componentDocumentId = await database.models.evaluationFrameworks.findOne({
-          externalId:componentId
-        },{_id:1}).lean()
-
-        let programDocument = await database.models.programs.aggregate([
+        let solutionEntities = await database.models.solutions.findOne(
           {
-            $match: {
-              externalId: programId
-            }
-          },   {
-            $unwind: "$components"
-          }, {
-            $match: {
-              "components.id": componentDocumentId._id
+            externalId:solutionExternalId
+          },
+          {
+            entities:1
+          }
+        ).lean()
+
+        let entityDocumentList = await database.models.entities.find(
+          {
+            _id:  {
+              $in:solutionEntities.entities
             }
           },
           {
-            $project:{
-              "components.schools":1  
-            }
+            _id:1
           }
-        ])
+        ).lean()
 
-        let schoolDocumentList = await database.models.schools.find({
-          _id:{$in:programDocument[0].components.schools}
-        },{_id:1}).lean()
-
-        const fileName = `School List`;
+        const fileName = `Entity List`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -2796,43 +2362,47 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }());
 
-        if (!schoolDocumentList.length) {
+        if (!entityDocumentList.length) {
           return resolve({
             status: 404,
-            message: "No school found for given params."
+            message: "No entity found for given params."
           });
         }
 
         else {
-          let chunkOfSchoolDocument = _.chunk(schoolDocumentList, 10)
-          let schoolId
-          let schoolDocumentsArray
+          let chunkOfEntityDocument = _.chunk(entityDocumentList, 10)
+          let entityId
+          let entityDocumentsArray
 
-
-          for (let pointerToSchoolDocument = 0; pointerToSchoolDocument < chunkOfSchoolDocument.length; pointerToSchoolDocument++) {
-            schoolId = chunkOfSchoolDocument[pointerToSchoolDocument].map(schoolModel => {
-              return schoolModel._id
+          for (let pointerToEntityDocument = 0; pointerToEntityDocument < chunkOfEntityDocument.length; pointerToEntityDocument++) {
+            
+            entityId = chunkOfEntityDocument[pointerToEntityDocument].map(entityModel => {
+              return entityModel._id
             });
 
-            schoolDocumentsArray = await database.models.schools.find(
+            entityDocumentsArray = await database.models.entities.find(
               {
                 _id: {
-                  $in: schoolId
+                  $in: entityId
                 }
               }
             ).lean()
 
-            await Promise.all(schoolDocumentsArray.map(async (eachSchoolDocument) => {
+            await Promise.all(entityDocumentsArray.map(async (eachEntityDocument) => {
+              
               let result = {};
 
-              Object.keys(eachSchoolDocument).forEach(singleKey => {
-                if (["schoolTypes", "_id","_v"].indexOf(singleKey) == -1) {
-                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachSchoolDocument[singleKey];
+              Object.keys(eachEntityDocument.metaInformation).forEach(singleKey => {
+                if (["types","questionGroup", "_id","_v"].indexOf(singleKey) == -1) {
+                  result[gen.utils.camelCaseToTitleCase(singleKey)] = eachEntityDocument.metaInformation[singleKey];
                 }
               })
-                result["schoolTypes"] = eachSchoolDocument.schoolTypes.join(",")
-                input.push(result);
+
+              result["types"] = eachEntityDocument.metaInformation.types.join(",")
+              input.push(result);
+
             }))
+
           }
         }
         input.push(null);
@@ -2845,107 +2415,6 @@ async generateSubmissionReportsBySchoolId(req) {
         });
       }
     });
-  }
-
-/**
-  * @api {get} /assessment/api/v1/reports/teacherRegistry/:programExternalId Fetch Teacher list based on programId 
-* @apiVersion 0.0.1
-* @apiName Fetch Teacher list
-* @apiGroup Report
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async teacherRegistry(req) {
-    return (new Promise(async (resolve, reject) => {
-      try {
-        const programsQueryParams = {
-          externalId: req.params._id
-        }
-        const programsDocument = await database.models.programs.findOne(programsQueryParams, {
-          _id: 1
-        }).lean()
-
-        const teacherRegistryDocument = await database.models.teacherRegistry.find({programId:programsDocument._id}, { _id: 1 }).lean()
-
-        let fileName = "Teacher Registry";
-
-        let fileStream = new FileStream(fileName);
-        let input = fileStream.initStream();
-
-        (async function () {
-          await fileStream.getProcessorPromise();
-          return resolve({
-            isResponseAStream: true,
-            fileNameWithPath: fileStream.fileNameWithPath()
-          });
-        }());
-
-        if (!teacherRegistryDocument.length) {
-          return resolve({
-            status: 404,
-            message: "No document found for given params."
-          });
-        }
-
-        else {
-          let teacherChunkData = _.chunk(teacherRegistryDocument, 10)
-          let teacherRegistryIds
-          let teacherRegistryData
-
-          for (let pointerToTeacherRegistry = 0; pointerToTeacherRegistry < teacherChunkData.length; pointerToTeacherRegistry++) {
-            teacherRegistryIds = teacherChunkData[pointerToTeacherRegistry].map(teacherRegistryId => {
-              return teacherRegistryId._id
-            })
-
-            let teacherRegistryParams = {_id: {$in: teacherRegistryIds}}
-
-
-            teacherRegistryData = await database.models.teacherRegistry.find(teacherRegistryParams).lean()
-
-            await Promise.all(teacherRegistryData.map(async (teacherRegistry) => {
-
-              let teacherRegistryObject = {};
-              Object.keys(teacherRegistry).forEach(singleKey => {
-                if (["deleted", "_id", "__v", "schoolId", "programId"].indexOf(singleKey) == -1) {
-                  teacherRegistryObject[gen.utils.camelCaseToTitleCase(singleKey)] = teacherRegistry[singleKey];
-                }
-              })
-              input.push(teacherRegistryObject);
-            }))
-          }
-        }
-        input.push(null);
-      }
-      catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    }))
-  }
-
-  gmtToIst(gmtTime) {
-    let istStart = moment(gmtTime)
-      .tz("Asia/Kolkata")
-      .format("YYYY-MM-DD HH:mm:ss");
-
-    if (istStart == "Invalid date") {
-      istStart = "-";
-    }
-    return istStart;
-  }
-
-  getSchoolProfileFields(schoolProfileFieldsPerSchoolTypes) {
-    let schoolFieldArray = [];
-
-    Object.values(schoolProfileFieldsPerSchoolTypes).forEach(eachSchoolProfileFieldPerSchoolType => {
-      eachSchoolProfileFieldPerSchoolType.forEach(eachSchoolField => {
-        schoolFieldArray.push(eachSchoolField)
-      })
-    })
-    return schoolFieldArray;
   }
 
 };

@@ -2,6 +2,7 @@ module.exports = {
   name: "solutions",
   schema: {
     externalId: String,
+    isReusable: Boolean,
     name: String,
     description: String,
     author: String,
@@ -15,13 +16,16 @@ module.exports = {
     levelToScoreMapping : Object,
     themes: Array,
     questionSequenceByEcm : Object,
-    entityId: "ObjectId",
+    entityTypeId: "ObjectId",
     entityType : String,
     type: String,
     subType : String,
     entities: Array,
     programId: "ObjectId",
     programExternalId: String,
+    programName: String,
+    programDescription: String,
+    entityProfileFieldsPerSchoolTypes : Object,
     startDate: Date,
     endDate: Date,
     status: String,
@@ -30,5 +34,9 @@ module.exports = {
     registry : Array,
     frameworkId: "ObjectId",
     frameworkExternalId: String,
+    parentSolutionId : "ObjectId",
+    noOfRatingLevels: Number,
+    isRubricDriven: Boolean,
+    roles: Object
   }
 };

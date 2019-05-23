@@ -13,6 +13,8 @@ module.exports = {
     createdFor: Array,
     scoringSystem : String,
     levelToScoreMapping : Object,
-    themes: Array
+    themes: Array,
+    noOfRatingLevels: Number,
+    isRubricDriven: Boolean
   }
 };

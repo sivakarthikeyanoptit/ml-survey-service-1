@@ -1,22 +1,19 @@
 module.exports = {
   name: "submissions",
   schema: {
-    schoolId: "ObjectId",
     entityId: "ObjectId",
     programId: "ObjectId",
     assessors: Array,
     status: "String",
     evidencesStatus: Array,
     evidences: Object,
-    criterias: Array,
+    criteria: Array,
     answers: Object,
-    schoolExternalId: "String",
     entityExternalId: "String",
-    schoolInformation: Object,
     entityInformation: Object,
     programExternalId: "String",
     programInformation: Object,
-    schoolProfile: Object,
+    entityProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
     allManualCriteriaRatingSubmitted: Boolean,
     feedback: Array,
@@ -24,9 +21,11 @@ module.exports = {
     parentInterviewResponsesStatus: Array,
     parentInterviewResponses: Object,
     completedDate: Date,
-    evaluationFrameworkId: "ObjectId",
-    evaluationFrameworkExternalId: String,
+    solutionId: "ObjectId",
+    solutionExternalId: String,
     submissionsUpdatedHistory: Array,
-    ratingCompletedAt: Date
+    ratingCompletedAt: Date,
+    entityTypeId: "ObjectId",
+    entityType: "String"
   }
 };

@@ -1,4 +1,5 @@
 const csv = require("csvtojson");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Criteria extends Abstract {
   /**
@@ -21,12 +22,11 @@ module.exports = class Criteria extends Abstract {
     return "criteria";
   }
 
-
   /**
-  * @api {post} /assessment/api/v1/criterias/insert Add Criterias
+  * @api {post} /assessment/api/v1/criteria/insert Add Criterias
   * @apiVersion 0.0.1
   * @apiName Add Criterias
-  * @apiGroup criterias
+  * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
 * {
   "externalId": "",
@@ -163,15 +163,18 @@ module.exports = class Criteria extends Abstract {
     })
   }
 
-
-  find(req) {
-    return super.find(req);
-  }
-
+  /**
+  * @api {get} /assessment/api/v1/criteria/getEvidence/ Get Criteria Evidences
+  * @apiVersion 0.0.1
+  * @apiName Get Criteria Evidences
+  * @apiGroup Criteria
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   async getEvidence(req) {
     let criteria = await this.getCriterias(req);
-    // log.debug(criteria);
-    // return criteria;
+
     return new Promise(async function (resolve, reject) {
       let merged = {},
         query = [],
@@ -182,15 +185,13 @@ module.exports = class Criteria extends Abstract {
       });
 
       let criterias = await database.models.criterias.find({ $or: query });
-      // log.debug(criterias);
-      // if (Array.isArray(criterias)) {
+
 
       await _.forEachRight(criterias, async function (crit, i) {
         await crit.evidences.forEach(async function (evidence, i) {
           if (!merged[evidence.externalId]) {
             merged[evidence.externalId] = evidence;
           } else {
-            log.debug("Already Done");
             merged[evidence.externalId] = Object.assign(
               merged[evidence.externalId],
               evidence
@@ -199,37 +200,13 @@ module.exports = class Criteria extends Abstract {
               _.forEachRight(
                 merged[evidence.externalId].sections,
                 (Msection, mi2) => {
-                  log.debug(
-                    merged[evidence.externalId].sections.length,
-                    evidence.sections.length
-                  );
+
                   if (Msection.name == section.name) {
-                    log.debug(
-                      Msection.name,
-                      "-----matched------>",
-                      section.name
-                    );
-                    // log.debug(
-                    //   merged[evidence.externalId].sections[mi2],
-                    //   section
-                    // );
 
                     merged[evidence.externalId].sections[mi2].questions.concat(
                       section.questions
                     );
-                    log.debug(
-                      evidence.externalId,
-                      "######################################333",
-                      merged[evidence.externalId].sections[mi2].questions,
-                      "######################################",
-                      section.questions
-                    );
-                  } else {
-                    log.debug(
-                      Msection.name,
-                      "-----not matched------>",
-                      section.name
-                    );
+
                   }
                 }
               );
@@ -237,22 +214,20 @@ module.exports = class Criteria extends Abstract {
           }
         });
       });
-      // }
 
       return resolve(Object.values(merged));
     });
   }
 
-
   /**
-* @api {get} /assessment/api/v1/criterias/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And Instance Parent Ques
-* @apiVersion 0.0.1
-* @apiName Get Criterias Parent Ques And Instance Parent Ques
-* @apiGroup criterias
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/criteria/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
+  * @apiVersion 0.0.1
+  * @apiName Get Criterias Parent Ques And Instance Parent Ques
+  * @apiGroup Criteria
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async getCriteriasParentQuesAndInstParentQues(req) {
     return new Promise(async function (resolve, reject) {
@@ -262,6 +237,7 @@ module.exports = class Criteria extends Abstract {
       const questionQueryObject = {
         //responseType: "matrix"
       }
+
       let questionQueryResult = await database.models[
         "questions"
       ].find(questionQueryObject);
@@ -307,10 +283,10 @@ module.exports = class Criteria extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/criterias/addQuestion Add Criteria Question
+  * @api {post} /assessment/api/v1/criteria/addQuestion Add Criteria Question
   * @apiVersion 0.0.1
   * @apiName Add Criteria Question
-  * @apiGroup criterias
+  * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
   * {
   * "question": [],
@@ -331,11 +307,11 @@ module.exports = class Criteria extends Abstract {
   * },
   * "children": [],
   * "fileName": [],
-  * "showRemarks": Boolean,
-  * "isCompleted": Boolean,
+  * "showRemarks"
+  * "isCompleted"
   * "remarks": "",
   * "value": "",
-  * "canBeNotApplicable": Boolean,
+  * "canBeNotApplicable"
   * "notApplicable": "",
   * "usedForScoring": "",
   * "modeOfCollection": "",
@@ -383,7 +359,7 @@ module.exports = class Criteria extends Abstract {
         }
 
         let questionCollection = {}
-        let toFetchQuestionIds = new Array
+        let toFetchQuestionIds = new Array  
         toFetchQuestionIds.push(question.externalId)
         if (question.parentId != "") { toFetchQuestionIds.push(question.parentId) }
         if (question.instanceParentId != "") { toFetchQuestionIds.push(question.instanceParentId) }
@@ -490,7 +466,6 @@ module.exports = class Criteria extends Abstract {
 
     })
   }
-
 
   getEvidenceObjectsForDCPCR() {
     return {
@@ -617,7 +592,6 @@ module.exports = class Criteria extends Abstract {
       }
     }
   }
-
 
   getEvidenceObjects() {
     return {
@@ -769,12 +743,21 @@ module.exports = class Criteria extends Abstract {
     }
   }
 
-
-  async uploadRubricLevels(req) {
+  /**
+  * @api {post} /assessment/api/v1/criteria/uploadRubricExpressions Upload Rubric Expressions
+  * @apiVersion 0.0.1
+  * @apiName Upload Rubric Expressions
+  * @apiGroup Criteria
+  * @apiParam {File} criteria     Mandatory criteria file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadRubricExpressions(req) {
 
     return new Promise(async (resolve, reject) => {
 
       try {
+
         let criteriaData = await csv().fromString(req.files.criteria.data.toString());
 
         let programQueryList = {}
@@ -877,22 +860,15 @@ module.exports = class Criteria extends Abstract {
           counter < programsData[programId].components.length;
           counter++
         ) {
-          let component = programsData[programId].components[counter];
 
-          let evaluationFrameworkQueryObject = [
-            { $match: { _id: ObjectId(component.id) } },
-            {
-              $project: { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
-            }
-          ];
-
-          let evaluationFrameworkDocument = await database.models[
-            "evaluationFrameworks"
-          ].aggregate(evaluationFrameworkQueryObject);
+          let solutionDocument = await database.models.solutions.findOne(
+            { _id: programsData[programId].components[counter] },
+            { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
+          );
 
           let criteriasId = new Array
           let criteriaObject = {}
-          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(evaluationFrameworkDocument[0].themes);
+          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
           criteriasIdArray.forEach(eachCriteriaId=>{
             criteriasId.push(eachCriteriaId.criteriaId)
@@ -946,26 +922,51 @@ module.exports = class Criteria extends Abstract {
     })
   }
 
-  async uploadCriterias(req) {
+  /**
+  * @api {post} /assessment/api/v1/criteria/upload Upload Criteria CSV
+  * @apiVersion 0.0.1
+  * @apiName Upload Criteria CSV
+  * @apiGroup Criteria
+  * @apiParam {File} criteria     Mandatory criteria file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.criterias) {
           throw "Csv file for criterias should be selected"
         }
 
-        let criteriaData = await csv().fromString(req.files.criterias.data.toString())
+        let criteriaData = await csv().fromString(req.files.criteria.data.toString())
 
-        let criteriaDocumentArray = criteriaData.map(criteria => {
+        const fileName = `upload Criteria`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
 
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        }());
+
+
+        await Promise.all(criteriaData.map(async criteria => {
+
+          let csvData = {}
           let rubric = {}
-          rubric.name = criteria.criteriaName
-          rubric.description = criteria.criteriaName
-          rubric.type = criteria.type
+          let parsedCriteria = gen.utils.valueParser(criteria)
+
+          rubric.name = parsedCriteria.criteriaName
+          rubric.description = parsedCriteria.criteriaName
+          rubric.type = parsedCriteria.type
           rubric.expressionVariables = {}
           rubric.levels = {};
           let countLabel = 1;
 
-          Object.keys(criteria).forEach(eachCriteriaKey => {
+          Object.keys(parsedCriteria).forEach(eachCriteriaKey => {
 
             let regExpForLevels = /^L+[0-9]/
             if (regExpForLevels.test(eachCriteriaKey)) {
@@ -975,7 +976,7 @@ module.exports = class Criteria extends Abstract {
               rubric.levels[eachCriteriaKey] = {
                 level: eachCriteriaKey,
                 label: label,
-                description: criteria[eachCriteriaKey],
+                description: parsedCriteria[eachCriteriaKey],
                 expression: ""
               }
             }
@@ -983,8 +984,8 @@ module.exports = class Criteria extends Abstract {
 
           let criteriaStructure = {
             owner: req.userDetails.id,
-            name: criteria.criteriaName,
-            description: criteria.criteriaName,
+            name: parsedCriteria.criteriaName,
+            description: parsedCriteria.criteriaName,
             resourceType: [
               "Program",
               "Framework",
@@ -1049,26 +1050,32 @@ module.exports = class Criteria extends Abstract {
             timesUsed: 12,
             weightage: 20,
             remarks: "",
-            name: criteria.criteriaName,
-            description: criteria.criteriaName,
+            name: parsedCriteria.criteriaName,
+            description: parsedCriteria.criteriaName,
             criteriaType: "auto",
             score: "",
             flag: "",
             rubric: rubric
           };
 
-          return criteriaStructure;
-        })
+          let criteriaDocuments = await database.models.criterias.create(
+            criteriaStructure
+          );
 
-        let criteriaDocuments = await database.models.criterias.create(
-          criteriaDocumentArray
-        );
+          csvData["Criteria Name"] = parsedCriteria.criteriaName
+          csvData["Criteria External Id"] = parsedCriteria.criteriaID
 
-        let result = _.mapValues(_.keyBy(criteriaDocuments, 'externalId'), '_id');
-        let responseMessage = "Criteria levels updated successfully."
-        let response = { message: responseMessage, result: result };
+          if(criteriaDocuments._id){
+          csvData["Criteria Internal Id"] = criteriaDocuments._id            
+          } else{
+            csvData["Criteria Internal Id"] = "Not inserted" 
+          }
 
-        return resolve(response)
+          input.push(csvData)
+        }))
+
+        input.push(null)
+
       }
       catch (error) {
         return reject({
@@ -1079,5 +1086,8 @@ module.exports = class Criteria extends Abstract {
       }
     })
   }
-
+ 
 };
+
+
+

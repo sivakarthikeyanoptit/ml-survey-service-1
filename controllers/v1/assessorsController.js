@@ -30,6 +30,7 @@ module.exports = class Assessors {
             {
               $project: {
                 "schools": 1,
+                "programId": 1,
                 "schoolDocuments._id": 1,
                 "schoolDocuments.externalId": 1,
                 "schoolDocuments.name": 1,
@@ -50,6 +51,19 @@ module.exports = class Assessors {
           for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
 
             assessor = assessorsDocument[pointerToAssessorDocumentArray];
+
+            let programDocument = await database.models.programs.findOne(
+              {
+                _id: assessor.programId
+              },
+              {
+                "components.subType": 1
+              }
+            )
+
+            if (programDocument && programDocument.components && programDocument.components[0] && programDocument.components[0].subType == "cro") {
+              continue
+            }
 
             submissions = await database.models.submissions.find(
               {

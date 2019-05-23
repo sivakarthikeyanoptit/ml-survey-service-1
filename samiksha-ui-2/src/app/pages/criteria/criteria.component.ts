@@ -17,7 +17,7 @@ export class CriteriaComponent implements OnInit {
   sections: any[];
   levels: any;
   criteria: any;
-
+  levelArray = [1,2,3,4,5,6,7,8,9,10]
   constructor(
     private api: ApiService,
     private navigationComponent: NavigationComponent,
@@ -28,8 +28,9 @@ export class CriteriaComponent implements OnInit {
   testClick() {}
 
   submitCriteria() {
+    //console.log(this.criteria)
     let self = this;
-    // let criteria = JSON.parse(localStorage.getItem("criteria"));
+    let criteria = JSON.parse(localStorage.getItem("criteria"));
 
     this.api
       .reqHandler("createCriteria", this.criteria)
@@ -45,14 +46,14 @@ export class CriteriaComponent implements OnInit {
         }
       })
       .catch(error => {
-        console.log(error);
+        //console.log(error);
       });
 
     console.log("Criteria submitted");
   }
 
   pushEvidence(obj) {
-    console.log(typeof obj, obj);
+    //console.log(typeof obj, obj);
     this.criteria.evidences = [];
     obj.forEach(i => {
       this.criteria.evidences.push(this.evidences[i]);
@@ -60,7 +61,7 @@ export class CriteriaComponent implements OnInit {
   }
 
   pushEvidenceSections(ei, obj) {
-    console.log(typeof obj, ei, obj);
+    //console.log(typeof obj, ei, obj);
     this.criteria.evidences[ei].sections = [];
     obj.forEach(i => {
       this.criteria.evidences[ei].sections.push(this.sections[i]);
@@ -90,7 +91,7 @@ export class CriteriaComponent implements OnInit {
   }
 
   pushLevels(obj) {
-    console.log(typeof obj, obj);
+    //console.log(typeof obj, obj);
     this.criteria.rubric.levels = [];
     obj.forEach(i => {
       this.criteria.rubric.levels.push(this.levels[i]);
@@ -181,13 +182,6 @@ export class CriteriaComponent implements OnInit {
             description: "",
             expression: "",
             expressionVariables: []
-          },
-          {
-            level: "L4",
-            label: "Level 4",
-            description: "",
-            expression: "",
-            expressionVariables: []
           }
         ]
       },
@@ -213,9 +207,28 @@ export class CriteriaComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      // console.log(result);
+      // //console.log(result);
       this.resetCriteria();
     });
+  }
+
+  changeLevelOfRubric(numberOfLevel){
+    this.criteria.rubric.levels = [];
+    let index = 1;
+    while ( numberOfLevel >= index){
+      this.criteria.rubric.levels.push(
+        {
+          level: `L${index}`,
+          label: `Level ${index}`,
+          description: "",
+          expression: "",
+          expressionVariables: []
+        }
+      );
+      index++;
+    }
+
+
   }
 }
 
@@ -228,14 +241,14 @@ export class DialogOverviewExampleDialog2 implements OnInit {
   // sections: any = [];
 
   ngOnInit(): void {
-    // console.log(this.question, this.criteria);
+    // //console.log(this.question, this.criteria);
   }
 
   constructor(
     public dialogRef: MatDialogRef<DialogOverviewExampleDialog2>,
     @Inject(MAT_DIALOG_DATA) public criteria: any
   ) {
-    // console.log("oldParent--->", this.oldParent);
+    // //console.log("oldParent--->", this.oldParent);
   }
 
   save(): void {
