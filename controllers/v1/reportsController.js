@@ -115,9 +115,10 @@ module.exports = class Reports {
                 "evidencesStatus.isSubmitted": 1,
                 "evidencesStatus.hasConflicts": 1,
                 "evidencesStatus.externalId": 1,
-                "evidencesStatus.notApplicable": 1
+                "evidencesStatus.notApplicable": 1,
+                "evidencesStatus.submissions":1
               }
-            )
+            ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
@@ -143,6 +144,7 @@ module.exports = class Reports {
                   totalEcmsSubmittedCount += 1
                 }
                 _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) ? (evidenceMethod.notApplicable != true) ? true : "NA" : false })
+                _.merge(result, { [evidenceMethod.externalId + "-gpsLocation"]: (evidenceMethod.submissions.length>0) ? evidenceMethod.submissions[0].gpsLocation:"" })               
                 _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
               })
 
