@@ -236,26 +236,26 @@ module.exports = class entityAssessorHelper {
 
                     assessor.entities = assessorEntityArray;
 
-                    let fieldsWithOutSchool = {};
+                    let fieldsWithOutEntity = {};
 
                     Object.keys(database.models.entityAssessors.schema.paths).forEach(fieldName => {
-                        if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutSchool[fieldName] = assessor[fieldName];
+                        if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutEntity[fieldName] = assessor[fieldName];
                     })
 
                     let updateObject;
                     if (assessor.entityOperation == "OVERRIDE") {
-                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutSchool } }
+                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } }
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
-                        updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutSchool };
+                        updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutEntity };
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
-                        updateObject = { $pull: { entities: { $in: assessor.entities } }, $set: fieldsWithOutSchool };
+                        updateObject = { $pull: { entities: { $in: assessor.entities } }, $set: fieldsWithOutEntity };
                     }
 
-                    let updatedEntityAssessorDocument = await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutSchool["solutionId"] }, updateObject,
+                    let updatedEntityAssessorDocument = await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutEntity["solutionId"] }, updateObject,
                         {
                             upsert: true,
                             new: true,
