@@ -21,15 +21,15 @@ module.exports = class programOperationsHelper {
 
   }
 
-  static getSchools(req, pagination = false, assessorIds) {
+  static getEntities(programExternalId, userDetails, queryParams, pageSize, pageNo, pagination = false, assessorIds) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programDocument = await this.getProgram(req.params._id);
+        let programDocument = await this.getProgram(programExternalId);
 
         let queryObject = [
-          { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1, updatedAt: 1 } },
-          { $match: { userId: req.userDetails.id, programId: programDocument._id } },
+          { $project: { userId: 1, parentId: 1, name: 1, entities: 1, programId: 1, updatedAt: 1, solutionId:1 } },
+          { $match: { userId: userDetails.id, programId: programDocument._id, solutionId: ObjectId(queryParams.solutionId) } },
           {
             $graphLookup: {
               from: 'entityAssessors',
@@ -67,37 +67,37 @@ module.exports = class programOperationsHelper {
 
         let entityAssessorsTrackers = new entityAssessorsTrackersBaseController;
 
-        let schoolIds = await entityAssessorsTrackers.filterByDate(req.query, userIds, programDocument._id);
+        let entityIds = await entityAssessorsTrackers.filterByDate(queryParams, userIds, programDocument._id);
 
-        schoolIds = schoolIds.map(schoolId=>schoolId.toString());
+        entityIds = entityIds.map(entityId => entityId.toString());
 
-        let entityObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
+        let entityObjectIds = _.uniq(entityIds).map(entityId => ObjectId(entityId));
 
         let entitisQueryObject = {};
         entitisQueryObject._id = { $in: entityObjectIds };
 
-        _.merge(entitisQueryObject, this.getQueryObject(req.query))
+        _.merge(entitisQueryObject, this.getQueryObject(queryParams))
 
         let totalCount = database.models.entities.countDocuments(entitisQueryObject).exec();
-        
+
         let filteredEntityDocument;
 
-        let limitValue = (pagination == false) ? "" : req.pageSize;
-        let skipValue = (pagination == false) ? "" : (req.pageSize * (req.pageNo - 1));
+        let limitValue = (pagination == false) ? "" : pageSize;
+        let skipValue = (pagination == false) ? "" : (pageSize * (pageNo - 1));
 
         filteredEntityDocument = database.models.entities.find(entitisQueryObject, { _id: 1, "metaInformation.name": 1, "metaInformation.externalId": 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
         [filteredEntityDocument, totalCount] = await Promise.all([filteredEntityDocument, totalCount])
 
-        let schoolDocumentFilteredObject = filteredEntityDocument.map(school => {
+        let entityDocumentFilteredObject = filteredEntityDocument.map(entity => {
           return {
-            id: school._id,
-            name: school.name,
-            externalId: school.externalId
+            id: entity._id,
+            name: entity.metaInformation.name,
+            externalId: entity.metaInformation.externalId
           }
         });
 
-        return resolve({ result: schoolDocumentFilteredObject, totalCount: totalCount });
+        return resolve({ result: entityDocumentFilteredObject, totalCount: totalCount });
 
       } catch (error) {
         return reject({
@@ -151,7 +151,7 @@ module.exports = class programOperationsHelper {
   static getQueryObject(requestQuery) {
     let queryObject = {};
     let queries = Object.keys(requestQuery);
-    let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName', 'linkId', 'ProgramId']);
+    let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName', 'linkId', 'ProgramId', 'solutionId']);
 
     filteredQueries.forEach(query => {
       if (query == "area") {

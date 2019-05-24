@@ -33,8 +33,8 @@ module.exports = class EntityAssessorsTrackers extends Abstract {
             };
 
             let entityAssessorsTrackersDocuments = await database.models.entityAssessorsTrackers.find(queryObject, { updatedData: 1 }).lean();
-            let schoolIds = entityAssessorsTrackersDocuments.map(documents => documents.updatedData)
-            let result = _.flattenDeep(schoolIds);
+            let entityIds = entityAssessorsTrackersDocuments.map(documents => documents.updatedData)
+            let result = _.flattenDeep(entityIds);
             return resolve(result);
 
         })

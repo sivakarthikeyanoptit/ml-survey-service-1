@@ -111,18 +111,20 @@ module.exports = class ProgramOperations {
 
                 let programDocument = await opsHelper.getProgram(req.params._id);
 
-                let schoolTypes = database.models.entities.distinct('metaInformation.types', { _id: { $in: programDocument.entities } }).lean().exec();
-                let administrationTypes = database.models.entities.distinct('metaInformation.administration', { _id: { $in: programDocument.entities } }).lean().exec();
-                let types = await Promise.all([schoolTypes, administrationTypes]);
+                let entityTypes = database.models.entities.distinct('metaInformation.types', { _id: { $in: programDocument.entities } }).lean().exec();
 
-                schoolTypes = _.compact(types[0]);
+                let administrationTypes = database.models.entities.distinct('metaInformation.administration', { _id: { $in: programDocument.entities } }).lean().exec();
+                
+                let types = await Promise.all([entityTypes, administrationTypes]);
+
+                entityTypes = _.compact(types[0]);
                 administrationTypes = _.compact(types[1]);
 
 
-                schoolTypes = schoolTypes.sort().map(schoolType => {
+                entityTypes = entityTypes.sort().map(entityType => {
                     return {
-                        label: schoolType,
-                        value: schoolType
+                        label: entityType,
+                        value: entityType
                     }
                 })
 
@@ -167,7 +169,7 @@ module.exports = class ProgramOperations {
                         visible: true,
                         editable: true,
                         input: "select",
-                        options: schoolTypes,
+                        options: entityTypes,
                         validation: {
                             required: false
                         },
@@ -216,7 +218,7 @@ module.exports = class ProgramOperations {
                             required: false
                         },
                         autocomplete: true,
-                        url: `programOperations/searchSchool/`,
+                        url: `programOperations/searchEntity/`,
                         min: "",
                         max: ""
                     }
@@ -310,7 +312,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @api {get} /assessment/api/v1/programOperations/entitySummary/:programExternalId 
     * @apiVersion 0.0.1
     * @apiName Fetch School Summary
     * @apiGroup programOperations
@@ -318,7 +320,7 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
-    async schoolSummary(req) {
+    async entitySummary(req) {
 
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
 
@@ -344,29 +346,29 @@ module.exports = class ProgramOperations {
                     }
                 ];
 
-                let schoolObjects = await opsHelper.getSchools(req, false, []);
+                let entityObjects = await opsHelper.getEntities(req.params._id, req.userDetails, req.query, req.pageSize, req.pageNo, false, []);
 
 
-                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
+                if (!entityObjects || !entityObjects.result || !entityObjects.result.length)
                     return resolve({
                         result: resultArray
                     })
 
-                let schoolDocuments = schoolObjects.result;
+                let entityDocuments = entityObjects.result;
 
-                let schoolIds = schoolDocuments.map(school => school.id);
+                let entityIds = entityDocuments.map(entity => entity.id);
 
-                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
+                let entitiesCompletedCount = database.models.submissions.countDocuments({ entityId: { $in: entityIds }, status: 'completed' }).lean().exec();
 
-                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
+                let entitiesInprogressCount = database.models.submissions.countDocuments({ entityId: { $in: entityIds }, status: 'inprogress' }).lean().exec();
 
-                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
+                [entitiesCompletedCount, entitiesInprogressCount] = await Promise.all([entitiesCompletedCount, entitiesInprogressCount]);
 
-                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+                let averageTimeTaken = (entityDocuments.length / entitiesCompletedCount);
 
-                resultArray[0]["value"] = schoolDocuments.length;
-                resultArray[1]["value"] = schoolsCompletedCount || "";
-                resultArray[2]["value"] = schoolsInprogressCount || "";
+                resultArray[0]["value"] = entityDocuments.length;
+                resultArray[1]["value"] = entitiesCompletedCount || "";
+                resultArray[2]["value"] = entitiesInprogressCount || "";
                 resultArray[3]["value"] = averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "";
 
                 return resolve({
@@ -387,7 +389,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/assessorReport 
+    * @api {get} /assessment/api/v1/programOperations/assessorReport/:programExternalId 
     * @apiVersion 0.0.1
     * @apiName Fetch Assessor Report
     * @apiGroup programOperations
@@ -400,7 +402,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await opsHelper.getProgram(req.params._id);
+                let programDocument = await opsHelper.getProgram(req.params._id,false);
 
                 let assessorDetails;
                 let assessorQueryObject = {};
@@ -414,6 +416,8 @@ module.exports = class ProgramOperations {
                 ];
 
                 assessorQueryObject["programId"] = programDocument._id;
+
+                assessorQueryObject["solutionId"] = ObjectId(req.query.solutionId);
 
                 if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
 
@@ -434,7 +438,7 @@ module.exports = class ProgramOperations {
                 let limitValue = (req.query.csv && req.query.csv == "true") ? "" : req.pageSize;
                 let skipValue = (req.query.csv && req.query.csv == "true") ? "" : (req.pageSize * (req.pageNo - 1));
 
-                assessorDetails = await database.models.entityAssessors.find(assessorQueryObject, { userId: 1, name: 1, entities: 1 }).limit(limitValue).skip(skipValue).lean().exec();
+                assessorDetails = database.models.entityAssessors.find(assessorQueryObject, { userId: 1, name: 1, entities: 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
                 let totalCount = database.models.entityAssessors.countDocuments(assessorQueryObject).exec();
 
@@ -442,22 +446,23 @@ module.exports = class ProgramOperations {
 
                 let assessorEntityIds = _.flattenDeep(assessorDetails.map(entity => entity.entities));
 
-                //get only uniq schoolIds
+                //get only uniq entityIds
                 if (assessorEntityIds.length) {
-                    let uniqAssessorEntityIds = _.uniq(assessorEntityIds.map(school => school.toString()));
-                    assessorEntityIds = uniqAssessorEntityIds.map(school => ObjectId(school));
+                    let uniqAssessorEntityIds = _.uniq(assessorEntityIds.map(entity => entity.toString()));
+                    assessorEntityIds = uniqAssessorEntityIds.map(entity => ObjectId(entity));
                 }
 
                 let userIds = assessorDetails.map(assessor => assessor.userId);
 
-                let assessorSchoolMap = _.keyBy(assessorDetails, 'userId');
+                let assessorEntityMap = _.keyBy(assessorDetails, 'userId');
 
-                assessorEntityIds = await opsHelper.getSchools(req, false, userIds);
+                assessorEntityIds = await opsHelper.getEntities(req.params._id, req.userDetails, req.query, req.pageSize, req.pageNo, false, userIds);
 
-                assessorEntityIds = assessorEntityIds.result.map(school => school.id);
+                assessorEntityIds = assessorEntityIds.result.map(entity => entity.id);
 
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorEntityIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
-                let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
+                let submissionDocuments = await database.models.submissions.find({ entityId: { $in: assessorEntityIds } }, { status: 1, createdAt: 1, completedDate: 1, entityId: 1 }).lean();
+
+                let entitySubmissionMap = _.keyBy(submissionDocuments, 'entityId');
 
 
                 function getAverageTimeTaken(submissionData) {
@@ -477,25 +482,25 @@ module.exports = class ProgramOperations {
                 }
 
                 function getSubmissionByAssessor(assessorId) {
-                    let assessorEntity = assessorSchoolMap[assessorId].entities;
-                    let schoolSubmissions = [];
-                    assessorEntity.forEach(schoolId => {
-                        schoolSubmissions.push(schoolSubmissionMap[schoolId.toString()])
+                    let assessorEntity = assessorEntityMap[assessorId].entities;
+                    let entitySubmissions = [];
+                    assessorEntity.forEach(entityId => {
+                        entitySubmissions.push(entitySubmissionMap[entityId.toString()])
                     });
-                    return _.compact(schoolSubmissions);
+                    return _.compact(entitySubmissions);
                 }
 
                 let assessorsReports = [];
                 assessorDetails.forEach(async (assessor, index) => {
-                    let schoolsByAssessor = getSubmissionByAssessor(assessor.userId);
-                    let schoolData = _.countBy(schoolsByAssessor, 'status')
-                    let schoolAssigned = schoolsByAssessor.length;
+                    let entityByAssessor = getSubmissionByAssessor(assessor.userId);
+                    let entityData = _.countBy(entityByAssessor, 'status')
+                    let entityAssigned = entityByAssessor.length;
                     let assessorResult = {
                         name: assessor.name || "",
-                        schoolsAssigned: schoolAssigned || "",
-                        schoolsCompleted: schoolData.completed || "",
-                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || "",
-                        averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
+                        schoolsAssigned: entityAssigned || "",
+                        schoolsCompleted: entityData.completed || "",
+                        schoolsCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
+                        averageTimeTaken: getAverageTimeTaken(entityByAssessor)
                     }
                     assessorsReports.push(assessorResult)
                     if (req.query.csv && req.query.csv == "true") {
@@ -527,33 +532,32 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolReport 
+    * @api {get} /assessment/api/v1/programOperations/entityReport/:programExternalId 
     * @apiVersion 0.0.1
-    * @apiName Fetch School Report
+    * @apiName Fetch Entity Report
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async schoolReport(req) {
+    async entityReport(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
-                const self = new ProgramOperations;
 
                 let programExternalId = req.params._id;
 
                 let isCSV = req.query.csv;
-                let schoolDocuments = await opsHelper.getSchools(req, (!isCSV || isCSV == "false") ? true : false, []);
-                let programDocument = await opsHelper.getProgram(req.params._id);
+                let entityDocuments = await opsHelper.getEntities(programExternalId, req.userDetails, req.query, req.pageSize, req.pageNo, (!isCSV || isCSV == "false") ? true : false, []);
+                let programDocument = await opsHelper.getProgram(req.params._id, false);
 
-                if (!schoolDocuments)
+                if (!entityDocuments)
                     return resolve(noDataFound())
 
-                let schoolObjects = schoolDocuments.result;
-                let totalCount = schoolDocuments.totalCount;
+                let entityObjects = entityDocuments.result;
+                let totalCount = entityDocuments.totalCount;
 
-                if (!schoolObjects || !schoolObjects.length) {
+                if (!entityObjects || !entityObjects.length) {
                     return resolve(noDataFound())
                 }
 
@@ -563,8 +567,8 @@ module.exports = class ProgramOperations {
                 }
 
                 let submissionQueryObject = {};
-                let entityObjectIds = schoolObjects.map(school => school.id)
-                submissionQueryObject.schoolId = { $in: entityObjectIds };
+                let entityObjectIds = entityObjects.map(entity => entity.id)
+                submissionQueryObject.entityId = { $in: entityObjectIds };
                 submissionQueryObject.programExternalId = programExternalId;
 
                 if (isCSV && isCSV == "true") {
@@ -582,13 +586,13 @@ module.exports = class ProgramOperations {
                     }());
                 }
 
-                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, schoolExternalId: 1 }).lean();
+                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, entityExternalId: 1 }).lean();
 
-                submissionDocuments = _.keyBy(submissionDocuments, 'schoolExternalId')
+                submissionDocuments = _.keyBy(submissionDocuments, 'entityExternalId')
 
                 let result = {};
 
-                let schoolStatusObject = {
+                let entityStatusObject = {
                     inprogress: 'In Progress',
                     completed: 'Complete',
                     blocked: 'Blocked',
@@ -600,12 +604,12 @@ module.exports = class ProgramOperations {
                     return parseFloat(((isSubmittedArray.length / evidencesStatus.length) * 100).toFixed(2));
                 }
 
-                result.schoolsReport = [];
-                schoolObjects.forEach(async (singleSchoolDocument) => {
-                    let submissionDetails = submissionDocuments[singleSchoolDocument.externalId];
+                result.entitiesReport = [];
+                entityObjects.forEach(async (singleEntityDocument) => {
+                    let submissionDetails = submissionDocuments[singleEntityDocument.externalId];
                     let resultObject = {};
-                    resultObject.status = submissionDetails ? (schoolStatusObject[submissionDetails.status] || submissionDetails.status) : "";
-                    resultObject.name = singleSchoolDocument.name || "";
+                    resultObject.status = submissionDetails ? (entityStatusObject[submissionDetails.status] || submissionDetails.status) : "";
+                    resultObject.name = singleEntityDocument.name || "";
                     resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
                     resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
 
@@ -618,7 +622,7 @@ module.exports = class ProgramOperations {
                             }
                         }
                     } else {
-                        result.schoolsReport.push(resultObject)
+                        result.entitiesReport.push(resultObject)
                     }
 
                 })
@@ -626,7 +630,7 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    result = await opsHelper.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name, req.query)
+                    result = await opsHelper.constructResultObject('programOperationSchoolReports', result.entitiesReport, totalCount, req.userDetails, programDocument.name, req.query)
                     return resolve({ result: result })
                 }
 
@@ -643,7 +647,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/searchSchool/:programExternalId?id=schoolId 
+    * @api {get} /assessment/api/v1/programOperations/searchEntity/:programExternalId?id=schoolId 
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
@@ -652,21 +656,16 @@ module.exports = class ProgramOperations {
     */
 
     //program operation search school autocomplete API
-    async searchSchool(req) {
+    async searchEntity(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
                 let programDocument = await opsHelper.getProgram(req.params._id);
 
-                if (!req.query.id) {
-                    throw { status: 400, message: 'Entity id required.' }
-                }
-
                 let entityIdAndName = await database.models.entities.find(
                     {
                         _id: { $in: programDocument.entities },
-                        "entityType": "school",
                         "metaInformation.externalId": new RegExp(req.query.id, 'i')
                     },
                     {
