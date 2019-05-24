@@ -464,35 +464,9 @@ module.exports = class ProgramOperations {
 
                 let entitySubmissionMap = _.keyBy(submissionDocuments, 'entityId');
 
-
-                function getAverageTimeTaken(submissionData) {
-                    let result = submissionData.filter(data => data.status == 'completed');
-                    if (result.length) {
-                        let dayDifference = []
-                        result.forEach(singleResult => {
-                            let startedDate = moment(singleResult.createdAt);
-                            let completedDate = moment(singleResult.completedDate);
-                            dayDifference.push(completedDate.diff(startedDate, 'days'))
-                        })
-                        let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
-                        return parseFloat(averageTimeTaken.toFixed(2))
-                    } else {
-                        return ''
-                    }
-                }
-
-                function getSubmissionByAssessor(assessorId) {
-                    let assessorEntity = assessorEntityMap[assessorId].entities;
-                    let entitySubmissions = [];
-                    assessorEntity.forEach(entityId => {
-                        entitySubmissions.push(entitySubmissionMap[entityId.toString()])
-                    });
-                    return _.compact(entitySubmissions);
-                }
-
                 let assessorsReports = [];
-                assessorDetails.forEach(async (assessor, index) => {
-                    let entityByAssessor = getSubmissionByAssessor(assessor.userId);
+                assessorDetails.forEach(async (assessor) => {
+                    let entityByAssessor = opsHelper.getSubmissionByAssessor(assessor.userId,entitySubmissionMap,assessorEntityMap);
                     let entityData = _.countBy(entityByAssessor, 'status')
                     let entityAssigned = entityByAssessor.length;
                     let assessorResult = {
@@ -500,7 +474,7 @@ module.exports = class ProgramOperations {
                         schoolsAssigned: entityAssigned || "",
                         schoolsCompleted: entityData.completed || "",
                         schoolsCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
-                        averageTimeTaken: getAverageTimeTaken(entityByAssessor)
+                        averageTimeTaken: opsHelper.getAverageTimeTaken(entityByAssessor)
                     }
                     assessorsReports.push(assessorResult)
                     if (req.query.csv && req.query.csv == "true") {
@@ -599,11 +573,6 @@ module.exports = class ProgramOperations {
                     started: 'Started'
                 }
 
-                function getAssessmentCompletionPercentage(evidencesStatus) {
-                    let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
-                    return parseFloat(((isSubmittedArray.length / evidencesStatus.length) * 100).toFixed(2));
-                }
-
                 result.entitiesReport = [];
                 entityObjects.forEach(async (singleEntityDocument) => {
                     let submissionDetails = submissionDocuments[singleEntityDocument.externalId];
@@ -611,7 +580,7 @@ module.exports = class ProgramOperations {
                     resultObject.status = submissionDetails ? (entityStatusObject[submissionDetails.status] || submissionDetails.status) : "";
                     resultObject.name = singleEntityDocument.name || "";
                     resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
-                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
+                    resultObject.assessmentCompletionPercent = submissionDetails ? opsHelper.getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
 
                     if (isCSV == "true") {
                         input.push(resultObject)

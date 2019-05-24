@@ -184,4 +184,34 @@ module.exports = class programOperationsHelper {
     })
   }
 
+  static getAssessmentCompletionPercentage(evidencesStatus) {
+    let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
+    return parseFloat(((isSubmittedArray.length / evidencesStatus.length) * 100).toFixed(2));
+  }
+
+  static getAverageTimeTaken(submissionData) {
+    let result = submissionData.filter(data => data.status == 'completed');
+    if (result.length) {
+      let dayDifference = []
+      result.forEach(singleResult => {
+        let startedDate = moment(singleResult.createdAt);
+        let completedDate = moment(singleResult.completedDate);
+        dayDifference.push(completedDate.diff(startedDate, 'days'))
+      })
+      let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
+      return parseFloat(averageTimeTaken.toFixed(2))
+    } else {
+      return ''
+    }
+  }
+
+  static getSubmissionByAssessor(assessorId, entitySubmissionMap, assessorEntityMap) {
+    let assessorEntity = assessorEntityMap[assessorId].entities;
+    let entitySubmissions = [];
+    assessorEntity.forEach(entityId => {
+      entitySubmissions.push(entitySubmissionMap[entityId.toString()])
+    });
+    return _.compact(entitySubmissions);
+  }
+
 };
