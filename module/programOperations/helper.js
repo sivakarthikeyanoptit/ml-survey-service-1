@@ -28,7 +28,7 @@ module.exports = class programOperationsHelper {
         let programDocument = await this.getProgram(programExternalId);
 
         let queryObject = [
-          { $project: { userId: 1, parentId: 1, name: 1, entities: 1, programId: 1, updatedAt: 1, solutionId:1 } },
+          { $project: { userId: 1, parentId: 1, name: 1, entities: 1, programId: 1, updatedAt: 1, solutionId: 1 } },
           { $match: { userId: userDetails.id, programId: programDocument._id, solutionId: ObjectId(queryParams.solutionId) } },
           {
             $graphLookup: {
@@ -155,13 +155,16 @@ module.exports = class programOperationsHelper {
 
     filteredQueries.forEach(query => {
       if (query == "area") {
-        queryObject["$or"] = [{ zoneId: new RegExp(requestQuery.area, 'i') }, { districtName: new RegExp(requestQuery.area, 'i') }];
+        queryObject["$or"] = [{ "metaInformation.zoneId": new RegExp(requestQuery.area, 'i') }, { "metaInformation.districtName": new RegExp(requestQuery.area, 'i') }];
       } else if (query == "schoolName") {
-        queryObject["name"] = new RegExp(requestQuery.schoolName, 'i')
+        queryObject["metaInformation.name"] = new RegExp(requestQuery.schoolName, 'i')
+      } else if (query == "schoolTypes") {
+        queryObject["metaInformation.types"] = new RegExp(requestQuery.schoolTypes, 'i')
       } else {
-        if (requestQuery[query]) queryObject[query] = requestQuery[query];
+        if (requestQuery[query]) queryObject[`metaInformation.${query}`] = requestQuery[query];
       }
     })
+
     return queryObject;
   }
 
