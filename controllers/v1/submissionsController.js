@@ -1107,7 +1107,7 @@ module.exports = class Submission extends Abstract {
                         result += 1
                       }
                     })
-                    
+
                     return result
                   }
 
@@ -1325,46 +1325,85 @@ module.exports = class Submission extends Abstract {
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
-                  const questionValueExtractor = function (question) {
+
+                  const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                     let result;
-                    const questionArray = question.split('.')
-  
-                    if(questionArray[0] === "schoolProfile") {
-  
-                    if(eachSubmissionDocument.schoolProfile && eachSubmissionDocument.schoolProfile[questionArray[1]]){
-                      result = eachSubmissionDocument.schoolProfile[questionArray[1]]
-                    } else {
-                      result = eachSubmissionDocument.schoolInformation[questionArray[1]]
-                    }
-  
-                    if(!result || result == "" || !(result.length>=0)) {
-                      result = "NA"
-                    }
-                    submissionAnswers.push(result)
-                    return result
-                    }
-  
-                    submissionAnswers.push(eachSubmissionDocument.answers[questionArray[0]])
-                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-  
-                    inputTypes.forEach(inputType => {
-                    if (questionArray[1] === inputType) {
-                      if (eachSubmissionDocument.answers[questionArray[0]] && (eachSubmissionDocument.answers[questionArray[0]][inputType] || eachSubmissionDocument.answers[questionArray[0]][inputType] == 0)) {
-                        result = eachSubmissionDocument.answers[questionArray[0]][inputType];
+                    const questionOrCriteriaArray = questionOrCriteria.split('.')
+                    
+                    if(_.includes(questionOrCriteriaArray,"schoolProfile")) {
+
+                      if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionOrCriteriaArray[1]]){
+                        result = submissionDocument.schoolProfile[questionOrCriteriaArray[1]]
                       } else {
-                        result = "NA";
+                        result = submissionDocument.schoolInformation[questionOrCriteriaArray[1]]
                       }
+
+                      if(!result || result == "" || !(result.length>=0)) {
+                        result = "NA"
+                      }
+                      submissionAnswers.push(result)
+                      return result
                     }
+
+                    if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
+                      result = 0
+
+                      let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
+                      let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                      if(criteriaIdIndex < 0) {
+                        return "NA"
+                      }
+
+                      let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
+                      let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
+                      if(criteriaQuestionFunctionIndex < 0) {
+                        return "NA"
+                      }
+
+                      criteriaQuestionFunction = criteriaQuestionFunction.substring(
+                        criteriaQuestionFunction.lastIndexOf("(") + 1, 
+                        criteriaQuestionFunction.lastIndexOf(")")
+                      );
+                      
+                      criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
+
+                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+                      
+
+                      let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
+                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                      submissionAnswers.push(...allCriteriaQuestions)
+
+                      allCriteriaQuestions.forEach(question => {
+                        if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                          result += 1
+                        }
+                      })
+                      
+                      return result
+                    }
+
+                    submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
+                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                    inputTypes.forEach(inputType => {
+                      if (questionOrCriteriaArray[1] === inputType) {
+                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                          result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
+                        } else {
+                          result = "NA";
+                        }
+                      }
                     })
                     return result;
                   }
+
                   let expressionVariables = {};
                   let expressionResult = {};
                   let allValuesAvailable = true;
   
                   Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                     if (variable != "default") {
-                      expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
+                      expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
                       expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                       if (expressionVariables[variable] === "NA") {
                         allValuesAvailable = false;
@@ -1417,13 +1456,13 @@ module.exports = class Submission extends Abstract {
   
                 let score = "NA"
                 if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4.result) {
+                  if (expressionResult.L4 && expressionResult.L4.result) {
                     score = "L4"
-                  } else if (expressionResult.L3.result) {
+                  } else if (expressionResult.L3 && expressionResult.L3.result) {
                     score = "L3"
-                  } else if (expressionResult.L2.result) {
+                  } else if (expressionResult.L2 && expressionResult.L2.result) {
                     score = "L2"
-                  } else if (expressionResult.L1.result) {
+                  } else if (expressionResult.L1 && expressionResult.L1.result) {
                     score = "L1"
                   } else {
                     score = "No Level Matched"
