@@ -967,9 +967,12 @@ module.exports = class Criterias extends Abstract {
           }
 
           let expressionVariables = {}
-          let expressionVariablesArray = criteria.expressionVariables.split(",")
+          let expressionVariablesArray = criteria.expressionVariables.split("###")
           expressionVariablesArray.forEach(expressionVariable => {
-            let expressionVariableArray = expressionVariable.split("=");
+            let tempExpressionVariableArray = expressionVariable.split("=")
+            let expressionVariableArray = new Array
+            expressionVariableArray.push(tempExpressionVariableArray.shift())
+            expressionVariableArray.push(tempExpressionVariableArray.join('='))
             let defaultVariableArray = expressionVariableArray[0].split("-")
             if(defaultVariableArray.length>1){
               if(!expressionVariables.default) expressionVariables.default = {};
