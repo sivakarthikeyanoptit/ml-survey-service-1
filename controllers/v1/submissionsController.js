@@ -1032,15 +1032,17 @@ module.exports = class Submission extends Abstract {
             
               if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                 let submissionAnswers = new Array
+
                 const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                   let result;
-                  const questionArray = question.split('.')
-                  if(questionArray[0] === "entityProfile") {
+                  const questionOrCriteriaArray = questionOrCriteria.split('.')
+                  
+                  if(_.includes(questionOrCriteriaArray,"entityProfile")) {
 
-                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionArray[1]]){
-                      result = submissionDocument.entityProfile[questionArray[1]]
+                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                      result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                     } else {
-                      result = submissionDocument.entityInformation[questionArray[1]]
+                      result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
 
                     if(!result || result == "" || !(result.length>=0)) {
@@ -1316,63 +1318,66 @@ module.exports = class Submission extends Abstract {
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
-
+                  
                   const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                     let result;
-                    const questionArray = question.split('.')
+                    const questionOrCriteriaArray = questionOrCriteria.split('.')
+                    
+                    if(_.includes(questionOrCriteriaArray,"entityProfile")) {
   
-                    if(questionArray[0] === "entityProfile") {
+                      if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                        result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
+                      } else {
+                        result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
+                      }
   
-                    if(eachSubmissionDocument.entityProfile && eachSubmissionDocument.entityProfile[questionArray[1]]){
-                      result = eachSubmissionDocument.entityProfile[questionArray[1]]
-                    } else {
-                      result = eachSubmissionDocument.entityInformation[questionArray[1]]
+                      if(!result || result == "" || !(result.length>=0)) {
+                        result = "NA"
+                      }
+                      submissionAnswers.push(result)
+                      return result
                     }
   
-                    if(!result || result == "" || !(result.length>=0)) {
-                      result = "NA"
-                    }
-
                     if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
                       result = 0
-
+  
                       let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
                       let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
                       if(criteriaIdIndex < 0) {
                         return "NA"
                       }
-
+  
                       let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
                       let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
                       if(criteriaQuestionFunctionIndex < 0) {
                         return "NA"
                       }
-
+  
                       criteriaQuestionFunction = criteriaQuestionFunction.substring(
                         criteriaQuestionFunction.lastIndexOf("(") + 1, 
                         criteriaQuestionFunction.lastIndexOf(")")
                       );
                       
                       criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-
+  
                       let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
                       
-
+  
                       let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
                       if(criteriaQuestionFilter[1]) {
                         allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
                       }
                       submissionAnswers.push(...allCriteriaQuestions)
-
+  
                       allCriteriaQuestions.forEach(question => {
                         if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
                           result += 1
                         }
                       })
-                      
+  
                       return result
                     }
-
+  
                     submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
                     let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                     inputTypes.forEach(inputType => {
@@ -1385,7 +1390,7 @@ module.exports = class Submission extends Abstract {
                       }
                     })
                     return result;
-                  }}
+                  }
 
                   let expressionVariables = {};
                   let expressionResult = {};
@@ -1397,7 +1402,7 @@ module.exports = class Submission extends Abstract {
                       expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                       if (expressionVariables[variable] === "NA") {
                         allValuesAvailable = false;
-                     }
+                      }
                     }
                   })
   
