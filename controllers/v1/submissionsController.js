@@ -1099,7 +1099,9 @@ module.exports = class Submission extends Abstract {
                     
 
                     let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                    allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                    if(criteriaQuestionFilter[1]) {
+                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                    }
                     submissionAnswers.push(...allCriteriaQuestions)
 
                     allCriteriaQuestions.forEach(question => {
@@ -1371,7 +1373,9 @@ module.exports = class Submission extends Abstract {
                       
 
                       let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                      if(criteriaQuestionFilter[1]) {
+                        allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                      }
                       submissionAnswers.push(...allCriteriaQuestions)
 
                       allCriteriaQuestions.forEach(question => {
