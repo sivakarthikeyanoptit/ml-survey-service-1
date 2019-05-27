@@ -802,9 +802,10 @@ module.exports = class Reports {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:entityExternalId Fetch criterias based on schoolId
+  * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:programExternalId Fetch criterias based on schoolId
   * @apiVersion 0.0.1
   * @apiName Fetch criteria based on entityId
+  * @apiParam {String} entityId Comma separated entity ID.
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
@@ -813,12 +814,14 @@ module.exports = class Reports {
   async generateCriteriaByEntityId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let entityId = {
-          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
-        };
+        
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "entityExternalId" : {$in:req.query.entityId.split(",")}
+        }
 
         let submissionDocument = await database.models.submissions.find(
-          entityId,
+          submissionQueryObject,
           {
             entityExternalId:1,
             criteria: 1,
@@ -930,9 +933,10 @@ module.exports = class Reports {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
+  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:programExternalId Fetch Entity submission status
   * @apiVersion 0.0.1
   * @apiName Fetch Entity submission status
+  * @apiParam {String} entityId Comma separated entity ID.
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
@@ -942,12 +946,13 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let entitySubmissionQuery = {
-          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
-        };
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "entityExternalId" : {$in:req.query.entityId.split(",")}
+        }
 
         let submissionForSolutionId = await database.models.submissions.findOne(
-          entitySubmissionQuery,
+          submissionQueryObject,
           {
             solutionId: 1
           }
@@ -963,7 +968,7 @@ module.exports = class Reports {
         ).lean().exec();
 
         let entitySubmissionDocument = database.models.submissions.find(
-          entitySubmissionQuery,
+          submissionQueryObject,
           {
             entityExternalId:1,
             answers: 1,
