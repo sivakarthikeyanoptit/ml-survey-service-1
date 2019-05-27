@@ -829,9 +829,10 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
+* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:programExternalId Fetch criterias based on schoolId
 * @apiVersion 0.0.1
 * @apiName Fetch criterias based on schoolId
+* @apiParam {String} schoolId Comma separated school ID.
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
@@ -840,12 +841,14 @@ module.exports = class Reports {
   async generateCriteriasBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let schoolId = {
-          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
-        };
+
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "schoolExternalId" : {$in:req.query.schoolId.split(",")}
+        }
 
         let submissionDocument = await database.models.submissions.find(
-          schoolId,
+          submissionQueryObject,
           {
             schoolExternalId:1,
             criterias: 1,
@@ -960,9 +963,10 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
+* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:programExternalId Fetch school submission status
 * @apiVersion 0.0.1
 * @apiName Fetch school submission status
+* @apiParam {String} schoolId Comma separated school ID.
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
@@ -972,12 +976,12 @@ async generateSubmissionReportsBySchoolId(req) {
   return new Promise(async (resolve, reject) => {
     try {
 
-      let schoolSubmissionQuery = {
-        ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
-      };
-
+      let submissionQueryObject = {
+        "programExternalId": req.params._id,
+        "schoolExternalId" : {$in:req.query.schoolId.split(",")}
+      }
       let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
-        schoolSubmissionQuery,
+        submissionQueryObject,
         {
           evaluationFrameworkId: 1
         }
@@ -993,7 +997,7 @@ async generateSubmissionReportsBySchoolId(req) {
       ).lean().exec();
 
       let schoolSubmissionDocument = database.models.submissions.find(
-        schoolSubmissionQuery,
+        submissionQueryObject,
         {
           schoolExternalId:1,
           answers: 1,
