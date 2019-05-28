@@ -1102,16 +1102,13 @@ async generateSubmissionReportsBySchoolId(req) {
                     "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                     "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                     "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                    "Question Rubric Level" : singleAnswer.rubricLevel || "",
                     "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                     "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                     "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                     "Remarks": singleAnswer.remarks || "",
                     "Files": "",
                 };
-
-                if(singleAnswer.rubricLevel) {
-                  singleAnswerRecord["Question Rubric Level"] = singleAnswer.rubricLevel
-                }
 
                 if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
                   singleAnswer.fileName.forEach(file => {
@@ -1187,6 +1184,7 @@ async generateSubmissionReportsBySchoolId(req) {
                               "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                               "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                               "Answer": eachInstanceChildQuestion.value,
+                              "Question Rubric Level" : eachInstanceChildQuestion.rubricLevel || "",
                               "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                   ? "No Options"
                                   : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionValueString,
