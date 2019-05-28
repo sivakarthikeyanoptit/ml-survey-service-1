@@ -1022,14 +1022,18 @@ module.exports = class Reports {
           allQuestionWithOptions.forEach(question => {
             if (question.options && question.options.length > 0) {
               let optionString = "";
+              let optionValueString = "";
               question.options.forEach(option => {
                 optionString += option.label + ",";
+                optionValueString += option.value + "="+ option.label + ",";
               });
               optionString = optionString.replace(/,\s*$/, "");
+              optionValueString = optionValueString.replace(/,\s*$/, "");
 
               questionOptionObject[question._id.toString()] = {
                 questionOptions:question.options,
                 questionOptionString:optionString,
+                questionOptionValueString:optionValueString,
                 questionName:question.question,
                 externalId:question.externalId
               };
@@ -1069,6 +1073,8 @@ module.exports = class Reports {
                       "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                       "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                       "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                      "Question Rubric Level" : singleAnswer.rubricLevel || "",
+                      "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                       "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                       "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                       "Remarks": singleAnswer.remarks || "",
@@ -1149,6 +1155,10 @@ module.exports = class Reports {
                                 "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                                 "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                                 "Answer": eachInstanceChildQuestion.value,
+                                "Question Rubric Level" : eachInstanceChildQuestion.rubricLevel || "",
+                                "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionValueString,
                                 "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                     ? "No Options"
                                     : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
