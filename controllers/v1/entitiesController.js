@@ -40,8 +40,13 @@ module.exports = class Entities extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-
-        let result = await entitiesHelper.add(req.query.type, req.body.data, req.userDetails);
+        let queryParams = {
+          type : req.query.type,
+          programId: req.query.programId,
+          solutionId: req.query.solutionId,
+          parentEntityId: req.query.parentEntityId
+        }
+        let result = await entitiesHelper.add(queryParams, req.body.data, req.userDetails);
 
         return resolve({
           message: "Entity information added successfully.",

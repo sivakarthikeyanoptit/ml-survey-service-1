@@ -3,19 +3,20 @@ const entityAssessorsHelper = require("../entityAssessors/helper")
 
 module.exports = class entitiesHelper {
 
-    static add(entityType, data, userDetails) {
+    static add(queryParams, data, userDetails) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 }).lean();
+                let entityTypeDocument = await database.models.entityTypes.findOne({ name: queryParams.type }, { _id: 1 }).lean();
 
                 if (!entityTypeDocument) throw "No entity type found for given params"
 
                 let entityDocuments = data.map(singleEntity => {
-
+                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId)
+                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId)
                     return {
                         "entityTypeId": entityTypeDocument._id,
-                        "entityType": entityType,
+                        "entityType": queryParams.type,
                         "regsitryDetails": {},
                         "groups": {},
                         "metaInformation": singleEntity,
@@ -30,7 +31,7 @@ module.exports = class entitiesHelper {
                 );
 
                 //update entity id in parent entity
-                await this.mapEntitiesToParentEntity(entityData, entityType);
+                await this.mapEntitiesToParentEntity(entityData, queryParams);
 
                 if (entityData.length != data.length) {
                     throw "Some entity information was not inserted!"
@@ -382,19 +383,19 @@ module.exports = class entitiesHelper {
 
     }
 
-    static mapEntitiesToParentEntity(entityData, entityType) {
+    static mapEntitiesToParentEntity(entityData, queryParams) {
         return new Promise(async (resolve, reject) => {
             try {
                 await Promise.all(entityData.map(async (entity) => {
     
                     await database.models.entities.findOneAndUpdate(
                         {
-                            _id: ObjectId(entity.metaInformation.parentEntityId),
-                            "metaInformation.createdByProgramId": entity.metaInformation.createdByProgramId
+                            _id: ObjectId(queryParams.parentEntityId),
+                            "metaInformation.createdByProgramId": ObjectId(queryParams.programId)
                         },
                         {
                             $addToSet: {
-                                [`groups.${entityType}`]: entity._id
+                                [`groups.${queryParams.type}`]: entity._id
                             }
                         });
     

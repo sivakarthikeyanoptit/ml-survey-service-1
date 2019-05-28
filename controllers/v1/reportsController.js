@@ -1104,7 +1104,7 @@ module.exports = class Reports {
                         questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                           option => {
 
-                            radioResponse[option.value] = option.label;
+                            radioResponse[option.value] = option.label+"("+option.value+")";
                           }
                         );
                         singleAnswerRecord.Answer =
@@ -1115,7 +1115,7 @@ module.exports = class Reports {
                         questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                           option => {
                             multiSelectResponse[option.value] =
-                              option.label;
+                              option.label+"("+option.value+")";
                           }
                         );
                         if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
@@ -1189,7 +1189,7 @@ module.exports = class Reports {
 
                                 questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                   option => {
-                                    radioResponse[option.value] = option.label;
+                                    radioResponse[option.value] = option.label+"("+option.value+")";
                                   }
                                 );
                                 eachInstanceChildRecord["Answer"] =
@@ -1199,7 +1199,7 @@ module.exports = class Reports {
                                 questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                   option => {
                                     multiSelectResponse[option.value] =
-                                      option.label;
+                                      option.label+"("+option.value+")";
                                   }
                                 );
 
