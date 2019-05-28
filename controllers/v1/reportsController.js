@@ -1133,7 +1133,7 @@ async generateSubmissionReportsBySchoolId(req) {
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
 
-                          radioResponse[option.value] = option.label;
+                          radioResponse[option.value] = option.label+"("+option.value+")";
                         }
                       );
                       singleAnswerRecord.Answer =
@@ -1144,7 +1144,7 @@ async generateSubmissionReportsBySchoolId(req) {
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
                           multiSelectResponse[option.value] =
-                            option.label;
+                            option.label+"("+option.value+")";
                         }
                       );
                       if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
@@ -1218,7 +1218,7 @@ async generateSubmissionReportsBySchoolId(req) {
 
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
-                                  radioResponse[option.value] = option.label;
+                                  radioResponse[option.value] = option.label+"("+option.value+")";
                                 }
                               );
                               eachInstanceChildRecord["Answer"] =
@@ -1228,7 +1228,7 @@ async generateSubmissionReportsBySchoolId(req) {
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
                                   multiSelectResponse[option.value] =
-                                    option.label;
+                                    option.label+"("+option.value+")";
                                 }
                               );
 
