@@ -1045,20 +1045,24 @@ async generateSubmissionReportsBySchoolId(req) {
 
         let allQuestionWithOptions = await database.models.questions.find(
           { _id: { $in: questionIds }},
-          { options: 1,question:1, externalId :1 }
+          { options: 1,question:1, externalId :1}
         ).lean();
 
         allQuestionWithOptions.forEach(question => {
           if (question.options && question.options.length > 0) {
             let optionString = "";
+            let optionValueString = "";
             question.options.forEach(option => {
               optionString += option.label + ",";
+              optionValueString += option.value + "="+ option.label + ",";
             });
             optionString = optionString.replace(/,\s*$/, "");
+            optionValueString = optionValueString.replace(/,\s*$/, "");
 
             questionOptionObject[question._id.toString()] = {
               questionOptions:question.options,
               questionOptionString:optionString,
+              questionOptionValueString:optionValueString,
               questionName:question.question,
               externalId:question.externalId
             };
@@ -1098,11 +1102,16 @@ async generateSubmissionReportsBySchoolId(req) {
                     "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                     "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                     "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                    "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                     "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                     "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                     "Remarks": singleAnswer.remarks || "",
                     "Files": "",
                 };
+
+                if(singleAnswer.rubricLevel) {
+                  singleAnswerRecord["Question Rubric Level"] = singleAnswer.rubricLevel
+                }
 
                 if (singleAnswer.fileName && singleAnswer.fileName.length > 0) {
                   singleAnswer.fileName.forEach(file => {
@@ -1178,9 +1187,12 @@ async generateSubmissionReportsBySchoolId(req) {
                               "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                               "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                               "Answer": eachInstanceChildQuestion.value,
-                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                              "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                   ? "No Options"
-                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionValueString,
+                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                      ? "No Options"
+                                      : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
                               "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
                               "Remarks": eachInstanceChildQuestion.remarks || "",
                               "Files": "",
