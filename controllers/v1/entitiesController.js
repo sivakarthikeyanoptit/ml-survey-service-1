@@ -10,7 +10,7 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entities/add?type=:entityType Entity add
+* @api {post} /assessment/api/v1/entities/add?type=:entityType&programId=:programInternalId&solutionId=:solutionInternalId&parentEntityId=:parentEntityInternalId Entity add
 * @apiVersion 0.0.1
 * @apiName Entity add
 * @apiGroup Entities
@@ -227,15 +227,15 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entities/upload?type=:entityType Upload Entity Information CSV
-* @apiVersion 0.0.1
-* @apiName Upload Entity Information CSV
-* @apiGroup Entities
-* @apiParamExample {json} Request-Body:
-* 	Upload CSV
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/entities/upload?type=:entityType Upload Entity Information CSV
+  * @apiVersion 0.0.1
+  * @apiName Upload Entity Information CSV
+  * @apiGroup Entities
+  * @apiParamExample {json} Request-Body:
+  * 	Upload CSV
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   upload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -262,15 +262,15 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
-* @apiVersion 0.0.1
-* @apiName Upload Entity Information CSV Using Portal
-* @apiGroup Entities
-* @apiParamExample {json} Request-Body:
-* 	Upload CSV
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
+  * @apiVersion 0.0.1
+  * @apiName Upload Entity Information CSV Using Portal
+  * @apiGroup Entities
+  * @apiParamExample {json} Request-Body:
+  * 	Upload CSV
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   uploadForPortal(req) {
     return new Promise(async (resolve, reject) => {
 
