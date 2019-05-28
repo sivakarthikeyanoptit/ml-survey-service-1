@@ -1102,6 +1102,7 @@ async generateSubmissionReportsBySchoolId(req) {
                     "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                     "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                     "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                    "Answer Option Value": questionOptionObject[singleAnswer.qid] == undefined ? "NA" : "",
                     "Question Rubric Level" : singleAnswer.rubricLevel || "",
                     "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                     "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
@@ -1133,18 +1134,19 @@ async generateSubmissionReportsBySchoolId(req) {
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
 
-                          radioResponse[option.value] = option.label+"("+option.value+")";
+                          radioResponse[option.value] = option.label
                         }
                       );
                       singleAnswerRecord.Answer =
                         radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                      singleAnswerRecord["Answer Option Value"] = singleAnswer.value
                     }
                     else if (singleAnswer.responseType == "multiselect") {
 
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
                           multiSelectResponse[option.value] =
-                            option.label+"("+option.value+")";
+                            option.label
                         }
                       );
                       if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
@@ -1157,6 +1159,7 @@ async generateSubmissionReportsBySchoolId(req) {
                       }
                     }
                       singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                      singleAnswerRecord["Answer Option Value"] = singleAnswer.value.toString();
                     } else {
                       singleAnswerRecord.Answer = singleAnswer.value
                     }
@@ -1184,6 +1187,7 @@ async generateSubmissionReportsBySchoolId(req) {
                               "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                               "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                               "Answer": eachInstanceChildQuestion.value,
+                              "Answer Option Value" : questionOptionObject[eachInstanceChildQuestion.qid] == undefined ? "NA": "",
                               "Question Rubric Level" : eachInstanceChildQuestion.rubricLevel || "",
                               "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                   ? "No Options"
@@ -1218,17 +1222,17 @@ async generateSubmissionReportsBySchoolId(req) {
 
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
-                                  radioResponse[option.value] = option.label+"("+option.value+")";
+                                  radioResponse[option.value] = option.label
                                 }
                               );
-                              eachInstanceChildRecord["Answer"] =
-                                radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              eachInstanceChildRecord["Answer"] = radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value
                             } else if (eachInstanceChildQuestion.responseType == "multiselect") {
                               
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
                                   multiSelectResponse[option.value] =
-                                    option.label+"("+option.value+")";
+                                    option.label
                                 }
                               );
 
@@ -1239,6 +1243,7 @@ async generateSubmissionReportsBySchoolId(req) {
                                   );
                                 });
                                 eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value.toString();
                               } else {
                                 eachInstanceChildRecord["Answer"] = "No value given";
                               }
