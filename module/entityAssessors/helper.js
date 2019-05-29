@@ -4,7 +4,7 @@ let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
 module.exports = class entityAssessorHelper {
 
-    static createEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
+    static createInidvidualEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
         return new Promise(async (resolve, reject) => {
             try {
                 userEntityDetails.programId = programId;

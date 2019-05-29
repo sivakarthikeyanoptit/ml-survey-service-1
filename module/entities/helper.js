@@ -249,133 +249,107 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static upload(entityType, programId, solutionId, userDetails, file) {
+    static bulkCreate(entityType, programId, solutionId, userDetails, file) {
         return new Promise(async (resolve, reject) => {
             try {
                 let entityCSVData = await csv().fromString(
                     file.entities.data.toString()
                 );
-    
-                let programIds = programId ? [programId] : entityCSVData.map(entity => entity.programId);
-    
-                let programDocument = await database.models.programs.find(
-                    {
-                        externalId: { $in: programIds }
-                    },
-                    {
-                        _id: 1,
-                        externalId: 1
-                    }
-                ).lean();
-    
-                const programsData = programDocument.reduce((ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
-    
-                let solutionIds = solutionId ? [solutionId] : entityCSVData.map(entity => entity.solutionId);
-    
-                let solutionsDocument = await database.models.solutions.find(
-                    {
-                        externalId: { $in: solutionIds }
-                    },
-                    {
-                        externalId: 1,
-                        subType: 1
-                    }
-                ).lean();
+
+                let solutionsDocument = new Array
+                if(programId && solutionId) { 
+                    solutionsDocument = await database.models.solutions.find(
+                        {
+                            externalId: solutionId,
+                            programExternalId: programId
+                        },
+                        {
+                            programId: 1,
+                            externalId: 1,
+                            subType: 1,
+                            entityType: 1,
+                            entityTypeId: 1
+                        }
+                    ).lean();
+                } else {
+                    solutionsDocument = await database.models.solutions.find(
+                        {},
+                        {
+                            programId: 1,
+                            externalId: 1,
+                            subType: 1,
+                            entityType: 1,
+                            entityTypeId: 1
+                        }
+                    ).lean();
+                }
     
                 const solutionsData = solutionsDocument.reduce((ac, solution) => ({
                     ...ac, [solution.externalId]: {
                         subType: solution.subType,
-                        _id: solution._id
+                        solutionId: solution._id,
+                        programId: solution.programId,
+                        entityType : solution.entityType,
+                        entityTypeId: solution.entityTypeId,
+                        newEntities : new Array
                     }
                 }), {});
-    
-                // let parentExternalIds = entityCSVData.map(entity => entity.parentEntityId);
-    
-                // let parentEntityDocument = await database.models.entities.find(
-                //     {
-                //         "metaInformation.externalId": { $in: parentExternalIds }
-                //     },
-                //     {
-                //         _id: 1,
-                //         "metaInformation.externalId": 1
-                //     }
-                // ).lean();
-    
-                // const parentEntityData = parentEntityDocument.reduce((ac, parentDocument) => ({ ...ac, [parentDocument.metaInformation.externalId]: parentDocument._id }), {})
-    
+
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
-    
-                let entityDocuments = [];
-    
-                entityCSVData.forEach(singleEntity => {
-    
-                    let arrayTypeFields = singleEntity.arrayFields.split(",")
-    
-                    Object.keys(singleEntity).forEach(data => {
-                        if (arrayTypeFields.includes(data)) {
-                            singleEntity[data] = singleEntity[data].split(",")
-                        }
-                    })
-    
-                    singleEntity["createdByProgramId"] = programsData[singleEntity.programId]["_id"];
-    
-                    //parentEntityId needed to update parents entity
-                    // singleEntity["parentEntityId"] = parentEntityData[singleEntity.parentEntityId];
-    
-                    entityDocuments.push({
-                        "entityTypeId": entityTypeDocument._id,
-                        "entityType": entityType,
-                        "regsitryDetails": {},
-                        "groups": {},
-                        "metaInformation": singleEntity,
-                        "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id
-                    });
-    
-                })
-    
-                let entityData = await database.models.entities.create(
-                    entityDocuments
-                );
-    
-                //update entity id in solutions
-    
-                let entityDataForSolutionsToBeMapped = entityData.filter(entity => entity.metaInformation.addEntityToSolution === "true")
-    
-                if (entityDataForSolutionsToBeMapped.length) {
-                    let groupedEntityDataBySolutionId = _.groupBy(entityDataForSolutionsToBeMapped, function (entityData) { return entityData.metaInformation.solutionId })
-    
-                    Object.keys(groupedEntityDataBySolutionId).forEach(async (solutionId) => {
-    
-                        let entityIds = groupedEntityDataBySolutionId[solutionId].map(entity => entity._id);
-    
-                        await database.models.solutions.updateOne({ _id: ObjectId(solutionsData[solutionId]._id) }, { $addToSet: { entities: { $each: entityIds } } })
-                    })
-    
-                }
-    
-                //update entity id in parent entity
-    
-                // await this.mapEntitiesToParentEntity(entityData);
-    
-                entityCSVData.forEach(async (entity) => {
-    
-                    if (entity.createEntityAssessor && entity.createEntityAssessor === "true") {
-    
-                        let entityDocument = entityData.find(entityDocument => {
-                            return (entityDocument.metaInformation.userId == entity.userId && entityDocument.metaInformation.solutionId == entity.solutionId)
+                
+                if(!entityTypeDocument) throw "Invalid entity type id."
+
+                const entityUploadedData = await Promise.all(
+                    entityCSVData.map(async singleEntity => {
+                        
+                        singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
+                            singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
                         })
-    
-                        if (entityDocument) {
-                            // createEntityAssessor(programId, solutionId, entityId, entity, userDetails) - for understanding purpose.
-                            entity.role = "ASSESSOR";
-                            await entityAssessorsHelper.createEntityAssessor(programsData[entity.programId], solutionsData[entity.solutionId]._id, entityDocument._id, entity, userDetails);
+        
+                        singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
+
+                        let newEntity = await database.models.entities.create(
+                            {
+                                "entityTypeId": entityTypeDocument._id,
+                                "entityType": entityType,
+                                "regsitryDetails": {},
+                                "groups": {},
+                                "metaInformation": _.omitBy(singleEntity, (value,key)=> {return _.startsWith(key,"_")}),
+                                "updatedBy": userDetails.id,
+                                "createdBy": userDetails.id
+                            }
+                        );
+
+                        if(!newEntity._id) return;
+
+                        singleEntity["_systemId"] = newEntity._id.toString()
+
+                        if(newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
+                            solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
                         }
-    
-                    }
-    
-                })
-                return resolve();
+        
+                        if(singleEntity._createEntityAssessor && singleEntity.userId != "") {
+                            singleEntity.role = "ASSESSOR";
+                            await entityAssessorsHelper.createInidvidualEntityAssessor(solutionsData[singleEntity._solutionId]["programId"], solutionsData[singleEntity._solutionId]["solutionId"], newEntity._id, singleEntity, userDetails);
+                        }
+
+                        return singleEntity
+                    })
+                )
+
+                if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
+                    throw "Something went wrong, not all records were inserted/updated."
+                }
+
+                await Promise.all(     
+                    Object.keys(solutionsData).map(async solutionExternalId => {
+                        if(solutionsData[solutionExternalId].newEntities.length > 0) {
+                            await database.models.solutions.updateOne({ _id: solutionsData[solutionExternalId].solutionId }, { $addToSet: { entities: { $each: solutionsData[solutionExternalId].newEntities } } })
+                        }
+                    })
+                )
+
+                return resolve(entityUploadedData);
             } catch (error) {
                 return reject(error)
             }

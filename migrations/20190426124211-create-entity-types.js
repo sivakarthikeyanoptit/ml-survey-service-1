@@ -359,7 +359,7 @@ module.exports = {
               "label": "All Aided"
             }
           ],
-          "input": "radio"
+          "input": "multiselect"
         },
         {
             "field": "addressLine1",
