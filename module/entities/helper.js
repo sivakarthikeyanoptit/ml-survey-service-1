@@ -1,4 +1,3 @@
-const csv = require("csvtojson");
 const entityAssessorsHelper = require("../entityAssessors/helper")
 
 module.exports = class entitiesHelper {
@@ -31,7 +30,7 @@ module.exports = class entitiesHelper {
                 );
 
                 //update entity id in parent entity
-                await this.mapEntitiesToParentEntity(entityData, queryParams);
+                await this.addSubEntityToParent(entityData._id.toString(), queryParams.parentEntityId, queryParams.programId);
 
                 if (entityData.length != data.length) {
                     throw "Some entity information was not inserted!"
@@ -249,12 +248,9 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static bulkCreate(entityType, programId, solutionId, userDetails, file) {
+    static bulkCreate(entityType, programId, solutionId, userDetails, entityCSVData) {
         return new Promise(async (resolve, reject) => {
             try {
-                let entityCSVData = await csv().fromString(
-                    file.entities.data.toString()
-                );
 
                 let solutionsDocument = new Array
                 if(programId && solutionId) { 
@@ -357,23 +353,36 @@ module.exports = class entitiesHelper {
 
     }
 
-    static mapEntitiesToParentEntity(entityData, queryParams) {
+    static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
             try {
-                await Promise.all(entityData.map(async (entity) => {
-    
+                let childEntity = await database.models.entities.findOne({
+                    _id : ObjectId(childEntityId)
+                }, {
+                    entityType : 1
+                }).lean()
+
+                if(childEntity.entityType) {
+
+                    let parentEntityQueryObject = {
+                        _id: ObjectId(parentEntityId)
+                    }
+                    if(parentEntityProgramId) {
+                        parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
+                    }
                     await database.models.entities.findOneAndUpdate(
-                        {
-                            _id: ObjectId(queryParams.parentEntityId),
-                            "metaInformation.createdByProgramId": ObjectId(queryParams.programId)
-                        },
+                        parentEntityQueryObject,
                         {
                             $addToSet: {
-                                [`groups.${queryParams.type}`]: entity._id
+                                [`groups.${childEntity.entityType}`]: childEntity._id
                             }
-                        });
-    
-                }))
+                        },{
+                            _id : 1
+                        }
+                    );
+
+                }
+
                 return resolve();
             } catch (error) {
                 return reject(error)
