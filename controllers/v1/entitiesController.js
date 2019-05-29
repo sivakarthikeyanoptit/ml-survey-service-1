@@ -1,4 +1,5 @@
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Entities extends Abstract {
   constructor() {
@@ -227,7 +228,7 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/entities/upload?type=:entityType Upload Entity Information CSV
+  * @api {post} /assessment/api/v1/entities/bulkCreate?type=:entityType Upload Entity Information CSV
   * @apiVersion 0.0.1
   * @apiName Upload Entity Information CSV
   * @apiGroup Entities
@@ -236,16 +237,36 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
-  upload(req) {
+  bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        await entitiesHelper.upload(req.query.type, null, null, req.userDetails, req.files);
+        let newEntityData = await entitiesHelper.bulkCreate(req.query.type, null, null, req.userDetails, req.files);
 
-        return resolve({
-          message: "Information updated successfully."
-        });
+        if(newEntityData.length > 0) {
+
+          const fileName = `Entity-Upload`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+  
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          await Promise.all(newEntityData.map(async newEntity => {
+            input.push(newEntity)
+          }))
+
+          input.push(null)
+
+        } else {
+          throw "Something went wrong!"
+        }
 
       } catch (error) {
 
