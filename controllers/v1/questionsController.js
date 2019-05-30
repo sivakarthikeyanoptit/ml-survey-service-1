@@ -122,7 +122,7 @@ module.exports = class Questions extends Abstract {
 
           })
         
-          let criteriaDocument = await database.models.criterias.find({
+          let criteriaDocument = await database.models.criteria.find({
             externalId:{$in:criteriaIds}
           }).lean()
 

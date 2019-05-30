@@ -802,9 +802,10 @@ module.exports = class Reports {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:entityExternalId Fetch criterias based on schoolId
+  * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:programExternalId Fetch criterias based on schoolId
   * @apiVersion 0.0.1
   * @apiName Fetch criteria based on entityId
+  * @apiParam {String} entityId Comma separated entity ID.
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
@@ -813,12 +814,14 @@ module.exports = class Reports {
   async generateCriteriaByEntityId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let entityId = {
-          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
-        };
+        
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "entityExternalId" : {$in:req.query.entityId.split(",")}
+        }
 
         let submissionDocument = await database.models.submissions.find(
-          entityId,
+          submissionQueryObject,
           {
             entityExternalId:1,
             criteria: 1,
@@ -930,9 +933,10 @@ module.exports = class Reports {
   }
 
   /**
-  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:entityExternalId Fetch Entity submission status
+  * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:programExternalId Fetch Entity submission status
   * @apiVersion 0.0.1
   * @apiName Fetch Entity submission status
+  * @apiParam {String} entityId Comma separated entity ID.
   * @apiGroup Report
   * @apiUse successBody
   * @apiUse errorBody
@@ -942,12 +946,13 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let entitySubmissionQuery = {
-          ["entityExternalId"]: {$in:req.query.entityId.split(",")}
-        };
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "entityExternalId" : {$in:req.query.entityId.split(",")}
+        }
 
         let submissionForSolutionId = await database.models.submissions.findOne(
-          entitySubmissionQuery,
+          submissionQueryObject,
           {
             solutionId: 1
           }
@@ -963,7 +968,7 @@ module.exports = class Reports {
         ).lean().exec();
 
         let entitySubmissionDocument = database.models.submissions.find(
-          entitySubmissionQuery,
+          submissionQueryObject,
           {
             entityExternalId:1,
             answers: 1,
@@ -1017,14 +1022,18 @@ module.exports = class Reports {
           allQuestionWithOptions.forEach(question => {
             if (question.options && question.options.length > 0) {
               let optionString = "";
+              let optionValueString = "";
               question.options.forEach(option => {
                 optionString += option.label + ",";
+                optionValueString += option.value + "="+ option.label + ",";
               });
               optionString = optionString.replace(/,\s*$/, "");
+              optionValueString = optionValueString.replace(/,\s*$/, "");
 
               questionOptionObject[question._id.toString()] = {
                 questionOptions:question.options,
                 questionOptionString:optionString,
+                questionOptionValueString:optionValueString,
                 questionName:question.question,
                 externalId:question.externalId
               };
@@ -1064,6 +1073,9 @@ module.exports = class Reports {
                       "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                       "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                       "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                      "Answer Option Value": questionOptionObject[singleAnswer.qid] == undefined ? "NA" : "",
+                      "Question Rubric Level" : singleAnswer.rubricLevel || "",
+                      "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                       "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                       "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                       "Remarks": singleAnswer.remarks || "",
@@ -1093,18 +1105,18 @@ module.exports = class Reports {
                         questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                           option => {
 
-                            radioResponse[option.value] = option.label;
+                            radioResponse[option.value] = option.label
                           }
                         );
-                        singleAnswerRecord.Answer =
-                          radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                        singleAnswerRecord.Answer = radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                        singleAnswerRecord["Answer Option Value"] = singleAnswer.value
                       }
                       else if (singleAnswer.responseType == "multiselect") {
 
                         questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                           option => {
                             multiSelectResponse[option.value] =
-                              option.label;
+                              option.label
                           }
                         );
                         if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
@@ -1117,6 +1129,7 @@ module.exports = class Reports {
                         }
                       }
                         singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                        singleAnswerRecord["Answer Option Value"] = singleAnswer.value.toString();
                       } else {
                         singleAnswerRecord.Answer = singleAnswer.value
                       }
@@ -1144,6 +1157,11 @@ module.exports = class Reports {
                                 "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                                 "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                                 "Answer": eachInstanceChildQuestion.value,
+                                "Answer Option Value" : questionOptionObject[eachInstanceChildQuestion.qid] == undefined ? "NA": "",
+                                "Question Rubric Level" : eachInstanceChildQuestion.rubricLevel || "",
+                                "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionValueString,
                                 "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                     ? "No Options"
                                     : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
@@ -1174,17 +1192,17 @@ module.exports = class Reports {
 
                                 questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                   option => {
-                                    radioResponse[option.value] = option.label;
+                                    radioResponse[option.value] = option.label
                                   }
                                 );
-                                eachInstanceChildRecord["Answer"] =
-                                  radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                                eachInstanceChildRecord["Answer"] = radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                                eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value
                               } else if (eachInstanceChildQuestion.responseType == "multiselect") {
                                 
                                 questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                   option => {
                                     multiSelectResponse[option.value] =
-                                      option.label;
+                                      option.label
                                   }
                                 );
 
@@ -1195,6 +1213,7 @@ module.exports = class Reports {
                                     );
                                   });
                                   eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                  eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value.toString();
                                 } else {
                                   eachInstanceChildRecord["Answer"] = "No value given";
                                 }
