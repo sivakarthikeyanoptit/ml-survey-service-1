@@ -30,7 +30,9 @@ module.exports = class entitiesHelper {
                 );
 
                 //update entity id in parent entity
-                await this.addSubEntityToParent(entityData._id.toString(), queryParams.parentEntityId, queryParams.programId);
+                for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
+                    await this.addSubEntityToParent(entityData[eachEntityData]._id.toString(), queryParams.parentEntityId, queryParams.programId);                    
+                }
 
                 if (entityData.length != data.length) {
                     throw "Some entity information was not inserted!"
