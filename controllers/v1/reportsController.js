@@ -1251,9 +1251,7 @@ async generateSubmissionReportsBySchoolId(req) {
                     }
 
                   }
-                } else{
-                  input.push(singleAnswerRecord)
-                }
+                } 
 
               }
 
