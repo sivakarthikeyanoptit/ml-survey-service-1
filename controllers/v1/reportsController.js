@@ -1004,7 +1004,8 @@ async generateSubmissionReportsBySchoolId(req) {
         {
           schoolExternalId:1,
           answers: 1,
-          criterias: 1
+          criterias: 1,
+          evidencesStatus:1
         }
       ).lean().exec();
 
@@ -1075,6 +1076,7 @@ async generateSubmissionReportsBySchoolId(req) {
 
         schoolSubmissionDocument.forEach(singleSchoolSubmission => {
           let criteriaScoreObject = {};
+          
           singleSchoolSubmission.criterias.forEach(singleCriteria => {
             criteriaScoreObject[singleCriteria._id.toString()] = {
               id: singleCriteria._id,
@@ -1249,11 +1251,28 @@ async generateSubmissionReportsBySchoolId(req) {
                     }
 
                   }
+                } else{
+                  input.push(singleAnswerRecord)
                 }
 
               }
 
             });
+
+            for(let pointerToEvidencesStatus = 0;pointerToEvidencesStatus<singleSchoolSubmission.evidencesStatus.length;pointerToEvidencesStatus++){
+                
+              let currentEcm = singleSchoolSubmission.evidencesStatus[pointerToEvidencesStatus]
+
+              let singleEcmValue = {
+                "School Id":singleSchoolSubmission.schoolExternalId,
+                "Criteria Id":currentEcm.externalId,
+                "Criteria Name":(currentEcm.isSubmitted) ? (currentEcm.notApplicable != true) ? "Submitted" : "Marked NA" : "Not Submitted" 
+              }
+
+              input.push(singleEcmValue)
+            }
+
+
 
           }
          
