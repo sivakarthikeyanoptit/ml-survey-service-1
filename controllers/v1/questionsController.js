@@ -90,52 +90,64 @@ module.exports = class Questions extends Abstract {
         }
 
         let ecmData = submissionDocuments.evidences[req.query.ecm]
-        let answerArray = {}
 
         let messageData
 
         if(ecmData.isSubmitted == true){
 
-          ecmData.submissions && Object.entries(ecmData.submissions[ecmData.submissions.length-1].answers).forEach(answer => {
+          for(let pointerToSubmissions = 0;pointerToSubmissions<ecmData.submissions.length;pointerToSubmissions++){
+         
+            let answerArray = {}
+
+            let currentEcmSubmissions = ecmData.submissions[pointerToSubmissions]
+
+            if(currentEcmSubmissions.isValid === true){
+
+                Object.entries(currentEcmSubmissions.answers).forEach(answer => {
                         
-            if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-
-                for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-
-                    answer[1].value[countOfInstances]  && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-
-                        if (question.qid && answerArray[question.qid]) {
-
-                            answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
-                            answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
-                            answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
-
-                        } else {
-                            let clonedQuestion = { ...question }
-                            clonedQuestion.instanceResponses = []
-                            clonedQuestion.instanceRemarks = []
-                            clonedQuestion.instanceFileName = []
-                            clonedQuestion.instanceResponses.push(question.value)
-                            clonedQuestion.instanceRemarks.push(question.remarks)
-                            clonedQuestion.instanceFileName.push(question.fileName)
-                            delete clonedQuestion.value
-                            delete clonedQuestion.remarks
-                            delete clonedQuestion.fileName
-                            delete clonedQuestion.payload
-                            answerArray[question.qid] = clonedQuestion
-                        }
-
-                    })
+                if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+    
+                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+    
+                        answer[1].value[countOfInstances]  && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+    
+                            if (question.qid && answerArray[question.qid]) {
+    
+                                answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
+                                answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
+                                answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
+    
+                            } else {
+                                let clonedQuestion = { ...question }
+                                clonedQuestion.instanceResponses = []
+                                clonedQuestion.instanceRemarks = []
+                                clonedQuestion.instanceFileName = []
+                                clonedQuestion.instanceResponses.push(question.value)
+                                clonedQuestion.instanceRemarks.push(question.remarks)
+                                clonedQuestion.instanceFileName.push(question.fileName)
+                                delete clonedQuestion.value
+                                delete clonedQuestion.remarks
+                                delete clonedQuestion.fileName
+                                delete clonedQuestion.payload
+                                answerArray[question.qid] = clonedQuestion
+                            }
+    
+                        })
+                    }
+                    answer[1].countOfInstances = answer[1].value.length
                 }
-                answer[1].countOfInstances = answer[1].value.length
+    
+                answerArray[answer[0]] = answer[1]
+                });
+  
+              _.merge(submissionDocuments.answers,answerArray)
+
             }
 
-            answerArray[answer[0]] = answer[1]
-          });
-
-        _.merge(submissionDocuments.answers,answerArray)
-
+          }
+          
         messageData = "Answers merged successfully"
+
         }else{
           messageData = "isSubmitted False"
         }
