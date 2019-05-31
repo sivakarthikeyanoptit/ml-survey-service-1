@@ -625,7 +625,7 @@ module.exports = class Schools extends Abstract {
             Object.values(evidenceMethodArray),
             schoolDocument.schoolTypes,
             submissionDoc.result.evidences,
-            (evaluationFrameworkDocument.length && evaluationFrameworkDocument.questionSequenceByEcm) ? evaluationFrameworkDocument.questionSequenceByEcm : false
+            (evaluationFrameworkDocument && evaluationFrameworkDocument.questionSequenceByEcm) ? evaluationFrameworkDocument.questionSequenceByEcm : false
           );
 
           assessment.evidences = parsedAssessment.evidences;
