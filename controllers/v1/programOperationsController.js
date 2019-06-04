@@ -1,6 +1,7 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
+const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
 module.exports = class ProgramOperations {
 
     /**
@@ -66,18 +67,15 @@ module.exports = class ProgramOperations {
                 ]
                 )
 
-                let responseMessage;
                 let response;
 
                 if (!solutionsDocuments.length) {
 
-                    responseMessage = "No programs data found for given params.";
-                    response = { status: 404, message: responseMessage };
+                    response = { status: 404, message: "No programs data found for given params." };
 
                 } else {
 
-                    responseMessage = "Program information list fetched successfully.";
-                    response = { message: responseMessage, result: solutionsDocuments };
+                    response = { message: "Program information list fetched successfully.", result: solutionsDocuments };
 
                 }
 
@@ -96,7 +94,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/reportFilters/:programExternalId 
+    * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId 
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Drop down contents) for Reports
     * @apiGroup programOperations
@@ -109,17 +107,11 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await opsHelper.getProgram(req.params._id);
+                let entityTypeDocument = await database.models.entityTypes.findOne({ "name": "school" }, { entityTypes: 1, administrationTypes: 1 }).lean();
 
-                let entityTypes = database.models.entities.distinct('metaInformation.types', { _id: { $in: programDocument.entities } }).lean().exec();
+                let entityTypes = entityTypeDocument.entityTypes;
 
-                let administrationTypes = database.models.entities.distinct('metaInformation.administration', { _id: { $in: programDocument.entities } }).lean().exec();
-                
-                let types = await Promise.all([entityTypes, administrationTypes]);
-
-                entityTypes = _.compact(types[0]);
-                administrationTypes = _.compact(types[1]);
-
+                let administrationTypes = entityTypeDocument.administrationTypes;
 
                 entityTypes = entityTypes.sort().map(entityType => {
                     return {
@@ -134,6 +126,8 @@ module.exports = class ProgramOperations {
                         value: administrationType
                     }
                 })
+
+                let reportsFilterForm = await database.models.forms.findOne({"name":"reportsFilter"}).lean();
 
                 let result = [
                     {
@@ -163,8 +157,8 @@ module.exports = class ProgramOperations {
                         max: new Date()
                     },
                     {
-                        field: "schoolTypes",
-                        label: "school type",
+                        field: "entityTypes",
+                        label: "entity type",
                         value: "",
                         visible: true,
                         editable: true,
@@ -179,7 +173,7 @@ module.exports = class ProgramOperations {
                     },
                     {
                         field: "area",
-                        label: "school area",
+                        label: "entity area",
                         value: "",
                         visible: true,
                         editable: true,
@@ -193,7 +187,7 @@ module.exports = class ProgramOperations {
                     },
                     {
                         field: "administration",
-                        label: "school administration",
+                        label: "entity administration",
                         value: "",
                         visible: true,
                         editable: true,
@@ -209,7 +203,7 @@ module.exports = class ProgramOperations {
                     },
                     {
                         field: "externalId",
-                        label: "school Id",
+                        label: "entity Id",
                         value: "",
                         visible: true,
                         editable: true,
@@ -239,7 +233,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/managerProfile/:programExternalId
+    * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId
     * @apiVersion 0.0.1
     * @apiName Manager profile
     * @apiGroup programOperations
@@ -247,25 +241,18 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
-    async managerProfile(req) {
+    async userProfile(req) {
 
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userRole = gen.utils.getUserRole(req.userDetails, true);
+                let userRole = gen.utils.getReadableUserRole(req.userDetails);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
 
-                let roles = {
-                    assessors: "Assessors",
-                    leadAssessors: "Lead Assessors",
-                    projectManagers: "Project Managers",
-                    programManagers: "Program Managers"
-                };
-
-                let programDocument = await opsHelper.getProgram(req.params._id, false);
+                let programDocument = await database.models.solutions.findOne({ _id: ObjectId(req.params._id) }, { programName: 1 }).lean();
 
                 let result = [
                     {
@@ -278,11 +265,11 @@ module.exports = class ProgramOperations {
                     },
                     {
                         label: "role",
-                        value: roles[userRole] || "",
+                        value: userRole,
                     },
                     {
                         label: "nameOfTheProgram",
-                        value: programDocument.name,
+                        value: programDocument.programName,
                     },
                     {
                         label: "userName",
@@ -312,9 +299,9 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/entitySummary/:programExternalId 
+    * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId 
     * @apiVersion 0.0.1
-    * @apiName Fetch School Summary
+    * @apiName Fetch Entity Summary
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
@@ -329,15 +316,15 @@ module.exports = class ProgramOperations {
 
                 let resultArray = [
                     {
-                        label: "schoolsAssigned",
+                        label: "entitiesAssigned",
                         value: "",
                     },
                     {
-                        label: "schoolsCompleted",
+                        label: "entitiesCompleted",
                         value: "",
                     },
                     {
-                        label: "schoolsInporgress",
+                        label: "entitiesInporgress",
                         value: "",
                     },
                     {
@@ -346,8 +333,7 @@ module.exports = class ProgramOperations {
                     }
                 ];
 
-                let entityObjects = await opsHelper.getEntities(req.params._id, req.userDetails, req.query, req.pageSize, req.pageNo, false, []);
-
+                let entityObjects = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, false, [], req.params._id);
 
                 if (!entityObjects || !entityObjects.result || !entityObjects.result.length)
                     return resolve({
@@ -389,7 +375,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/assessorReport/:programExternalId 
+    * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId 
     * @apiVersion 0.0.1
     * @apiName Fetch Assessor Report
     * @apiGroup programOperations
@@ -402,7 +388,11 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await opsHelper.getProgram(req.params._id,false);
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
+
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
+
+                programDocument = programDocument[0];
 
                 let assessorDetails;
                 let assessorQueryObject = {};
@@ -415,9 +405,9 @@ module.exports = class ProgramOperations {
                     }
                 ];
 
-                assessorQueryObject["programId"] = programDocument._id;
+                assessorQueryObject["programId"] = programDocument.programId;
 
-                assessorQueryObject["solutionId"] = ObjectId(req.query.solutionId);
+                assessorQueryObject["solutionId"] = ObjectId(req.params._id);
 
                 if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
 
@@ -456,9 +446,9 @@ module.exports = class ProgramOperations {
 
                 let assessorEntityMap = _.keyBy(assessorDetails, 'userId');
 
-                assessorEntityIds = await opsHelper.getEntities(req.params._id, req.userDetails, req.query, req.pageSize, req.pageNo, false, userIds);
+                assessorEntityIds = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, false, userIds, req.params._id);
 
-                assessorEntityIds = assessorEntityIds.result.map(entity => entity.id);
+                assessorEntityIds = (assessorEntityIds.result && assessorEntityIds.result.length) ? assessorEntityIds.result.map(entity => entity.id) : [];
 
                 let submissionDocuments = await database.models.submissions.find({ entityId: { $in: assessorEntityIds } }, { status: 1, createdAt: 1, completedDate: 1, entityId: 1 }).lean();
 
@@ -466,14 +456,14 @@ module.exports = class ProgramOperations {
 
                 let assessorsReports = [];
                 assessorDetails.forEach(async (assessor) => {
-                    let entityByAssessor = opsHelper.getSubmissionByAssessor(assessor.userId,entitySubmissionMap,assessorEntityMap);
+                    let entityByAssessor = opsHelper.getSubmissionByAssessor(assessor.userId, entitySubmissionMap, assessorEntityMap);
                     let entityData = _.countBy(entityByAssessor, 'status')
                     let entityAssigned = entityByAssessor.length;
                     let assessorResult = {
                         name: assessor.name || "",
-                        schoolsAssigned: entityAssigned || "",
-                        schoolsCompleted: entityData.completed || "",
-                        schoolsCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
+                        entitiesAssigned: entityAssigned || "",
+                        entitiesCompleted: entityData.completed || "",
+                        entitiesCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
                         averageTimeTaken: opsHelper.getAverageTimeTaken(entityByAssessor)
                     }
                     assessorsReports.push(assessorResult)
@@ -506,7 +496,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/entityReport/:programExternalId 
+    * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionExternalId 
     * @apiVersion 0.0.1
     * @apiName Fetch Entity Report
     * @apiGroup programOperations
@@ -519,16 +509,22 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programExternalId = req.params._id;
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
+
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
+
+                programDocument = programDocument[0];
+
+                let programExternalId = programDocument.programExternalId;
 
                 let isCSV = req.query.csv;
-                let entityDocuments = await opsHelper.getEntities(programExternalId, req.userDetails, req.query, req.pageSize, req.pageNo, (!isCSV || isCSV == "false") ? true : false, []);
-                let programDocument = await opsHelper.getProgram(req.params._id, false);
+                let entityDocuments = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, (!isCSV || isCSV == "false") ? true : false, [], req.params._id);
 
                 if (!entityDocuments)
                     return resolve(noDataFound())
 
                 let entityObjects = entityDocuments.result;
+
                 let totalCount = entityDocuments.totalCount;
 
                 if (!entityObjects || !entityObjects.length) {
@@ -536,7 +532,7 @@ module.exports = class ProgramOperations {
                 }
 
                 async function noDataFound() {
-                    let result = await opsHelper.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name, req.query);
+                    let result = await opsHelper.constructResultObject('programOperationEntityReports', [], totalCount, req.userDetails, programDocument.programName, req.query);
                     return { result: result }
                 }
 
@@ -547,7 +543,7 @@ module.exports = class ProgramOperations {
 
                 if (isCSV && isCSV == "true") {
 
-                    const fileName = `schoolReport`;
+                    const fileName = `entityReport`;
                     var fileStream = new FileStream(fileName);
                     var input = fileStream.initStream();
 
@@ -599,7 +595,7 @@ module.exports = class ProgramOperations {
                 if (isCSV == "true") {
                     input.push(null)
                 } else {
-                    result = await opsHelper.constructResultObject('programOperationSchoolReports', result.entitiesReport, totalCount, req.userDetails, programDocument.name, req.query)
+                    result = await opsHelper.constructResultObject('programOperationEntityReports', result.entitiesReport, totalCount, req.userDetails, programDocument.programName, req.query)
                     return resolve({ result: result })
                 }
 
@@ -616,7 +612,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/searchEntity/:programExternalId?id=schoolId 
+    * @api {get} /assessment/api/v1/programOperations/searchEntity/:programExternalId?id=entityId 
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
@@ -624,13 +620,17 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
-    //program operation search school autocomplete API
+    //program operation search entity autocomplete API
     async searchEntity(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await opsHelper.getProgram(req.params._id);
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities"]);
+
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
+
+                programDocument = programDocument[0];
 
                 let entityIdAndName = await database.models.entities.find(
                     {

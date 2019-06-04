@@ -6,7 +6,9 @@ module.exports = {
       profileForm : Array,
       profileFields : Array,
       types: Array,
-      callResponseTypes: Array
+      callResponseTypes: Array,
+      entityTypes: Array,
+      administrationTypes: Array
     }
   };
   

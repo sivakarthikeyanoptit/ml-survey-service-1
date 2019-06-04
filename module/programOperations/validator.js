@@ -13,19 +13,16 @@ module.exports = (req) => {
             req.checkQuery('id').exists().withMessage("required entity id")
         },
         entityReport: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+            req.checkParams('_id').exists().withMessage("required solution id")
             req.checkQuery('fromDate').exists().withMessage("required from date")
-            req.checkQuery('solutionId').exists().withMessage("required solution id")
         },
         entitySummary: function () {
             req.checkParams('_id').exists().withMessage("required program id")
             req.checkQuery('fromDate').exists().withMessage("required from date")
-            req.checkQuery('solutionId').exists().withMessage("required solution id")
         },
         assessorReport: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+            req.checkParams('_id').exists().withMessage("required solution id")
             req.checkQuery('fromDate').exists().withMessage("required from date")
-            req.checkQuery('solutionId').exists().withMessage("required solution id")
         }
 
     }
