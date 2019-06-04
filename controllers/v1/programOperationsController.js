@@ -18,7 +18,7 @@ module.exports = class ProgramOperations {
 
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/listByUser List all the programs which is part of the current user
+    * @api {get} /assessment/api/v1/programOperations/listByUser Fetch Program List By User
     * @apiVersion 0.0.1
     * @apiName Fetch Program List By User
     * @apiGroup programOperations
@@ -94,7 +94,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId 
+    * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId Fetch Reports Filter
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Drop down contents) for Reports
     * @apiGroup programOperations
@@ -160,9 +160,9 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId
+    * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId Fetch User Profile
     * @apiVersion 0.0.1
-    * @apiName Manager profile
+    * @apiName User profile
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
@@ -226,7 +226,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId 
+    * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01 Fetch Entity Summary
     * @apiVersion 0.0.1
     * @apiName Fetch Entity Summary
     * @apiGroup programOperations
@@ -302,7 +302,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId 
+    * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Assessor Report
     * @apiVersion 0.0.1
     * @apiName Fetch Assessor Report
     * @apiGroup programOperations
@@ -423,7 +423,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionExternalId 
+    * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Entity Report
     * @apiVersion 0.0.1
     * @apiName Fetch Entity Report
     * @apiGroup programOperations
@@ -539,7 +539,7 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/searchEntity/:programExternalId?id=entityId 
+    * @api {get} /assessment/api/v1/programOperations/searchEntity/:solutionId?id=entityId Search Entity By Id
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
