@@ -127,96 +127,23 @@ module.exports = class ProgramOperations {
                     }
                 })
 
-                let reportsFilterForm = await database.models.forms.findOne({"name":"reportsFilter"}).lean();
+                let reportsFilterForm = await database.models.forms.findOne({"name":"reportsFilter"},{value:1}).lean();
 
-                let result = [
-                    {
-                        field: "fromDate",
-                        label: "start date",
-                        value: "",
-                        visible: true,//there is no date calculation right now
-                        editable: true,
-                        input: "date",
-                        validation: {
-                            required: true
-                        },
-                        min: new Date(0),
-                        max: new Date()
-                    },
-                    {
-                        field: "toDate",
-                        label: "end date",
-                        value: "",
-                        visible: true,//there is no date calculation right now
-                        editable: true,
-                        input: "date",
-                        validation: {
-                            required: true
-                        },
-                        min: new Date(0),
-                        max: new Date()
-                    },
-                    {
-                        field: "entityTypes",
-                        label: "entity type",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "select",
-                        options: entityTypes,
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "area",
-                        label: "entity area",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "text",
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "administration",
-                        label: "entity administration",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "select",
-                        showRemarks: true,
-                        options: administrationTypes,
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "externalId",
-                        label: "entity Id",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "text",
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: true,
-                        url: `programOperations/searchEntity/`,
-                        min: "",
-                        max: ""
-                    }
-                ];
+                let result = reportsFilterForm.value;
+                
+                result.forEach(formField=>{
+                    if(formField.field == "fromDate") {
+                        formField.min = new Date(0)
+                        formField.max = new Date()
+                    };
+                    if(formField.field == "toDate") {
+                        formField.min = new Date(0)
+                        formField.max = new Date()
+                    };
+                    if(formField.field == "entityTypes") formField.options = entityTypes;
+                    if(formField.field == "administration") formField.options = administrationTypes;
+                });
+
                 return resolve({
                     message: 'Reports filter fetched successfully.',
                     result: result
