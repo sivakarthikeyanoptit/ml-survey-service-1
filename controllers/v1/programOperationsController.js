@@ -127,21 +127,21 @@ module.exports = class ProgramOperations {
                     }
                 })
 
-                let reportsFilterForm = await database.models.forms.findOne({"name":"reportsFilter"},{value:1}).lean();
+                let reportsFilterForm = await database.models.forms.findOne({ "name": "reportsFilter" }, { value: 1 }).lean();
 
                 let result = reportsFilterForm.value;
-                
-                result.forEach(formField=>{
-                    if(formField.field == "fromDate") {
+
+                result.forEach(formField => {
+                    if (formField.field == "fromDate") {
                         formField.min = new Date(0)
                         formField.max = new Date()
                     };
-                    if(formField.field == "toDate") {
+                    if (formField.field == "toDate") {
                         formField.min = new Date(0)
                         formField.max = new Date()
                     };
-                    if(formField.field == "entityTypes") formField.options = entityTypes;
-                    if(formField.field == "administration") formField.options = administrationTypes;
+                    if (formField.field == "entityTypes") formField.options = entityTypes;
+                    if (formField.field == "administration") formField.options = administrationTypes;
                 });
 
                 return resolve({
