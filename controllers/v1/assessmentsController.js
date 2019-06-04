@@ -319,7 +319,7 @@ module.exports = class Assessments {
                 Object.values(evidenceMethodArray),
                 entityDocumentQuestionGroup,
                 submissionDoc.result.evidences,
-                (solutionDocument.length && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
+                (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
             );
 
             assessment.evidences = parsedAssessment.evidences;
