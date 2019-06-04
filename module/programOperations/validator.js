@@ -3,13 +3,13 @@ module.exports = (req) => {
     let programOperationsValidator = {
 
         reportFilters: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+            req.checkParams('_id').exists().withMessage("required solution id")
         },
-        managerProfile: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+        userProfile: function () {
+            req.checkParams('_id').exists().withMessage("required solution id")
         },
         searchEntity: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+            req.checkParams('_id').exists().withMessage("required solution id")
             req.checkQuery('id').exists().withMessage("required entity id")
         },
         entityReport: function () {
@@ -17,7 +17,7 @@ module.exports = (req) => {
             req.checkQuery('fromDate').exists().withMessage("required from date")
         },
         entitySummary: function () {
-            req.checkParams('_id').exists().withMessage("required program id")
+            req.checkParams('_id').exists().withMessage("required solution id")
             req.checkQuery('fromDate').exists().withMessage("required from date")
         },
         assessorReport: function () {
