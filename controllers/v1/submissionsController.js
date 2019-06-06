@@ -1976,7 +1976,7 @@ module.exports = class Submission extends Abstract {
   * @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
   * @apiVersion 0.0.1
   * @apiName Fetch submission status
-  * @apiGroup submissions
+  * @apiGroup Submissions
   * @apiSampleRequest /assessment/api/v1/submissions/status/5c5147ae95743c5718445eff
   * @apiParam {String} submissionId Submission ID.
   * @apiUse successBody
@@ -2008,6 +2008,135 @@ module.exports = class Submission extends Abstract {
     }).catch(error => {
       reject(error);
     });
+  }
+
+  /**
+   * @api {get} {{url}}/assessment/api/v1/submissions/mergeEcmSubmissionToAnswer Merging answer in Submissions 
+   * @apiVersion 0.0.1
+   * @apiName Merge Answers in submissions 
+   * @apiGroup Submissions
+   * @apiParam {String} solutionId Solution external Id.
+   * @apiParam {String} entityId Entity external Id.
+   * @apiParam {String} ecm Evidence collection method.
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+
+  async mergeEcmSubmissionToAnswer(req){
+
+    return new Promise(async (resolve,reject)=>{
+
+      try{
+        
+        if (!req.query.solutionId){
+          throw "Entity id is required"
+        }
+
+        if (!req.query.entityId){
+          throw "Entity id is required"
+        }
+
+        if(!req.query.ecm){
+          throw "Ecm is required"
+        }
+
+        let ecmMethod = "evidences."+req.query.ecm
+
+        let submissionDocuments = await database.models.submissions.findOne({
+          solutionExternalId:req.query.solutionId,
+          entityExternalId:req.query.entityId
+        },{answers:1,[ecmMethod]:1}).lean()
+
+        if(!submissionDocuments){
+          throw "Submissions is not found for given schools"
+        }
+
+        let ecmData = submissionDocuments.evidences[req.query.ecm]
+
+        let messageData
+
+        if(ecmData.isSubmitted == true){
+
+          for(let pointerToSubmissions = 0;pointerToSubmissions<ecmData.submissions.length;pointerToSubmissions++){
+         
+            let answerArray = {}
+
+            let currentEcmSubmissions = ecmData.submissions[pointerToSubmissions]
+
+            if(currentEcmSubmissions.isValid === true){
+
+                Object.entries(currentEcmSubmissions.answers).forEach(answer => {
+                        
+                if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+    
+                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+    
+                        answer[1].value[countOfInstances]  && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+    
+                            if (question.qid && answerArray[question.qid]) {
+    
+                                answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
+                                answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
+                                answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
+    
+                            } else {
+                                let clonedQuestion = { ...question }
+                                clonedQuestion.instanceResponses = []
+                                clonedQuestion.instanceRemarks = []
+                                clonedQuestion.instanceFileName = []
+                                clonedQuestion.instanceResponses.push(question.value)
+                                clonedQuestion.instanceRemarks.push(question.remarks)
+                                clonedQuestion.instanceFileName.push(question.fileName)
+                                delete clonedQuestion.value
+                                delete clonedQuestion.remarks
+                                delete clonedQuestion.fileName
+                                delete clonedQuestion.payload
+                                answerArray[question.qid] = clonedQuestion
+                            }
+    
+                        })
+                    }
+                    answer[1].countOfInstances = answer[1].value.length
+                }
+    
+                answerArray[answer[0]] = answer[1]
+                });
+  
+              _.merge(submissionDocuments.answers,answerArray)
+
+            }
+
+          }
+          
+        messageData = "Answers merged successfully"
+
+        }else{
+          messageData = "isSubmitted False"
+        }
+
+        return resolve({
+          message:messageData
+        })
+
+      } catch(error){
+        return reject({
+          message:error
+        })
+      }
+    })
+  }
+
+
+  extractStatusOfSubmission(submissionDocument) {
+
+    let result = {}
+    result._id = submissionDocument._id
+    result.status = submissionDocument.status
+    result.evidences = submissionDocument.evidences
+
+    return result;
+
   }
 
   // Commented out the rating flow

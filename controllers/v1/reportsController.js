@@ -98,9 +98,10 @@ module.exports = class Reports {
                 "evidencesStatus.isSubmitted": 1,
                 "evidencesStatus.hasConflicts": 1,
                 "evidencesStatus.externalId": 1,
-                "evidencesStatus.notApplicable": 1
+                "evidencesStatus.notApplicable": 1,
+                "evidencesStatus.submissions":1
               }
-            )
+            ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
@@ -126,6 +127,7 @@ module.exports = class Reports {
                   totalEcmsSubmittedCount += 1
                 }
                 _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) ? (evidenceMethod.notApplicable != true) ? true : "NA" : false })
+                _.merge(result, { [evidenceMethod.externalId + "-gpsLocation"]: (evidenceMethod.submissions.length>0) ? evidenceMethod.submissions[0].gpsLocation:"" })               
                 _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
               })
 
@@ -972,7 +974,8 @@ module.exports = class Reports {
           {
             entityExternalId:1,
             answers: 1,
-            criteria: 1
+            criteria: 1,
+            evidencesStatus : 1
           }
         ).lean().exec();
 
@@ -1236,6 +1239,19 @@ module.exports = class Reports {
                 }
 
               });
+
+              for(let pointerToEvidencesStatus = 0;pointerToEvidencesStatus<singleEntitySubmission.evidencesStatus.length;pointerToEvidencesStatus++){
+                
+                let currentEcm = singleEntitySubmission.evidencesStatus[pointerToEvidencesStatus]
+  
+                let singleEcmValue = {
+                  "School Id":singleEntitySubmission.schoolExternalId,
+                  "Criteria Id":currentEcm.externalId,
+                  "Criteria Name":(currentEcm.isSubmitted) ? (currentEcm.notApplicable != true) ? "Submitted" : "Marked NA" : "Not Submitted" 
+                }
+  
+                input.push(singleEcmValue)
+              }
 
             }
           
