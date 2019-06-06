@@ -115,9 +115,10 @@ module.exports = class Reports {
                 "evidencesStatus.isSubmitted": 1,
                 "evidencesStatus.hasConflicts": 1,
                 "evidencesStatus.externalId": 1,
-                "evidencesStatus.notApplicable": 1
+                "evidencesStatus.notApplicable": 1,
+                "evidencesStatus.submissions":1
               }
-            )
+            ).lean()
             await Promise.all(submissionDocumentsArray.map(async (eachSubmissionDocument) => {
               let result = {};
 
@@ -143,6 +144,7 @@ module.exports = class Reports {
                   totalEcmsSubmittedCount += 1
                 }
                 _.merge(result, { [evidenceMethod.externalId]: (evidenceMethod.isSubmitted) ? (evidenceMethod.notApplicable != true) ? true : "NA" : false })
+                _.merge(result, { [evidenceMethod.externalId + "-gpsLocation"]: (evidenceMethod.submissions.length>0) ? evidenceMethod.submissions[0].gpsLocation:"" })               
                 _.merge(result, { [evidenceMethod.externalId + "-duplication"]: (evidenceMethod.hasConflicts) ? evidenceMethod.hasConflicts : false })
               })
 
@@ -851,6 +853,7 @@ module.exports = class Reports {
           submissionQueryObject,
           {
             schoolExternalId:1,
+            "schoolInformation.name":1,
             criterias: 1,
             evaluationFrameworkId:1
           }
@@ -929,11 +932,15 @@ module.exports = class Reports {
 
 
         submissionDocument.forEach(eachSubmissionDocument=>{
+          
           let schoolId = eachSubmissionDocument.schoolExternalId
+          let schoolName = eachSubmissionDocument.schoolInformation.name
+
           eachSubmissionDocument.criterias && eachSubmissionDocument.criterias.forEach(submissionCriterias => {
           
             if (submissionCriterias._id && !criteriasThatIsNotIncluded.includes(submissionCriterias.externalId)) {
               let criteriaReportObject = {
+                "schoolName":schoolName,
                 "School Id":schoolId,
                 "Path To Criteria": arr[submissionCriterias._id.toString()] ? arr[submissionCriterias._id.toString()].parentPath : "",
                 "Criteria Name": criteriaName[submissionCriterias._id.toString()].name?criteriaName[submissionCriterias._id.toString()].name:"",
@@ -1001,7 +1008,8 @@ async generateSubmissionReportsBySchoolId(req) {
         {
           schoolExternalId:1,
           answers: 1,
-          criterias: 1
+          criterias: 1,
+          evidencesStatus:1
         }
       ).lean().exec();
 
@@ -1076,6 +1084,7 @@ async generateSubmissionReportsBySchoolId(req) {
 
         schoolSubmissionDocument.forEach(singleSchoolSubmission => {
           let criteriaScoreObject = {};
+          
           singleSchoolSubmission.criterias.forEach(singleCriteria => {
             criteriaScoreObject[singleCriteria._id.toString()] = {
               id: singleCriteria._id,
@@ -1261,11 +1270,26 @@ async generateSubmissionReportsBySchoolId(req) {
                     }
 
                   }
-                }
+                } 
 
               }
 
             });
+
+            for(let pointerToEvidencesStatus = 0;pointerToEvidencesStatus<singleSchoolSubmission.evidencesStatus.length;pointerToEvidencesStatus++){
+                
+              let currentEcm = singleSchoolSubmission.evidencesStatus[pointerToEvidencesStatus]
+
+              let singleEcmValue = {
+                "School Id":singleSchoolSubmission.schoolExternalId,
+                "Criteria Id":currentEcm.externalId,
+                "Criteria Name":(currentEcm.isSubmitted) ? (currentEcm.notApplicable != true) ? "Submitted" : "Marked NA" : "Not Submitted" 
+              }
+
+              input.push(singleEcmValue)
+            }
+
+
 
           }
          
@@ -2323,7 +2347,7 @@ async generateSubmissionReportsBySchoolId(req) {
           schoolProfileObject['School Name'] = schoolProfileSubmissionDocuments[counter].schoolName;
           schoolProfileObject['ECM Name'] = schoolProfileSubmissionDocuments[counter].ecmName;
           schoolProfileObject['ECM External Id'] = schoolProfileSubmissionDocuments[counter].ecmExternalId;
-          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('MM-DD-YYYY');
+          schoolProfileObject['Submmission Date'] = moment(schoolProfileSubmissionDocuments[counter].submmissionDate).format('DD-MM-YYYY');
           input.push(schoolProfileObject);
 
           if (input.readableBuffer && input.readableBuffer.length) {
