@@ -114,4 +114,73 @@ module.exports = class SolutionDetails {
       });
     }
 
+
+      /**
+    * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId
+    * @apiVersion 0.0.1
+    * @apiName criterias of a Solution
+    * @apiGroup Solution Entity Details
+    * @apiParam {String} solutionsId Solution External ID.
+    * @apiParam {String} primary 0/1.
+    * @apiParam {String} type Type of subentity
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutionDetails/criteria/Mantra-STL-2019-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    async criteria(req){
+      
+      return new Promise(async (resolve,reject)=>{
+        try{
+
+          let solutionDocument = await database.models.solutions.findOne({
+            externalId:req.params._id
+          },{themes:1}).lean()
+
+          let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+          let criteriaDocument = await database.models.criteria.find({
+            _id:{$in:criteriaIds}
+          },{name:1,externalId:1,rubric:1,_id:1}).lean()
+
+          const fileName = `criteria`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+
+          await Promise.all(criteriaDocument.map(async (singleCriteria)=>{
+
+            let criteriaObject = {
+              criteriaID:singleCriteria.externalId,
+              criteriaInternalId:singleCriteria._id.toString(),
+              criteriaName:singleCriteria.name
+            }
+
+            Object.keys(singleCriteria.rubric.levels).forEach(eachRubricData=>{
+              criteriaObject[eachRubricData] = singleCriteria.rubric.levels[eachRubricData].description
+            })
+
+            input.push(criteriaObject)
+
+          }))
+
+          input.push(null)
+          
+        }
+        catch(error){
+
+        }
+
+      })
+    }
+
 };
