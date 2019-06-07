@@ -177,7 +177,11 @@ module.exports = class SolutionDetails {
           
         }
         catch(error){
-
+          return reject({
+            status: 500,
+            message: "Oops! Something went wrong!",
+            errorObject: error
+          });
         }
 
       })
