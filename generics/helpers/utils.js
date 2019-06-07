@@ -88,7 +88,25 @@ function getUserRole(userDetails, caseSensitive = false) {
     if (caseSensitive == true) {
       return mapUserRole(role)
     }
-    return userDetails.allRoles[0];
+    return role;
+  } else {
+    return
+  }
+}
+
+function getReadableUserRole(userDetails){
+  if (userDetails && userDetails.allRoles.length) {
+
+    _.pull(userDetails.allRoles, 'PUBLIC');
+
+    let readableRoles = {
+      ASSESSOR: "Assessors",
+      LEAD_ASSESSOR: "Lead Assessors",
+      PROJECT_MANAGER: "Project Managers",
+      PROGRAM_MANAGER: "Program Managers"
+    }
+    
+    return readableRoles[userDetails.allRoles[0]] || "";
   } else {
     return
   }
@@ -140,6 +158,7 @@ module.exports = {
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
+  getReadableUserRole: getReadableUserRole,
   mapUserRole: mapUserRole,
   valueParser:valueParser,
   getAllQuestionId: getAllQuestionId,

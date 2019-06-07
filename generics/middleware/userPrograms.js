@@ -1,5 +1,5 @@
 module.exports = async (req, res, next) => {
-    if (req.userDetails && req.userDetails.id) {
+    if (req.userDetails && req.userDetails.id && req.path.includes("programOperations")) {
 
         let entityAssessorDocumentByUser = await database.models.entityAssessors.find({userId:req.userDetails.id},{solutionId:1}).lean();
 

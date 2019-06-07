@@ -1,4 +1,5 @@
-
+const moment = require("moment");
+const entityAssessorsTrackers = require(ROOT_PATH + "/module/entityAssessorTracker/helper");
 module.exports = class programOperationsHelper {
 
   static constructResultObject(graphName, value, totalCount, userDetails, programName, queryParams) {
@@ -21,15 +22,15 @@ module.exports = class programOperationsHelper {
 
   }
 
-  static getEntities(programExternalId, userDetails, queryParams, pageSize, pageNo, pagination = false, assessorIds) {
+  static getEntities(userDetails, queryParams, pageSize, pageNo, pagination = false, assessorIds, solutionId) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programDocument = await this.getProgram(programExternalId);
+        let programDocument = await database.models.programs.findOne({ "components": ObjectId(solutionId) }, { _id: 1 })
 
         let queryObject = [
           { $project: { userId: 1, parentId: 1, name: 1, entities: 1, programId: 1, updatedAt: 1, solutionId: 1 } },
-          { $match: { userId: userDetails.id, programId: programDocument._id, solutionId: ObjectId(queryParams.solutionId) } },
+          { $match: { userId: userDetails.id, solutionId: ObjectId(solutionId) } },
           {
             $graphLookup: {
               from: 'entityAssessors',
@@ -64,8 +65,6 @@ module.exports = class programOperationsHelper {
 
           userIds = _.uniq(userIds);
         }
-
-        let entityAssessorsTrackers = new entityAssessorsTrackersBaseController;
 
         let entityIds = await entityAssessorsTrackers.filterByDate(queryParams, userIds, programDocument._id);
 
@@ -109,45 +108,6 @@ module.exports = class programOperationsHelper {
     })
   }
 
-  static getProgram(programExternalId, needEntities = true) {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        if (!programExternalId)
-          throw { status: 400, message: 'Program id required.' }
-
-        let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-          name: 1, components: 1
-        }).lean();
-
-        if (!programDocument) {
-          throw { status: 400, message: 'Program not found for given params.' }
-        }
-
-        if (needEntities) {
-
-          let solutionDocument = await database.models.solutions.find({ _id: programDocument.components }, {
-            "entities": 1
-          }).lean();
-
-          programDocument["entities"] = _.flattenDeep(solutionDocument.map(solution => solution.entities))
-
-        }
-
-        return resolve(programDocument);
-
-
-      } catch (error) {
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-
-    })
-  }
-
   static getQueryObject(requestQuery) {
     let queryObject = {};
     let queries = Object.keys(requestQuery);
@@ -168,12 +128,12 @@ module.exports = class programOperationsHelper {
     return queryObject;
   }
 
-  static checkUserAuthorization(userDetails, programExternalId) {
+  static checkUserAuthorization(userDetails, solutionId) {
     let userRole = gen.utils.getUserRole(userDetails, true);
     if (userRole == "assessors") throw { status: 400, message: "You are not authorized to take this report." };
     if (userDetails.accessiblePrograms.length) {
-      let userProgramExternalIds = userDetails.accessiblePrograms.map(program => program.programExternalId);
-      if (!userProgramExternalIds.includes(programExternalId)) throw { status: 400, message: "You are not part of this program." };
+      let userProgramExternalIds = userDetails.accessiblePrograms.find(solution => solution._id.toString() == solutionId);
+      if (!userProgramExternalIds) throw { status: 400, message: "You are not part of this program." };
     }
     return
   }
