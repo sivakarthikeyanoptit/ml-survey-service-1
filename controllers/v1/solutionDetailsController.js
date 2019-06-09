@@ -118,11 +118,8 @@ module.exports = class SolutionDetails {
       /**
     * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId
     * @apiVersion 0.0.1
-    * @apiName criterias of a Solution
+    * @apiName Criterias of a Solution
     * @apiGroup Solution Entity Details
-    * @apiParam {String} solutionsId Solution External ID.
-    * @apiParam {String} primary 0/1.
-    * @apiParam {String} type Type of subentity
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/solutionDetails/criteria/Mantra-STL-2019-001
     * @apiUse successBody
@@ -144,7 +141,7 @@ module.exports = class SolutionDetails {
             _id:{$in:criteriaIds}
           },{name:1,externalId:1,rubric:1,_id:1}).lean()
 
-          const fileName = `criteria`;
+          const fileName = `Solution-Criteria`;
           let fileStream = new FileStream(fileName);
           let input = fileStream.initStream();
 
