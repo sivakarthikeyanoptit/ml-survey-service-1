@@ -157,6 +157,7 @@ module.exports = class Solutions extends Abstract {
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiParam {String} programId Program External ID.
     * @apiParam {String} frameworkId Framework External ID.
+    * @apiParam {String} entityType Entity Type.
     * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC
     * @apiUse successBody
     * @apiUse errorBody
@@ -166,119 +167,99 @@ module.exports = class Solutions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" ) {
+        if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "" ) {
           throw "Invalid parameters."
         }
 
-        let findQuery = {
+        let frameworkDocument = await database.models.frameworks.findOne({
           externalId: req.query.frameworkId
+        }).lean()
+
+        if(!frameworkDocument._id) {
+          throw "Invalid parameters."
         }
 
-        let frameworkDocument = await database.models.frameworks.findOne(findQuery).lean()
+        let programDocument = await database.models.programs.findOne({
+          externalId: req.query.programId
+        }, {
+          _id : 1,
+          externalId : 1,
+          name:1,
+          description:1
+        }).lean()
+
+        if(!programDocument._id) {
+          throw "Invalid parameters."
+        }
+
+        let entityTypeDocument = await database.models.entityTypes.findOne({
+          name: req.query.entityType
+        }, {
+          _id :1,
+          name: 1
+        }).lean()
+
+        if(!entityTypeDocument._id) {
+          throw "Invalid parameters."
+        }
 
         let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
-        let frameworkCriteria = await db.collection('criteria').find({ _id: { $in: frameworkCriteriaArray } },).toArray();
+        let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
+        let solutionCriteriaToFrameworkCriteriaMap = {}
 
         await Promise.all(frameworkCriteria.map(async (criteria) => {
-          let newCriteriaId = await db.collection('criteria').insertOne(_.omit(criteria,["_id"]))
-          if(newCriteriaId.insertedId) {
-            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId.insertedId
-            await db.collection('criteria').findOneAndUpdate({
-              _id: criteria._id
-            }, { $set: {frameworkCriteriaId: newCriteriaId.insertedId}})
+          criteria.frameworkCriteriaId = criteria._id
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria,["_id"]))
+          if(newCriteriaId._id) {
+            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
           }
         }))
 
 
-        let criteriaDocument = await database.models.criterias.find({_id: { $in: criteriasIdArray } },{"name":1,"rubric.levels":1}).lean()
-
-        let criteriaObject = {}
-
-        criteriaDocument.forEach(eachCriteria=>{
-          let levelsDescription = {}
-
-          for(let k in eachCriteria.rubric.levels){
-            levelsDescription[k] = eachCriteria.rubric.levels[k].description
-          }
-
-          criteriaObject[eachCriteria._id.toString()] =_.merge({
-            name:eachCriteria.name
-          },levelsDescription) 
-        })
-
-        let responseObject = {}
-        responseObject.heading = "Solution Framework + rubric for - "+solutionDocument.name
-
-        responseObject.sections = new Array
-
-        let levelValue = {}
-
-        let sectionHeaders = new Array
-
-        sectionHeaders.push({
-          name:"criteriaName",
-          value:"Domain"
-        })
-
-        for(let k in solutionDocument.levelToScoreMapping){
-          levelValue[k]=""
-          sectionHeaders.push({name: k,value:solutionDocument.levelToScoreMapping[k].label})
-        }
-
-        let generateCriteriaThemes =  function (themes,parentData = []) {
-
+        let updateThemes = function(themes) {
           themes.forEach(theme => {
-
+            let criteriaIdArray = new Array
+            let themeCriteriaToSet = new Array
             if (theme.children) {
-              let hierarchyTrackToUpdate = [...parentData]
-              hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
-
-              generateCriteriaThemes(theme.children,hierarchyTrackToUpdate)
-              
+              updateThemes(theme.children);
             } else {
-
-              let tableData = new Array
-              let levelObjectFromCriteria={}
-
-              let hierarchyTrackToUpdate = [...parentData]
-              hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
-
-              theme.criteria.forEach(criteria => {
-
-                if(criteriaObject[criteria.criteriaId.toString()]) {
-
-                  Object.keys(levelValue).forEach(eachLevel=>{
-                    levelObjectFromCriteria[eachLevel] = criteriaObject[criteria.criteriaId.toString()][eachLevel]
-                  })
-
-                  tableData.push(_.merge({
-                    criteriaName:criteriaObject[criteria.criteriaId.toString()].name,
-                  },levelObjectFromCriteria))
-                }
-
+              criteriaIdArray = theme.criteria;
+              criteriaIdArray.forEach(eachCriteria => {
+                  eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
+                  themeCriteriaToSet.push(eachCriteria)
               })
-
-              let eachSection = {
-                table: true,
-                data: tableData,
-                tabularData: {
-                  headers: sectionHeaders
-                },
-                summary:hierarchyTrackToUpdate
-              }
-
-              responseObject.sections.push(eachSection)
+              theme.criteria = themeCriteriaToSet
             }
           })
-
+          return true;
         }
 
-        generateCriteriaThemes(solutionDocument.themes)
+        let newSolutionDocument = _.cloneDeep(frameworkDocument)
 
+        updateThemes(newSolutionDocument.themes)
+
+        newSolutionDocument.programId = programDocument._id
+        newSolutionDocument.programExternalId = programDocument.externalId
+        newSolutionDocument.programName = programDocument.name
+        newSolutionDocument.programDescription = programDocument.description
+
+        newSolutionDocument.frameworkId = frameworkDocument._id
+        newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+
+        newSolutionDocument.entityTypeId = entityTypeDocument._id
+        newSolutionDocument.entityType = entityTypeDocument.name
+
+        let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument,["_id"]))
+        
+        if(newSolutionId._id) {
+          await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })
+        }
+        
         let response = {
-          message: "Solution framework + rubric fetched successfully.",
-          result: responseObject
+          message: "Solution generated and mapped to the program.",
+          result: newSolutionId._id
         };
 
         return resolve(response);
