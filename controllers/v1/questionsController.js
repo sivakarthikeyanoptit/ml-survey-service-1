@@ -1,5 +1,6 @@
 const csv = require("csvtojson");
 const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Questions extends Abstract {
     constructor() {
