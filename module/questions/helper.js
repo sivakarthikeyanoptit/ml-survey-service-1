@@ -216,7 +216,7 @@ module.exports = class questionsHelper {
                     criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
         
                     let queryCriteriaObject = {
-                      externalId: parsedQuestion["criteriaExternalId"]
+                      _id: newCriteria._id
                     }
         
                     let updateCriteriaObject = {}
