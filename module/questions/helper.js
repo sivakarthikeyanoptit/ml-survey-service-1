@@ -188,7 +188,7 @@ module.exports = class questionsHelper {
         
                     }
         
-                    let newCriteria = await database.models.criterias.findOne(
+                    let newCriteria = await database.models.criteria.findOne(
                       {
                         _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
                       },
@@ -224,7 +224,7 @@ module.exports = class questionsHelper {
                       ["evidences"]: criteriaEvidences
                     }
         
-                    await database.models.criterias.findOneAndUpdate(
+                    await database.models.criteria.findOneAndUpdate(
                       queryCriteriaObject,
                       updateCriteriaObject
                     )
