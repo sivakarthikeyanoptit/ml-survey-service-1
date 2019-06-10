@@ -198,7 +198,7 @@ module.exports = class questionsHelper {
                     )
                   
                     let criteriaEvidences = newCriteria.evidences
-                    let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.externalId === evidenceMethod);
+                    let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.code === evidenceMethod);
         
                     if (indexOfEvidenceMethodInCriteria < 0) {
                       evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
@@ -206,10 +206,10 @@ module.exports = class questionsHelper {
                       indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
                     }
         
-                    let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.name === questionSection)
+                    let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.code === questionSection)
               
                     if (indexOfSectionInEvidenceMethod < 0) {
-                      criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ name: questionSection, questions: new Array })
+                      criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ code: questionSection, questions: new Array })
                       indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
                     }
         

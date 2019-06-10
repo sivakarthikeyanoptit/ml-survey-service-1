@@ -168,7 +168,10 @@ module.exports = class Questions extends Abstract {
             let criteria = {}
             let ecm = {}
 
-            ecm[parsedQuestion["evidenceMethod"]] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
+            ecm[parsedQuestion["evidenceMethod"]] = {
+              code: solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId
+            }
+            
             criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
 
             let section = solutionDocument.sections[parsedQuestion.section]
