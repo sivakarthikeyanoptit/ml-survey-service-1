@@ -181,7 +181,7 @@ module.exports = class Assessments {
 
             let submissionDocument = {
                 entityId: entityDocument._id,
-                entityExternalId: (entityDocument.externalId) ? entityDocument.externalId : "",
+                entityExternalId: (entityDocument.metaInformation.externalId) ? entityDocument.metaInformation.externalId : "",
                 entityInformation: entityDocument.metaInformation,
                 solutionId: solutionDocument._id,
                 solutionExternalId: solutionDocument.externalId,
