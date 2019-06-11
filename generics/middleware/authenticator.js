@@ -106,7 +106,14 @@ module.exports = async function (req, res, next) {
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
 
-  if ((req.path.includes("reports") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
+  if (req.path.includes("solutionDetails") && (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN)) {
+    rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
+    rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
+    rspObj.responseCode = responseCode.unauthorized;
+    return res.status(401).send(respUtil(rspObj));
+  }
+
+  if ((req.path.includes("reports") || req.path.includes("solutionDetails") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
     req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
     next();
     return

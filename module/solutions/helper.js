@@ -24,7 +24,7 @@ module.exports = class solutionsHelper {
                     });
                 }
 
-                let solutionDocuments = await database.models.solutions.find(queryObject, projectionObject);
+                let solutionDocuments = await database.models.solutions.find(queryObject, projectionObject).lean();
                 return resolve(solutionDocuments)
 
             } catch (error) {

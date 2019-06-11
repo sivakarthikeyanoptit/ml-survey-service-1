@@ -153,7 +153,7 @@ module.exports = class Export {
                 }
 
                 let filePath = await filesHelper.createFileWithName(`FrameworkCriteria_${req.params._id}`);
-                let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
+                let criteriaIds = gen.utils.getCriteriaIds(frameworkDocument.themes);
                 let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } });
 
                 return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allCriteriaDocument));

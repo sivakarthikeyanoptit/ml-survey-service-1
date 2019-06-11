@@ -1,5 +1,6 @@
 const csv = require("csvtojson");
 const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Questions extends Abstract {
     constructor() {
@@ -122,7 +123,7 @@ module.exports = class Questions extends Abstract {
 
           })
         
-          let criteriaDocument = await database.models.criterias.find({
+          let criteriaDocument = await database.models.criteria.find({
             externalId:{$in:criteriaIds}
           }).lean()
 
@@ -167,7 +168,10 @@ module.exports = class Questions extends Abstract {
             let criteria = {}
             let ecm = {}
 
-            ecm[parsedQuestion["evidenceMethod"]] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
+            ecm[parsedQuestion["evidenceMethod"]] = {
+              code: solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId
+            }
+            
             criteria[parsedQuestion.criteriaExternalId] = criteriaObject[parsedQuestion.criteriaExternalId]
 
             let section = solutionDocument.sections[parsedQuestion.section]

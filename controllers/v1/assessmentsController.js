@@ -181,7 +181,7 @@ module.exports = class Assessments {
 
             let submissionDocument = {
                 entityId: entityDocument._id,
-                entityExternalId: (entityDocument.externalId) ? entityDocument.externalId : "",
+                entityExternalId: (entityDocument.metaInformation.externalId) ? entityDocument.metaInformation.externalId : "",
                 entityInformation: entityDocument.metaInformation,
                 solutionId: solutionDocument._id,
                 solutionExternalId: solutionDocument.externalId,
@@ -319,7 +319,7 @@ module.exports = class Assessments {
                 Object.values(evidenceMethodArray),
                 entityDocumentQuestionGroup,
                 submissionDoc.result.evidences,
-                (solutionDocument.length && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
+                (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
             );
 
             assessment.evidences = parsedAssessment.evidences;

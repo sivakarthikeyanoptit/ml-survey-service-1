@@ -1,20 +1,9 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
+const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
+const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
 module.exports = class ProgramOperations {
-
-    constructor() {
-        // this.assessorSchoolTracker = new assessorSchoolTrackersBaseController;
-    }
-
-    checkUserAuthorization(userDetails, programExternalId) {
-        let userRole = gen.utils.getUserRole(userDetails, true);
-        if (userRole == "assessors") throw { status: 400, message: "You are not authorized to take this report." };
-        if(userDetails.accessiblePrograms.length){
-            let userProgramExternalIds = userDetails.accessiblePrograms.map(program=> program.externalId);
-            if(!userProgramExternalIds.includes(programExternalId)) throw { status: 400, message: "You are not part of this program." };
-        }
-        return
-    }
 
     /**
       * @apiDefine errorBody
@@ -30,7 +19,7 @@ module.exports = class ProgramOperations {
 
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/listByUser List all the programs which is part of the current user
+    * @api {get} /assessment/api/v1/programOperations/listByUser Fetch Program List By User
     * @apiVersion 0.0.1
     * @apiName Fetch Program List By User
     * @apiGroup programOperations
@@ -42,43 +31,52 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userRole = gen.utils.getUserRole(req.userDetails, true);
+                let userRole = gen.utils.getUserRole(req.userDetails, false);
 
-                let programDocuments = await database.models.programs.aggregate([
-                    { "$match": { [`components.roles.${userRole}.users`]: req.userDetails.id } },
+                let entityAssessorDocumentByUser = await database.models.entityAssessors.find({ userId: req.userDetails.id, role: userRole }, { solutionId: 1 }).lean();
+
+                let solutionsDocuments = await database.models.solutions.aggregate([
+                    { "$match": { "_id": { $in: entityAssessorDocumentByUser.map(solution => solution.solutionId) } } },
                     {
-                        $lookup: {
-                            from: "evaluationFrameworks",
-                            localField: "components.id",
-                            foreignField: "_id",
-                            as: "assessments"
+                        $project: {
+                            "externalId": "$programExternalId",
+                            "_id": "$programId",
+                            "name": "$programName",
+                            "description": "$programDescription",
+                            "assessmentId": "$_id",
+                            "assessmentExternalId": "$externalId",
+                            "assessmentName": "$name",
+                            "assessmentDescription": "$description"
                         }
                     },
                     {
-                        $project: {
-                            externalId: 1,
-                            name: 1,
-                            description: 1,
-                            "assessments._id": 1,
-                            "assessments.externalId": 1,
-                            "assessments.name": 1,
-                            "assessments.description": 1
+                        $group: {
+                            _id: "$_id",
+                            name: { $first: "$name" },
+                            description: { $first: "$description" },
+                            externalId: { $first: "$externalId" },
+                            assessments: {
+                                $push: {
+                                    "_id": "$assessmentId",
+                                    "externalId": "$assessmentExternalId",
+                                    "name": "$assessmentName",
+                                    "description": "$assessmentDescription"
+                                }
+                            },
                         }
-                    }
-                ])
+                    },
+                ]
+                )
 
-                let responseMessage;
                 let response;
 
-                if (!programDocuments.length) {
+                if (!solutionsDocuments.length) {
 
-                    responseMessage = "No programs data found for given params.";
-                    response = { status: 404, message: responseMessage };
+                    response = { status: 404, message: "No programs data found for given params." };
 
                 } else {
 
-                    responseMessage = "Program information list fetched successfully.";
-                    response = { message: responseMessage, result: programDocuments };
+                    response = { message: "Program information list fetched successfully.", result: solutionsDocuments };
 
                 }
 
@@ -87,8 +85,8 @@ module.exports = class ProgramOperations {
             } catch (error) {
 
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || 500,
+                    message: error.message || "Oops! something went wrong",
                     errorObject: error
                 });
 
@@ -97,134 +95,53 @@ module.exports = class ProgramOperations {
     }
 
     /**
-  * @api {get} /assessment/api/v1/programOperations/assessorReport 
-  * @apiVersion 0.0.1
-  * @apiName Fetch Assessor Report
-  * @apiGroup programOperations
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
+    * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId Fetch Reports Filter
+    * @apiVersion 0.0.1
+    * @apiName Fetch Filters(Drop down contents) for Reports
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
-    async assessorReport(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+    async reportFilters(req) {
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await this.getProgram(req.params._id);
+                let solutionDocument = await database.models.solutions.findOne({_id:ObjectId(req.params._id)},{entities:1}).lean();
 
-                let assessorDetails;
-                let assessorQueryObject = {};
-                assessorQueryObject["$or"] = [
-                    {
-                        "parentId" : req.userDetails.id 
-                    },
-                    {
-                        "userId" : req.userDetails.id 
-                    }
-                ];
+                let entityTypeDocument = await database.models.entityTypes.findOne({ "name": "school" }, { types: 1 }).lean();
 
-                assessorQueryObject["programId"] = programDocument._id;
+                let administrationTypes = await database.models.entities.distinct('metaInformation.administration', { _id: { $in: solutionDocument.entities } }).lean();
 
-                if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
-
-                if (req.query.csv && req.query.csv == "true") {
-                    const fileName = `assessorReport`;
-                    var fileStream = new FileStream(fileName);
-                    var input = fileStream.initStream();
-
-                    (async function () {
-                        await fileStream.getProcessorPromise();
-                        return resolve({
-                            isResponseAStream: true,
-                            fileNameWithPath: fileStream.fileNameWithPath()
-                        });
-                    }());
-                }
-
-                let limitValue = (req.query.csv && req.query.csv == "true") ? "" : req.pageSize;
-                let skipValue = (req.query.csv && req.query.csv == "true") ? "" : (req.pageSize * (req.pageNo - 1));
-
-                assessorDetails = await database.models.schoolAssessors.find(assessorQueryObject, { userId: 1, name: 1, schools: 1 }).limit(limitValue).skip(skipValue).lean().exec();
-
-                let totalCount = database.models.schoolAssessors.countDocuments(assessorQueryObject).exec();
-
-                [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
-
-                let assessorSchoolIds = _.flattenDeep(assessorDetails.map(school => school.schools));
-
-                //get only uniq schoolIds
-                if (assessorSchoolIds.length) {
-                    let uniqAssessorSchoolIds = _.uniq(assessorSchoolIds.map(school => school.toString()));
-                    assessorSchoolIds = uniqAssessorSchoolIds.map(school => ObjectId(school));
-                }
-
-                let userIds = assessorDetails.map(assessor => assessor.userId);
-
-                let assessorSchoolMap = _.keyBy(assessorDetails, 'userId');
-
-                assessorSchoolIds = await this.getSchools(req, false, userIds);
-
-                assessorSchoolIds = assessorSchoolIds.result.map(school => school.id);
-
-                let submissionDocuments = await database.models.submissions.find({ schoolId: { $in: assessorSchoolIds } }, { status: 1, createdAt: 1, completedDate: 1, schoolId: 1 }).lean();
-                let schoolSubmissionMap = _.keyBy(submissionDocuments, 'schoolId');
-
-
-                function getAverageTimeTaken(submissionData) {
-                    let result = submissionData.filter(data => data.status == 'completed');
-                    if (result.length) {
-                        let dayDifference = []
-                        result.forEach(singleResult => {
-                            let startedDate = moment(singleResult.createdAt);
-                            let completedDate = moment(singleResult.completedDate);
-                            dayDifference.push(completedDate.diff(startedDate, 'days'))
-                        })
-                        let averageTimeTaken = dayDifference.reduce((a, b) => a + b, 0) / dayDifference.length;
-                        return parseFloat(averageTimeTaken.toFixed(2))
-                    } else {
-                        return ''
-                    }
-                }
-
-                function getSubmissionByAssessor(assessorId) {
-                    let assessorSchools = assessorSchoolMap[assessorId].schools;
-                    let schoolSubmissions = [];
-                    assessorSchools.forEach(schoolId => {
-                        schoolSubmissions.push(schoolSubmissionMap[schoolId.toString()])
-                    });
-                    return _.compact(schoolSubmissions);
-                }
-
-                let assessorsReports = [];
-                assessorDetails.forEach(async (assessor, index) => {
-                    let schoolsByAssessor = getSubmissionByAssessor(assessor.userId);
-                    let schoolData = _.countBy(schoolsByAssessor, 'status')
-                    let schoolAssigned = schoolsByAssessor.length;
-                    let assessorResult = {
-                        name: assessor.name || "",
-                        schoolsAssigned: schoolAssigned || "",
-                        schoolsCompleted: schoolData.completed || "",
-                        schoolsCompletedPercent: parseFloat(((schoolData.completed / schoolAssigned) * 100).toFixed(2)) || "",
-                        averageTimeTaken: getAverageTimeTaken(schoolsByAssessor)
-                    }
-                    assessorsReports.push(assessorResult)
-                    if (req.query.csv && req.query.csv == "true") {
-                        input.push(assessorResult)
-
-                        if (input.readableBuffer && input.readableBuffer.length) {
-                            while (input.readableBuffer.length > 20000) {
-                                await this.sleep(2000)
-                            }
-                        }
-
+                administrationTypes = _.compact(administrationTypes).sort().map(administrationType => {
+                    return {
+                        label: administrationType,
+                        value: administrationType
                     }
                 })
-                if (req.query.csv && req.query.csv == "true") {
-                    input.push(null);
-                } else {
-                    let result = await this.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name,req.query);
-                    return resolve({ result: result })
-                }
+
+                let reportsFilterForm = await database.models.forms.findOne({ "name": "reportsFilter" }, { value: 1 }).lean();
+
+                let result = reportsFilterForm.value;
+
+                result.forEach(formField => {
+                    if (formField.field == "fromDate") {
+                        formField.min = new Date(0)
+                        formField.max = new Date()
+                    };
+                    if (formField.field == "toDate") {
+                        formField.min = new Date(0)
+                        formField.max = new Date()
+                    };
+                    if (formField.field == "entityTypes") formField.options = entityTypeDocument.types;
+                    if (formField.field == "administration") formField.options = administrationTypes;
+                });
+
+                return resolve({
+                    message: 'Reports filter fetched successfully.',
+                    result: result
+                })
 
             } catch (error) {
                 return reject({
@@ -237,169 +154,26 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolReport 
+    * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId Fetch User Profile
     * @apiVersion 0.0.1
-    * @apiName Fetch School Report
+    * @apiName User profile
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async schoolReport(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
-        return new Promise(async (resolve, reject) => {
-            try {
-                const self = new ProgramOperations;
+    async userProfile(req) {
 
-                let programExternalId = req.params._id;
-
-                let isCSV = req.query.csv;
-                let schoolDocuments = await this.getSchools(req, (!isCSV || isCSV == "false") ? true : false, []);
-                let programDocument = await this.getProgram(req.params._id);
-
-                if (!schoolDocuments)
-                    return resolve(noDataFound())
-
-                let schoolObjects = schoolDocuments.result;
-                let totalCount = schoolDocuments.totalCount;
-
-                if (!schoolObjects || !schoolObjects.length) {
-                    return resolve(noDataFound())
-                }
-
-                async function noDataFound() {
-                    let result = await self.constructResultObject('programOperationSchoolReports', [], totalCount, req.userDetails, programDocument.name,req.query);
-                    return { result: result }
-                }
-
-                let submissionQueryObject = {};
-                let schoolObjectIds = schoolObjects.map(school => school.id)
-                submissionQueryObject.schoolId = { $in: schoolObjectIds };
-                submissionQueryObject.programExternalId = programExternalId;
-
-                if (isCSV && isCSV == "true") {
-
-                    const fileName = `schoolReport`;
-                    var fileStream = new FileStream(fileName);
-                    var input = fileStream.initStream();
-
-                    (async function () {
-                        await fileStream.getProcessorPromise();
-                        return resolve({
-                            isResponseAStream: true,
-                            fileNameWithPath: fileStream.fileNameWithPath()
-                        });
-                    }());
-                }
-
-                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, "schoolInformation.name": 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, schoolExternalId: 1 }).lean();
-
-                submissionDocuments = _.keyBy(submissionDocuments, 'schoolExternalId')
-
-                let result = {};
-
-                let schoolStatusObject = {
-                    inprogress: 'In Progress',
-                    completed: 'Complete',
-                    blocked: 'Blocked',
-                    started: 'Started'
-                }
-
-                function getAssessmentCompletionPercentage(evidencesStatus) {
-                    let isSubmittedArray = evidencesStatus.filter(singleEvidencesStatus => singleEvidencesStatus.isSubmitted == true);
-                    return parseFloat(((isSubmittedArray.length / evidencesStatus.length) * 100).toFixed(2));
-                }
-
-                result.schoolsReport = [];
-                schoolObjects.forEach(async (singleSchoolDocument) => {
-                    let submissionDetails = submissionDocuments[singleSchoolDocument.externalId];
-                    let resultObject = {};
-                    resultObject.status = submissionDetails ? (schoolStatusObject[submissionDetails.status] || submissionDetails.status) : "";
-                    resultObject.name = singleSchoolDocument.name || "";
-                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
-                    resultObject.assessmentCompletionPercent = submissionDetails ? getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
-
-                    if (isCSV == "true") {
-                        input.push(resultObject)
-
-                        if (input.readableBuffer && input.readableBuffer.length) {
-                            while (input.readableBuffer.length > 20000) {
-                                await this.sleep(2000)
-                            }
-                        }
-                    } else {
-                        result.schoolsReport.push(resultObject)
-                    }
-
-                })
-
-                if (isCSV == "true") {
-                    input.push(null)
-                } else {
-                    result = await this.constructResultObject('programOperationSchoolReports', result.schoolsReport, totalCount, req.userDetails, programDocument.name,req.query)
-                    return resolve({ result: result })
-                }
-
-            } catch (error) {
-
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
-                    errorObject: error
-                });
-
-            }
-        })
-    }
-
-    constructResultObject(graphName, value, totalCount, userDetails, programName, queryParams) {
-        return new Promise(async (resolve, reject) => {
-            let reportOptions = await database.models.reportOptions.findOne({ name: graphName }).lean();
-            let headers = reportOptions.results.sections[0].tabularData.headers.map(header => header.name)
-            let data = value.map(singleValue => {
-                let resultObject = {}
-                headers.forEach(singleHeader => {
-                    resultObject[singleHeader] = singleValue[singleHeader];
-                })
-                return resultObject;
-            })
-            reportOptions.results.sections[0].data = data;
-            reportOptions.results.sections[0].totalCount = totalCount;
-            reportOptions.results.isShareable = (queryParams && queryParams.linkId) ? false : true;
-            reportOptions.results.title = `Program Operations Report for ${programName}`;
-            return resolve(reportOptions.results);
-        })
-
-    }
-
-    /**
-    * @api {get} /assessment/api/v1/programOperations/managerProfile 
-    * @apiVersion 0.0.1
-    * @apiName Manager profile
-    * @apiGroup programOperations
-    * @apiUse successBody
-    * @apiUse errorBody
-    */
-
-    async managerProfile(req) {
-
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userRole = gen.utils.getUserRole(req.userDetails, true);
+                let userRole = gen.utils.getReadableUserRole(req.userDetails);
 
                 let managerName = (req.userDetails.firstName + " " + req.userDetails.lastName).trim();
 
-                let roles = {
-                    assessors: "Assessors",
-                    leadAssessors: "Lead Assessors",
-                    projectManagers: "Project Managers",
-                    programManagers: "Program Managers"
-                };
-
-                let programDocument = await this.getProgram(req.params._id);
+                let programDocument = await database.models.solutions.findOne({ _id: ObjectId(req.params._id) }, { programName: 1 }).lean();
 
                 let result = [
                     {
@@ -412,11 +186,11 @@ module.exports = class ProgramOperations {
                     },
                     {
                         label: "role",
-                        value: roles[userRole] || "",
+                        value: userRole,
                     },
                     {
                         label: "nameOfTheProgram",
-                        value: programDocument.name,
+                        value: programDocument.programName,
                     },
                     {
                         label: "userName",
@@ -446,32 +220,32 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/schoolSummary 
+    * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01 Fetch Entity Summary
     * @apiVersion 0.0.1
-    * @apiName Fetch School Summary
+    * @apiName Fetch Entity Summary
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async schoolSummary(req) {
+    async entitySummary(req) {
 
-        this.checkUserAuthorization(req.userDetails, req.params._id);
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
 
         return new Promise(async (resolve, reject) => {
             try {
 
                 let resultArray = [
                     {
-                        label: "schoolsAssigned",
+                        label: "entitiesAssigned",
                         value: "",
                     },
                     {
-                        label: "schoolsCompleted",
+                        label: "entitiesCompleted",
                         value: "",
                     },
                     {
-                        label: "schoolsInporgress",
+                        label: "entitiesInporgress",
                         value: "",
                     },
                     {
@@ -480,29 +254,28 @@ module.exports = class ProgramOperations {
                     }
                 ];
 
-                let schoolObjects = await this.getSchools(req, false, []);
+                let entityObjects = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, false, [], req.params._id);
 
-
-                if (!schoolObjects || !schoolObjects.result || !schoolObjects.result.length)
+                if (!entityObjects || !entityObjects.result || !entityObjects.result.length)
                     return resolve({
                         result: resultArray
                     })
 
-                let schoolDocuments = schoolObjects.result;
+                let entityDocuments = entityObjects.result;
 
-                let schoolIds = schoolDocuments.map(school => school.id);
+                let entityIds = entityDocuments.map(entity => entity.id);
 
-                let schoolsCompletedCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'completed' }).lean().exec();
+                let entitiesCompletedCount = database.models.submissions.countDocuments({ entityId: { $in: entityIds }, status: 'completed' }).lean().exec();
 
-                let schoolsInprogressCount = database.models.submissions.countDocuments({ schoolId: { $in: schoolIds }, status: 'inprogress' }).lean().exec();
+                let entitiesInprogressCount = database.models.submissions.countDocuments({ entityId: { $in: entityIds }, status: 'inprogress' }).lean().exec();
 
-                [schoolsCompletedCount, schoolsInprogressCount] = await Promise.all([schoolsCompletedCount, schoolsInprogressCount]);
+                [entitiesCompletedCount, entitiesInprogressCount] = await Promise.all([entitiesCompletedCount, entitiesInprogressCount]);
 
-                let averageTimeTaken = (schoolDocuments.length / schoolsCompletedCount);
+                let averageTimeTaken = (entityDocuments.length / entitiesCompletedCount);
 
-                resultArray[0]["value"] = schoolDocuments.length;
-                resultArray[1]["value"] = schoolsCompletedCount || "";
-                resultArray[2]["value"] = schoolsInprogressCount || "";
+                resultArray[0]["value"] = entityDocuments.length;
+                resultArray[1]["value"] = entitiesCompletedCount || "";
+                resultArray[2]["value"] = entitiesInprogressCount || "";
                 resultArray[3]["value"] = averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "";
 
                 return resolve({
@@ -523,135 +296,115 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/reportFilters 
+    * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Assessor Report
     * @apiVersion 0.0.1
-    * @apiName Fetch Filters(Drop down contents) for Reports
+    * @apiName Fetch Assessor Report
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
     */
 
-    async reportFilters(req) {
-        this.checkUserAuthorization(req.userDetails,req.params._id);
+    async assessorReport(req) {
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await this.getProgram(req.params._id);
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
 
-                let schoolTypes = await database.models.schools.distinct('schoolTypes', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
-                let administrationTypes = await database.models.schools.distinct('administration', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
-                let types = await Promise.all([schoolTypes, administrationTypes]);
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
 
-                schoolTypes = _.compact(types[0]);
-                administrationTypes = _.compact(types[1]);
+                programDocument = programDocument[0];
 
-
-                schoolTypes = schoolTypes.sort().map(schoolType => {
-                    return {
-                        label: schoolType,
-                        value: schoolType
-                    }
-                })
-
-                administrationTypes = administrationTypes.sort().map(administrationType => {
-                    return {
-                        label: administrationType,
-                        value: administrationType
-                    }
-                })
-
-                let result = [
+                let assessorDetails;
+                let assessorQueryObject = {};
+                assessorQueryObject["$or"] = [
                     {
-                        field: "fromDate",
-                        label: "start date",
-                        value: "",
-                        visible: true,//there is no date calculation right now
-                        editable: true,
-                        input: "date",
-                        validation: {
-                            required: true
-                        },
-                        min: new Date(0),
-                        max: new Date()
+                        "parentId": req.userDetails.id
                     },
                     {
-                        field: "toDate",
-                        label: "end date",
-                        value: "",
-                        visible: true,//there is no date calculation right now
-                        editable: true,
-                        input: "date",
-                        validation: {
-                            required: true
-                        },
-                        min: new Date(0),
-                        max: new Date()
-                    },
-                    {
-                        field: "schoolTypes",
-                        label: "school type",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "select",
-                        options: schoolTypes,
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "area",
-                        label: "school area",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "text",
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "administration",
-                        label: "school administration",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "select",
-                        showRemarks: true,
-                        options: administrationTypes,
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: false,
-                        min: "",
-                        max: ""
-                    },
-                    {
-                        field: "externalId",
-                        label: "school Id",
-                        value: "",
-                        visible: true,
-                        editable: true,
-                        input: "text",
-                        validation: {
-                            required: false
-                        },
-                        autocomplete: true,
-                        url: `programOperations/searchSchool/`,
-                        min: "",
-                        max: ""
+                        "userId": req.userDetails.id
                     }
                 ];
-                return resolve({
-                    message: 'Reports filter fetched successfully.',
-                    result: result
+
+                assessorQueryObject["programId"] = programDocument.programId;
+
+                assessorQueryObject["solutionId"] = ObjectId(req.params._id);
+
+                if (req.query.assessorName) assessorQueryObject["name"] = new RegExp(req.query.assessorName, 'i');
+
+                if (req.query.csv && req.query.csv == "true") {
+                    const fileName = `assessorReport`;
+                    var fileStream = new FileStream(fileName);
+                    var input = fileStream.initStream();
+
+                    (async function () {
+                        await fileStream.getProcessorPromise();
+                        return resolve({
+                            isResponseAStream: true,
+                            fileNameWithPath: fileStream.fileNameWithPath()
+                        });
+                    }());
+                }
+
+                let limitValue = (req.query.csv && req.query.csv == "true") ? "" : req.pageSize;
+                let skipValue = (req.query.csv && req.query.csv == "true") ? "" : (req.pageSize * (req.pageNo - 1));
+
+                assessorDetails = database.models.entityAssessors.find(assessorQueryObject, { userId: 1, name: 1, entities: 1 }).limit(limitValue).skip(skipValue).lean().exec();
+
+                let totalCount = database.models.entityAssessors.countDocuments(assessorQueryObject).exec();
+
+                [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
+
+                let assessorEntityIds = _.flattenDeep(assessorDetails.map(entity => entity.entities));
+
+                //get only uniq entityIds
+                if (assessorEntityIds.length) {
+                    let uniqAssessorEntityIds = _.uniq(assessorEntityIds.map(entity => entity.toString()));
+                    assessorEntityIds = uniqAssessorEntityIds.map(entity => ObjectId(entity));
+                }
+
+                let userIds = assessorDetails.map(assessor => assessor.userId);
+
+                let assessorEntityMap = _.keyBy(assessorDetails, 'userId');
+
+                assessorEntityIds = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, false, userIds, req.params._id);
+
+                assessorEntityIds = (assessorEntityIds.result && assessorEntityIds.result.length) ? assessorEntityIds.result.map(entity => entity.id) : [];
+
+                let submissionDocuments = await database.models.submissions.find({ entityId: { $in: assessorEntityIds } }, { status: 1, createdAt: 1, completedDate: 1, entityId: 1 }).lean();
+
+                let entitySubmissionMap = _.keyBy(submissionDocuments, 'entityId');
+
+                let assessorsReports = [];
+                assessorDetails.forEach(async (assessor) => {
+                    let entityByAssessor = opsHelper.getSubmissionByAssessor(assessor.userId, entitySubmissionMap, assessorEntityMap);
+                    let entityData = _.countBy(entityByAssessor, 'status')
+                    let entityAssigned = entityByAssessor.length;
+                    let assessorResult = {
+                        name: assessor.name || "",
+                        entitiesAssigned: entityAssigned || "",
+                        entitiesCompleted: entityData.completed || "",
+                        entitiesCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
+                        averageTimeTaken: opsHelper.getAverageTimeTaken(entityByAssessor)
+                    }
+                    assessorsReports.push(assessorResult)
+                    if (req.query.csv && req.query.csv == "true") {
+                        input.push(assessorResult)
+
+                        if (input.readableBuffer && input.readableBuffer.length) {
+                            while (input.readableBuffer.length > 20000) {
+                                await opsHelper.sleep(2000)
+                            }
+                        }
+
+                    }
                 })
+                if (req.query.csv && req.query.csv == "true") {
+                    input.push(null);
+                } else {
+                    let result = await opsHelper.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name, req.query);
+                    return resolve({ result: result })
+                }
 
             } catch (error) {
                 return reject({
@@ -664,7 +417,116 @@ module.exports = class ProgramOperations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/programOperations/searchSchool 
+    * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Entity Report
+    * @apiVersion 0.0.1
+    * @apiName Fetch Entity Report
+    * @apiGroup programOperations
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    async entityReport(req) {
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
+
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
+
+                programDocument = programDocument[0];
+
+                let programExternalId = programDocument.programExternalId;
+
+                let isCSV = req.query.csv;
+                let entityDocuments = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, (!isCSV || isCSV == "false") ? true : false, [], req.params._id);
+
+                if (!entityDocuments)
+                    return resolve(noDataFound())
+
+                let entityObjects = entityDocuments.result;
+
+                let totalCount = entityDocuments.totalCount;
+
+                if (!entityObjects || !entityObjects.length) {
+                    return resolve(noDataFound())
+                }
+
+                async function noDataFound() {
+                    let result = await opsHelper.constructResultObject('programOperationEntityReports', [], totalCount, req.userDetails, programDocument.programName, req.query);
+                    return { result: result }
+                }
+
+                let submissionQueryObject = {};
+                let entityObjectIds = entityObjects.map(entity => entity.id)
+                submissionQueryObject.entityId = { $in: entityObjectIds };
+                submissionQueryObject.programExternalId = programExternalId;
+
+                if (isCSV && isCSV == "true") {
+
+                    const fileName = `entityReport`;
+                    var fileStream = new FileStream(fileName);
+                    var input = fileStream.initStream();
+
+                    (async function () {
+                        await fileStream.getProcessorPromise();
+                        return resolve({
+                            isResponseAStream: true,
+                            fileNameWithPath: fileStream.fileNameWithPath()
+                        });
+                    }());
+                }
+
+                let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, entityExternalId: 1 }).lean();
+
+                submissionDocuments = _.keyBy(submissionDocuments, 'entityExternalId')
+
+                let result = {};
+
+                result.entitiesReport = [];
+                entityObjects.forEach(async (singleEntityDocument) => {
+                    let submissionDetails = submissionDocuments[singleEntityDocument.externalId];
+                    let resultObject = {};
+                    resultObject.status = submissionDetails ? (submissionHelper.mapSubmissionStatus(submissionDetails.status) || submissionDetails.status) : "";
+                    resultObject.name = singleEntityDocument.name || "";
+                    resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
+                    resultObject.assessmentCompletionPercent = submissionDetails ? opsHelper.getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
+
+                    if (isCSV == "true") {
+                        input.push(resultObject)
+
+                        if (input.readableBuffer && input.readableBuffer.length) {
+                            while (input.readableBuffer.length > 20000) {
+                                await opsHelper.sleep(2000)
+                            }
+                        }
+                    } else {
+                        result.entitiesReport.push(resultObject)
+                    }
+
+                })
+
+                if (isCSV == "true") {
+                    input.push(null)
+                } else {
+                    result = await opsHelper.constructResultObject('programOperationEntityReports', result.entitiesReport, totalCount, req.userDetails, programDocument.programName, req.query)
+                    return resolve({ result: result })
+                }
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+
+            }
+        })
+    }
+
+    /**
+    * @api {get} /assessment/api/v1/programOperations/searchEntity/:solutionId?id=entityId Search Entity By Id
     * @apiVersion 0.0.1
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
@@ -672,31 +534,37 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
-    //searchSchool is for program operation search school autocomplete
-    async searchSchool(req) {
-        this.checkUserAuthorization(req.userDetails, req.params._id);
+    //program operation search entity autocomplete API
+    async searchEntity(req) {
+        opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
             try {
 
-                let programDocument = await this.getProgram(req.params._id);
+                let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities"]);
 
-                if (!req.query.id) {
-                    throw { status: 400, message: 'School id required.' }
-                }
+                if (!programDocument.length) throw { status: 400, message: "bad request" }
 
-                let schoolIdAndName = await database.models.schools.find(
+                programDocument = programDocument[0];
+
+                let entityIdAndName = await database.models.entities.find(
                     {
-                        _id: { $in: programDocument.components[0].schools },
-                        externalId: new RegExp(req.query.id, 'i')
+                        _id: { $in: programDocument.entities },
+                        "metaInformation.externalId": new RegExp(req.query.id, 'i')
                     },
                     {
-                        externalId: 1, name: 1
+                        "metaInformation.externalId": 1,
+                        "metaInformation.name": 1
                     }
                 ).limit(5).lean();//autocomplete needs only 5 dataset
 
+                entityIdAndName = entityIdAndName.map(entityIdAndName => {
+                    entityIdAndName.metaInformation._id = entityIdAndName._id;
+                    return entityIdAndName.metaInformation;
+                })
+
                 return resolve({
                     status: 200,
-                    result: schoolIdAndName
+                    result: entityIdAndName
                 })
 
             } catch (error) {
@@ -709,138 +577,5 @@ module.exports = class ProgramOperations {
         })
     }
 
-    //sub function to get schools based on program and current user role
-    async getSchools(req, pagination = false, assessorIds) {
-        return new Promise(async (resolve, reject) => {
-            try {
 
-                let programDocument = await this.getProgram(req.params._id);
-
-                let queryObject = [
-                    { $project: { userId: 1, parentId: 1, name: 1, schools: 1, programId: 1, updatedAt: 1 } },
-                    { $match: { userId: req.userDetails.id, programId: programDocument._id } },
-                    {
-                        $graphLookup: {
-                            from: 'schoolAssessors',
-                            startWith: '$userId',
-                            connectFromField: 'userId',
-                            connectToField: 'parentId',
-                            maxDepth: 20,
-                            as: 'children'
-                        }
-                    },
-                    {
-                        $project: { schools: 1, userId: 1, "children.schools": 1, "children.userId": 1 }
-                    }
-                ];
-
-                let schoolsAssessorDocuments = await database.models.schoolAssessors.aggregate(queryObject);
-
-                if (schoolsAssessorDocuments.length<1) {
-                    return resolve([]);
-                }
-
-                let userIds = [];
-
-                if (assessorIds.length) {
-                    userIds = assessorIds;
-                } else {
-                    userIds.push(schoolsAssessorDocuments[0].userId);
-
-                    schoolsAssessorDocuments[0].children.forEach(child => {
-                        userIds.push(child.userId)
-                    })
-
-                    userIds = _.uniq(userIds);
-                }
-
-
-                // let schoolIds = await this.assessorSchoolTracker.filterByDate(req.query, userIds, programDocument._id);
-
-                let schoolObjectIds = _.uniq(schoolIds).map(schoolId => ObjectId(schoolId));
-
-                let schoolQueryObject = {};
-                schoolQueryObject._id = { $in: schoolObjectIds };
-
-                _.merge(schoolQueryObject, this.getQueryObject(req.query))
-                let totalCount = database.models.schools.countDocuments(schoolQueryObject).exec();
-                let filteredSchoolDocument;
-
-                let limitValue = (pagination == false) ? "" : req.pageSize;
-                let skipValue = (pagination == false) ? "" : (req.pageSize * (req.pageNo - 1));
-
-                filteredSchoolDocument = database.models.schools.find(schoolQueryObject, { _id: 1, name: 1, externalId: 1 }).limit(limitValue).skip(skipValue).lean().exec();
-
-                [filteredSchoolDocument, totalCount] = await Promise.all([filteredSchoolDocument, totalCount])
-
-                let schoolDocumentFilteredObject = filteredSchoolDocument.map(school => {
-                    return {
-                        id: school._id,
-                        name: school.name,
-                        externalId: school.externalId
-                    }
-                });
-
-                return resolve({ result: schoolDocumentFilteredObject, totalCount: totalCount });
-
-            } catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
-                    errorObject: error
-                });
-            }
-        })
-    }
-
-    async getProgram(programExternalId) {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                if (!programExternalId)
-                    throw { status: 400, message: 'Program id required.' }
-
-                let programDocument = await database.models.programs.findOne({ externalId: programExternalId }, {
-                    _id: 1, name: 1, "components.schools": 1
-                }).lean();
-
-                if (!programDocument) {
-                    throw { status: 400, message: 'Program not found for given params.' }
-                }
-
-                return resolve(programDocument);
-
-            } catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
-                    errorObject: error
-                });
-            }
-
-        })
-    }
-
-    async sleep(ms) {
-        return new Promise((resolve) => {
-            setTimeout(resolve, ms)
-        })
-    }
-
-    getQueryObject(requestQuery) {
-        let queryObject = {};
-        let queries = Object.keys(requestQuery);
-        let filteredQueries = _.pullAll(queries, ['csv', 'fromDate', 'toDate', 'assessorName','linkId','ProgramId']);
-
-        filteredQueries.forEach(query => {
-            if (query == "area") {
-                queryObject["$or"] = [{ zoneId: new RegExp(requestQuery.area, 'i') }, { districtName: new RegExp(requestQuery.area, 'i') }];
-            } else if (query == "schoolName") {
-                queryObject["name"] = new RegExp(requestQuery.schoolName, 'i')
-            } else {
-                if (requestQuery[query]) queryObject[query] = requestQuery[query];
-            }
-        })
-        return queryObject;
-    }
 };

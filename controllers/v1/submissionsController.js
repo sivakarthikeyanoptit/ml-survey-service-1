@@ -1032,31 +1032,72 @@ module.exports = class Submission extends Abstract {
             
               if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                 let submissionAnswers = new Array
-                const questionValueExtractor = function (question) {
-                  let result;
-                  const questionArray = question.split('.')
-                  if(questionArray[0] === "entityProfile") {
 
-                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionArray[1]]){
-                      result = submissionDocument.entityProfile[questionArray[1]]
+                const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
+                  let result;
+                  const questionOrCriteriaArray = questionOrCriteria.split('.')
+                  
+                  if(_.includes(questionOrCriteriaArray,"entityProfile")) {
+
+                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                      result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                     } else {
-                      result = submissionDocument.entityInformation[questionArray[1]]
+                      result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
 
                     if(!result || result == "" || !(result.length>=0)) {
                       result = "NA"
                     }
-
                     submissionAnswers.push(result)
                     return result
                   }
 
-                  submissionAnswers.push(submissionDocument.answers[questionArray[0]])
+                  if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
+                    result = 0
+
+                    let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
+                    let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                    if(criteriaIdIndex < 0) {
+                      return "NA"
+                    }
+
+                    let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
+                    let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
+                    if(criteriaQuestionFunctionIndex < 0) {
+                      return "NA"
+                    }
+
+                    criteriaQuestionFunction = criteriaQuestionFunction.substring(
+                      criteriaQuestionFunction.lastIndexOf("(") + 1, 
+                      criteriaQuestionFunction.lastIndexOf(")")
+                    );
+                    
+                    criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
+
+                    let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+                    
+
+                    let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
+                    if(criteriaQuestionFilter[1]) {
+                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                    }
+                    submissionAnswers.push(...allCriteriaQuestions)
+
+                    allCriteriaQuestions.forEach(question => {
+                      if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                        result += 1
+                      }
+                    })
+
+                    return result
+                  }
+
+                  submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
                   let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                   inputTypes.forEach(inputType => {
-                    if (questionArray[1] === inputType) {
-                      if (submissionDocument.answers[questionArray[0]] && (submissionDocument.answers[questionArray[0]][inputType] || submissionDocument.answers[questionArray[0]][inputType] == 0)) {
-                        result = submissionDocument.answers[questionArray[0]][inputType];
+                    if (questionOrCriteriaArray[1] === inputType) {
+                      if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                        result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                       } else {
                         result = "NA";
                       }
@@ -1071,7 +1112,7 @@ module.exports = class Submission extends Abstract {
 
                 Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                   if (variable != "default") {
-                    expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
+                    expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
                     expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                     if (expressionVariables[variable] === "NA") {
                       allValuesAvailable = false;
@@ -1130,13 +1171,13 @@ module.exports = class Submission extends Abstract {
 
                 let score = "NA"
                 if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4.result) {
+                  if (expressionResult.L4 && expressionResult.L4.result) {
                     score = "L4"
-                  } else if (expressionResult.L3.result) {
+                  } else if (expressionResult.L3 && expressionResult.L3.result) {
                     score = "L3"
-                  } else if (expressionResult.L2.result) {
+                  } else if (expressionResult.L2 && expressionResult.L2.result) {
                     score = "L2"
-                  } else if (expressionResult.L1.result) {
+                  } else if (expressionResult.L1 && expressionResult.L1.result) {
                     score = "L1"
                   } else {
                     score = "No Level Matched"
@@ -1166,6 +1207,7 @@ module.exports = class Submission extends Abstract {
               return criteria
 
             }
+
           }));
 
           if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
@@ -1276,50 +1318,91 @@ module.exports = class Submission extends Abstract {
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
-                  const questionValueExtractor = function (question) {
+                  
+                  const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                     let result;
-                    const questionArray = question.split('.')
+                    const questionOrCriteriaArray = questionOrCriteria.split('.')
+                    
+                    if(_.includes(questionOrCriteriaArray,"entityProfile")) {
   
-                    if(questionArray[0] === "entityProfile") {
-  
-                    if(eachSubmissionDocument.entityProfile && eachSubmissionDocument.entityProfile[questionArray[1]]){
-                      result = eachSubmissionDocument.entityProfile[questionArray[1]]
-                    } else {
-                      result = eachSubmissionDocument.entityInformation[questionArray[1]]
-                    }
-  
-                    if(!result || result == "" || !(result.length>=0)) {
-                      result = "NA"
-                    }
-                    submissionAnswers.push(result)
-                    return result
-                    }
-  
-                    submissionAnswers.push(eachSubmissionDocument.answers[questionArray[0]])
-                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-  
-                    inputTypes.forEach(inputType => {
-                    if (questionArray[1] === inputType) {
-                      if (eachSubmissionDocument.answers[questionArray[0]] && (eachSubmissionDocument.answers[questionArray[0]][inputType] || eachSubmissionDocument.answers[questionArray[0]][inputType] == 0)) {
-                        result = eachSubmissionDocument.answers[questionArray[0]][inputType];
+                      if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                        result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                       } else {
-                        result = "NA";
+                        result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                       }
+  
+                      if(!result || result == "" || !(result.length>=0)) {
+                        result = "NA"
+                      }
+                      submissionAnswers.push(result)
+                      return result
                     }
+  
+                    if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
+                      result = 0
+  
+                      let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
+                      let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                      if(criteriaIdIndex < 0) {
+                        return "NA"
+                      }
+  
+                      let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
+                      let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
+                      if(criteriaQuestionFunctionIndex < 0) {
+                        return "NA"
+                      }
+  
+                      criteriaQuestionFunction = criteriaQuestionFunction.substring(
+                        criteriaQuestionFunction.lastIndexOf("(") + 1, 
+                        criteriaQuestionFunction.lastIndexOf(")")
+                      );
+                      
+                      criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
+  
+                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+                      
+  
+                      let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
+                      if(criteriaQuestionFilter[1]) {
+                        allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                      }
+                      submissionAnswers.push(...allCriteriaQuestions)
+  
+                      allCriteriaQuestions.forEach(question => {
+                        if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                          result += 1
+                        }
+                      })
+  
+                      return result
+                    }
+  
+                    submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
+                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                    inputTypes.forEach(inputType => {
+                      if (questionOrCriteriaArray[1] === inputType) {
+                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                          result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
+                        } else {
+                          result = "NA";
+                        }
+                      }
                     })
                     return result;
                   }
+
                   let expressionVariables = {};
                   let expressionResult = {};
                   let allValuesAvailable = true;
   
                   Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
                     if (variable != "default") {
-                      expressionVariables[variable] = questionValueExtractor(criteria.rubric.expressionVariables[variable]);
+                      expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
                       expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                       if (expressionVariables[variable] === "NA") {
                         allValuesAvailable = false;
-                     }
+                      }
                     }
                   })
   
@@ -1368,13 +1451,13 @@ module.exports = class Submission extends Abstract {
   
                 let score = "NA"
                 if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4.result) {
+                  if (expressionResult.L4 && expressionResult.L4.result) {
                     score = "L4"
-                  } else if (expressionResult.L3.result) {
+                  } else if (expressionResult.L3 && expressionResult.L3.result) {
                     score = "L3"
-                  } else if (expressionResult.L2.result) {
+                  } else if (expressionResult.L2 && expressionResult.L2.result) {
                     score = "L2"
-                  } else if (expressionResult.L1.result) {
+                  } else if (expressionResult.L1 && expressionResult.L1.result) {
                     score = "L1"
                   } else {
                     score = "No Level Matched"
@@ -1893,7 +1976,7 @@ module.exports = class Submission extends Abstract {
   * @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
   * @apiVersion 0.0.1
   * @apiName Fetch submission status
-  * @apiGroup submissions
+  * @apiGroup Submissions
   * @apiSampleRequest /assessment/api/v1/submissions/status/5c5147ae95743c5718445eff
   * @apiParam {String} submissionId Submission ID.
   * @apiUse successBody
@@ -1925,6 +2008,135 @@ module.exports = class Submission extends Abstract {
     }).catch(error => {
       reject(error);
     });
+  }
+
+  /**
+   * @api {get} {{url}}/assessment/api/v1/submissions/mergeEcmSubmissionToAnswer Merging answer in Submissions 
+   * @apiVersion 0.0.1
+   * @apiName Merge Answers in submissions 
+   * @apiGroup Submissions
+   * @apiParam {String} solutionId Solution external Id.
+   * @apiParam {String} entityId Entity external Id.
+   * @apiParam {String} ecm Evidence collection method.
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+
+  async mergeEcmSubmissionToAnswer(req){
+
+    return new Promise(async (resolve,reject)=>{
+
+      try{
+        
+        if (!req.query.solutionId){
+          throw "Entity id is required"
+        }
+
+        if (!req.query.entityId){
+          throw "Entity id is required"
+        }
+
+        if(!req.query.ecm){
+          throw "Ecm is required"
+        }
+
+        let ecmMethod = "evidences."+req.query.ecm
+
+        let submissionDocuments = await database.models.submissions.findOne({
+          solutionExternalId:req.query.solutionId,
+          entityExternalId:req.query.entityId
+        },{answers:1,[ecmMethod]:1}).lean()
+
+        if(!submissionDocuments){
+          throw "Submissions is not found for given schools"
+        }
+
+        let ecmData = submissionDocuments.evidences[req.query.ecm]
+
+        let messageData
+
+        if(ecmData.isSubmitted == true){
+
+          for(let pointerToSubmissions = 0;pointerToSubmissions<ecmData.submissions.length;pointerToSubmissions++){
+         
+            let answerArray = {}
+
+            let currentEcmSubmissions = ecmData.submissions[pointerToSubmissions]
+
+            if(currentEcmSubmissions.isValid === true){
+
+                Object.entries(currentEcmSubmissions.answers).forEach(answer => {
+                        
+                if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+    
+                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+    
+                        answer[1].value[countOfInstances]  && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+    
+                            if (question.qid && answerArray[question.qid]) {
+    
+                                answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
+                                answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
+                                answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
+    
+                            } else {
+                                let clonedQuestion = { ...question }
+                                clonedQuestion.instanceResponses = []
+                                clonedQuestion.instanceRemarks = []
+                                clonedQuestion.instanceFileName = []
+                                clonedQuestion.instanceResponses.push(question.value)
+                                clonedQuestion.instanceRemarks.push(question.remarks)
+                                clonedQuestion.instanceFileName.push(question.fileName)
+                                delete clonedQuestion.value
+                                delete clonedQuestion.remarks
+                                delete clonedQuestion.fileName
+                                delete clonedQuestion.payload
+                                answerArray[question.qid] = clonedQuestion
+                            }
+    
+                        })
+                    }
+                    answer[1].countOfInstances = answer[1].value.length
+                }
+    
+                answerArray[answer[0]] = answer[1]
+                });
+  
+              _.merge(submissionDocuments.answers,answerArray)
+
+            }
+
+          }
+          
+        messageData = "Answers merged successfully"
+
+        }else{
+          messageData = "isSubmitted False"
+        }
+
+        return resolve({
+          message:messageData
+        })
+
+      } catch(error){
+        return reject({
+          message:error
+        })
+      }
+    })
+  }
+
+
+  extractStatusOfSubmission(submissionDocument) {
+
+    let result = {}
+    result._id = submissionDocument._id
+    result.status = submissionDocument.status
+    result.evidences = submissionDocument.evidences
+
+    return result;
+
   }
 
   // Commented out the rating flow

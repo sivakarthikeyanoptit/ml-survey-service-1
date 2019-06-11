@@ -23,9 +23,9 @@ module.exports = class Criteria extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/criteria/insert Add Criterias
+  * @api {post} /assessment/api/v1/criteria/insert Add Criteria
   * @apiVersion 0.0.1
-  * @apiName Add Criterias
+  * @apiName Add Criteria
   * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
 * {
@@ -144,7 +144,7 @@ module.exports = class Criteria extends Abstract {
         })
 
         criteria.rubric = rubricStructure
-        let generatedCriteriaDocument = await database.models.criterias.create(
+        let generatedCriteriaDocument = await database.models.criteria.create(
           criteria
         );
 
@@ -184,7 +184,7 @@ module.exports = class Criteria extends Abstract {
         query.push({ _id: ObjectId(value) });
       });
 
-      let criterias = await database.models.criterias.find({ $or: query });
+      let criterias = await database.models.criteria.find({ $or: query });
 
 
       await _.forEachRight(criterias, async function (crit, i) {
@@ -232,7 +232,7 @@ module.exports = class Criteria extends Abstract {
   async getCriteriasParentQuesAndInstParentQues(req) {
     return new Promise(async function (resolve, reject) {
 
-      let criteriaQueryResult = await database.models.criterias.find({});
+      let criteriaQueryResult = await database.models.criteria.find({});
 
       const questionQueryObject = {
         //responseType: "matrix"
@@ -347,7 +347,7 @@ module.exports = class Criteria extends Abstract {
 
         delete question.payload
 
-        let criterias = await database.models.criterias.find({
+        let criterias = await database.models.criteria.find({
           externalId: questionCriteriaId
         });
 
@@ -450,7 +450,7 @@ module.exports = class Criteria extends Abstract {
         updateCriteriaObject.$set = {
           ["evidences"]: criteriaEvidences
         }
-        await database.models.criterias.findOneAndUpdate(
+        await database.models.criteria.findOneAndUpdate(
           queryCriteriaObject,
           updateCriteriaObject
         )
@@ -781,7 +781,7 @@ module.exports = class Criteria extends Abstract {
             externalId: criteria.externalId
           }
 
-          const existingCriteria = await database.models.criterias.findOne(
+          const existingCriteria = await database.models.criteria.findOne(
             criteriaQueryObject,
             { name: 1, description: 1, criteriaType: 1, rubric: 1 }
           )
@@ -791,9 +791,12 @@ module.exports = class Criteria extends Abstract {
           }
 
           let expressionVariables = {}
-          let expressionVariablesArray = criteria.expressionVariables.split(",")
+          let expressionVariablesArray = criteria.expressionVariables.split("###")
           expressionVariablesArray.forEach(expressionVariable => {
-            let expressionVariableArray = expressionVariable.split("=");
+            let tempExpressionVariableArray = expressionVariable.split("=")
+            let expressionVariableArray = new Array
+            expressionVariableArray.push(tempExpressionVariableArray.shift())
+            expressionVariableArray.push(tempExpressionVariableArray.join('='))
             let defaultVariableArray = expressionVariableArray[0].split("-")
             if(defaultVariableArray.length>1){
               if(!expressionVariables.default) expressionVariables.default = {};
@@ -837,7 +840,7 @@ module.exports = class Criteria extends Abstract {
             rubric: rubric
           }
 
-          criteria = await database.models.criterias.findOneAndUpdate(
+          criteria = await database.models.criteria.findOneAndUpdate(
             criteriaQueryObject,
             updateObject,
             queryOptions
@@ -897,7 +900,7 @@ module.exports = class Criteria extends Abstract {
         let updatedCriteriasObject = {}
 
         updatedCriteriasObject.$set = {
-          criterias: submissionDocumentCriterias
+          criteria: submissionDocumentCriterias
         }
 
         let updateSubmissions = await database.models.submissions.updateMany(
@@ -934,13 +937,13 @@ module.exports = class Criteria extends Abstract {
   async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!req.files || !req.files.criterias) {
+        if (!req.files || !req.files.criteria) {
           throw "Csv file for criterias should be selected"
         }
 
         let criteriaData = await csv().fromString(req.files.criteria.data.toString())
 
-        const fileName = `upload Criteria`;
+        const fileName = `Criteria-Upload`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -1058,7 +1061,7 @@ module.exports = class Criteria extends Abstract {
             rubric: rubric
           };
 
-          let criteriaDocuments = await database.models.criterias.create(
+          let criteriaDocuments = await database.models.criteria.create(
             criteriaStructure
           );
 
@@ -1066,8 +1069,8 @@ module.exports = class Criteria extends Abstract {
           csvData["Criteria External Id"] = parsedCriteria.criteriaID
 
           if(criteriaDocuments._id){
-          csvData["Criteria Internal Id"] = criteriaDocuments._id            
-          } else{
+            csvData["Criteria Internal Id"] = criteriaDocuments._id            
+          } else {
             csvData["Criteria Internal Id"] = "Not inserted" 
           }
 
