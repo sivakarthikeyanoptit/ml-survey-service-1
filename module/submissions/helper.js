@@ -211,4 +211,14 @@ module.exports = class submissionsHelper {
         })
     }
 
+    static mapSubmissionStatus(status){
+        let submissionStatus = {
+            inprogress: 'In Progress',
+            completed: 'Complete',
+            blocked: 'Blocked',
+            started: 'Started'
+        }
+        return submissionStatus[status] || ""
+    }
+
 };

@@ -2,6 +2,7 @@ const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
 const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
+const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
 module.exports = class ProgramOperations {
 
     /**
@@ -482,18 +483,11 @@ module.exports = class ProgramOperations {
 
                 let result = {};
 
-                let entityStatusObject = {
-                    inprogress: 'In Progress',
-                    completed: 'Complete',
-                    blocked: 'Blocked',
-                    started: 'Started'
-                }
-
                 result.entitiesReport = [];
                 entityObjects.forEach(async (singleEntityDocument) => {
                     let submissionDetails = submissionDocuments[singleEntityDocument.externalId];
                     let resultObject = {};
-                    resultObject.status = submissionDetails ? (entityStatusObject[submissionDetails.status] || submissionDetails.status) : "";
+                    resultObject.status = submissionDetails ? (submissionHelper.mapSubmissionStatus(submissionDetails.status) || submissionDetails.status) : "";
                     resultObject.name = singleEntityDocument.name || "";
                     resultObject.daysElapsed = submissionDetails ? moment().diff(moment(submissionDetails.createdAt), 'days') : "";
                     resultObject.assessmentCompletionPercent = submissionDetails ? opsHelper.getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
