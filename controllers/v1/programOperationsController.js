@@ -107,20 +107,13 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ "name": "school" }, { entityTypes: 1, administrationTypes: 1 }).lean();
+                let solutionDocument = await database.models.solutions.findOne({_id:ObjectId(req.params._id)},{entities:1}).lean();
 
-                let entityTypes = entityTypeDocument.entityTypes;
+                let entityTypeDocument = await database.models.entityTypes.findOne({ "name": "school" }, { types: 1 }).lean();
 
-                let administrationTypes = entityTypeDocument.administrationTypes;
+                let administrationTypes = await database.models.entities.distinct('metaInformation.administration', { _id: { $in: solutionDocument.entities } }).lean();
 
-                entityTypes = entityTypes.sort().map(entityType => {
-                    return {
-                        label: entityType,
-                        value: entityType
-                    }
-                })
-
-                administrationTypes = administrationTypes.sort().map(administrationType => {
+                administrationTypes = _.compact(administrationTypes).sort().map(administrationType => {
                     return {
                         label: administrationType,
                         value: administrationType
@@ -140,7 +133,7 @@ module.exports = class ProgramOperations {
                         formField.min = new Date(0)
                         formField.max = new Date()
                     };
-                    if (formField.field == "entityTypes") formField.options = entityTypes;
+                    if (formField.field == "entityTypes") formField.options = entityTypeDocument.types;
                     if (formField.field == "administration") formField.options = administrationTypes;
                 });
 

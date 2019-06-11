@@ -26,8 +26,6 @@ module.exports = class programOperationsHelper {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programDocument = await database.models.programs.findOne({ "components": ObjectId(solutionId) }, { _id: 1 })
-
         let queryObject = [
           { $project: { userId: 1, parentId: 1, name: 1, entities: 1, programId: 1, updatedAt: 1, solutionId: 1 } },
           { $match: { userId: userDetails.id, solutionId: ObjectId(solutionId) } },
@@ -66,7 +64,7 @@ module.exports = class programOperationsHelper {
           userIds = _.uniq(userIds);
         }
 
-        let entityIds = await entityAssessorsTrackers.filterByDate(queryParams, userIds, programDocument._id);
+        let entityIds = await entityAssessorsTrackers.filterByDate(queryParams, userIds, solutionId);
 
         entityIds = entityIds.map(entityId => entityId.toString());
 

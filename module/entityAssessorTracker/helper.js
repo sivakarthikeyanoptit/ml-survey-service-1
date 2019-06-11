@@ -1,14 +1,11 @@
 module.exports = class entityAssessorTrackerHelper {
 
-  static filterByDate(params, userIds, programId) {
+  static filterByDate(params, userIds, solutionId) {
     return new Promise(async (resolve, reject) => {
-
-      params.fromDate.setHours(0);
-      params.toDate.setHours(23, 59, 59);
 
       let queryObject = {
         assessorUserId: { $in: userIds },
-        programId: programId,
+        solutionId: solutionId,
         //formula =  (validFrom <= fromDate && fromDate <= validTo) || (validFrom <= toDate && toDate <= validTo)
         $or:
           [
