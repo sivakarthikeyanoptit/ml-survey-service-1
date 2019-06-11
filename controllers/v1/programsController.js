@@ -1,3 +1,6 @@
+const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper");
+const insightsHelper = require(ROOT_PATH + "/module/insights/helper");
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
 module.exports = class Programs extends Abstract {
   /**
     * @apiDefine errorBody
@@ -24,7 +27,7 @@ module.exports = class Programs extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/programs/list/ List all the programs
+* @api {get} /assessment/api/v1/programs/list List all the programs
 * @apiVersion 0.0.1
 * @apiName Fetch Program List
 * @apiGroup Program
@@ -37,11 +40,10 @@ module.exports = class Programs extends Abstract {
       try {
 
         let programDocument = await database.models.programs.aggregate([
-          // { "$addFields": { "assessmentObjectId": "$components.id" } },
           {
             $lookup: {
-              from: "evaluationFrameworks",
-              localField: "components.id",
+              from: "solutions",
+              localField: "components",
               foreignField: "_id",
               as: "assessments"
             }
@@ -66,9 +68,7 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let responseMessage = "Program information list fetched successfully."
-
-        let response = { message: responseMessage, result: programDocument };
+        let response = { message: "Program information list fetched successfully.", result: programDocument };
 
         return resolve(response);
 
@@ -80,118 +80,61 @@ module.exports = class Programs extends Abstract {
 
   }
 
-  async programDocument(programIds = "all", fields = "all", pageIndex = "all", pageSize = "all") {
-    let queryObject = {}
-
-    if (programIds != "all") {
-      queryObject = {
-        _id: {
-          $in: programIds
-        }
-      }
-    }
-
-    let projectionObject = {}
-
-    if (fields != "all") {
-      fields.forEach(element => {
-        projectionObject[element] = 1
-      });
-    }
-
-    let pageIndexValue = 0;
-    let limitingValue = 0;
-
-    if (pageIndex != "all" && pageSize !== "all") {
-      pageIndexValue = (pageIndex - 1) * pageSize;
-      limitingValue = pageSize;
-    }
-
-    let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
-    return programDocuments
-  }
-
   /**
-* @api {get} /assessment/api/v1/programs/schoolList/ Fetch School List
+* @api {get} /assessment/api/v1/programs/entityList?solutionId=""&search="" Fetch Entity List
 * @apiVersion 0.0.1
-* @apiName Fetch School List 
+* @apiName Fetch Entity List 
 * @apiGroup Program
-* @apiParam {String} ProgramId Program ID.
+* @apiParam {String} solutionId Solution ID.
 * @apiParam {String} Page Page.
 * @apiParam {String} Limit Limit.
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-  async schoolList(req) {
+  async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.query.programId;
-        let componentId = req.query.componentId;
+        let solutionId = req.query.solutionId;
 
-        if (!programId) {
-          throw "Program id is missing"
-        }
-
-        if (!componentId) {
-          throw "Component Id is missing"
-        }
-
-        let schoolName = {};
-        let schoolExternalId = {};
         let result = {};
 
-        let schoolStatusObject = {
-          inprogress: 'In Progress',
-          completed: 'Complete',
-          blocked: 'Blocked',
-          started: 'Started'
-        }
+        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, { "entities": 1 }).lean()
 
-        if (req.searchText != "") {
-          schoolName['schoolInformation.name'] = new RegExp((req.searchText), "i");
-          schoolExternalId['schoolInformation.externalId'] = new RegExp((req.searchText), "i");
-        }
-
-        let programDocument = await database.models.programs.findOne({
-          _id: ObjectId(programId)
-        }, { "components.id": 1,"components.schools": 1 }).lean()
-
-        let frameWork = programDocument.components.find(component => component.id.toString() == componentId)
-
-        if (!frameWork) {
-          throw 'No framework found'
-        }
         let limitValue = (!req.pageSize) ? "" : req.pageSize;
         let skipValue = (!req.pageNo) ? "" : (req.pageSize * (req.pageNo - 1));
 
         let queryObject = {};
-        queryObject["_id"] = { $in: frameWork.schools };
+        queryObject["_id"] = { $in: solutionDocument.entities };
         if (req.searchText != "") {
-          queryObject["$or"] = [{ name: new RegExp(req.searchText, 'i') }, { externalId: new RegExp(req.searchText, 'i') }];
+          queryObject["$or"] = [{ "metaInformation.name": new RegExp(req.searchText, 'i') }, { "metaInformation.externalId": new RegExp(req.searchText, 'i') }];
         }
 
-        let schoolDocuments = await database.models.schools.find(queryObject,{
-          name:1,addressLine1:1,administration:1,externalId:1
+        let entityDocuments = await database.models.entities.find(queryObject, {
+          "metaInformation.name": 1, "metaInformation.addressLine1": 1, "metaInformation.administration": 1, "metaInformation.externalId": 1
         }).limit(limitValue).skip(skipValue).lean();
 
-        let totalCount = await database.models.schools.countDocuments(queryObject);
+        let totalCount = await database.models.entities.countDocuments(queryObject);
 
-        let submissionDocument = await database.models.submissions.find({schoolId:{ $in: schoolDocuments.map(school=> school._id) }},{status:1,schoolId:1}).lean()
-        
-        let submissionSchoolMap = _.keyBy(submissionDocument,'schoolId');
+        let submissionDocument = await database.models.submissions.find({ entityId: { $in: entityDocuments.map(entity => entity._id) } }, { status: 1, entityId: 1 }).lean()
+
+        let submissionEntityMap = _.keyBy(submissionDocument, 'entityId');
 
         result["totalCount"] = totalCount;
 
-        schoolDocuments.forEach(eachSchoolDocument => {
-          let status = submissionSchoolMap[eachSchoolDocument._id.toString()] ? submissionSchoolMap[eachSchoolDocument._id.toString()].status : ""
-          eachSchoolDocument['status'] = schoolStatusObject[status] || status;
+        result["entityInformation"] = entityDocuments.map(eachEntityDocument => {
+          let status = submissionEntityMap[eachEntityDocument._id.toString()] ? submissionEntityMap[eachEntityDocument._id.toString()].status : ""
+          return {
+            "externalId": eachEntityDocument.metaInformation.externalId,
+            "addressLine1": eachEntityDocument.metaInformation.addressLine1,
+            "name": eachEntityDocument.metaInformation.name,
+            "administration": eachEntityDocument.metaInformation.administration,
+            "status": submissionsHelper.mapSubmissionStatus(status) || status
+          }
         })
 
-        result["schoolInformation"] = schoolDocuments;
-
-        return resolve({ message: "List of schools fetched successfully", result: result })
+        return resolve({ message: "List of entities fetched successfully", result: result })
       }
       catch (error) {
         return reject({
@@ -204,102 +147,89 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/userSchoolList/ Fetch User School List
+  * @api {get} /assessment/api/v1/programs/userEntityList?solutionId="" Fetch User Entity List
   * @apiVersion 0.0.1
-  * @apiName Fetch User School List 
+  * @apiName Fetch User Entity List 
   * @apiGroup Program
-  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async userSchoolList(req) {
+  async userEntityList(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let insightController = new insightsBaseController;
-        let evaluationController = new evaluationFrameworksBaseController;
 
-        let programId = req.query.programId;
+        let solutionId = req.query.solutionId;
 
-        if (!programId || !req.userDetails.userId || req.userDetails.userId == "" ) {
-          throw "Invalid parameters."
-        }
-
-
-        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
-          _id: 1
+        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, {
+          _id: 1, entities: 1, programExternalId: 1
         }).lean();
 
-        let assessorSchoolsQueryObject = [
+        let entityAssessorQueryObject = [
           {
             $match: {
               userId: req.userDetails.userId,
-              programId: programDocument._id
+              solutionId: solutionDocument._id
             }
           },
           {
             $lookup: {
-              from: "schools",
-              localField: "schools",
+              from: "entities",
+              localField: "entities",
               foreignField: "_id",
-              as: "schoolDocuments"
+              as: "entityDocuments"
             }
           },
           {
             $project: {
-              "schools": 1,
-              "schoolDocuments._id": 1,
-              "schoolDocuments.externalId": 1,
-              "schoolDocuments.name": 1,
-              "schoolDocuments.addressLine1": 1,
-              "schoolDocuments.addressLine2": 1,
-              "schoolDocuments.city": 1,
-              "schoolDocuments.state": 1
+              "entities": 1,
+              "entityDocuments._id": 1,
+              "entityDocuments.metaInformation.externalId": 1,
+              "entityDocuments.metaInformation.name": 1,
+              "entityDocuments.metaInformation.addressLine1": 1,
+              "entityDocuments.metaInformation.addressLine2": 1,
+              "entityDocuments.metaInformation.city": 1,
+              "entityDocuments.state": 1
             }
           }
         ];
 
-        const assessorsDocument = await database.models.schoolAssessors.aggregate(assessorSchoolsQueryObject)
-        
-        let schoolIds = new Array
+        const assessorsDocument = await database.models.entityAssessors.aggregate(entityAssessorQueryObject)
 
-        assessorsDocument[0].schoolDocuments.forEach( eachSchoolDocument=>{
-          schoolIds.push(eachSchoolDocument._id) 
-        })
+        let entityIds = assessorsDocument[0].entityDocuments.map(eachEntityDocument => eachEntityDocument._id)
 
-        let insightDocument = await insightController.insightsDocument(programId,schoolIds);
+        let insightDocument = await insightsHelper.insightsDocument(solutionDocument.programExternalId, entityIds);
 
         let singleEntityDrillDown
 
-        if(insightDocument.length>0){
-          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
+        if (insightDocument.length > 0) {
+          let solutionDocument = await solutionsHelper.checkForScoringSystemFromInsights(insightDocument[0].solutionId)
 
-          if(evaluationFrameworkDocument){
-            singleEntityDrillDown = true
-          }else{
-            singleEntityDrillDown = false
-          }
+          singleEntityDrillDown = solutionDocument ? true : false;
 
         }
 
-        assessorsDocument[0].schoolDocuments.forEach(eachSchoolDocument=>{
-          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolDocument._id.toString())){
-            eachSchoolDocument["isSingleEntityHighLevel"] = true
-            eachSchoolDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
-          } else{
-            eachSchoolDocument["isSingleEntityHighLevel"] = false
-            eachSchoolDocument["isSingleEntityDrillDown"] = false
+        assessorsDocument[0].entityDocuments.forEach(eachEntityDocument => {
+          if (insightDocument.length > 0 && insightDocument.some(eachInsight => eachInsight.entityId.toString() == eachEntityDocument._id.toString())) {
+            eachEntityDocument["isSingleEntityHighLevel"] = true
+            eachEntityDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else {
+            eachEntityDocument["isSingleEntityHighLevel"] = false
+            eachEntityDocument["isSingleEntityDrillDown"] = false
           }
+          eachEntityDocument = _.merge(eachEntityDocument,{...eachEntityDocument.metaInformation})
+          delete eachEntityDocument.metaInformation
         })
 
 
         return resolve({
-          message: "School list fetched successfully",
+          message: "Entity list fetched successfully",
           result: {
-            schools : assessorsDocument[0].schoolDocuments
+            entities: assessorsDocument[0].entityDocuments
           }
         });
 
@@ -318,7 +248,7 @@ module.exports = class Programs extends Abstract {
   /**
 * @api {get} /assessment/api/v1/programs/userList/ Fetch User List
 * @apiVersion 0.0.1
-* @apiName Fetch User School List 
+* @apiName Fetch User Entity List 
 * @apiGroup Program
 * @apiParam {String} ProgramId Program ID.
 * @apiParam {String} Page Page.
@@ -331,18 +261,7 @@ module.exports = class Programs extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.query.programId
-
-        if (!programId) {
-          throw "Program id is missing"
-        }
-
-        let componentId = req.query.componentId
-
-        if (!componentId) {
-          throw "Component id is missing"
-        }
-
+        let solutionId = req.query.solutionId
         let assessorName = {};
         let assessorExternalId = {};
 
@@ -351,36 +270,40 @@ module.exports = class Programs extends Abstract {
           assessorExternalId["assessorInformation.externalId"] = new RegExp((req.searchText), "i");
         }
 
-        let programDocument = await database.models.programs.aggregate([
+        let solutionDocument = await database.models.solutions.aggregate([
           {
             $match: {
-              _id: ObjectId(programId)
+              _id: ObjectId(solutionId)
             }
-          }, {
-            $unwind: "$components"
-          }, {
-            $match: {
-              "components.id": ObjectId(componentId)
+          },
+          {
+            $project: {
+              "entities": 1
             }
-          }, {
-            "$addFields": { "schoolIdInObjectIdForm": "$components.schools" }
+          },
+          {
+            "$addFields": { "entityIdInObjectIdForm": "$entities" }
           },
           {
             $lookup: {
-              from: "schoolAssessors",
-              localField: "schoolIdInObjectIdForm",
-              foreignField: "schools",
+              from: "entityAssessors",
+              localField: "entityIdInObjectIdForm",
+              foreignField: "entities",
               as: "assessorInformation"
             }
           },
           {
             $project: {
-              "assessorInformation.schools": 0,
+              "assessorInformation.entities": 0,
               "assessorInformation.deleted": 0
             }
           },
-          { $unwind: "$assessorInformation" },
-          { $match: { $or: [assessorName, assessorExternalId] } },
+          {
+            $unwind: "$assessorInformation"
+          },
+          {
+            $match: { $or: [assessorName, assessorExternalId] }
+          },
           {
             $facet: {
               "totalCount": [
@@ -394,20 +317,13 @@ module.exports = class Programs extends Abstract {
           },
         ])
 
-        if (!programDocument) {
-          throw "Bad request"
-        }
+        if (!solutionDocument) throw "Bad request";
 
         let result = {};
-        let assessorInformation = [];
 
-        result["totalCount"] = programDocument[0].totalCount[0].count;
+        result["totalCount"] = solutionDocument[0].totalCount[0].count;
 
-        programDocument[0].assessorInformationData.forEach(eachAssessor => {
-          assessorInformation.push(eachAssessor.assessorInformation)
-        })
-
-        result["assessorInformation"] = assessorInformation;
+        result["assessorInformation"] = solutionDocument[0].assessorInformationData.map(eachAssessor => eachAssessor.assessorInformation)
 
         return resolve({
           message: "List of assessors fetched successfully",
@@ -426,43 +342,37 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/schoolBlocks/ Fetch Zone
+  * @api {get} /assessment/api/v1/programs/entityBlocks?solutionId="" Fetch Zone
   * @apiVersion 0.0.1
   * @apiName Fetch Zone 
   * @apiGroup Program
-  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async schoolBlocks(req) {
+  async entityBlocks(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let programId = req.query.programId
+        let solutionId = req.query.solutionId
 
-        if (!programId) {
-          throw "Program id is missing"
-        }
-
-        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
-          _id: 1, name: 1, "components.schools": 1
+        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, {
+          _id: 1, "entities": 1
         }).lean();
 
-        if (!programDocument) {
-          throw "Bad request"
-        }
+        if (!solutionDocument) throw "Bad request"
 
-        let distinctSchoolBlocks = await database.models.schools.distinct('blockId', { _id: { $in: programDocument.components[0].schools } }).lean().exec();
+        let distinctEntityBlocks = await database.models.entities.distinct('metaInformation.blockId', { _id: { $in: solutionDocument.entities } }).lean();
 
         let result = {};
 
-        result["zones"] = distinctSchoolBlocks.map((zoneId) => { 
+        result["zones"] = distinctEntityBlocks.map((zoneId) => {
           return {
-            id : zoneId,
-            label : 'Zone - ' + zoneId
+            id: zoneId,
+            label: 'Zone - ' + zoneId
           }
         })
 
@@ -483,81 +393,77 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/programs/blockSchools/ Block schools
+  * @api {get} /assessment/api/v1/programs/blockEntity?solutionId=""&blockId="" Block Entity
   * @apiVersion 0.0.1
-  * @apiName Block schools 
+  * @apiName Block Entity 
   * @apiGroup Program
-  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
   * @apiUse successBody
   * @apiUse errorBody
   */
 
-  async blockSchools(req) {
+  async blockEntity(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let evaluationController = new evaluationFrameworksBaseController;
-        let insightController = new insightsBaseController;
-        let programId = req.query.programId
-        let blockId = req.query.blockId
 
-        if (!programId || !blockId) {
-          throw "Invalid paramters."
-        }
+        let solutionId = req.query.solutionId;
+        let blockId = req.query.blockId;
 
-        let programDocument = await database.models.programs.findOne({ externalId: programId }, {
-          _id: 1, name: 1, "components.schools": 1
+        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, {
+          _id: 1, "entities": 1, programExternalId: 1
         }).lean();
 
-        if (!programDocument) {
-          throw "Bad request"
-        }
+        if (!solutionDocument) throw "Bad request"
 
-        let schoolsInBlock = await database.models.schools.find(
-          { 
-            _id: { $in: programDocument.components[0].schools},
-            blockId: blockId
+        let entitiesInBlock = await database.models.entities.aggregate([
+          {
+            $match: {
+              _id: { $in: solutionDocument.entities },
+              "metaInformation.blockId": blockId
+            },
           },
-          {name :1, externalId :1, addressLine1 : 1, addressLine2 : 1, city: 1}
-        ).lean().exec();
+          {
+            $project:
+            {
+              _id: 1,
+              name: "$metaInformation.name",
+              externalId: "$metaInformation.externalId",
+              addressLine1: "$metaInformation.addressLine1",
+              addressLine2: "$metaInformation.addressLine2",
+              city: "$metaInformation.city"
+            }
+          }
+        ])
 
-        let schoolsIdArray = new Array
+        let entitiesIdArray = entitiesInBlock.map(eachEntitiesInBlock => eachEntitiesInBlock._id)
 
-        schoolsInBlock.forEach(eachSchoolsInBlock=>{
-          schoolsIdArray.push(eachSchoolsInBlock._id)
-        })
-
-        let insightDocument = await insightController.insightsDocument(programId,schoolsIdArray);
+        let insightDocument = await insightsHelper.insightsDocument(solutionDocument.programExternalId, entitiesIdArray);
 
         let singleEntityDrillDown
 
-        if(insightDocument.length>0){
-          let evaluationFrameworkDocument = await evaluationController.checkForScoringSystemFromInsights(insightDocument[0].evaluationFrameworkId)
-
-          if(evaluationFrameworkDocument){
-            singleEntityDrillDown = true
-          }else{
-            singleEntityDrillDown = false
-          }
+        if (insightDocument.length > 0) {
+          let solutionDocument = await solutionsHelper.checkForScoringSystemFromInsights(insightDocument[0].solutionId)
+          singleEntityDrillDown = solutionDocument ? true : false;
         }
-     
+
         let result = {};
 
-        schoolsInBlock.forEach(eachSchoolInBlock=>{
-          if(insightDocument.length>0 && insightDocument.some(eachInsight=>eachInsight.schoolId.toString() == eachSchoolInBlock._id.toString())){
-            eachSchoolInBlock["isSingleEntityHighLevel"] = true
-            eachSchoolInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
-          } else{
-            eachSchoolInBlock["isSingleEntityHighLevel"] = false
-            eachSchoolInBlock["isSingleEntityDrillDown"] = false
+        entitiesInBlock.forEach(eachEntityInBlock => {
+          if (insightDocument.length > 0 && insightDocument.some(eachInsight => eachInsight.entityId.toString() == eachEntityInBlock._id.toString())) {
+            eachEntityInBlock["isSingleEntityHighLevel"] = true
+            eachEntityInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
+          } else {
+            eachEntityInBlock["isSingleEntityHighLevel"] = false
+            eachEntityInBlock["isSingleEntityDrillDown"] = false
           }
         })
 
-        result["schools"] = schoolsInBlock
+        result["entities"] = entitiesInBlock
 
         return resolve({
-          message: "List of schools fetched successfully",
+          message: "List of entities fetched successfully",
           result: result
         })
 
