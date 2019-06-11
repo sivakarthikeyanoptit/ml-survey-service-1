@@ -218,7 +218,7 @@ module.exports = class submissionsHelper {
             blocked: 'Blocked',
             started: 'Started'
         }
-        return submissionStatus[status] || ""
+        return submissionStatus[status]
     }
 
 };
