@@ -1337,9 +1337,8 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }
 
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDateValue = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1470,9 +1469,8 @@ async generateSubmissionReportsBySchoolId(req) {
           externalId: 1
         })
 
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDateValue = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1603,9 +1601,8 @@ async generateSubmissionReportsBySchoolId(req) {
           externalId: 1
         })
 
-        let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDateValue = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDateValue > toDate) {
           return resolve({
@@ -1830,9 +1827,8 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           return resolve({
@@ -2161,9 +2157,8 @@ async generateSubmissionReportsBySchoolId(req) {
 
       try {
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
@@ -2278,9 +2273,8 @@ async generateSubmissionReportsBySchoolId(req) {
           })
         }
 
-        let fromDate = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           return resolve({
@@ -2388,9 +2382,8 @@ async generateSubmissionReportsBySchoolId(req) {
           throw "From Date is mandatory"
         }
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
@@ -2555,9 +2548,8 @@ async generateSubmissionReportsBySchoolId(req) {
           }
         })
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
@@ -2669,9 +2661,8 @@ async generateSubmissionReportsBySchoolId(req) {
           });
         }
 
-        let fromDate = new Date(req.query.fromDate.split("-").reverse().join("-"))
-        let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
-        toDate.setHours(23, 59, 59)
+        let fromDate = req.query.fromDate
+        let toDate = req.query.toDate
 
         if (fromDate > toDate) {
           throw "From date cannot be greater than to date."
