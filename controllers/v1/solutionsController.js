@@ -46,7 +46,7 @@ module.exports = class Solutions extends Abstract {
           let solutionDocument = await database.models.solutions.findOne(findQuery,{themes:1,levelToScoreMapping:1,name:1}).lean()
 
           let criteriasIdArray = gen.utils.getCriteriaIds(solutionDocument.themes);
-          let criteriaDocument = await database.models.criterias.find({_id: { $in: criteriasIdArray } },{"name":1,"rubric.levels":1}).lean()
+          let criteriaDocument = await database.models.criteria.find({_id: { $in: criteriasIdArray } },{"name":1,"rubric.levels":1}).lean()
 
           let criteriaObject = {}
 
@@ -147,5 +147,132 @@ module.exports = class Solutions extends Abstract {
         }
       });
     }
+
+
+    /**
+    * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId Create solution from framework.
+    * @apiVersion 0.0.1
+    * @apiName Create solution from framework.
+    * @apiGroup Solutions
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiParam {String} programId Program External ID.
+    * @apiParam {String} frameworkId Framework External ID.
+    * @apiParam {String} entityType Entity Type.
+    * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+   async importFromFramework(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "" ) {
+          throw "Invalid parameters."
+        }
+
+        let frameworkDocument = await database.models.frameworks.findOne({
+          externalId: req.query.frameworkId
+        }).lean()
+
+        if(!frameworkDocument._id) {
+          throw "Invalid parameters."
+        }
+
+        let programDocument = await database.models.programs.findOne({
+          externalId: req.query.programId
+        }, {
+          _id : 1,
+          externalId : 1,
+          name:1,
+          description:1
+        }).lean()
+
+        if(!programDocument._id) {
+          throw "Invalid parameters."
+        }
+
+        let entityTypeDocument = await database.models.entityTypes.findOne({
+          name: req.query.entityType
+        }, {
+          _id :1,
+          name: 1
+        }).lean()
+
+        if(!entityTypeDocument._id) {
+          throw "Invalid parameters."
+        }
+
+        let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
+
+        let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
+        let solutionCriteriaToFrameworkCriteriaMap = {}
+
+        await Promise.all(frameworkCriteria.map(async (criteria) => {
+          criteria.frameworkCriteriaId = criteria._id
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria,["_id"]))
+          if(newCriteriaId._id) {
+            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+          }
+        }))
+
+
+        let updateThemes = function(themes) {
+          themes.forEach(theme => {
+            let criteriaIdArray = new Array
+            let themeCriteriaToSet = new Array
+            if (theme.children) {
+              updateThemes(theme.children);
+            } else {
+              criteriaIdArray = theme.criteria;
+              criteriaIdArray.forEach(eachCriteria => {
+                  eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
+                  themeCriteriaToSet.push(eachCriteria)
+              })
+              theme.criteria = themeCriteriaToSet
+            }
+          })
+          return true;
+        }
+
+        let newSolutionDocument = _.cloneDeep(frameworkDocument)
+
+        updateThemes(newSolutionDocument.themes)
+
+        newSolutionDocument.programId = programDocument._id
+        newSolutionDocument.programExternalId = programDocument.externalId
+        newSolutionDocument.programName = programDocument.name
+        newSolutionDocument.programDescription = programDocument.description
+
+        newSolutionDocument.frameworkId = frameworkDocument._id
+        newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+
+        newSolutionDocument.entityTypeId = entityTypeDocument._id
+        newSolutionDocument.entityType = entityTypeDocument.name
+
+        let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument,["_id"]))
+        
+        if(newSolutionId._id) {
+          await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })
+        }
+        
+        let response = {
+          message: "Solution generated and mapped to the program.",
+          result: newSolutionId._id
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
 
 };
