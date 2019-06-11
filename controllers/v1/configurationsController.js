@@ -7,7 +7,7 @@ module.exports = class Configurations extends Abstract {
         return "configurations";
     }
 
-    async sideBar(req) {
+    async navigation(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 _.pull(req.userDetails.allRoles, 'PUBLIC');
@@ -27,7 +27,7 @@ module.exports = class Configurations extends Abstract {
                 }
                 return resolve({
                     message: "Configurations fetched successfully.",
-                    result: tabControlsDocument.result.tabGroups[userRole]
+                    result: tabControlsDocument.result.tabGroups[userRole] ? tabControlsDocument.result.tabGroups[userRole] : tabControlsDocument.result.tabGroups["DEFAULT"]
                 });
             } catch (error) {
                 return reject({

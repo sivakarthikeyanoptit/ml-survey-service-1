@@ -24,7 +24,7 @@ export class AuthService {
   private logout_redirect_url: string;
 
   constructor(public http: Http, private localStorage: LocalStorageService) {
-    this.base_url = AppConfigs.app_url;
+    this.base_url = environment.keycloakBaseUrl;
     this.redirect_url = AppConfigs.keyCloak.redirection_url;
     this.auth_url =
       this.base_url +
@@ -50,7 +50,7 @@ export class AuthService {
     body.set("redirect_uri", this.redirect_url);
     body.set("scope", "offline_access");
     // body.set("credentials", "false");
-    // console.log(body);
+    // //console.log(body);
     return new Promise(resolve => {
       this.http
         .post(this.base_url + AppConfigs.keyCloak.getAccessToken, body)
@@ -64,7 +64,7 @@ export class AuthService {
             };
 
             let userDetails = jwt_decode(userTokens.accessToken);
-            // console.log(JSON.stringify(userTokens));
+            // //console.log(JSON.stringify(userTokens));
             this.localStorage.put({
               name: "userTokens",
               value: JSON.stringify(userTokens)
@@ -92,23 +92,23 @@ export class AuthService {
         name: "userTokens"
       })
     );
-    return new Promise(function(resolve, reject) {
-      // console.log("Refres token function");
+    return new Promise(function (resolve, reject) {
+      // //console.log("Refres token function");
       const body = new HttpParams();
       body.set("grant_type", "refresh_token");
       body.set("client_id", "sl-ionic-connect");
       body.set("refresh_token", userTokens.refreshToken);
       // body.set('scope', "offline_access");
-      // console.log("refresh_token " + userTokens);
-      // console.log(userTokens.refreshToken);
-      // console.log(AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken);
+      // //console.log("refresh_token " + userTokens);
+      // //console.log(userTokens.refreshToken);
+      // //console.log(AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken);
 
       self.http
         .post(AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken, body)
         .subscribe(
           (data: any) => {
-            console.log(JSON.stringify(data));
-            console.log(JSON.parse(data._data));
+            //console.log(JSON.stringify(data));
+            //console.log(JSON.parse(data._data));
             let parsedData = JSON.parse(data._body);
 
             let userTokens = {
@@ -117,7 +117,7 @@ export class AuthService {
               idToken: parsedData.id_token
             };
 
-            // console.log(parsedData);
+            // //console.log(parsedData);
 
             self.localStorage.put({
               name: "userTokens",
@@ -126,7 +126,7 @@ export class AuthService {
             resolve(userTokens);
           },
           error => {
-            // console.log("error " + JSON.stringify(error));
+            // //console.log("error " + JSON.stringify(error));
             reject();
           }
         );
@@ -154,7 +154,7 @@ export class AuthService {
       value: JSON.stringify(userDetails)
     });
 
-    // console.log(logout_url);
+    // //console.log(logout_url);
     window.location.href = logout_url;
   }
 
@@ -169,22 +169,22 @@ export class AuthService {
     );
 
     return new Promise((resolve, reject) => {
-      console.log("Utils: validate token");
-      console.log(userDetails.exp + " " + Date.now);
+      //console.log("Utils: validate token");
+      //console.log(userDetails.exp + " " + Date.now);
       if (userDetails.exp <= Date.now() / 1000) {
-        console.log("Utils: invalid token");
+        //console.log("Utils: invalid token");
         const body = new URLSearchParams();
         body.set("grant_type", "refresh_token");
         body.set("client_id", "sl-ionic-connect");
         body.set("refresh_token", userTokens.refreshToken);
-        console.log(userTokens.refreshToken);
-        const url = AppConfigs.app_url + AppConfigs.keyCloak.getAccessToken;
-        console.log(url);
+        //console.log(userTokens.refreshToken);
+        const url = environment.keycloakBaseUrl + AppConfigs.keyCloak.getAccessToken;
+        //console.log(url);
 
         this.http.post(url, body).subscribe(
           (data: any) => {
-            console.log("Utils: received validated token");
-            console.log(data._body);
+            //console.log("Utils: received validated token");
+            //console.log(data._body);
             let parsedData = JSON.parse(data._body);
             let userTokens = {
               accessToken: parsedData.access_token,
@@ -199,13 +199,13 @@ export class AuthService {
           },
           error => {
             // this.currentUser.removeUser();
-            console.log("Utils: Logout,token invalid");
-            console.log("error " + JSON.stringify(error));
+            //console.log("Utils: Logout,token invalid");
+            //console.log("error " + JSON.stringify(error));
             reject({ status: "401" });
           }
         );
       } else {
-        console.log("Utils: valid token");
+        //console.log("Utils: valid token");
         resolve(userTokens);
       }
     });

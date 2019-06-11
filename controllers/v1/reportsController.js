@@ -831,9 +831,10 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:schoolExternalId Fetch criterias based on schoolId
+* @api {get} /assessment/api/v1/reports/generateCriteriasBySchoolId/:programExternalId Fetch criterias based on schoolId
 * @apiVersion 0.0.1
 * @apiName Fetch criterias based on schoolId
+* @apiParam {String} schoolId Comma separated school ID.
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
@@ -842,12 +843,14 @@ module.exports = class Reports {
   async generateCriteriasBySchoolId(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let schoolId = {
-          ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
-        };
+
+        let submissionQueryObject = {
+          "programExternalId": req.params._id,
+          "schoolExternalId" : {$in:req.query.schoolId.split(",")}
+        }
 
         let submissionDocument = await database.models.submissions.find(
-          schoolId,
+          submissionQueryObject,
           {
             schoolExternalId:1,
             "schoolInformation.name":1,
@@ -901,7 +904,7 @@ module.exports = class Reports {
 
               theme.criteria.forEach(criteria => {
 
-                  data[criteria._id.toString()]={
+                  data[criteria.criteriaId.toString()]={
                     parentPath:hierarchyTrackToUpdate.join("->")
                   }
 
@@ -967,9 +970,10 @@ module.exports = class Reports {
   }
 
   /**
-* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:schoolExternalId Fetch school submission status
+* @api {get} /assessment/api/v1/reports/generateSubmissionReportsBySchoolId/:programExternalId Fetch school submission status
 * @apiVersion 0.0.1
 * @apiName Fetch school submission status
+* @apiParam {String} schoolId Comma separated school ID.
 * @apiGroup Report
 * @apiUse successBody
 * @apiUse errorBody
@@ -979,12 +983,12 @@ async generateSubmissionReportsBySchoolId(req) {
   return new Promise(async (resolve, reject) => {
     try {
 
-      let schoolSubmissionQuery = {
-        ["schoolExternalId"]: {$in:req.query.schoolId.split(",")}
-      };
-
+      let submissionQueryObject = {
+        "programExternalId": req.params._id,
+        "schoolExternalId" : {$in:req.query.schoolId.split(",")}
+      }
       let submissionForEvaluationFrameworkId = await database.models.submissions.findOne(
-        schoolSubmissionQuery,
+        submissionQueryObject,
         {
           evaluationFrameworkId: 1
         }
@@ -1000,7 +1004,7 @@ async generateSubmissionReportsBySchoolId(req) {
       ).lean().exec();
 
       let schoolSubmissionDocument = database.models.submissions.find(
-        schoolSubmissionQuery,
+        submissionQueryObject,
         {
           schoolExternalId:1,
           answers: 1,
@@ -1049,20 +1053,24 @@ async generateSubmissionReportsBySchoolId(req) {
 
         let allQuestionWithOptions = await database.models.questions.find(
           { _id: { $in: questionIds }},
-          { options: 1,question:1, externalId :1 }
+          { options: 1,question:1, externalId :1}
         ).lean();
 
         allQuestionWithOptions.forEach(question => {
           if (question.options && question.options.length > 0) {
             let optionString = "";
+            let optionValueString = "";
             question.options.forEach(option => {
               optionString += option.label + ",";
+              optionValueString += option.value + "="+ option.label + ",";
             });
             optionString = optionString.replace(/,\s*$/, "");
+            optionValueString = optionValueString.replace(/,\s*$/, "");
 
             questionOptionObject[question._id.toString()] = {
               questionOptions:question.options,
               questionOptionString:optionString,
+              questionOptionValueString:optionValueString,
               questionName:question.question,
               externalId:question.externalId
             };
@@ -1103,6 +1111,9 @@ async generateSubmissionReportsBySchoolId(req) {
                     "QuestionId":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].externalId:"",
                     "Question":questionOptionObject[singleAnswer.qid]?questionOptionObject[singleAnswer.qid].questionName[0]:"",
                     "Answer": singleAnswer.notApplicable ? "Not Applicable" : "",
+                    "Answer Option Value": questionOptionObject[singleAnswer.qid] == undefined ? "NA" : "",
+                    "Question Rubric Level" : singleAnswer.rubricLevel || "",
+                    "Option Values":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionValueString,
                     "Options":questionOptionObject[singleAnswer.qid] == undefined ? "No Options" : questionOptionObject[singleAnswer.qid].questionOptionString,
                     "Score": criteriaScoreObject[singleAnswer.criteriaId]?criteriaScoreObject[singleAnswer.criteriaId].score:"",
                     "Remarks": singleAnswer.remarks || "",
@@ -1132,18 +1143,19 @@ async generateSubmissionReportsBySchoolId(req) {
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
 
-                          radioResponse[option.value] = option.label;
+                          radioResponse[option.value] = option.label
                         }
                       );
                       singleAnswerRecord.Answer =
                         radioResponse[singleAnswer.value]?radioResponse[singleAnswer.value]:"NA";
+                      singleAnswerRecord["Answer Option Value"] = singleAnswer.value
                     }
                     else if (singleAnswer.responseType == "multiselect") {
 
                       questionOptionObject[singleAnswer.qid].questionOptions.forEach(
                         option => {
                           multiSelectResponse[option.value] =
-                            option.label;
+                            option.label
                         }
                       );
                       if (typeof singleAnswer.value == "object" || typeof singleAnswer.value == "array") {
@@ -1156,6 +1168,7 @@ async generateSubmissionReportsBySchoolId(req) {
                       }
                     }
                       singleAnswerRecord.Answer = multiSelectResponseArray.toString();
+                      singleAnswerRecord["Answer Option Value"] = singleAnswer.value.toString();
                     } else {
                       singleAnswerRecord.Answer = singleAnswer.value
                     }
@@ -1183,9 +1196,14 @@ async generateSubmissionReportsBySchoolId(req) {
                               "QuestionId": questionOptionObject[eachInstanceChildQuestion.qid] ? questionOptionObject[eachInstanceChildQuestion.qid].externalId:"",
                               "Question":questionOptionObject[eachInstanceChildQuestion.qid]?questionOptionObject[eachInstanceChildQuestion.qid].questionName[0]:"",
                               "Answer": eachInstanceChildQuestion.value,
-                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                              "Answer Option Value" : questionOptionObject[eachInstanceChildQuestion.qid] == undefined ? "NA": "",
+                              "Question Rubric Level" : eachInstanceChildQuestion.rubricLevel || "",
+                              "Option Values":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
                                   ? "No Options"
-                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
+                                  : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionValueString,
+                              "Options":questionOptionObject[eachInstanceChildQuestion.qid] == undefined
+                                      ? "No Options"
+                                      : questionOptionObject[eachInstanceChildQuestion.qid].questionOptionString,
                               "Score":criteriaScoreObject[eachInstanceChildQuestion.criteriaId]?criteriaScoreObject[eachInstanceChildQuestion.criteriaId].score:"",
                               "Remarks": eachInstanceChildQuestion.remarks || "",
                               "Files": "",
@@ -1213,17 +1231,17 @@ async generateSubmissionReportsBySchoolId(req) {
 
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
-                                  radioResponse[option.value] = option.label;
+                                  radioResponse[option.value] = option.label
                                 }
                               );
-                              eachInstanceChildRecord["Answer"] =
-                                radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              eachInstanceChildRecord["Answer"] = radioResponse[eachInstanceChildQuestion.value]?radioResponse[eachInstanceChildQuestion.value]:"NA";
+                              eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value
                             } else if (eachInstanceChildQuestion.responseType == "multiselect") {
                               
                               questionOptionObject[eachInstanceChildQuestion.qid].questionOptions.forEach(
                                 option => {
                                   multiSelectResponse[option.value] =
-                                    option.label;
+                                    option.label
                                 }
                               );
 
@@ -1234,6 +1252,7 @@ async generateSubmissionReportsBySchoolId(req) {
                                   );
                                 });
                                 eachInstanceChildRecord["Answer"] = multiSelectResponseArray.toString();
+                                eachInstanceChildRecord["Answer Option Value"] = eachInstanceChildQuestion.value.toString();
                               } else {
                                 eachInstanceChildRecord["Answer"] = "No value given";
                               }
@@ -2969,4 +2988,5 @@ async generateSubmissionReportsBySchoolId(req) {
     })
     return schoolFieldArray;
   }
+
 };

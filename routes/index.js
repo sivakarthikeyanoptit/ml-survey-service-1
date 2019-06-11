@@ -1,5 +1,7 @@
 let authenticator = require(ROOT_PATH + "/generics/middleware/authenticator");
-let pagination = require(ROOT_PATH + "/generics/middleware/pagination")
+let pagination = require(ROOT_PATH + "/generics/middleware/pagination");
+let dataRangeFilter = require(ROOT_PATH + "/generics/middleware/dateRangeFilter");
+let userPrograms = require(ROOT_PATH + "/generics/middleware/userPrograms");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
 
@@ -9,11 +11,12 @@ module.exports = function (app) {
 
   app.use(applicationBaseUrl, authenticator);
   app.use(applicationBaseUrl, pagination);
+  app.use(applicationBaseUrl, dataRangeFilter);
+  app.use(applicationBaseUrl, userPrograms);
 
   var router = async function (req, res, next) {
 
     //req.params.controller = (req.params.controller).toLowerCase();
-
     req.params.controller += "Controller";
     if (!req.params.version) next();
     else if (!controllers[req.params.version]) next();
@@ -23,7 +26,7 @@ module.exports = function (app) {
     else {
 
       try {
-
+        
         var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
         if (result.isResponseAStream == true) {
@@ -78,7 +81,7 @@ module.exports = function (app) {
 
         let customFields = {
           appDetails: '',
-          userDetails: 'NON_LOGGED_IN_USER'
+          userDetails: "NON_LOGGED_IN_USER"
         }
 
         if (req.userDetails) {
