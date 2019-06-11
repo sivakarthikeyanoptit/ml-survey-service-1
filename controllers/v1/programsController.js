@@ -1,3 +1,4 @@
+const programsHelper = require(ROOT_PATH + "/module/programs/helper");
 module.exports = class Programs extends Abstract {
   /**
     * @apiDefine errorBody
@@ -37,11 +38,10 @@ module.exports = class Programs extends Abstract {
       try {
 
         let programDocument = await database.models.programs.aggregate([
-          // { "$addFields": { "assessmentObjectId": "$components.id" } },
           {
             $lookup: {
-              from: "evaluationFrameworks",
-              localField: "components.id",
+              from: "solutions",
+              localField: "components",
               foreignField: "_id",
               as: "assessments"
             }
@@ -66,9 +66,7 @@ module.exports = class Programs extends Abstract {
           })
         }
 
-        let responseMessage = "Program information list fetched successfully."
-
-        let response = { message: responseMessage, result: programDocument };
+        let response = { message: "Program information list fetched successfully.", result: programDocument };
 
         return resolve(response);
 
@@ -80,39 +78,8 @@ module.exports = class Programs extends Abstract {
 
   }
 
-  async programDocument(programIds = "all", fields = "all", pageIndex = "all", pageSize = "all") {
-    let queryObject = {}
-
-    if (programIds != "all") {
-      queryObject = {
-        _id: {
-          $in: programIds
-        }
-      }
-    }
-
-    let projectionObject = {}
-
-    if (fields != "all") {
-      fields.forEach(element => {
-        projectionObject[element] = 1
-      });
-    }
-
-    let pageIndexValue = 0;
-    let limitingValue = 0;
-
-    if (pageIndex != "all" && pageSize !== "all") {
-      pageIndexValue = (pageIndex - 1) * pageSize;
-      limitingValue = pageSize;
-    }
-
-    let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
-    return programDocuments
-  }
-
   /**
-* @api {get} /assessment/api/v1/programs/schoolList/ Fetch School List
+* @api {get} /assessment/api/v1/programs/entityList/ Fetch Entity List
 * @apiVersion 0.0.1
 * @apiName Fetch School List 
 * @apiGroup Program
@@ -123,7 +90,7 @@ module.exports = class Programs extends Abstract {
 * @apiUse errorBody
 */
 
-  async schoolList(req) {
+  async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
