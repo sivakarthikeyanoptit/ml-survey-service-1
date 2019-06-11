@@ -2,6 +2,7 @@ module.exports = (req, res, next) => {
     if (req.query.fromDate) {
         let fromDateValue = req.query.fromDate ? new Date(req.query.fromDate.split("-").reverse().join("-")) : new Date(0)
         let toDate = req.query.toDate ? new Date(req.query.toDate.split("-").reverse().join("-")) : new Date()
+        fromDateValue.setHours(0,0,0)
         toDate.setHours(23, 59, 59)
 
         if (fromDateValue > toDate) {
