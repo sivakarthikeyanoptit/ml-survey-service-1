@@ -26,7 +26,8 @@ module.exports = class Insights extends Abstract {
   /**
   * @api {post} /assessment/api/v1/insights/generateFromSubmissionId/:submissionId Generates insights from submission
   * @apiVersion 0.0.1
-  * @apiName Generate Insights From Submissions
+  * @apiName Generates insights from submission
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/generateFromSubmissionId/5c5147ae95743c5718445eff
   * @apiGroup Insights
   * @apiUse successBody
@@ -61,9 +62,10 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:entityId Return insights for a entity
+  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:entityId Single entity drill down report
   * @apiVersion 0.0.1
-  * @apiName Generate Insights From Submissions
+  * @apiName Single entity drill down report
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityDrillDownReport/5c5147ae95743c5718445eff
   * @apiGroup Insights
   * @apiUse successBody
@@ -380,11 +382,12 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:entityId Return high level insights for a entity
+  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:entityId Single entity high level report
   * @apiVersion 0.0.1
-  * @apiName Fetch High Level Insights For Entity
+  * @apiName Single entity high level report
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?entity=5c5147ae95743c5718445eff
-  * @apiGroup insights
+  * @apiGroup Insights
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -701,9 +704,10 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Return insights for a entity
+  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Multi entity high level report
   * @apiVersion 0.0.1
-  * @apiName Generate Insights From Submissions
+  * @apiName Multi entity high level report
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityHighLevelReport/5c5147ae95743c5718445eff
   * @apiGroup Insights
   * @apiUse successBody
@@ -863,11 +867,12 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Return insights for a entities
+  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Multi entity drill down report
   * @apiVersion 0.0.1
-  * @apiName Generate Insights From Submissions
+  * @apiName Multi entity drill down report
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityDrillDownReport/5c5147ae95743c5718445eff
-  * @apiGroup insights
+  * @apiGroup Insights
   * @apiUse successBody
   * @apiUse errorBody
   */
