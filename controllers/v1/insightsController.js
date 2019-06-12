@@ -39,7 +39,7 @@ module.exports = class Insights extends Abstract {
 
       try {
 
-        let response = await insightsHelper.generate(submissionId = req.params._id)
+        let response = await insightsHelper.generate(req.params._id)
 
         return resolve(response);
 
@@ -56,7 +56,7 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:entityId Single entity drill down report
+  * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:programId?solutionId=""&entityId="" Single entity drill down report
   * @apiVersion 0.0.1
   * @apiName Single entity drill down report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -373,7 +373,7 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?:entityId Single entity high level report
+  * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/:programId?solutionId=""&entityId="" Single entity high level report
   * @apiVersion 0.0.1
   * @apiName Single entity high level report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -692,7 +692,7 @@ module.exports = class Insights extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId Multi entity high level report
+  * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId?solutionId=""&entityId=""&blockName="" Multi entity high level report
   * @apiVersion 0.0.1
   * @apiName Multi entity high level report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -852,7 +852,7 @@ module.exports = class Insights extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId Multi entity drill down report
+  * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId?solutionId=""&entityId=""&blockName="" Multi entity drill down report
   * @apiVersion 0.0.1
   * @apiName Multi entity drill down report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
