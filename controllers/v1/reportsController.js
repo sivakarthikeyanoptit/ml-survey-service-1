@@ -2091,7 +2091,7 @@ module.exports = class Reports {
 
               let parentTypeObject = {}
               parentTypes.types.forEach(parentType => {
-                parentTypeObject[parentType.type] = {
+                parentTypeObject[parentType.value] = {
                   name: parentType.label,
                   count: 0
                 }

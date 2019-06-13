@@ -1,12 +1,10 @@
 
 module.exports = class insightsHelper {
 
-    static generate(submissionId = false) {
+    static generate(submissionId) {
 
         return new Promise(async (resolve, reject) => {
             try {
-
-                if(!submissionId) throw "Submission ID is mandatory."
           
                 let submissionsQueryObject = {
                   _id: submissionId,
@@ -162,7 +160,7 @@ module.exports = class insightsHelper {
                 delete submissionDocument._id
                 delete submissionDocument.updatedAt
           
-                let insightsDocument = await database.models.insights.findOneAndUpdate(
+                await database.models.insights.findOneAndUpdate(
                   {submissionId : submissionDocument.submissionId},
                   _.pick(submissionDocument,Object.keys(database.models.insights.schema.paths)),
                   {
