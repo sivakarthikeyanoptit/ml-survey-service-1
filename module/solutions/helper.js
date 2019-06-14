@@ -74,16 +74,16 @@ module.exports = class solutionsHelper {
     }
 
 
-    static allSubGroupEntityIdsByGroupName(programExternalId= "", groupName="") {
+    static allSubGroupEntityIdsByGroupName(solutionId= "", groupName="") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if (programExternalId == "" || groupName == "") {
+                if (solutionId == "" || groupName == "") {
                     throw "Invalid paramters"
                 }
 
                 let solutionEntities = await database.models.solutions.findOne({
-                    programExternalId: programExternalId
+                    _id: solutionId
                 }, {
                     entities : 1
                 });
@@ -125,6 +125,26 @@ module.exports = class solutionsHelper {
             }
         })
 
+    }
+
+    static generateSolutionsExternalId(solutionId){
+        
+        return new Promise(async (resolve,reject)=>{
+            
+            try{
+                let solutionDocuments = await database.models.solutions.findOne({
+                    _id:solutionId
+                },{externalId:1})
+    
+                resolve({
+                    solutionExternalId:solutionDocuments.externalId
+                })
+            } catch(error){
+                return reject({
+                    message:error
+                })
+            }
+        })
     }
 
 };
