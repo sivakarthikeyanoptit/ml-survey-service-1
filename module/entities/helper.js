@@ -31,7 +31,7 @@ module.exports = class entitiesHelper {
 
                 //update entity id in parent entity
                 for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
-                    await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(),queryParams.programId);                    
+                    await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(), queryParams.programId);
                 }
 
                 if (entityData.length != data.length) {
@@ -255,7 +255,7 @@ module.exports = class entitiesHelper {
             try {
 
                 let solutionsDocument = new Array
-                if(programId && solutionId) { 
+                if (programId && solutionId) {
                     solutionsDocument = await database.models.solutions.find(
                         {
                             externalId: solutionId,
@@ -269,42 +269,35 @@ module.exports = class entitiesHelper {
                             entityTypeId: 1
                         }
                     ).lean();
-                } else {
-                    solutionsDocument = await database.models.solutions.find(
-                        {},
-                        {
-                            programId: 1,
-                            externalId: 1,
-                            subType: 1,
-                            entityType: 1,
-                            entityTypeId: 1
-                        }
-                    ).lean();
                 }
-    
-                const solutionsData = solutionsDocument.reduce((ac, solution) => ({
-                    ...ac, [solution.externalId]: {
-                        subType: solution.subType,
-                        solutionId: solution._id,
-                        programId: solution.programId,
-                        entityType : solution.entityType,
-                        entityTypeId: solution.entityTypeId,
-                        newEntities : new Array
-                    }
-                }), {});
+
+                let solutionsData;
+
+                if (solutionsDocument.length) {
+                    solutionsData = solutionsDocument.reduce((ac, solution) => ({
+                        ...ac, [solution.externalId]: {
+                            subType: solution.subType,
+                            solutionId: solution._id,
+                            programId: solution.programId,
+                            entityType: solution.entityType,
+                            entityTypeId: solution.entityTypeId,
+                            newEntities: new Array
+                        }
+                    }), {});
+                }
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
-                
-                if(!entityTypeDocument) throw "Invalid entity type id."
+
+                if (!entityTypeDocument) throw "Invalid entity type id."
 
                 const entityUploadedData = await Promise.all(
                     entityCSVData.map(async singleEntity => {
-                        
+
                         singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
                             singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
                         })
-        
-                        singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
+
+                        if (solutionsData) singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
                         let newEntity = await database.models.entities.create(
                             {
@@ -312,23 +305,18 @@ module.exports = class entitiesHelper {
                                 "entityType": entityType,
                                 "regsitryDetails": {},
                                 "groups": {},
-                                "metaInformation": _.omitBy(singleEntity, (value,key)=> {return _.startsWith(key,"_")}),
+                                "metaInformation": _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") }),
                                 "updatedBy": userDetails.id,
                                 "createdBy": userDetails.id
                             }
                         );
 
-                        if(!newEntity._id) return;
+                        if (!newEntity._id) return;
 
                         singleEntity["_systemId"] = newEntity._id.toString()
 
-                        if(newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
+                        if (solutionsData && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
-                        }
-        
-                        if(singleEntity._createEntityAssessor && singleEntity.userId != "") {
-                            singleEntity.role = "ASSESSOR";
-                            await entityAssessorsHelper.createInidvidualEntityAssessor(solutionsData[singleEntity._solutionId]["programId"], solutionsData[singleEntity._solutionId]["solutionId"], newEntity._id, singleEntity, userDetails);
                         }
 
                         return singleEntity
@@ -339,9 +327,9 @@ module.exports = class entitiesHelper {
                     throw "Something went wrong, not all records were inserted/updated."
                 }
 
-                await Promise.all(     
+                solutionsData && await Promise.all(
                     Object.keys(solutionsData).map(async solutionExternalId => {
-                        if(solutionsData[solutionExternalId].newEntities.length > 0) {
+                        if (solutionsData[solutionExternalId].newEntities.length > 0) {
                             await database.models.solutions.updateOne({ _id: solutionsData[solutionExternalId].solutionId }, { $addToSet: { entities: { $each: solutionsData[solutionExternalId].newEntities } } })
                         }
                     })
@@ -359,17 +347,17 @@ module.exports = class entitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 let childEntity = await database.models.entities.findOne({
-                    _id : ObjectId(childEntityId)
+                    _id: ObjectId(childEntityId)
                 }, {
-                    entityType : 1
-                }).lean()
+                        entityType: 1
+                    }).lean()
 
-                if(childEntity.entityType) {
+                if (childEntity.entityType) {
 
                     let parentEntityQueryObject = {
                         _id: ObjectId(parentEntityId)
                     }
-                    if(parentEntityProgramId) {
+                    if (parentEntityProgramId) {
                         parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
                     }
                     await database.models.entities.findOneAndUpdate(
@@ -378,8 +366,8 @@ module.exports = class entitiesHelper {
                             $addToSet: {
                                 [`groups.${childEntity.entityType}`]: childEntity._id
                             }
-                        },{
-                            _id : 1
+                        }, {
+                            _id: 1
                         }
                     );
 
