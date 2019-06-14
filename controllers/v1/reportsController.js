@@ -3668,86 +3668,19 @@ module.exports = class Reports {
     });
   }
 
+  /**
+   * @api {get} /assessment/api/v1/reports/frameworkDetails/:evaluationFrameworkExternalId Fetch Framework details based on framework external id
+   * @apiVersion 0.0.1
+   * @apiName Fetch Frameworks details
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
   async frameworkDetails(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        let submissionQueryObject = {
-          programExternalId: "PROGID01",
-          schoolExternalId: { $in: req.query.schoolId.split(",") }
-        };
-
-        let submissionDocument = await database.models.submissions
-          .find(submissionQueryObject, {
-            criterias: 1,
-            evaluationFrameworkId: 1
-          })
-          .lean();
-
-        let evaluationFrameworksDocuments = await database.models.evaluationFrameworks
-          .findOne(
-            {
-              _id: submissionDocument[0].evaluationFrameworkId
-            },
-            {
-              themes: 1
-            }
-          )
-          .lean();
-
-        let evaluationNameObject = {};
-
-        // evaluationFrameworksDocuments.themes.forEach(singleTheme => {
-        //   singleTheme.children.length &&
-        //     singleTheme.children.forEach(eachSubTheme => {
-        //       eachSubTheme.children &&
-        //         eachSubTheme.children.forEach(eachAoi => {
-        //           eachAoi.criteria.forEach(singleCriteria => {
-        //             evaluationNameObject[singleCriteria.toString()] = {
-        //               themeName: singleTheme.name,
-        //               aoiName: eachSubTheme.name,
-        //               indicatorName: eachAoi.name
-        //             };
-        //           });
-        //         });
-        //     });
-        //   // singleTheme.aoi.forEach(singleAoi => {
-        //   //   singleAoi.indicators.forEach(singleIndicator => {
-        //   //     singleIndicator.criteria.forEach(singleCriteria => {
-        //   //       evaluationNameObject[singleCriteria.toString()] = {
-        //   //         themeName: singleTheme.name,
-        //   //         aoiName: singleAoi.name,
-        //   //         indicatorName: singleIndicator.name
-        //   //       };
-        //   //     });
-        //   //   });
-        //   // });
-        // });
-
-        let getCriteriaPath = function(themes, parentData = {}) {
-          themes.forEach(theme => {
-            if (theme.children) {
-              let hierarchyTrackToUpdate = { ...parentData };
-              hierarchyTrackToUpdate[theme.label] = theme.name;
-              getCriteriaPath(theme.children, hierarchyTrackToUpdate);
-            } else {
-              let data = {};
-
-              let hierarchyTrackToUpdate = { ...parentData };
-              hierarchyTrackToUpdate[theme.label] = theme.name;
-
-              theme.criteria.forEach(criteria => {
-                data[criteria._id.toString()] = { hierarchyTrackToUpdate };
-              });
-
-              _.merge(evaluationNameObject, data);
-            }
-          });
-          return { ...evaluationNameObject };
-        };
-
-        let dataValue = getCriteriaPath(evaluationFrameworksDocuments.themes);
-
-        const fileName = `CriteriaReportForDCPCR`;
+        const fileName = `FrameworkDetails`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -3759,28 +3692,62 @@ module.exports = class Reports {
           });
         })();
 
-        submissionDocument[0].criterias.forEach(submissionCriterias => {
-          if (submissionCriterias._id) {
-            let criteriaReportObject = {};
-
-            if (dataValue[submissionCriterias._id]) {
-              Object.keys(dataValue[submissionCriterias._id].hierarchyTrackToUpdate).forEach(eachData => {
-                criteriaReportObject[eachData] = dataValue[submissionCriterias._id].hierarchyTrackToUpdate[eachData];
-              });
-              criteriaReportObject["criteriaName"] = submissionCriterias.name;
-              criteriaReportObject["criteriaName"] = submissionCriterias.externalId;
+        let evaluationFrameworksDocuments = await database.models.evaluationFrameworks
+          .findOne(
+            {
+              externalId: req.params._id
+            },
+            {
+              themes: 1
             }
-            // themeName: evaluationNameObject[submissionCriterias._id]
-            //   ? evaluationNameObject[submissionCriterias._id].themeName
-            //   : "",
-            // aoiName: evaluationNameObject[submissionCriterias._id]
-            //   ? evaluationNameObject[submissionCriterias._id].aoiName
-            //   : "",
-            // score: submissionCriterias.score ? submissionCriterias.score : "NA";
-            // };
-            input.push(criteriaReportObject);
-          }
-        });
+          )
+          .lean();
+
+        let criteriaIds = gen.utils.getCriteriaIds(
+          evaluationFrameworksDocuments.themes
+        );
+
+        let allCriteriaDocument = await database.models.criterias
+          .find({ _id: { $in: criteriaIds } }, { name: 1, externalId: 1 })
+          .lean();
+
+        let criteriaObject = _.keyBy(allCriteriaDocument, "_id");
+
+        let getFrameworkDetails = function(themes, parentData = {}) {
+          themes.forEach(theme => {
+            if (theme.children) {
+              let hierarchyTrackToUpdate = { ...parentData };
+              hierarchyTrackToUpdate[theme.label] = theme.name;
+              getFrameworkDetails(theme.children, hierarchyTrackToUpdate);
+            } else {
+              let data = {};
+
+              let hierarchyTrackToUpdate = { ...parentData };
+              hierarchyTrackToUpdate[theme.label] = theme.name;
+
+              theme.criteria.forEach(criteria => {
+                data = {};
+
+                Object.keys(hierarchyTrackToUpdate).forEach(
+                  eachHierarchyUpdateData => {
+                    data[eachHierarchyUpdateData] =
+                      hierarchyTrackToUpdate[eachHierarchyUpdateData];
+                  }
+                );
+
+                data["criteria Name"] =
+                  criteriaObject[criteria._id.toString()].name;
+                data["criteria ExternalId"] =
+                  criteriaObject[criteria._id.toString()].externalId;
+
+                input.push(data);
+              });
+            }
+          });
+        };
+
+        getFrameworkDetails(evaluationFrameworksDocuments.themes);
+
         input.push(null);
       } catch (error) {
         return reject({
