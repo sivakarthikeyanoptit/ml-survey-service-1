@@ -276,7 +276,7 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-    * @api {get} /assessment/api/v1/solutions/mapEntityToSolution/:solutionId Map entity id to solution
+    * @api {get} /assessment/api/v1/solutions/mapEntityToSolution/:solutionExternalId Map entity id to solution
     * @apiVersion 0.0.1
     * @apiName Map entity id to solution
     * @apiGroup Solutions
@@ -296,7 +296,7 @@ module.exports = class Solutions extends Abstract {
 
         entityIdsFromCSV = entityIdsFromCSV.map(entity => ObjectId(entity.entityIds));
 
-        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(req.params._id) }, { entityType: 1 }).lean();
+        let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { entityType: 1 }).lean();
 
         let entitiesDocument = await database.models.entities.find({ _id: { $in: entityIdsFromCSV }, entityType: solutionDocument.entityType }, { _id: 1 }).lean();
 
@@ -305,7 +305,7 @@ module.exports = class Solutions extends Abstract {
         if (entityIdsFromCSV.length != entityIds.length) responseMessage = "Not all entities are updated.";
 
         await database.models.solutions.updateOne(
-          { _id: ObjectId(req.params._id) },
+          { externalId: req.params._id },
           { $addToSet: { entities: entityIds } }
         )
 

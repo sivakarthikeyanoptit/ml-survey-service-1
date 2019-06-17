@@ -297,7 +297,7 @@ module.exports = class entitiesHelper {
                             singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
                         })
 
-                        if (solutionsData) singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
+                        if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
                         let newEntity = await database.models.entities.create(
                             {
@@ -315,7 +315,7 @@ module.exports = class entitiesHelper {
 
                         singleEntity["_systemId"] = newEntity._id.toString()
 
-                        if (solutionsData && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
+                        if (solutionsData  && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
                         }
 
