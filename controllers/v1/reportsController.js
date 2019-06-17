@@ -3759,6 +3759,14 @@ module.exports = class Reports {
     });
   }
 
+  /**
+   * @api {get} /assessment/api/v1/reports/questionCsv/:evaluationFrameworkExternalId Fetch Question Csv Data
+   * @apiVersion 0.0.1
+   * @apiName Fetch Question csv
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
   async questionCsv(req) {
     return new Promise(async (resolve, reject) => {
       try {
