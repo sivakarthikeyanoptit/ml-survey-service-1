@@ -38,6 +38,7 @@ module.exports = {
     noOfRatingLevels: Number,
     isRubricDriven: Boolean,
     isReusable: Boolean,
-    roles: Object
+    roles: Object,
+    observationMetaFormKey : String
   }
 };

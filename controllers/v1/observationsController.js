@@ -68,9 +68,9 @@ module.exports = class Observations {
 
 
     /**
-    * @api {get} /assessment/api/v1/observations/metaForm/:entityTypeId Observation Solution
+    * @api {get} /assessment/api/v1/observations/metaForm/:solutionId Observation Creation Meta Form
     * @apiVersion 0.0.1
-    * @apiName Observation Creation Meta
+    * @apiName Observation Creation Meta Form
     * @apiGroup Observations
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/observations/metaForm
@@ -90,20 +90,24 @@ module.exports = class Observations {
                 }
 
                 
-                let solutionsData = await database.models.solutions.find({
-                    entityTypeId : ObjectId(req.params._id),
+                let solutionsData = await database.models.solutions.findOne({
+                    _id : ObjectId(req.params._id),
                     isReusable : true
                 }, {
-                    name : 1,
-                    description : 1,
-                    externalId : 1,
-                    programId:1,
-                    entityTypeId : 1
+                    observationMetaFormKey : 1
                 }).lean();
         
+
+                if (!solutionsData._id) {
+                    let responseMessage = "Bad request.";
+                    return resolve({ status: 400, message: responseMessage })
+                }
+
+                let observationsMetaForm = await database.models.forms.findOne({ "name": (solutionsData.observationMetaFormKey && solutionsData.observationMetaFormKey != "") ? solutionsData.observationMetaFormKey : "defaultObservationMetaForm" }, { value: 1 }).lean();
+
                 return resolve({
-                    message: "Solution list fetched successfully.",
-                    result: solutionsData
+                    message: "Observation meta fetched successfully.",
+                    result: observationsMetaForm.value
                 });
     
             } catch (error) {
