@@ -37,6 +37,7 @@ module.exports = {
     parentSolutionId : "ObjectId",
     noOfRatingLevels: Number,
     isRubricDriven: Boolean,
+    isReusable: Boolean,
     roles: Object
   }
 };
