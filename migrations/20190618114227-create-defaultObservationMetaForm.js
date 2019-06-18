@@ -40,6 +40,8 @@ module.exports = {
       ],
     }
     
+    await db.collection('forms').createIndex( { name: 1} )
+
     return await db.collection('forms').insertMany( [
       defaultObservationMeta
     ]);
