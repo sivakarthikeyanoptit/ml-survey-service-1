@@ -37,6 +37,8 @@ module.exports = {
     parentSolutionId : "ObjectId",
     noOfRatingLevels: Number,
     isRubricDriven: Boolean,
-    roles: Object
+    isReusable: Boolean,
+    roles: Object,
+    observationMetaFormKey : String
   }
 };
