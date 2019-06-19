@@ -266,6 +266,10 @@ module.exports = class Observations extends Abstract {
      * @apiVersion 0.0.1
      * @apiName Map entities to observations
      * @apiGroup Observations
+    * @apiParamExample {json} Request-Body:
+     * {
+     *	    "entities": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
      * @apiUse successBody
      * @apiUse errorBody
      */
