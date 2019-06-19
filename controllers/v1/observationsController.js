@@ -43,6 +43,7 @@ module.exports = class Observations extends Abstract {
 
                 let solutionsData = await database.models.solutions.find({
                     entityTypeId: ObjectId(req.params._id),
+                    type: "observation",
                     isReusable: true
                 }, {
                         name: 1,
@@ -292,7 +293,7 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean()
 
-                if(observationDocument.status != "published"){
+                if (observationDocument.status != "published") {
                     return resolve({
                         status: 400,
                         message: "Observation already completed or not published."
@@ -333,6 +334,111 @@ module.exports = class Observations extends Abstract {
                 return reject({
                     status: 500,
                     message: error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    async unMapEntityToObservation(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(req.params._id)
+                    },
+                    {
+                        $pull: {
+                            entities: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) }
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: "Entity Removed successfully."
+                })
+
+
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    async search(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let response = {
+                    message: "Entities fetched successfully",
+                    result: {}
+                };
+
+
+                let observationDocument = await database.models.observations.findOne(
+                    {
+                        _id: req.params._id
+                    },
+                    {
+                        entityTypeId: 1
+                    }
+                ).lean();
+
+                if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
+
+                let queryObject = {};
+
+                queryObject["entityTypeId"] = observationDocument.entityTypeId;
+                queryObject["$or"] = [{ "metaInformation.name": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }];
+
+                let entityDocuments = await database.models.entities.aggregate([
+                    {
+                        $match: {
+                            $or: [{ "metaInformation.name": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }],
+                            "entityTypeId": observationDocument.entityTypeId
+                        }
+                    },
+                    {
+                        $project: {
+                            name: "$metaInformation.name",
+                            addressLine1: "$metaInformation.addressLine1",
+                            addressLine2: "$metaInformation.addressLine2"
+                        }
+                    },
+                    {
+                        $facet: {
+                            "totalCount": [
+                                { "$count": "count" }
+                            ],
+                            "schoolInformation": [
+                                { $skip: req.pageSize * (req.pageNo - 1) },
+                                { $limit: req.pageSize }
+                            ],
+                        }
+                    }]);
+
+                response.result = entityDocuments
+
+                return resolve(response);
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || error,
                     errorObject: error
                 });
             }
