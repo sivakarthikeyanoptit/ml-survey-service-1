@@ -268,7 +268,7 @@ module.exports = class Observations extends Abstract {
      * @apiGroup Observations
     * @apiParamExample {json} Request-Body:
      * {
-     *	    "entities": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      * }
      * @apiUse successBody
      * @apiUse errorBody
@@ -301,7 +301,7 @@ module.exports = class Observations extends Abstract {
 
                 let entitiesDocuments = await database.models.entities.find(
                     {
-                        _id: { $in: gen.utils.arrayIdsTobjectIds(req.body.entities) },
+                        _id: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) },
                         entityTypeId: observationDocument.entityTypeId
                     },
                     {
@@ -320,7 +320,7 @@ module.exports = class Observations extends Abstract {
                     }
                 );
 
-                if (entityIds.length != req.body.entities.length) {
+                if (entityIds.length != req.body.data.length) {
                     responseMessage = "Not all entities are updated."
                 }
 
