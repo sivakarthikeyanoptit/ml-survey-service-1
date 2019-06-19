@@ -22,6 +22,8 @@ module.exports = class observationsHelper {
                     _.merge(data,{
                         "solutionId": solutionDocument._id,
                         "solutionExternalId": solutionDocument.externalId,
+                        "frameworkId": solutionDocument.frameworkId,
+                        "frameworkExternalId": solutionDocument.frameworkExternalId,
                         "entityTypeId": solutionDocument.entityTypeId,
                         "entityType": solutionDocument.entityType,
                         "author": userDetails.id,
