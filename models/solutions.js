@@ -25,7 +25,7 @@ module.exports = {
     programExternalId: String,
     programName: String,
     programDescription: String,
-    entityProfileFieldsPerSchoolTypes : Object,
+    entityProfileFieldsPerEntityTypes : Object,
     startDate: Date,
     endDate: Date,
     status: String,
