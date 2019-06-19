@@ -3174,4 +3174,339 @@ module.exports = class Reports {
       }
     });
   }
+
+  /**
+   * @api {get} /assessment/api/v1/reports/frameworkDetails/:solutionExternalId Fetch Framework details based on framework external id
+   * @apiVersion 0.0.1
+   * @apiName Fetch Frameworks details
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+  async frameworkDetails(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const fileName = `FrameworkDetails`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function() {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        let solutionDocuments = await database.models.solutions
+          .findOne(
+            {
+              externalId: req.params._id
+            },
+            {
+              themes: 1
+            }
+          )
+          .lean();
+
+        let criteriaIds = gen.utils.getCriteriaIds(solutionDocuments.themes);
+
+        let allCriteriaDocument = await database.models.criteria
+          .find({ _id: { $in: criteriaIds } }, { name: 1, externalId: 1 })
+          .lean();
+
+        let criteriaObject = _.keyBy(allCriteriaDocument, "_id");
+
+        let getFrameworkDetails = function(themes, parentData = {}) {
+          themes.forEach(theme => {
+            if (theme.children) {
+              let hierarchyTrackToUpdate = { ...parentData };
+              hierarchyTrackToUpdate[theme.label] = theme.name;
+              getFrameworkDetails(theme.children, hierarchyTrackToUpdate);
+            } else {
+              let data = {};
+
+              let hierarchyTrackToUpdate = { ...parentData };
+              hierarchyTrackToUpdate[theme.label] = theme.name;
+
+              theme.criteria.forEach(criteria => {
+                data = {};
+
+                Object.keys(hierarchyTrackToUpdate).forEach(
+                  eachHierarchyUpdateData => {
+                    data[eachHierarchyUpdateData] =
+                      hierarchyTrackToUpdate[eachHierarchyUpdateData];
+                  }
+                );
+
+                data["criteria Name"] =
+                  criteriaObject[criteria.criteriaId.toString()].name;
+                data["criteria ExternalId"] =
+                  criteriaObject[criteria.criteriaId.toString()].externalId;
+
+                input.push(data);
+              });
+            }
+          });
+        };
+
+        getFrameworkDetails(solutionDocuments.themes);
+
+        input.push(null);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+   * @api {get} /assessment/api/v1/reports/questionCsv/:solutionExternalId Fetch Question Csv Data
+   * @apiVersion 0.0.1
+   * @apiName Fetch Question csv
+   * @apiGroup Report
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+  async questionCsv(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const fileName = `QuestionCsv`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function() {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        // get criteria name,ecm method,section,question id from criteria
+        function getCriteriasDetails(criteria) {
+          let criteriasDetails = {};
+          let questionIds = [];
+          criteria.forEach(eachCriteria => {
+            eachCriteria.evidences.forEach(eachEvidence => {
+              eachEvidence.sections.forEach(eachSection => {
+                eachSection.questions.forEach(eachQuestion => {
+                  criteriasDetails[eachQuestion.toString()] = {
+                    criteriaExternalId: eachCriteria.externalId,
+                    criteriaName: eachCriteria.name,
+                    evidenceMethod: eachEvidence.externalId,
+                    section: eachSection.name
+                  };
+
+                  questionIds.push(eachQuestion);
+                });
+              });
+            });
+          });
+          return {
+            criteriasDetails: criteriasDetails,
+            questionIds: questionIds
+          };
+        }
+
+        let solutionDocuments = await database.models.solutions
+          .findOne(
+            {
+              externalId: req.params._id
+            },
+            {
+              themes: 1
+            }
+          )
+          .lean();
+
+        let criteriaIds = gen.utils.getCriteriaIds(solutionDocuments.themes);
+
+        let allCriteriaDocument = await database.models.criteria
+          .find(
+            { _id: { $in: criteriaIds } },
+            { name: 1, externalId: 1, evidences: 1 }
+          )
+          .lean();
+
+        let criteriaDocuments = getCriteriasDetails(allCriteriaDocument);
+
+        let questionDocuments = await database.models.questions
+          .find({
+            _id: { $in: criteriaDocuments.questionIds }
+          })
+          .lean();
+
+        let instanceParentQuestion = {};
+        let parentQuestionData = {};
+
+        questionDocuments.forEach(eachQuestionDocument => {
+          eachQuestionDocument.instanceQuestions.length &&
+            eachQuestionDocument.instanceQuestions.forEach(
+              eachInstanceQuestion => {
+                instanceParentQuestion[eachInstanceQuestion.toString()] = {
+                  parentExternalId: eachQuestionDocument.externalId
+                };
+              }
+            );
+
+          parentQuestionData[eachQuestionDocument._id.toString()] = {
+            parentExternalId: eachQuestionDocument.externalId
+          };
+        });
+
+        for (
+          let pointerToQuestionDoc = 0;
+          pointerToQuestionDoc < questionDocuments.length;
+          pointerToQuestionDoc++
+        ) {
+          let csvObject = {};
+          let questions = questionDocuments[pointerToQuestionDoc];
+
+          if (criteriaDocuments.criteriasDetails[questions._id.toString()]) {
+            csvObject["evaluationFrameworkId"] = req.params._id;
+            csvObject["criteriaExternalId"] =
+              criteriaDocuments.criteriasDetails[
+                questions._id.toString()
+              ].criteriaExternalId;
+
+            csvObject["name"] =
+              criteriaDocuments.criteriasDetails[
+                questions._id.toString()
+              ].criteriaName;
+
+            csvObject["evidenceMethod"] =
+              criteriaDocuments.criteriasDetails[
+                questions._id.toString()
+              ].evidenceMethod;
+
+            csvObject["section"] =
+              criteriaDocuments.criteriasDetails[
+                questions._id.toString()
+              ].section;
+
+            if (instanceParentQuestion[questions._id.toString()]) {
+              csvObject["instanceParentQuestionId"] =
+                instanceParentQuestion[
+                  questions._id.toString()
+                ].parentExternalId;
+            } else {
+              csvObject["instanceParentQuestionId"] = "NA";
+            }
+
+            if (questions.visibleIf.length > 0) {
+              csvObject["hasAParentQuestion"] = "Yes";
+              csvObject["parentQuestionOperator"] =
+                questions.visibleIf[0].operator;
+              csvObject["parentQuestionValue"] = questions.visibleIf[0].value;
+              csvObject["parentQuestionId"] =
+                parentQuestionData[
+                  questions.visibleIf[0]._id.toString()
+                ].parentExternalId;
+            } else {
+              csvObject["hasAParentQuestion"] = "No";
+              csvObject["parentQuestionOperator"] = "";
+              csvObject["parentQuestionValue"] = "";
+              csvObject["parentQuestionId"] = "";
+            }
+
+            csvObject["externalId"] = questions.externalId;
+            csvObject["question0"] = questions.question[0];
+            csvObject["question1"] = questions.question[1];
+            csvObject["tip"] = questions.tip;
+            csvObject["instanceIdentifier"] = questions.instanceIdentifier
+              ? questions.instanceIdentifier
+              : "";
+            csvObject["responseType"] = questions.responseType
+              ? questions.responseType
+              : "";
+            csvObject["dateFormat"] = questions.dateFormat
+              ? questions.dateFormat
+              : "";
+            csvObject["autoCapture"] = questions.autoCapture
+              ? questions.autoCapture
+              : "";
+
+            csvObject["validation"] = questions.validation.required
+              ? questions.validation.required
+              : false;
+
+            csvObject["validationIsNumber"] = questions.validation.isNumber
+              ? questions.validation.isNumber
+              : "";
+
+            csvObject["validationRegex"] = questions.validation.regex
+              ? questions.validation.regex
+              : "";
+
+            csvObject["validationMax"] = questions.validation.max
+              ? questions.validation.max
+              : "";
+
+            csvObject["validationMin"] = questions.validation.min
+              ? questions.validation.min
+              : "";
+
+            csvObject["fileIsRequired"] = questions.file.required
+              ? questions.file.required
+              : "";
+
+            csvObject["fileUploadType"] = questions.file.type
+              ? questions.file.type.join("")
+              : "";
+
+            csvObject["minFileCount"] = questions.file.minCount
+              ? questions.file.minCount
+              : "";
+
+            csvObject["maxFileCount"] = questions.file.maxCount
+              ? questions.file.maxCount
+              : "";
+
+            csvObject["caption"] = questions.file.caption
+              ? questions.file.caption
+              : "";
+
+            csvObject["questionGroup"] = questions.questionGroup.join(",");
+            csvObject["modeOfCollection"] = questions.modeOfCollection;
+            csvObject["accessibility"] = questions.accessibility;
+            csvObject["showRemarks"] = questions.showRemarks;
+            csvObject["rubricLevel"] = questions.rubricLevel;
+            csvObject["isAGeneralQuestion"] = questions.isAGeneralQuestion;
+            csvObject["R1"] = "";
+            csvObject["R2"] = "";
+            csvObject["R3"] = "";
+            csvObject["R4"] = "";
+            csvObject["R5"] = "";
+            csvObject["R6"] = "";
+            csvObject["R7"] = "";
+
+            if (questions.options && questions.options.length > 0) {
+              for (
+                let pointerToOptions = 0;
+                pointerToOptions < questions.options.length;
+                pointerToOptions++
+              ) {
+                csvObject[questions.options[pointerToOptions].value] =
+                  questions.options[pointerToOptions].label;
+              }
+            }
+
+            input.push(csvObject);
+          }
+        }
+        input.push(null);
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
 };
