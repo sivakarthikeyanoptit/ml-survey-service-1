@@ -3736,9 +3736,9 @@ module.exports = class Reports {
                 );
 
                 data["criteria Name"] =
-                  criteriaObject[criteria._id.toString()].name;
+                  criteriaObject[criteria.criteriaId.toString()].name;
                 data["criteria ExternalId"] =
-                  criteriaObject[criteria._id.toString()].externalId;
+                  criteriaObject[criteria.criteriaId.toString()].externalId;
 
                 input.push(data);
               });
@@ -3982,13 +3982,15 @@ module.exports = class Reports {
             csvObject["R6"] = "";
             csvObject["R7"] = "";
 
-            for (
-              let pointerToOptions = 0;
-              pointerToOptions < questions.options.length;
-              pointerToOptions++
-            ) {
-              csvObject[questions.options[pointerToOptions].value] =
-                questions.options[pointerToOptions].label;
+            if (questions.options && questions.options.length > 0) {
+              for (
+                let pointerToOptions = 0;
+                pointerToOptions < questions.options.length;
+                pointerToOptions++
+              ) {
+                csvObject[questions.options[pointerToOptions].value] =
+                  questions.options[pointerToOptions].label;
+              }
             }
 
             input.push(csvObject);
