@@ -139,8 +139,8 @@ module.exports = class EntityAssessors extends Abstract {
             assessor.entityDocuments.forEach(assessorEntity => {
               solution.entities.push({
                 _id: assessorEntity._id,
-                isParentInterviewCompleted: entityPAISubmissionStatus[assessorEntity._id.toString()]["PAIStatus"],
-                submissionId: entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionId"],
+                isParentInterviewCompleted: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["PAIStatus"] : false,
+                submissionId: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionId"] : "",
                 ...assessorEntity.metaInformation
               })
             })
