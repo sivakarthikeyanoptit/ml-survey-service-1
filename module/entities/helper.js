@@ -315,7 +315,7 @@ module.exports = class entitiesHelper {
 
                         singleEntity["_systemId"] = newEntity._id.toString()
 
-                        if (solutionsData  && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
+                        if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
                         }
 
@@ -376,6 +376,44 @@ module.exports = class entitiesHelper {
                 return resolve();
             } catch (error) {
                 return reject(error)
+            }
+        })
+    }
+
+    static search(entityTypeId, searchText, pageSize, pageNo) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let entityDocuments = await database.models.entities.aggregate([
+                    {
+                        $match: {
+                            $or: [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }],
+                            "entityTypeId": entityTypeId
+                        }
+                    },
+                    {
+                        $project: {
+                            name: "$metaInformation.name",
+                            addressLine1: "$metaInformation.addressLine1",
+                            addressLine2: "$metaInformation.addressLine2"
+                        }
+                    },
+                    {
+                        $facet: {
+                            "totalCount": [
+                                { "$count": "count" }
+                            ],
+                            "schoolInformation": [
+                                { $skip: pageSize * (pageNo - 1) },
+                                { $limit: pageSize }
+                            ],
+                        }
+                    }]);
+
+                return resolve(entityDocuments)
+
+            } catch (error) {
+                return reject(error);
             }
         })
     }

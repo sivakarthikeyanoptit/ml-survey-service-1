@@ -1,4 +1,5 @@
 const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -43,6 +44,7 @@ module.exports = class Observations extends Abstract {
 
                 let solutionsData = await database.models.solutions.find({
                     entityTypeId: ObjectId(req.params._id),
+                    type: "observation",
                     isReusable: true
                 }, {
                         name: 1,
@@ -262,7 +264,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {post} /assessment/api/v1/observations/mapEntityToObservation/:observationId Map entities to observations
+     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
      * @apiVersion 0.0.1
      * @apiName Map entities to observations
      * @apiGroup Observations
@@ -274,7 +276,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse errorBody
      */
 
-    async mapEntityToObservation(req) {
+    async addEntityToObservation(req) {
 
         return new Promise(async (resolve, reject) => {
 
@@ -292,7 +294,7 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean()
 
-                if(observationDocument.status != "published"){
+                if (observationDocument.status != "published") {
                     return resolve({
                         status: 400,
                         message: "Observation already completed or not published."
@@ -333,6 +335,104 @@ module.exports = class Observations extends Abstract {
                 return reject({
                     status: 500,
                     message: error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+     * @api {post} /assessment/api/v1/observations/removeEntityFromObservation/:observationId Un Map entities to observations
+     * @apiVersion 0.0.1
+     * @apiName Un Map entities to observations
+     * @apiGroup Observations
+    * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+    async removeEntityFromObservation(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(req.params._id)
+                    },
+                    {
+                        $pull: {
+                            entities: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) }
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: "Entity Removed successfully."
+                })
+
+
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+     * @api {get} /assessment/api/v1/observations/search/:observationId Search Entities
+     * @apiVersion 0.0.1
+     * @apiName Search Entities
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+    async search(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let response = {
+                    message: "Entities fetched successfully",
+                    result: {}
+                };
+
+
+                let observationDocument = await database.models.observations.findOne(
+                    {
+                        _id: req.params._id
+                    },
+                    {
+                        entityTypeId: 1
+                    }
+                ).lean();
+
+                if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
+
+                let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
+
+                response.result = entityDocuments
+
+                return resolve(response);
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || error,
                     errorObject: error
                 });
             }
