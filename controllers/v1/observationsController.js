@@ -264,7 +264,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {post} /assessment/api/v1/observations/mapEntityToObservation/:observationId Map entities to observations
+     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
      * @apiVersion 0.0.1
      * @apiName Map entities to observations
      * @apiGroup Observations
@@ -276,7 +276,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse errorBody
      */
 
-    async mapEntityToObservation(req) {
+    async addEntityToObservation(req) {
 
         return new Promise(async (resolve, reject) => {
 
@@ -344,7 +344,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {post} /assessment/api/v1/observations/unMapEntityToObservation/:observationId Un Map entities to observations
+     * @api {post} /assessment/api/v1/observations/removeEntityFromObservation/:observationId Un Map entities to observations
      * @apiVersion 0.0.1
      * @apiName Un Map entities to observations
      * @apiGroup Observations
@@ -355,7 +355,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
-    async unMapEntityToObservation(req) {
+    async removeEntityFromObservation(req) {
 
         return new Promise(async (resolve, reject) => {
 
