@@ -120,7 +120,8 @@ module.exports = class EntityAssessors extends Abstract {
               {
                 entityId: {
                   $in: assessor.entities
-                }
+                },
+                solutionId:assessor.solutionId
               },
               {
                 "entityId": 1,

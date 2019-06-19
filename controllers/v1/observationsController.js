@@ -1,4 +1,6 @@
-module.exports = class Observations {
+const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
+
+module.exports = class Observations extends Abstract {
 
     /**
      * @apiDefine errorBody
@@ -13,6 +15,7 @@ module.exports = class Observations {
        */
 
     constructor() {
+        super(observationsSchema);
     }
 
     /**
@@ -122,5 +125,140 @@ module.exports = class Observations {
 
     }
 
+
+    /**
+     * @api {post} /assessment/api/v1/observations/create?solutionId=:solutionInternalId Create Observation
+     * @apiVersion 0.0.1
+     * @apiName Create Observation
+     * @apiGroup Observations
+     * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": {
+     *          "name": String,
+     *          "description": String,
+     *          "startDate": String,
+     *          "endDate": String,
+     *          "status": String
+     *      }
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+    create(req) {
+        return new Promise(async (resolve, reject) => {
+
+        try {
+            
+            if (!req.query.solutionId || req.query.solutionId == "") {
+                let responseMessage = "Bad request.";
+                return resolve({ status: 400, message: responseMessage })
+            }
+
+            let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
+
+            return resolve({
+                message: "Observation created successfully.",
+                result: result
+            });
+
+        } catch (error) {
+
+            return reject({
+                status: error.status || 500,
+                message: error.message || "Oops! something went wrong.",
+                errorObject: error
+            })
+
+        }
+
+
+        })
+    }
+
+
+    /**
+     * @api {get} /assessment/api/v1/observations/list Observations list
+     * @apiVersion 0.0.1
+     * @apiName Observations list
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/list
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    async list(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let observations = new Array;
+
+            let assessorObservationsQueryObject = [
+                {
+                    $match: {
+                        createdBy: req.userDetails.userId
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "entities",
+                        localField: "entities",
+                        foreignField: "_id",
+                        as: "entityDocuments"
+                    }
+                },
+                {
+                    $project: {
+                        "name":1,
+                        "description":1,
+                        "entities": 1,
+                        "startDate":1,
+                        "endDate":1,
+                        "status": 1,
+                        "solutionId": 1,
+                        "entityDocuments._id": 1,
+                        "entityDocuments.metaInformation.externalId": 1,
+                        "entityDocuments.metaInformation.name": 1
+                    }
+                }
+            ];
+
+            const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
+
+            let observation
+
+            for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
+
+                observation = userObservations[pointerToAssessorObservationArray];
+                observation.entities = new Array
+                observation.entityDocuments.forEach(observationEntity => {
+                    observation.entities.push({
+                        _id: observationEntity._id,
+                        ...observationEntity.metaInformation
+                    })
+                })
+                observations.push(_.omit(observation,["entityDocuments"]))
+            }
+
+            let responseMessage = "Observation list fetched successfully"
+
+            return resolve({
+            message: responseMessage,
+            result: observations
+            });
+
+        } catch (error) {
+            return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+            });
+        }
+
+        });
+
+    }
 
 }
