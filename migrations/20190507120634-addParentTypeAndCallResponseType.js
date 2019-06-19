@@ -11,27 +11,27 @@ module.exports = {
         $set: {
           "types": [
             {
-              type : "P1",
+              value : "P1",
               label: "Parent only"
             },
             {
-              type : "P2",
+              value : "P2",
               label: "SMC Parent Member"
             },
             {
-              type : "P3",
+              value : "P3",
               label: "Safety Committee Member"
             },
             {
-              type : "P4",
+              value : "P4",
               label: "EWS-DG Parent"
             },
             {
-              type : "P5",
+              value : "P5",
               label: "Social Worker"
             },
             {
-              type : "P6",
+              value : "P6",
               label: "Elected Representative Nominee"
             }
           ],

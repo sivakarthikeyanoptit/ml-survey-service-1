@@ -13,7 +13,7 @@ module.exports = class EntityAssessors extends Abstract {
 
 
   /**
- * @api {get} /assessment/api/v1/entityAssessors/entities Entity assessor list
+ * @api {get} /assessment/api/v1/entityAssessors/entities?type="assessment"&subType="institutional"&programId=""&solutionId="" Entity assessor list
  * @apiVersion 0.0.1
  * @apiName Entity assessor list
  * @apiGroup Entity Assessor
@@ -29,8 +29,8 @@ module.exports = class EntityAssessors extends Abstract {
 
       try {
 
-        let programs = new Array
-        let responseMessage = "Not authorized to fetch entities for this user"
+        let programs = new Array;
+        let responseMessage = "Not authorized to fetch entities for this user";
 
         let assessorEntitiesQueryObject = [
           {
@@ -61,6 +61,9 @@ module.exports = class EntityAssessors extends Abstract {
             }
           }
         ];
+
+        if(req.query.programId) assessorEntitiesQueryObject[0]["$match"]["programId"] = ObjectId(req.query.programId);
+        if(req.query.solutionId) assessorEntitiesQueryObject[0]["$match"]["solutionId"] = ObjectId(req.query.solutionId);
 
         const assessorsDocument = await database.models.entityAssessors.aggregate(assessorEntitiesQueryObject)
 
@@ -117,7 +120,8 @@ module.exports = class EntityAssessors extends Abstract {
               {
                 entityId: {
                   $in: assessor.entities
-                }
+                },
+                solutionId:assessor.solutionId
               },
               {
                 "entityId": 1,
@@ -126,7 +130,8 @@ module.exports = class EntityAssessors extends Abstract {
             )
 
             entityPAISubmissionStatus = submissions.reduce(
-              (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: (entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false }), {})
+              (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {PAIStatus:(entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false,
+              submissionId:entitySubmission._id} }), {})
 
             let programDocument = program
             programDocument.solutions = new Array
@@ -134,7 +139,8 @@ module.exports = class EntityAssessors extends Abstract {
             assessor.entityDocuments.forEach(assessorEntity => {
               solution.entities.push({
                 _id: assessorEntity._id,
-                isParentInterviewCompleted: entityPAISubmissionStatus[assessorEntity._id.toString()],
+                isParentInterviewCompleted: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["PAIStatus"] : false,
+                submissionId: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionId"] : "",
                 ...assessorEntity.metaInformation
               })
             })

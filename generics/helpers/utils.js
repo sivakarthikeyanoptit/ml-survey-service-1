@@ -19,7 +19,7 @@ function camelCaseToTitleCase(in_camelCaseString) {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
-function lowerCase(str){
+function lowerCase(str) {
   return str.toLowerCase()
 }
 
@@ -52,7 +52,7 @@ function getCriteriaIds(themes) {
       criteriaIdArray = theme.criteria;
     }
     criteriaIdArray.forEach(eachCriteria => {
-      if(eachCriteria.criteriaId) {
+      if (eachCriteria.criteriaId) {
         allCriteriaIds.push(eachCriteria.criteriaId);
       } else {
         allCriteriaIds.push(eachCriteria);
@@ -72,10 +72,10 @@ function getCriteriaIdsAndWeightage(themes) {
       criteriaIdArray = theme.criteria;
     }
     criteriaIdArray.forEach(eachCriteria => {
-        allCriteriaIds.push({
-          criteriaId:eachCriteria.criteriaId,
-          weightage:eachCriteria.weightage
-        });
+      allCriteriaIds.push({
+        criteriaId: eachCriteria.criteriaId,
+        weightage: eachCriteria.weightage
+      });
     })
   })
   return allCriteriaIds;
@@ -94,7 +94,7 @@ function getUserRole(userDetails, caseSensitive = false) {
   }
 }
 
-function getReadableUserRole(userDetails){
+function getReadableUserRole(userDetails) {
   if (userDetails && userDetails.allRoles.length) {
 
     _.pull(userDetails.allRoles, 'PUBLIC');
@@ -105,7 +105,7 @@ function getReadableUserRole(userDetails){
       PROJECT_MANAGER: "Project Managers",
       PROGRAM_MANAGER: "Program Managers"
     }
-    
+
     return readableRoles[userDetails.allRoles[0]] || "";
   } else {
     return
@@ -141,27 +141,32 @@ function getAllQuestionId(criteria) {
   return questionIds
 }
 
-function valueParser(dataToBeParsed){
-  
+function valueParser(dataToBeParsed) {
+
   let parsedData = {}
 
-  Object.keys(dataToBeParsed).forEach(eachDataToBeParsed=>{
+  Object.keys(dataToBeParsed).forEach(eachDataToBeParsed => {
     parsedData[eachDataToBeParsed] = dataToBeParsed[eachDataToBeParsed].trim()
   })
   return parsedData
 }
 
+function arrayIdsTobjectIds(ids) {
+  return ids.map(id => ObjectId(id));
+}
+
 module.exports = {
   camelCaseToTitleCase: camelCaseToTitleCase,
-  lowerCase:lowerCase,
+  lowerCase: lowerCase,
   checkIfStringIsUrl: checkIfStringIsUrl,
   generateRandomCharacters: generateRandomCharacters,
   getCriteriaIds: getCriteriaIds,
   getUserRole: getUserRole,
   getReadableUserRole: getReadableUserRole,
   mapUserRole: mapUserRole,
-  valueParser:valueParser,
+  valueParser: valueParser,
   getAllQuestionId: getAllQuestionId,
-  getCriteriaIdsAndWeightage:getCriteriaIdsAndWeightage,
-  assessmentRoles:assessmentRoles
+  getCriteriaIdsAndWeightage: getCriteriaIdsAndWeightage,
+  assessmentRoles: assessmentRoles,
+  arrayIdsTobjectIds: arrayIdsTobjectIds
 };
