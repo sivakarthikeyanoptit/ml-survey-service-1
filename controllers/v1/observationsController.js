@@ -1,4 +1,5 @@
 const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -342,6 +343,18 @@ module.exports = class Observations extends Abstract {
 
     }
 
+    /**
+     * @api {post} /assessment/api/v1/observations/unMapEntityToObservation/:observationId Un Map entities to observations
+     * @apiVersion 0.0.1
+     * @apiName Un Map entities to observations
+     * @apiGroup Observations
+    * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
     async unMapEntityToObservation(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -376,6 +389,16 @@ module.exports = class Observations extends Abstract {
 
     }
 
+    /**
+     * @api {get} /assessment/api/v1/observations/search/:observationId Search Entities
+     * @apiVersion 0.0.1
+     * @apiName Search Entities
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
     async search(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -399,36 +422,7 @@ module.exports = class Observations extends Abstract {
 
                 if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
 
-                let queryObject = {};
-
-                queryObject["entityTypeId"] = observationDocument.entityTypeId;
-                queryObject["$or"] = [{ "metaInformation.name": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }];
-
-                let entityDocuments = await database.models.entities.aggregate([
-                    {
-                        $match: {
-                            $or: [{ "metaInformation.name": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }],
-                            "entityTypeId": observationDocument.entityTypeId
-                        }
-                    },
-                    {
-                        $project: {
-                            name: "$metaInformation.name",
-                            addressLine1: "$metaInformation.addressLine1",
-                            addressLine2: "$metaInformation.addressLine2"
-                        }
-                    },
-                    {
-                        $facet: {
-                            "totalCount": [
-                                { "$count": "count" }
-                            ],
-                            "schoolInformation": [
-                                { $skip: req.pageSize * (req.pageNo - 1) },
-                                { $limit: req.pageSize }
-                            ],
-                        }
-                    }]);
+                let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
 
                 response.result = entityDocuments
 
