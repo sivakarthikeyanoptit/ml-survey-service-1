@@ -12,7 +12,9 @@ module.exports = {
             "visible":true,
             "editable":true,
             "input": "text",
-            "required": true
+            "validation" : {
+              "required" : true
+            }
         },
         {
             "field": "description",
@@ -21,7 +23,9 @@ module.exports = {
             "visible":true,
             "editable":true,
             "input": "text",
-            "required": true
+            "validation" : {
+              "required" : true
+            }
         },
         {
           "field": "startDate",
@@ -30,7 +34,9 @@ module.exports = {
           "visible":true,
           "editable":true,
           "input": "date",
-          "required": true
+          "validation" : {
+            "required" : true
+          }
         },
         {
             "field": "endDate",
@@ -39,16 +45,20 @@ module.exports = {
             "visible":true,
             "editable":true,
             "input": "date",
-            "required": true
+            "validation" : {
+              "required" : true
+            }
         },
         {
             "field": "status",
             "label": "Status",
-            "value": "",
+            "value": "draft",
             "visible":false,
             "editable":true,
             "input": "radio",
-            "required": true,
+            "validation" : {
+              "required" : true
+            },
             "options":[
               {
                 "value" : "published",
