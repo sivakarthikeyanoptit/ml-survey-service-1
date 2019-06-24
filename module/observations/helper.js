@@ -73,4 +73,71 @@ module.exports = class observationsHelper {
 
     }
 
+    static findSubmissionByEntityObservation(document, requestObject) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+              let queryObject = {
+                entityId: document.entityId,
+                observationId: document.observationId
+              };
+          
+              let observationSubmissionsDocument = await database.models.observationSubmissions.findOne(
+                queryObject
+              );
+          
+              if (!observationSubmissionsDocument) {
+                let entityAssessorsQueryObject = [
+                  {
+                    $match: { entities: document.entityId, observationId: document.observationId }
+                  }
+                ];
+          
+                document.assessors = await database.models[
+                  "entityAssessors"
+                ].aggregate(entityAssessorsQueryObject);
+          
+                let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+                if (assessorElement && assessorElement.externalId != "") {
+                  assessorElement.assessmentStatus = "started"
+                  assessorElement.userAgent = requestObject.headers['user-agent']
+                }
+          
+                observationSubmissionsDocument = await database.models.observationSubmissions.create(
+                  document
+                );
+
+              } else {
+
+                let assessorElement = observationSubmissionsDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+                if (assessorElement && assessorElement.externalId != "") {
+                  assessorElement.assessmentStatus = "started"
+                  assessorElement.userAgent = requestObject.headers['user-agent']
+                  let updateObject = {}
+                  updateObject.$set = {
+                    assessors: observationSubmissionsDocument.assessors
+                  }
+                  observationSubmissionsDocument = await database.models.observationSubmissions.findOneAndUpdate(
+                    queryObject,
+                    updateObject
+                  );
+                }
+              }
+          
+              return resolve({
+                message: "Submission found",
+                result: observationSubmissionsDocument
+              });
+          
+          
+              } catch (error) {
+                return reject(error);
+              }
+
+        })
+
+    }
+
 };

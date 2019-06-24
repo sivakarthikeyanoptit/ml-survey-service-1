@@ -62,7 +62,7 @@ module.exports = class Assessments {
             };
             let entityAssessorDocument = await database.models.entityAssessors.findOne(
                 entityAssessorObject
-            );
+            ).lean();
 
             if (!entityAssessorDocument) {
                 let responseMessage = 'Unauthorized.';

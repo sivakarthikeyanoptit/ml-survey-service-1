@@ -198,199 +198,215 @@ module.exports = class Submission extends Abstract {
 
   async make(req) {
     return new Promise(async (resolve, reject) => {
-
       try {
 
-        req.body = req.body || {};
-        let message = "Submission completed successfully"
-        let runUpdateQuery = false
+        let response = await submissionsHelper.createEvidencesInSubmission(req, "submissions", true);
 
-        let queryObject = {
-          _id: ObjectId(req.params._id)
-        }
-
-        let queryOptions = {
-          new: true
-        }
-
-        let submissionDocument = await database.models.submissions.findOne(
-          queryObject
-        );
-
-        let updateObject = {}
-        let result = {}
-
-        if (req.body.entityProfile) {
-          updateObject.$set = { entityProfile: req.body.entityProfile }
-          runUpdateQuery = true
-        }
-
-        if (req.body.evidence) {
-          req.body.evidence.gpsLocation = req.headers.gpslocation
-          req.body.evidence.submittedBy = req.userDetails.userId
-          req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
-          req.body.evidence.submittedByEmail = req.userDetails.email
-          req.body.evidence.submissionDate = new Date()
-
-          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == req.body.evidence.externalId);
-          if (submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
-            runUpdateQuery = true
-            req.body.evidence.isValid = true
-            let answerArray = {}
-            Object.entries(req.body.evidence.answers).forEach(answer => {
-              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
-                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
-                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
-                      answer[1].value.push(generalQuestionInstanceValue)
-                    })
-                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
-                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
-                    })
-                  })
-                }
-                for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-
-                  _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-
-                    if (answerArray[question.qid]) {
-                      answerArray[question.qid].instanceResponses.push(question.value)
-                      answerArray[question.qid].instanceRemarks.push(question.remarks)
-                      answerArray[question.qid].instanceFileName.push(question.fileName)
-                    } else {
-                      let clonedQuestion = { ...question }
-                      clonedQuestion.instanceResponses = new Array
-                      clonedQuestion.instanceRemarks = new Array
-                      clonedQuestion.instanceFileName = new Array
-                      clonedQuestion.instanceResponses.push(question.value)
-                      clonedQuestion.instanceRemarks.push(question.remarks)
-                      clonedQuestion.instanceFileName.push(question.fileName)
-                      delete clonedQuestion.value
-                      delete clonedQuestion.remarks
-                      delete clonedQuestion.fileName
-                      delete clonedQuestion.payload
-                      answerArray[question.qid] = clonedQuestion
-                    }
-
-                  })
-                }
-                answer[1].countOfInstances = answer[1].value.length
-              }
-              answerArray[answer[0]] = answer[1]
-            });
-
-            if (answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse }
-
-
-            evidencesStatusToBeChanged['isSubmitted'] = true;
-            evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
-            evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
-            evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
-            evidencesStatusToBeChanged['hasConflicts'] = false;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
-
-            updateObject.$push = {
-              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
-            }
-            updateObject.$set = {
-              answers: _.assignIn(submissionDocument.answers, answerArray),
-              ["evidences." + req.body.evidence.externalId + ".isSubmitted"]: true,
-              ["evidences." + req.body.evidence.externalId + ".notApplicable"]: req.body.evidence.notApplicable,
-              ["evidences." + req.body.evidence.externalId + ".startTime"]: req.body.evidence.startTime,
-              ["evidences." + req.body.evidence.externalId + ".endTime"]: req.body.evidence.endTime,
-              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: false,
-              evidencesStatus: submissionDocument.evidencesStatus,
-              status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
-            }
-          } else {
-            runUpdateQuery = true
-            req.body.evidence.isValid = false
-
-            Object.entries(req.body.evidence.answers).forEach(answer => {
-              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
-                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
-                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
-                      answer[1].value.push(generalQuestionInstanceValue)
-                    })
-                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
-                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
-                    })
-                  })
-                }
-                answer[1].countOfInstances = answer[1].value.length
-              }
-            });
-
-            updateObject.$push = {
-              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
-            }
-
-            evidencesStatusToBeChanged['hasConflicts'] = true;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
-
-            updateObject.$set = {
-              evidencesStatus: submissionDocument.evidencesStatus,
-              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: true,
-              status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
-            }
-
-            message = "Duplicate evidence method submission detected."
-          }
-
-        }
-
-        if (runUpdateQuery) {
-          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-            queryObject,
-            updateObject,
-            queryOptions
-          );
-
-          let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-          let { ratingsEnabled } = canRatingsBeEnabled
-
-          if (ratingsEnabled) {
-            let updateStatusObject = {}
-            updateStatusObject.$set = {}
-            updateStatusObject.$set = {
-              status: "completed",
-              completedDate: new Date()
-            }
-            updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-              queryObject,
-              updateStatusObject,
-              queryOptions
-            );
-          }
-
-          let status = await submissionsHelper.extractStatusOfSubmission(updatedSubmissionDocument)
-
-          let response = {
-            message: message,
-            result: status
-          };
-
-          return resolve(response);
-
-        } else {
-
-          let response = {
-            message: message
-          };
-
-          return resolve(response);
-        }
+        return resolve(response);
 
       } catch (error) {
+
         return reject({
           status: 500,
           message: "Oops! Something went wrong!",
           errorObject: error
         });
+
       }
+
+
+      // try {
+
+      //   req.body = req.body || {};
+      //   let message = "Submission completed successfully"
+      //   let runUpdateQuery = false
+
+      //   let queryObject = {
+      //     _id: ObjectId(req.params._id)
+      //   }
+
+      //   let queryOptions = {
+      //     new: true
+      //   }
+
+      //   let submissionDocument = await database.models.submissions.findOne(
+      //     queryObject
+      //   );
+
+      //   let updateObject = {}
+      //   let result = {}
+
+      //   if (req.body.entityProfile) {
+      //     updateObject.$set = { entityProfile: req.body.entityProfile }
+      //     runUpdateQuery = true
+      //   }
+
+      //   if (req.body.evidence) {
+      //     req.body.evidence.gpsLocation = req.headers.gpslocation
+      //     req.body.evidence.submittedBy = req.userDetails.userId
+      //     req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
+      //     req.body.evidence.submittedByEmail = req.userDetails.email
+      //     req.body.evidence.submissionDate = new Date()
+
+      //     let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == req.body.evidence.externalId);
+      //     if (submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
+      //       runUpdateQuery = true
+      //       req.body.evidence.isValid = true
+      //       let answerArray = {}
+      //       Object.entries(req.body.evidence.answers).forEach(answer => {
+      //         if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+      //           if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+      //             submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
+      //               generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
+      //                 generalQuestionInstanceValue.isAGeneralQuestionResponse = true
+      //                 answer[1].value.push(generalQuestionInstanceValue)
+      //               })
+      //               generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
+      //                 answer[1].payload.labels[0].push(generalQuestionInstancePayload)
+      //               })
+      //             })
+      //           }
+      //           for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+
+      //             _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+
+      //               if (answerArray[question.qid]) {
+      //                 answerArray[question.qid].instanceResponses.push(question.value)
+      //                 answerArray[question.qid].instanceRemarks.push(question.remarks)
+      //                 answerArray[question.qid].instanceFileName.push(question.fileName)
+      //               } else {
+      //                 let clonedQuestion = { ...question }
+      //                 clonedQuestion.instanceResponses = new Array
+      //                 clonedQuestion.instanceRemarks = new Array
+      //                 clonedQuestion.instanceFileName = new Array
+      //                 clonedQuestion.instanceResponses.push(question.value)
+      //                 clonedQuestion.instanceRemarks.push(question.remarks)
+      //                 clonedQuestion.instanceFileName.push(question.fileName)
+      //                 delete clonedQuestion.value
+      //                 delete clonedQuestion.remarks
+      //                 delete clonedQuestion.fileName
+      //                 delete clonedQuestion.payload
+      //                 answerArray[question.qid] = clonedQuestion
+      //               }
+
+      //             })
+      //           }
+      //           answer[1].countOfInstances = answer[1].value.length
+      //         }
+      //         answerArray[answer[0]] = answer[1]
+      //       });
+
+      //       if (answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse }
+
+
+      //       evidencesStatusToBeChanged['isSubmitted'] = true;
+      //       evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
+      //       evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
+      //       evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
+      //       evidencesStatusToBeChanged['hasConflicts'] = false;
+      //       evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
+
+      //       updateObject.$push = {
+      //         ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
+      //       }
+      //       updateObject.$set = {
+      //         answers: _.assignIn(submissionDocument.answers, answerArray),
+      //         ["evidences." + req.body.evidence.externalId + ".isSubmitted"]: true,
+      //         ["evidences." + req.body.evidence.externalId + ".notApplicable"]: req.body.evidence.notApplicable,
+      //         ["evidences." + req.body.evidence.externalId + ".startTime"]: req.body.evidence.startTime,
+      //         ["evidences." + req.body.evidence.externalId + ".endTime"]: req.body.evidence.endTime,
+      //         ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: false,
+      //         evidencesStatus: submissionDocument.evidencesStatus,
+      //         status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
+      //       }
+      //     } else {
+      //       runUpdateQuery = true
+      //       req.body.evidence.isValid = false
+
+      //       Object.entries(req.body.evidence.answers).forEach(answer => {
+      //         if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
+      //           if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+      //             submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
+      //               generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
+      //                 generalQuestionInstanceValue.isAGeneralQuestionResponse = true
+      //                 answer[1].value.push(generalQuestionInstanceValue)
+      //               })
+      //               generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
+      //                 answer[1].payload.labels[0].push(generalQuestionInstancePayload)
+      //               })
+      //             })
+      //           }
+      //           answer[1].countOfInstances = answer[1].value.length
+      //         }
+      //       });
+
+      //       updateObject.$push = {
+      //         ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
+      //       }
+
+      //       evidencesStatusToBeChanged['hasConflicts'] = true;
+      //       evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
+
+      //       updateObject.$set = {
+      //         evidencesStatus: submissionDocument.evidencesStatus,
+      //         ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: true,
+      //         status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
+      //       }
+
+      //       message = "Duplicate evidence method submission detected."
+      //     }
+
+      //   }
+
+      //   if (runUpdateQuery) {
+      //     let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+      //       queryObject,
+      //       updateObject,
+      //       queryOptions
+      //     );
+
+      //     let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+      //     let { ratingsEnabled } = canRatingsBeEnabled
+
+      //     if (ratingsEnabled) {
+      //       let updateStatusObject = {}
+      //       updateStatusObject.$set = {}
+      //       updateStatusObject.$set = {
+      //         status: "completed",
+      //         completedDate: new Date()
+      //       }
+      //       updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+      //         queryObject,
+      //         updateStatusObject,
+      //         queryOptions
+      //       );
+      //     }
+
+      //     let status = await submissionsHelper.extractStatusOfSubmission(updatedSubmissionDocument)
+
+      //     let response = {
+      //       message: message,
+      //       result: status
+      //     };
+
+      //     return resolve(response);
+
+      //   } else {
+
+      //     let response = {
+      //       message: message
+      //     };
+
+      //     return resolve(response);
+      //   }
+
+      // } catch (error) {
+      // return reject({
+      //   status: 500,
+      //   message: "Oops! Something went wrong!",
+      //   errorObject: error
+      // });
+      // }
 
     })
   }
@@ -551,7 +567,7 @@ module.exports = class Submission extends Abstract {
 
 
           updateEntityObject.$set = {
-            "metaInformation.isParentInterviewCompleted" : true
+            "metaInformation.isParentInterviewCompleted": true
           }
 
           entityUpdatedDocument = await database.models.entities.findOneAndUpdate(
@@ -644,133 +660,133 @@ module.exports = class Submission extends Abstract {
   */
 
   async generalQuestions(req) {
-      return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
 
-          try {
+      try {
 
-            req.body = req.body || {};
-            let message = "General question submitted successfully."
-            let runUpdateQuery = false
+        req.body = req.body || {};
+        let message = "General question submitted successfully."
+        let runUpdateQuery = false
 
-            let queryObject = {
-              _id: ObjectId(req.params._id)
-            }
+        let queryObject = {
+          _id: ObjectId(req.params._id)
+        }
 
-            let queryOptions = {
-              new: true
-            }
+        let queryOptions = {
+          new: true
+        }
 
-            let submissionDocument = await database.models.submissions.findOne(
-              queryObject
-            );
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject
+        );
 
-            let updateObject = {}
-            updateObject.$set = {}
+        let updateObject = {}
+        updateObject.$set = {}
 
-            if (req.body.answers) {
-              let gpsLocation = req.headers.gpslocation
-              let submittedBy = req.userDetails.userId
-              let submissionDate = new Date()
+        if (req.body.answers) {
+          let gpsLocation = req.headers.gpslocation
+          let submittedBy = req.userDetails.userId
+          let submissionDate = new Date()
 
-              Object.entries(req.body.answers).forEach(answer => {
-                if (answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
-                  runUpdateQuery = true
-                  answer[1].gpslocation = gpsLocation
-                  answer[1].submittedBy = submittedBy
-                  answer[1].submissionDate = submissionDate
-                  if (submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                    submissionDocument.generalQuestions[answer[0]].submissions.push(answer[1])
-                  } else {
-                    submissionDocument.generalQuestions = {
-                      [answer[0]]: {
-                        submissions: [answer[1]]
-                      }
+          Object.entries(req.body.answers).forEach(answer => {
+            if (answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
+              runUpdateQuery = true
+              answer[1].gpslocation = gpsLocation
+              answer[1].submittedBy = submittedBy
+              answer[1].submissionDate = submissionDate
+              if (submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+                submissionDocument.generalQuestions[answer[0]].submissions.push(answer[1])
+              } else {
+                submissionDocument.generalQuestions = {
+                  [answer[0]]: {
+                    submissions: [answer[1]]
+                  }
+                }
+              }
+              if (submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
+                submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission, indexOfEvidenceMethodSubmission) => {
+                  if (evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
+                    answer[1].value.forEach(incomingGeneralQuestionInstance => {
+                      incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
+                      evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
+                    })
+                    answer[1].payload.labels[0].forEach(incomingGeneralQuestionInstancePayload => {
+                      evidenceMethodSubmission.answers[answer[0]].payload.labels[0].push(incomingGeneralQuestionInstancePayload)
+                    })
+                    evidenceMethodSubmission.answers[answer[0]].countOfInstances = evidenceMethodSubmission.answers[answer[0]].value.length
+                  }
+                  if (evidenceMethodSubmission.isValid === true) {
+
+                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+
+                      _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+
+                        if (submissionDocument.answers[question.qid]) {
+                          submissionDocument.answers[question.qid].instanceResponses.push(question.value)
+                          submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
+                          submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
+                        } else {
+                          let clonedQuestion = { ...question }
+                          clonedQuestion.instanceResponses = new Array
+                          clonedQuestion.instanceRemarks = new Array
+                          clonedQuestion.instanceFileName = new Array
+                          clonedQuestion.instanceResponses.push(question.value)
+                          clonedQuestion.instanceRemarks.push(question.remarks)
+                          clonedQuestion.instanceFileName.push(question.fileName)
+                          delete clonedQuestion.value
+                          delete clonedQuestion.remarks
+                          delete clonedQuestion.fileName
+                          delete clonedQuestion.payload
+                          submissionDocument.answers[question.qid] = clonedQuestion
+                        }
+
+                      })
                     }
                   }
-                  if (submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
-                    submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission, indexOfEvidenceMethodSubmission) => {
-                      if (evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
-                        answer[1].value.forEach(incomingGeneralQuestionInstance => {
-                          incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
-                          evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
-                        })
-                        answer[1].payload.labels[0].forEach(incomingGeneralQuestionInstancePayload => {
-                          evidenceMethodSubmission.answers[answer[0]].payload.labels[0].push(incomingGeneralQuestionInstancePayload)
-                        })
-                        evidenceMethodSubmission.answers[answer[0]].countOfInstances = evidenceMethodSubmission.answers[answer[0]].value.length
-                      }
-                      if (evidenceMethodSubmission.isValid === true) {
 
-                        for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-
-                          _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-
-                            if (submissionDocument.answers[question.qid]) {
-                              submissionDocument.answers[question.qid].instanceResponses.push(question.value)
-                              submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
-                              submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
-                            } else {
-                              let clonedQuestion = { ...question }
-                              clonedQuestion.instanceResponses = new Array
-                              clonedQuestion.instanceRemarks = new Array
-                              clonedQuestion.instanceFileName = new Array
-                              clonedQuestion.instanceResponses.push(question.value)
-                              clonedQuestion.instanceRemarks.push(question.remarks)
-                              clonedQuestion.instanceFileName.push(question.fileName)
-                              delete clonedQuestion.value
-                              delete clonedQuestion.remarks
-                              delete clonedQuestion.fileName
-                              delete clonedQuestion.payload
-                              submissionDocument.answers[question.qid] = clonedQuestion
-                            }
-
-                          })
-                        }
-                      }
-
-                    })
-                  }
-
-                }
-              });
-
-              updateObject.$set.generalQuestions = submissionDocument.generalQuestions
-              updateObject.$set.evidences = submissionDocument.evidences
-              updateObject.$set.answers = submissionDocument.answers
+                })
+              }
 
             }
+          });
 
-            if (runUpdateQuery) {
-              let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-                queryObject,
-                updateObject,
-                queryOptions
-              );
+          updateObject.$set.generalQuestions = submissionDocument.generalQuestions
+          updateObject.$set.evidences = submissionDocument.evidences
+          updateObject.$set.answers = submissionDocument.answers
 
-              let response = {
-                message: message
-              };
+        }
 
-              return resolve(response);
+        if (runUpdateQuery) {
+          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+            queryObject,
+            updateObject,
+            queryOptions
+          );
 
-            } else {
+          let response = {
+            message: message
+          };
 
-              let response = {
-                message: "Failed to submit general questions"
-              };
+          return resolve(response);
 
-              return resolve(response);
-            }
+        } else {
 
-          } catch (error) {
-              return reject({
-                status: 500,
-                message: "Oops! Something went wrong!",
-                errorObject: error
-              });
-          }
+          let response = {
+            message: "Failed to submit general questions"
+          };
 
-      })
+          return resolve(response);
+        }
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+
+    })
   }
 
   /**
@@ -808,7 +824,7 @@ module.exports = class Submission extends Abstract {
 
           let parentInformation = await database.models.entities.findOne(
             { _id: ObjectId(req.body.parentId) },
-            {metaInformation : 1}
+            { metaInformation: 1 }
           ).lean();
 
           if (parentInformation) {
@@ -917,7 +933,7 @@ module.exports = class Submission extends Abstract {
 
           let parentInformation = await database.models.entities.findOne(
             { _id: ObjectId(req.query.parentId) },
-            {metaInformation : 1}
+            { metaInformation: 1 }
           );
 
           if (parentInformation) {
@@ -990,11 +1006,11 @@ module.exports = class Submission extends Abstract {
         let programId = req.query.programId
         let entityId = req.params._id
 
-        if(!programId){
+        if (!programId) {
           throw "Program Id is not found"
         }
 
-        if(!entityId) {
+        if (!entityId) {
           throw "Entity Id is not found"
         }
 
@@ -1005,7 +1021,7 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile" : 1 , "programExternalId": 1 }
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "programExternalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1016,75 +1032,75 @@ module.exports = class Submission extends Abstract {
         result.runUpdateQuery = true
 
         let allSubmittedEvidence = submissionDocument.evidencesStatus.every(submissionsHelper.allSubmission)
-        
+
         if (allSubmittedEvidence) {
           let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
-            if(criteria.weightage > 0) {
+            if (criteria.weightage > 0) {
 
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
-              
-              let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
+
+              let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
                 return eachRubricLevels.expression != ""
               })
-            
+
               if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                 let submissionAnswers = new Array
 
                 const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                   let result;
                   const questionOrCriteriaArray = questionOrCriteria.split('.')
-                  
-                  if(_.includes(questionOrCriteriaArray,"entityProfile")) {
 
-                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                  if (_.includes(questionOrCriteriaArray, "entityProfile")) {
+
+                    if (submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]) {
                       result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                     } else {
                       result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
 
-                    if(!result || result == "" || !(result.length>=0)) {
+                    if (!result || result == "" || !(result.length >= 0)) {
                       result = "NA"
                     }
                     submissionAnswers.push(result)
                     return result
                   }
 
-                  if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
+                  if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria")) >= 0) {
                     result = 0
 
-                    let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
+                    let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "countOfAllQuestionInCriteria")))
                     let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                    if(criteriaIdIndex < 0) {
+                    if (criteriaIdIndex < 0) {
                       return "NA"
                     }
 
-                    let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
+                    let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria"))
                     let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                    if(criteriaQuestionFunctionIndex < 0) {
+                    if (criteriaQuestionFunctionIndex < 0) {
                       return "NA"
                     }
 
                     criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                      criteriaQuestionFunction.lastIndexOf("(") + 1, 
+                      criteriaQuestionFunction.lastIndexOf("(") + 1,
                       criteriaQuestionFunction.lastIndexOf(")")
                     );
-                    
-                    criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
+
+                    criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g, '')
 
                     let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                    
+
 
                     let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                    if(criteriaQuestionFilter[1]) {
+                    if (criteriaQuestionFilter[1]) {
                       allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
                     }
                     submissionAnswers.push(...allCriteriaQuestions)
 
                     allCriteriaQuestions.forEach(question => {
-                      if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                      if (question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
                         result += 1
                       }
                     })
@@ -1116,7 +1132,7 @@ module.exports = class Submission extends Abstract {
                     expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                     if (expressionVariables[variable] === "NA") {
                       allValuesAvailable = false;
-                   }
+                    }
                   }
                 })
 
@@ -1146,12 +1162,12 @@ module.exports = class Submission extends Abstract {
                         }
 
                         let errorObject = {
-                          errorName:error.message,
-                          criteriaName:criteria.name,
-                          expression:criteria.rubric.levels[level].expression,
-                          expressionVariables:JSON.stringify(expressionVariables),
-                          errorLevels:criteria.rubric.levels[level].level,
-                          expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
+                          errorName: error.message,
+                          criteriaName: criteria.name,
+                          expression: criteria.rubric.levels[level].expression,
+                          expressionVariables: JSON.stringify(expressionVariables),
+                          errorLevels: criteria.rubric.levels[level].level,
+                          expressionVariablesDefined: JSON.stringify(criteria.rubric.expressionVariables)
                         }
 
                         slackClient.rubricErrorLogs(errorObject)
@@ -1202,7 +1218,7 @@ module.exports = class Submission extends Abstract {
 
                 result[criteria.externalId].expressionResult = expressionResult
                 result[criteria.externalId].submissionAnswers = submissionAnswers
-             }
+              }
 
               return criteria
 
@@ -1219,7 +1235,7 @@ module.exports = class Submission extends Abstract {
 
             updateObject.$set = {
               criteria: criteriaData,
-              ratingCompletedAt : new Date()
+              ratingCompletedAt: new Date()
             }
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
@@ -1274,22 +1290,22 @@ module.exports = class Submission extends Abstract {
         let programId = req.query.programId
         let entityId = req.query.entityId.split(",")
 
-        if(!programId){
+        if (!programId) {
           throw "Program Id is not found"
         }
 
-        if(!req.query.entityId){
+        if (!req.query.entityId) {
           throw "Entity Id is not found"
         }
 
         let queryObject = {
-          "entityExternalId": {$in:entityId},
-          "programExternalId":programId
+          "entityExternalId": { $in: entityId },
+          "programExternalId": programId
         }
 
         let submissionDocument = await database.models.submissions.find(
           queryObject,
-          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile:1, entityInformation: 1, "programExternalId": 1,entityExternalId:1 }
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, "programExternalId": 1, entityExternalId: 1 }
         ).lean();
 
         if (!submissionDocument) {
@@ -1298,7 +1314,7 @@ module.exports = class Submission extends Abstract {
 
         let resultingArray = new Array()
 
-        await Promise.all(submissionDocument.map(async eachSubmissionDocument=>{
+        await Promise.all(submissionDocument.map(async eachSubmissionDocument => {
 
           let result = {}
           result.runUpdateQuery = true
@@ -1306,149 +1322,149 @@ module.exports = class Submission extends Abstract {
 
           if (allSubmittedEvidence) {
             let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
-              
-                result[criteria.externalId] = {}
-                result[criteria.externalId].criteriaName = criteria.name
-                result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
-                  return eachRubricLevels.expression != ""
-                })
+              result[criteria.externalId] = {}
+              result[criteria.externalId].criteriaName = criteria.name
+              result[criteria.externalId].criteriaExternalId = criteria.externalId
 
-  
-                if (criteria.rubric.expressionVariables && allCriteriaLevels) {
-                  let submissionAnswers = new Array
-                  
-                  const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
-                    let result;
-                    const questionOrCriteriaArray = questionOrCriteria.split('.')
-                    
-                    if(_.includes(questionOrCriteriaArray,"entityProfile")) {
-  
-                      if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
-                        result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
-                      } else {
-                        result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
-                      }
-  
-                      if(!result || result == "" || !(result.length>=0)) {
-                        result = "NA"
-                      }
-                      submissionAnswers.push(result)
-                      return result
+              let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
+                return eachRubricLevels.expression != ""
+              })
+
+
+              if (criteria.rubric.expressionVariables && allCriteriaLevels) {
+                let submissionAnswers = new Array
+
+                const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
+                  let result;
+                  const questionOrCriteriaArray = questionOrCriteria.split('.')
+
+                  if (_.includes(questionOrCriteriaArray, "entityProfile")) {
+
+                    if (submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]) {
+                      result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
+                    } else {
+                      result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
-  
-                    if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
-                      result = 0
-  
-                      let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
-                      let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                      if(criteriaIdIndex < 0) {
-                        return "NA"
-                      }
-  
-                      let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
-                      let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                      if(criteriaQuestionFunctionIndex < 0) {
-                        return "NA"
-                      }
-  
-                      criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                        criteriaQuestionFunction.lastIndexOf("(") + 1, 
-                        criteriaQuestionFunction.lastIndexOf(")")
-                      );
-                      
-                      criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-  
-                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                      
-  
-                      let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                      if(criteriaQuestionFilter[1]) {
-                        allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
-                      }
-                      submissionAnswers.push(...allCriteriaQuestions)
-  
-                      allCriteriaQuestions.forEach(question => {
-                        if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                          result += 1
-                        }
-                      })
-  
-                      return result
+
+                    if (!result || result == "" || !(result.length >= 0)) {
+                      result = "NA"
                     }
-  
-                    submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
-                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                    inputTypes.forEach(inputType => {
-                      if (questionOrCriteriaArray[1] === inputType) {
-                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                          result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
-                        } else {
-                          result = "NA";
-                        }
-                      }
-                    })
-                    return result;
+                    submissionAnswers.push(result)
+                    return result
                   }
 
-                  let expressionVariables = {};
-                  let expressionResult = {};
-                  let allValuesAvailable = true;
-  
-                  Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-                    if (variable != "default") {
-                      expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
-                      expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
-                      if (expressionVariables[variable] === "NA") {
-                        allValuesAvailable = false;
+                  if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria")) >= 0) {
+                    result = 0
+
+                    let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "countOfAllQuestionInCriteria")))
+                    let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                    if (criteriaIdIndex < 0) {
+                      return "NA"
+                    }
+
+                    let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria"))
+                    let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
+                    if (criteriaQuestionFunctionIndex < 0) {
+                      return "NA"
+                    }
+
+                    criteriaQuestionFunction = criteriaQuestionFunction.substring(
+                      criteriaQuestionFunction.lastIndexOf("(") + 1,
+                      criteriaQuestionFunction.lastIndexOf(")")
+                    );
+
+                    criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g, '')
+
+                    let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+
+
+                    let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
+                    if (criteriaQuestionFilter[1]) {
+                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                    }
+                    submissionAnswers.push(...allCriteriaQuestions)
+
+                    allCriteriaQuestions.forEach(question => {
+                      if (question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                        result += 1
+                      }
+                    })
+
+                    return result
+                  }
+
+                  submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
+                  let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
+                  inputTypes.forEach(inputType => {
+                    if (questionOrCriteriaArray[1] === inputType) {
+                      if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                        result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
+                      } else {
+                        result = "NA";
                       }
                     }
                   })
-  
-                  let errorWhileParsingCriteriaExpression = false
-  
-                  if (allValuesAvailable) {
-                    Object.keys(criteria.rubric.levels).forEach(level => {
-  
-                      if (criteria.rubric.levels[level].expression != "") {
-                        try {
-                          expressionResult[level] = {
-                            expressionParsed: criteria.rubric.levels[level].expression,
-                            result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
-                          }
-                        } catch (error) {
-                          console.log("---------------Some exception caught begins---------------")
-                          console.log(error)
-                          console.log(criteria.name)
-                          console.log(criteria.rubric.levels[level].expression)
-                          console.log(expressionVariables)
-                          console.log(criteria.rubric.expressionVariables)
-                          console.log("---------------Some exception caught ends---------------")
-                          
-                          let errorObject = {
-                            entityId:eachSubmissionDocument.entityExternalId,
-                            errorName:error.message,
-                            criteriaName:criteria.name,
-                            expression:criteria.rubric.levels[level].expression,
-                            expressionVariables:JSON.stringify(expressionVariables),
-                            errorLevels:criteria.rubric.levels[level].level,
-                            expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
-                          }
+                  return result;
+                }
 
-                          slackClient.rubricErrorLogs(errorObject)
-  
-                          errorWhileParsingCriteriaExpression = true
-                        }
-                      } else {
+                let expressionVariables = {};
+                let expressionResult = {};
+                let allValuesAvailable = true;
+
+                Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
+                  if (variable != "default") {
+                    expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
+                    expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
+                    if (expressionVariables[variable] === "NA") {
+                      allValuesAvailable = false;
+                    }
+                  }
+                })
+
+                let errorWhileParsingCriteriaExpression = false
+
+                if (allValuesAvailable) {
+                  Object.keys(criteria.rubric.levels).forEach(level => {
+
+                    if (criteria.rubric.levels[level].expression != "") {
+                      try {
                         expressionResult[level] = {
                           expressionParsed: criteria.rubric.levels[level].expression,
-                          result: false
+                          result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
                         }
+                      } catch (error) {
+                        console.log("---------------Some exception caught begins---------------")
+                        console.log(error)
+                        console.log(criteria.name)
+                        console.log(criteria.rubric.levels[level].expression)
+                        console.log(expressionVariables)
+                        console.log(criteria.rubric.expressionVariables)
+                        console.log("---------------Some exception caught ends---------------")
+
+                        let errorObject = {
+                          entityId: eachSubmissionDocument.entityExternalId,
+                          errorName: error.message,
+                          criteriaName: criteria.name,
+                          expression: criteria.rubric.levels[level].expression,
+                          expressionVariables: JSON.stringify(expressionVariables),
+                          errorLevels: criteria.rubric.levels[level].level,
+                          expressionVariablesDefined: JSON.stringify(criteria.rubric.expressionVariables)
+                        }
+
+                        slackClient.rubricErrorLogs(errorObject)
+
+                        errorWhileParsingCriteriaExpression = true
                       }
-                    })
-                  }
-  
+                    } else {
+                      expressionResult[level] = {
+                        expressionParsed: criteria.rubric.levels[level].expression,
+                        result: false
+                      }
+                    }
+                  })
+                }
+
                 let score = "NA"
                 if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
                   if (expressionResult.L4 && expressionResult.L4.result) {
@@ -1463,10 +1479,10 @@ module.exports = class Submission extends Abstract {
                     score = "No Level Matched"
                   }
                 }
-  
+
                 result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
                 result[criteria.externalId].expressionVariables = expressionVariables
-  
+
                 if (score == "NA") {
                   result[criteria.externalId].valuesNotFound = true
                   result[criteria.externalId].score = score
@@ -1479,44 +1495,44 @@ module.exports = class Submission extends Abstract {
                   result[criteria.externalId].score = score
                   criteria.score = score
                 }
-  
+
                 result[criteria.externalId].expressionResult = expressionResult
                 result[criteria.externalId].submissionAnswers = submissionAnswers
-  
-                }
-                return criteria
-            
+
+              }
+              return criteria
+
             }));
-  
+
             if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
               result.runUpdateQuery = false
             }
-  
+
             if (result.runUpdateQuery) {
               let updateObject = {}
-  
+
               updateObject.$set = {
                 criteria: criteriaData,
-                ratingCompletedAt : new Date()
+                ratingCompletedAt: new Date()
               }
-  
+
               let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
                 {
-                  _id:eachSubmissionDocument._id
+                  _id: eachSubmissionDocument._id
                 },
                 updateObject
               );
             }
-  
+
             let response = {
-              entityId:eachSubmissionDocument.entityExternalId,
+              entityId: eachSubmissionDocument.entityExternalId,
               message: message
             };
 
             resultingArray.push(response)
-          }else {
+          } else {
             resultingArray.push({
-              entityId:eachSubmissionDocument.entityExternalId,
+              entityId: eachSubmissionDocument.entityExternalId,
               message: "All ECM are not submitted"
             })
           }
@@ -1524,7 +1540,8 @@ module.exports = class Submission extends Abstract {
         }))
 
         return resolve({
-          result:resultingArray})
+          result: resultingArray
+        })
       } catch (error) {
         return reject({
           status: 500,
@@ -1550,7 +1567,7 @@ module.exports = class Submission extends Abstract {
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { criteria: 1}
+          { criteria: 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1564,7 +1581,7 @@ module.exports = class Submission extends Abstract {
         if (true) {
           let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
-            if(!criteria.score || criteria.score != "" || criteria.score == "No Level Matched" || criteria.score == "NA") {
+            if (!criteria.score || criteria.score != "" || criteria.score == "No Level Matched" || criteria.score == "NA") {
               criteria.score = rubricLevels[Math.floor(Math.random() * rubricLevels.length)];
             }
 
@@ -1581,7 +1598,7 @@ module.exports = class Submission extends Abstract {
 
             updateObject.$set = {
               criteria: criteriaData,
-              ratingCompletedAt : new Date()
+              ratingCompletedAt: new Date()
             }
 
             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
@@ -1601,7 +1618,7 @@ module.exports = class Submission extends Abstract {
 
 
           return resolve(response);
-          
+
         }
 
       } catch (error) {
@@ -2023,32 +2040,32 @@ module.exports = class Submission extends Abstract {
    */
 
 
-  async mergeEcmSubmissionToAnswer(req){
+  async mergeEcmSubmissionToAnswer(req) {
 
-    return new Promise(async (resolve,reject)=>{
+    return new Promise(async (resolve, reject) => {
 
-      try{
-        
-        if (!req.query.solutionId){
+      try {
+
+        if (!req.query.solutionId) {
           throw "Entity id is required"
         }
 
-        if (!req.query.entityId){
+        if (!req.query.entityId) {
           throw "Entity id is required"
         }
 
-        if(!req.query.ecm){
+        if (!req.query.ecm) {
           throw "Ecm is required"
         }
 
-        let ecmMethod = "evidences."+req.query.ecm
+        let ecmMethod = "evidences." + req.query.ecm
 
         let submissionDocuments = await database.models.submissions.findOne({
-          solutionExternalId:req.query.solutionId,
-          entityExternalId:req.query.entityId
-        },{answers:1,[ecmMethod]:1}).lean()
+          solutionExternalId: req.query.solutionId,
+          entityExternalId: req.query.entityId
+        }, { answers: 1, [ecmMethod]: 1 }).lean()
 
-        if(!submissionDocuments){
+        if (!submissionDocuments) {
           throw "Submissions is not found for given schools"
         }
 
@@ -2056,72 +2073,72 @@ module.exports = class Submission extends Abstract {
 
         let messageData
 
-        if(ecmData.isSubmitted == true){
+        if (ecmData.isSubmitted == true) {
 
-          for(let pointerToSubmissions = 0;pointerToSubmissions<ecmData.submissions.length;pointerToSubmissions++){
-         
+          for (let pointerToSubmissions = 0; pointerToSubmissions < ecmData.submissions.length; pointerToSubmissions++) {
+
             let answerArray = {}
 
             let currentEcmSubmissions = ecmData.submissions[pointerToSubmissions]
 
-            if(currentEcmSubmissions.isValid === true){
+            if (currentEcmSubmissions.isValid === true) {
 
-                Object.entries(currentEcmSubmissions.answers).forEach(answer => {
-                        
+              Object.entries(currentEcmSubmissions.answers).forEach(answer => {
+
                 if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-    
-                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-    
-                        answer[1].value[countOfInstances]  && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-    
-                            if (question.qid && answerArray[question.qid]) {
-    
-                                answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
-                                answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
-                                answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
-    
-                            } else {
-                                let clonedQuestion = { ...question }
-                                clonedQuestion.instanceResponses = []
-                                clonedQuestion.instanceRemarks = []
-                                clonedQuestion.instanceFileName = []
-                                clonedQuestion.instanceResponses.push(question.value)
-                                clonedQuestion.instanceRemarks.push(question.remarks)
-                                clonedQuestion.instanceFileName.push(question.fileName)
-                                delete clonedQuestion.value
-                                delete clonedQuestion.remarks
-                                delete clonedQuestion.fileName
-                                delete clonedQuestion.payload
-                                answerArray[question.qid] = clonedQuestion
-                            }
-    
-                        })
-                    }
-                    answer[1].countOfInstances = answer[1].value.length
+
+                  for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+
+                    answer[1].value[countOfInstances] && _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+
+                      if (question.qid && answerArray[question.qid]) {
+
+                        answerArray[question.qid].instanceResponses && answerArray[question.qid].instanceResponses.push(question.value)
+                        answerArray[question.qid].instanceRemarks && answerArray[question.qid].instanceRemarks.push(question.remarks)
+                        answerArray[question.qid].instanceFileName && answerArray[question.qid].instanceFileName.push(question.fileName)
+
+                      } else {
+                        let clonedQuestion = { ...question }
+                        clonedQuestion.instanceResponses = []
+                        clonedQuestion.instanceRemarks = []
+                        clonedQuestion.instanceFileName = []
+                        clonedQuestion.instanceResponses.push(question.value)
+                        clonedQuestion.instanceRemarks.push(question.remarks)
+                        clonedQuestion.instanceFileName.push(question.fileName)
+                        delete clonedQuestion.value
+                        delete clonedQuestion.remarks
+                        delete clonedQuestion.fileName
+                        delete clonedQuestion.payload
+                        answerArray[question.qid] = clonedQuestion
+                      }
+
+                    })
+                  }
+                  answer[1].countOfInstances = answer[1].value.length
                 }
-    
+
                 answerArray[answer[0]] = answer[1]
-                });
-  
-              _.merge(submissionDocuments.answers,answerArray)
+              });
+
+              _.merge(submissionDocuments.answers, answerArray)
 
             }
 
           }
-          
-        messageData = "Answers merged successfully"
 
-        }else{
+          messageData = "Answers merged successfully"
+
+        } else {
           messageData = "isSubmitted False"
         }
 
         return resolve({
-          message:messageData
+          message: messageData
         })
 
-      } catch(error){
+      } catch (error) {
         return reject({
-          message:error
+          message: error
         })
       }
     })
@@ -2336,42 +2353,42 @@ module.exports = class Submission extends Abstract {
 
         let entityId = req.query.entityId
         let ecmToBeReset = req.query.ecm
-        let evidencesToBeReset = "evidences." +ecmToBeReset
-        let submissionUpdated=new Array
+        let evidencesToBeReset = "evidences." + ecmToBeReset
+        let submissionUpdated = new Array
 
         if (!entityId) {
           throw "Entity id is missing"
         }
 
         let findQuery = {
-          programExternalId:programId,
-          entityExternalId:entityId,
-          [evidencesToBeReset]:{$ne:null},
-          "evidencesStatus.externalId":req.query.ecm
+          programExternalId: programId,
+          entityExternalId: entityId,
+          [evidencesToBeReset]: { $ne: null },
+          "evidencesStatus.externalId": req.query.ecm
         }
 
         let updateQuery = {
           $set: {
-            [evidencesToBeReset+".submissions"]:[],
-            [evidencesToBeReset+".isSubmitted"]:false,
-            [evidencesToBeReset+".endTime"]:"",[evidencesToBeReset+".startTime"]:"",
-            [evidencesToBeReset+".hasConflicts"]:false,"evidencesStatus.$.submissions":[],
-            "evidencesStatus.$.isSubmitted":false,"evidencesStatus.$.hasConflicts":false,
-            "evidencesStatus.$.startTime":"","evidencesStatus.$.endTime":""
+            [evidencesToBeReset + ".submissions"]: [],
+            [evidencesToBeReset + ".isSubmitted"]: false,
+            [evidencesToBeReset + ".endTime"]: "", [evidencesToBeReset + ".startTime"]: "",
+            [evidencesToBeReset + ".hasConflicts"]: false, "evidencesStatus.$.submissions": [],
+            "evidencesStatus.$.isSubmitted": false, "evidencesStatus.$.hasConflicts": false,
+            "evidencesStatus.$.startTime": "", "evidencesStatus.$.endTime": ""
           }
         }
 
-        submissionUpdated.push({ userId: req.userDetails.id, date: new Date(),message: "Updated ECM "+req.query.ecm })
+        submissionUpdated.push({ userId: req.userDetails.id, date: new Date(), message: "Updated ECM " + req.query.ecm })
         updateQuery["$addToSet"] = { "submissionsUpdatedHistory": submissionUpdated }
 
-         let updatedQuery = await database.models.submissions.findOneAndUpdate(findQuery,updateQuery).lean()
+        let updatedQuery = await database.models.submissions.findOneAndUpdate(findQuery, updateQuery).lean()
 
-         if(updatedQuery == null){
-           throw "Ecm doesnot exists" 
+        if (updatedQuery == null) {
+          throw "Ecm doesnot exists"
         }
 
         return resolve({
-          message:"ECM Reset successfully"
+          message: "ECM Reset successfully"
         })
 
       } catch (error) {
