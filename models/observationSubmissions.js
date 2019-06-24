@@ -1,0 +1,30 @@
+module.exports = {
+  name: "observationSubmissions",
+  schema: {
+    entityId: "ObjectId",
+    observationId: "ObjectId",
+    assessors: Array,
+    status: "String",
+    evidencesStatus: Array,
+    evidences: Object,
+    criteria: Array,
+    answers: Object,
+    entityExternalId: "String",
+    entityInformation: Object,
+    observationInformation: Object,
+    entityProfile: Object,
+    // ratingOfManualCriteriaEnabled: Boolean,
+    // allManualCriteriaRatingSubmitted: Boolean,
+    feedback: Array,
+    generalQuestions: Object,
+    parentInterviewResponsesStatus: Array,
+    parentInterviewResponses: Object,
+    completedDate: Date,
+    solutionId: "ObjectId",
+    solutionExternalId: String,
+    submissionsUpdatedHistory: Array,
+    // ratingCompletedAt: Date,
+    entityTypeId: "ObjectId",
+    entityType: "String"
+  }
+};
