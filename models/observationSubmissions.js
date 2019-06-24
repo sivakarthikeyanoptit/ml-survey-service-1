@@ -13,8 +13,8 @@ module.exports = {
     entityInformation: Object,
     observationInformation: Object,
     entityProfile: Object,
-    ratingOfManualCriteriaEnabled: Boolean,
-    allManualCriteriaRatingSubmitted: Boolean,
+    // ratingOfManualCriteriaEnabled: Boolean,
+    // allManualCriteriaRatingSubmitted: Boolean,
     feedback: Array,
     generalQuestions: Object,
     parentInterviewResponsesStatus: Array,
@@ -23,7 +23,7 @@ module.exports = {
     solutionId: "ObjectId",
     solutionExternalId: String,
     submissionsUpdatedHistory: Array,
-    ratingCompletedAt: Date,
+    // ratingCompletedAt: Date,
     entityTypeId: "ObjectId",
     entityType: "String"
   }
