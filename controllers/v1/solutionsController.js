@@ -241,21 +241,34 @@ module.exports = class Solutions extends Abstract {
 
         updateThemes(newSolutionDocument.themes)
 
-        newSolutionDocument.programId = programDocument._id
-        newSolutionDocument.programExternalId = programDocument.externalId
-        newSolutionDocument.programName = programDocument.name
-        newSolutionDocument.programDescription = programDocument.description
+        newSolutionDocument.externalId = frameworkDocument.externalId+"-TEMPLATE"
 
         newSolutionDocument.frameworkId = frameworkDocument._id
         newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
 
         newSolutionDocument.entityTypeId = entityTypeDocument._id
         newSolutionDocument.entityType = entityTypeDocument.name
+        newSolutionDocument.isReusable = true
 
-        let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+        let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
 
-        if (newSolutionId._id) {
-          await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })
+        if (newBaseSolutionId._id) {
+
+          newSolutionDocument.programId = programDocument._id
+          newSolutionDocument.programExternalId = programDocument.externalId
+          newSolutionDocument.programName = programDocument.name
+          newSolutionDocument.programDescription = programDocument.description
+
+          newSolutionDocument.parentSolutionId = newBaseSolutionId._id
+          newSolutionDocument.isReusable = false
+          newSolutionDocument.externalId = frameworkDocument.externalId
+
+          let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+
+          if (newSolutionId._id) {
+            await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })
+          }
+
         }
 
         let response = {

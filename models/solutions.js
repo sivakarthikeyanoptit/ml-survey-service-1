@@ -6,7 +6,7 @@ module.exports = {
     name: String,
     description: String,
     author: String,
-    parentId: "ObjectId",
+    parentSolutionId: "ObjectId",
     resourceType: Array,
     language: Array,
     keywords: Array,

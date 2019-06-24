@@ -1,3 +1,5 @@
+let moment = require("moment");
+
 module.exports = class reportsHelper {
 
     static gmtToIst(gmtTime) {

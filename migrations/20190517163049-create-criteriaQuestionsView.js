@@ -28,7 +28,7 @@ module.exports = {
             "$group" : {
                 "_id" : {
                     "_id" : "$_id",
-                    "evidences_name" : "$evidences.name"
+                    "evidences_code" : "$evidences.code"
                 },
                 "name" : {
                     "$first" : "$name"
