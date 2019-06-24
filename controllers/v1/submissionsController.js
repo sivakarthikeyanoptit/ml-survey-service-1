@@ -900,20 +900,20 @@ module.exports = class Submission extends Abstract {
 
 
                     let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                    if(criteriaQuestionFilter[1]) {
-                      
+                    if (criteriaQuestionFilter[1]) {
+
                       // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
 
                       let multipleConditionOperator = ""
-                      if(_.includes(criteriaQuestionFilter[1],"AND") > 0) {
+                      if (_.includes(criteriaQuestionFilter[1], "AND") > 0) {
                         multipleConditionOperator = "AND"
                       }
-                      if(_.includes(criteriaQuestionFilter[1],"OR") > 0) {
+                      if (_.includes(criteriaQuestionFilter[1], "OR") > 0) {
                         multipleConditionOperator = "OR"
                       }
-                      
+
                       let conditionArray = new Array
-                      if(multipleConditionOperator != "") {
+                      if (multipleConditionOperator != "") {
                         conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
                       } else {
                         conditionArray.push(criteriaQuestionFilter[1])
@@ -930,7 +930,7 @@ module.exports = class Submission extends Abstract {
                         for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
                           let eachConditionArray = new Array
                           let questionMatchOperator = "=="
-                          if(_.includes(conditionArray[pointerToConditionArray],"!=") > 0) {
+                          if (_.includes(conditionArray[pointerToConditionArray], "!=") > 0) {
                             eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
                             questionMatchOperator = "!="
                           } else {
@@ -938,16 +938,16 @@ module.exports = class Submission extends Abstract {
                           }
 
                           let singleConditionOperator = ""
-                          if(_.includes(eachConditionArray[1],"&&") > 0) {
+                          if (_.includes(eachConditionArray[1], "&&") > 0) {
                             singleConditionOperator = "&&"
                           }
-                          if(_.includes(eachConditionArray[1],"||") > 0) {
+                          if (_.includes(eachConditionArray[1], "||") > 0) {
                             singleConditionOperator = "||"
                           }
 
 
                           let allPossibleValues = new Array
-                          if(singleConditionOperator != "") {
+                          if (singleConditionOperator != "") {
                             allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
                           } else {
                             allPossibleValues.push(eachConditionArray[1])
@@ -957,16 +957,16 @@ module.exports = class Submission extends Abstract {
                           let conditionValueNotMatch = 0
                           for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
                             const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                            if(questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]],eachValue)) {
+                            if (questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]], eachValue)) {
                               conditionValueMatch += 1
-                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]],eachValue)) {
+                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]], eachValue)) {
                               conditionValueMatch += 1
                             } else {
                               conditionValueNotMatch += 1
                             }
                           }
 
-                          if(singleConditionOperator == "||" && conditionValueMatch > 0) {
+                          if (singleConditionOperator == "||" && conditionValueMatch > 0) {
                             conditionMatch += 1
                           } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
                             conditionMatch += 1
@@ -976,18 +976,18 @@ module.exports = class Submission extends Abstract {
 
                         }
 
-                        if(multipleConditionOperator == "OR" && conditionMatch > 0) {
+                        if (multipleConditionOperator == "OR" && conditionMatch > 0) {
                           tempAllQuestion.push(question)
                         } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
                           tempAllQuestion.push(question)
                         }
 
                       })
-                      
+
                       allCriteriaQuestions = tempAllQuestion
 
                     }
-                    
+
                     submissionAnswers.push(...allCriteriaQuestions)
 
                     allCriteriaQuestions.forEach(question => {
@@ -1237,131 +1237,9 @@ module.exports = class Submission extends Abstract {
                     } else {
                       result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
-  
-                    if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
-                      result = 0
-  
-                      let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
-                      let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                      if(criteriaIdIndex < 0) {
-                        return "NA"
-                      }
-  
-                      let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
-                      let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                      if(criteriaQuestionFunctionIndex < 0) {
-                        return "NA"
-                      }
-  
-                      criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                        criteriaQuestionFunction.lastIndexOf("(") + 1, 
-                        criteriaQuestionFunction.lastIndexOf(")")
-                      );
-                      
-                      criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-  
-                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                      
-  
-                      let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                      
-                      if(criteriaQuestionFilter[1]) {
-                      
-                        // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
-  
-                        let multipleConditionOperator = ""
-                        if(_.includes(criteriaQuestionFilter[1],"AND") > 0) {
-                          multipleConditionOperator = "AND"
-                        }
-                        if(_.includes(criteriaQuestionFilter[1],"OR") > 0) {
-                          multipleConditionOperator = "OR"
-                        }
-                        
-                        let conditionArray = new Array
-                        if(multipleConditionOperator != "") {
-                          conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
-                        } else {
-                          conditionArray.push(criteriaQuestionFilter[1])
-                        }
-  
-  
-                        let tempAllQuestion = new Array
-  
-                        allCriteriaQuestions.forEach(question => {
-  
-                          let conditionMatch = 0
-                          let conditionNotMatch = 0
-  
-                          for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
-                            let eachConditionArray = new Array
-                            let questionMatchOperator = "=="
-                            if(_.includes(conditionArray[pointerToConditionArray],"!=") > 0) {
-                              eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
-                              questionMatchOperator = "!="
-                            } else {
-                              eachConditionArray = conditionArray[pointerToConditionArray].split("=")
-                            }
-  
-                            let singleConditionOperator = ""
-                            if(_.includes(eachConditionArray[1],"&&") > 0) {
-                              singleConditionOperator = "&&"
-                            }
-                            if(_.includes(eachConditionArray[1],"||") > 0) {
-                              singleConditionOperator = "||"
-                            }
-  
-  
-                            let allPossibleValues = new Array
-                            if(singleConditionOperator != "") {
-                              allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
-                            } else {
-                              allPossibleValues.push(eachConditionArray[1])
-                            }
-  
-                            let conditionValueMatch = 0
-                            let conditionValueNotMatch = 0
-                            for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
-                              const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                              if(questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                conditionValueMatch += 1
-                              } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                conditionValueMatch += 1
-                              } else {
-                                conditionValueNotMatch += 1
-                              }
-                            }
-  
-                            if(singleConditionOperator == "||" && conditionValueMatch > 0) {
-                              conditionMatch += 1
-                            } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
-                              conditionMatch += 1
-                            } else {
-                              conditionNotMatch += 1
-                            }
-  
-                          }
-  
-                          if(multipleConditionOperator == "OR" && conditionMatch > 0) {
-                            tempAllQuestion.push(question)
-                          } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
-                            tempAllQuestion.push(question)
-                          }
-  
-                        })
-                        
-                        allCriteriaQuestions = tempAllQuestion
-  
-                      }
 
-                      submissionAnswers.push(...allCriteriaQuestions)
-  
-                      allCriteriaQuestions.forEach(question => {
-                        if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                          result += 1
-                        }
-                      })
-  
-                      return result
+                    if (!result || result == "" || !(result.length >= 0)) {
+                      result = "NA"
                     }
                     submissionAnswers.push(result)
                     return result
@@ -1393,9 +1271,95 @@ module.exports = class Submission extends Abstract {
 
 
                     let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
+
                     if (criteriaQuestionFilter[1]) {
-                      allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+
+                      // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+
+                      let multipleConditionOperator = ""
+                      if (_.includes(criteriaQuestionFilter[1], "AND") > 0) {
+                        multipleConditionOperator = "AND"
+                      }
+                      if (_.includes(criteriaQuestionFilter[1], "OR") > 0) {
+                        multipleConditionOperator = "OR"
+                      }
+
+                      let conditionArray = new Array
+                      if (multipleConditionOperator != "") {
+                        conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
+                      } else {
+                        conditionArray.push(criteriaQuestionFilter[1])
+                      }
+
+
+                      let tempAllQuestion = new Array
+
+                      allCriteriaQuestions.forEach(question => {
+
+                        let conditionMatch = 0
+                        let conditionNotMatch = 0
+
+                        for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
+                          let eachConditionArray = new Array
+                          let questionMatchOperator = "=="
+                          if (_.includes(conditionArray[pointerToConditionArray], "!=") > 0) {
+                            eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
+                            questionMatchOperator = "!="
+                          } else {
+                            eachConditionArray = conditionArray[pointerToConditionArray].split("=")
+                          }
+
+                          let singleConditionOperator = ""
+                          if (_.includes(eachConditionArray[1], "&&") > 0) {
+                            singleConditionOperator = "&&"
+                          }
+                          if (_.includes(eachConditionArray[1], "||") > 0) {
+                            singleConditionOperator = "||"
+                          }
+
+
+                          let allPossibleValues = new Array
+                          if (singleConditionOperator != "") {
+                            allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
+                          } else {
+                            allPossibleValues.push(eachConditionArray[1])
+                          }
+
+                          let conditionValueMatch = 0
+                          let conditionValueNotMatch = 0
+                          for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
+                            const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
+                            if (questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]], eachValue)) {
+                              conditionValueMatch += 1
+                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]], eachValue)) {
+                              conditionValueMatch += 1
+                            } else {
+                              conditionValueNotMatch += 1
+                            }
+                          }
+
+                          if (singleConditionOperator == "||" && conditionValueMatch > 0) {
+                            conditionMatch += 1
+                          } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
+                            conditionMatch += 1
+                          } else {
+                            conditionNotMatch += 1
+                          }
+
+                        }
+
+                        if (multipleConditionOperator == "OR" && conditionMatch > 0) {
+                          tempAllQuestion.push(question)
+                        } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
+                          tempAllQuestion.push(question)
+                        }
+
+                      })
+
+                      allCriteriaQuestions = tempAllQuestion
+
                     }
+
                     submissionAnswers.push(...allCriteriaQuestions)
 
                     allCriteriaQuestions.forEach(question => {
