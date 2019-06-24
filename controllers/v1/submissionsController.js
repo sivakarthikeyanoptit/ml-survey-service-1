@@ -1237,11 +1237,6 @@ module.exports = class Submission extends Abstract {
                     } else {
                       result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
-<<<<<<< HEAD
-
-                    if (!result || result == "" || !(result.length >= 0)) {
-                      result = "NA"
-=======
   
                     if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
                       result = 0
@@ -1367,7 +1362,6 @@ module.exports = class Submission extends Abstract {
                       })
   
                       return result
->>>>>>> 8b5acf75e5ec4bffec240949b72212b14ce90740
                     }
                     submissionAnswers.push(result)
                     return result
