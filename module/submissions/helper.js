@@ -1,26 +1,28 @@
 
 module.exports = class submissionsHelper {
-    static findSubmissionByEntityProgram(document, requestObject) {
+    static findSubmission(document, requestObject, modelName) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
                 let queryObject = {
-                    entityId: document.entityId,
-                    programId: document.programId
+                    entityId: document.entityId
                 };
+                (modelName == "submissions") ?  queryObject["programId"] = document.programId : queryObject["observationId"] =  document.observationId;
 
-                let submissionDocument = await database.models.submissions.findOne(
+                let submissionDocument = await database.models[modelName].findOne(
                     queryObject
                 ).lean();
 
                 if (!submissionDocument) {
                     let entityAssessorsQueryObject = [
                         {
-                            $match: { entities: document.entityId, programId: document.programId }
+                            $match: { entities: document.entityId }
                         }
                     ];
+
+                    (modelName == "submissions") ?  entityAssessorsQueryObject[0]["$match"]["programId"] = document.programId : entityAssessorsQueryObject[0]["$match"]["observationId"] =  document.observationId;
 
                     document.assessors = await database.models[
                         "entityAssessors"
@@ -32,7 +34,7 @@ module.exports = class submissionsHelper {
                         assessorElement.userAgent = requestObject.headers['user-agent']
                     }
 
-                    submissionDocument = await database.models.submissions.create(
+                    submissionDocument = await database.models[modelName].create(
                         document
                     );
 
@@ -46,7 +48,7 @@ module.exports = class submissionsHelper {
                         updateObject.$set = {
                             assessors: submissionDocument.assessors
                         }
-                        submissionDocument = await database.models.submissions.findOneAndUpdate(
+                        submissionDocument = await database.models[modelName].findOneAndUpdate(
                             queryObject,
                             updateObject
                         );

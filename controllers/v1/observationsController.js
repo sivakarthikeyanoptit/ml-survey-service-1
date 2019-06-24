@@ -692,9 +692,10 @@ module.exports = class Observations extends Abstract {
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
 
-                let submissionDoc = await observationsHelper.findSubmissionByEntityObservation(
+                let submissionDoc = await submissionsHelper.findSubmission(
                     submissionDocument,
-                    req
+                    req,
+                    "observationSubmissions"
                 );
 
                 assessment.submissionId = submissionDoc.result._id;
