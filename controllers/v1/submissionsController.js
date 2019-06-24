@@ -1202,7 +1202,8 @@ module.exports = class Submission extends Abstract {
                   let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                   inputTypes.forEach(inputType => {
                     if (questionOrCriteriaArray[1] === inputType) {
-                      if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                      // if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                      if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
                         result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                       } else {
                         result = "NA";
@@ -1562,7 +1563,8 @@ module.exports = class Submission extends Abstract {
                     let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                     inputTypes.forEach(inputType => {
                       if (questionOrCriteriaArray[1] === inputType) {
-                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                        //if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
                           result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                         } else {
                           result = "NA";
