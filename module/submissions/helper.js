@@ -9,30 +9,13 @@ module.exports = class submissionsHelper {
                 let queryObject = {
                     entityId: document.entityId
                 };
-                (modelName == "submissions") ?  queryObject["programId"] = document.programId : queryObject["observationId"] =  document.observationId;
+                (modelName == "submissions") ? queryObject["programId"] = document.programId : queryObject["observationId"] = document.observationId;
 
                 let submissionDocument = await database.models[modelName].findOne(
                     queryObject
                 ).lean();
 
                 if (!submissionDocument) {
-                    let entityAssessorsQueryObject = [
-                        {
-                            $match: { entities: document.entityId }
-                        }
-                    ];
-
-                    (modelName == "submissions") ?  entityAssessorsQueryObject[0]["$match"]["programId"] = document.programId : entityAssessorsQueryObject[0]["$match"]["observationId"] =  document.observationId;
-
-                    document.assessors = await database.models[
-                        "entityAssessors"
-                    ].aggregate(entityAssessorsQueryObject);
-
-                    let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-                    if (assessorElement && assessorElement.externalId != "") {
-                        assessorElement.assessmentStatus = "started"
-                        assessorElement.userAgent = requestObject.headers['user-agent']
-                    }
 
                     submissionDocument = await database.models[modelName].create(
                         document
@@ -266,7 +249,7 @@ module.exports = class submissionsHelper {
                         let answerArray = {}
                         Object.entries(req.body.evidence.answers).forEach(answer => {
                             if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                                answer = this.getAnswersFromGeneralQuestion(answer,submissionDocument)
+                                answer = this.getAnswersFromGeneralQuestion(answer, submissionDocument)
                                 for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
 
                                     _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
@@ -326,7 +309,7 @@ module.exports = class submissionsHelper {
 
                         Object.entries(req.body.evidence.answers).forEach(answer => {
                             if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                                answer = this.getAnswersFromGeneralQuestion(answer,submissionDocument)
+                                answer = this.getAnswersFromGeneralQuestion(answer, submissionDocument)
                                 answer[1].countOfInstances = answer[1].value.length
                             }
                         });

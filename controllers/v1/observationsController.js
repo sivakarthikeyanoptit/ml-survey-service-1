@@ -45,7 +45,7 @@ module.exports = class Observations extends Abstract {
 
 
                 let solutionsData = await database.models.solutions.find({
-                    entityTypeId: ObjectId(req.params._id),
+                    entityTypeId: req.params._id,
                     type: "observation",
                     isReusable: true
                 }, {
@@ -148,6 +148,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+
     create(req) {
         return new Promise(async (resolve, reject) => {
 
@@ -202,7 +203,7 @@ module.exports = class Observations extends Abstract {
                 let assessorObservationsQueryObject = [
                     {
                         $match: {
-                            createdBy: req.userDetails.userId
+                            createdBy: req.userDetails.userId,
                         }
                     },
                     {
@@ -278,6 +279,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse errorBody
      */
 
+
     async addEntityToObservation(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -288,7 +290,8 @@ module.exports = class Observations extends Abstract {
 
                 let observationDocument = await database.models.observations.findOne(
                     {
-                        _id: req.params._id
+                        _id: req.params._id,
+                        createdBy: req.userDetails.userId
                     },
                     {
                         entityTypeId: 1,
@@ -357,6 +360,8 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+
+
     async removeEntityFromObservation(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -401,6 +406,8 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+
+
     async search(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -415,7 +422,9 @@ module.exports = class Observations extends Abstract {
 
                 let observationDocument = await database.models.observations.findOne(
                     {
-                        _id: req.params._id
+                        _id: req.params._id,
+                        createdBy: req.userDetails.userId,
+
                     },
                     {
                         entityTypeId: 1
@@ -443,10 +452,11 @@ module.exports = class Observations extends Abstract {
 
     }
 
+
     /**
-     * @api {get} /assessment/api/v1/observations/assessment/:observationId Entities Assessments
+     * @api {get} /assessment/api/v1/observations/assessment/:observationId Assessments
      * @apiVersion 0.0.1
-     * @apiName Entities Assessments
+     * @apiName Assessments
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/observations/assessment/:observationId
@@ -464,13 +474,12 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
-                const isRequestForOncallOrOnField = req.query.oncall && req.query.oncall == 1 ? "oncall" : "onfield";
 
-                let entityQueryObject = { _id: req.query.entityId };
+                let entityQueryObject = { _id: req.query.entityId, entityType: observationDocument.entityType };
                 let entityDocument = await database.models.entities.findOne(
                     entityQueryObject,
                     {
@@ -488,7 +497,6 @@ module.exports = class Observations extends Abstract {
                 let solutionQueryObject = {
                     _id: observationDocument.solutionId,
                     status: "active",
-                    // entities: { $in: [ObjectId(req.query.entityId)] }
                 };
 
                 let solutionDocument = await database.models.solutions.findOne(
@@ -638,7 +646,7 @@ module.exports = class Observations extends Abstract {
 
                     criteria.evidences.forEach(evidenceMethod => {
 
-                        if (submissionDocumentEvidences[evidenceMethod.code].modeOfCollection === isRequestForOncallOrOnField) {
+                        if (evidenceMethod.code && submissionDocumentEvidences[evidenceMethod.code].modeOfCollection === isRequestForOncallOrOnField) {
 
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 
@@ -649,9 +657,6 @@ module.exports = class Observations extends Abstract {
                                 evidenceMethodArray[evidenceMethod.code] = evidenceMethod;
 
                             } else {
-
-                                // Evidence method already exists
-                                // Loop through all sections reading evidence method
 
                                 evidenceMethod.sections.forEach(evidenceMethodSection => {
 
@@ -700,10 +705,6 @@ module.exports = class Observations extends Abstract {
 
                 assessment.submissionId = submissionDoc.result._id;
 
-                if (isRequestForOncallOrOnField == "oncall" && submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {
-                    assessment.parentInterviewResponses = submissionDoc.result.parentInterviewResponses;
-                }
-
                 const parsedAssessment = await assessmentsHelper.parseQuestions(
                     Object.values(evidenceMethodArray),
                     entityDocumentQuestionGroup,
@@ -734,196 +735,5 @@ module.exports = class Observations extends Abstract {
 
     }
 
-    /**
-* @api {post} /assessment/api/v1/observations/make/{{submissionId}} 
-* @apiVersion 0.0.1
-* @apiName observations added successfully
-* @apiGroup Observations
-* @apiParamExample {json} Request-Body:
-* {
-* 	"evidence": {
-*                   "externalId" : "",
-*                   "answers" : {
-*                       "5be442149a14ba4b5038dce4" : {
-*                           "qid" : "",
-*                           "responseType":"",
-*                           "value" : [ 
-*                               {
-*                                   "5be442dd9a14ba4b5038dce5" : {
-*                                       "qid" : "",
-*                                       "value" : "",
-*                                       "remarks" : "",
-*                                       "fileName" : [],
-*                                       "payload" : {
-*                                           "question" : [ 
-*                                               "", 
-*                                               ""
-*                                           ],
-*                                           "labels" : [ 
-*                                               ""
-*                                           ],
-*                                           "responseType" : ""
-*                                       },
-*                                       "criteriaId" : ""
-*                                   },
-*                                   "5be52f5d9a14ba4b5038dd0c" : {
-*                                       "qid" : "",
-*                                       "value" : [ 
-*                                           "String", 
-*                                           "String"
-*                                       ],
-*                                       "remarks" : "",
-*                                       "fileName" : [],
-*                                       "payload" : {
-*                                           "question" : [ 
-*                                               "", 
-*                                               ""
-*                                           ],
-*                                           "labels" : [ 
-*                                              "String", 
-*                                           "String"
-*                                           ],
-*                                           "responseType" : """
-*                                       },
-*                                       "criteriaId" : ""
-*                                   }
-*                               }
-*                           ],
-*                           "remarks" : "",
-*                           "fileName" : [],
-*                           "payload" : {
-*                               "question" : [ 
-*                                   "String"", 
-*                                   "Stgring"
-*                               ],
-*                              "labels" : [ 
-*                                   [ 
-*                                       [ 
-*                                           {
-*                                               "_id" : "",
-*                                               "question" : [ 
-*                                                   "String", 
-*                                                   "String"
-*                                               ],
-*                                               "options" : [ 
-*                                                   {
-*                                                       "value" : "",
-*                                                       "label" : ""
-*                                                   }
-*                                               ],
-*                                               "children" : [],
-*                                               "questionGroup" : [ 
-*                                                   ""
-*                                               ],
-*                                               "fileName" : [],
-*                                               "instanceQuestions" : [],
-*                                               "deleted" : Boolean,
-*                                               "tip" : "",
-*                                               "externalId" : "",
-*                                               "visibleIf" : "",
-*                                               "file" : "",
-*                                               "responseType" : "",
-*                                               "validation" : {
-*                                                   "required" : Boolean
-*                                               },
-*                                               "showRemarks" : Boolean,
-*                                               "isCompleted" : Boolean,
-*                                               "remarks" : "",
-*                                               "value" : "",
-*                                               "canBeNotApplicable" : "Boolean",
-*                                               "usedForScoring" : "",
-*                                               "modeOfCollection" : "",
-*                                               "questionType" : "",
-*                                               "accessibility" : "",
-*                                               "updatedAt" : "Date",
-*                                               "createdAt" : "Date",
-*                                               "__v" : 0,
-*                                               "payload" : {
-*                                                   "criteriaId" : ""
-*                                               }
-*                                           }, 
-*                                           {
-*                                               "_id" : "",
-*                                               "question" : [ 
-*                                                   "String", 
-*                                                   "String"
-*                                               ],
-*                                               "options" : [ 
-*                                                   {
-*                                                       "value" : "",
-*                                                       "label" : ""
-*                                                   }
-*                                               ],
-*                                               "children" : [],
-*                                               "questionGroup" : [ 
-*                                                   "String"
-*                                               ],
-*                                               "fileName" : [],
-*                                               "instanceQuestions" : [],
-*                                               "deleted" : Boolean,
-*                                               "tip" : "",
-*                                               "externalId" : "",
-*                                               "visibleIf" : "",
-*                                               "file" : "",
-*                                               "responseType" : "",
-*                                               "validation" : {
-*                                                   "required" : Boolean
-*                                               },
-*                                               "showRemarks" : Boolean,
-*                                               "isCompleted" : Boolean,
-*                                               "remarks" : "",
-*                                               "value" : "",
-*                                               "canBeNotApplicable" : "Boolean",
-*                                               "usedForScoring" : "",
-*                                               "modeOfCollection" : "",
-*                                               "questionType" : "",
-*                                               "accessibility" : "",
-*                                               "updatedAt" : "Date",
-*                                               "createdAt" : "Date",
-*                                               "__v" : 0,
-*                                               "payload" : {
-*                                                   "criteriaId" : ""
-*                                               }
-*                                           }
-*                                       ], 
-*                                   ]
-*                               ],
-*                               "responseType" : ""
-*                           },
-*                           "criteriaId" : ""
-*                       }
-*                   },
-*                   "startTime" : Date,
-*                   "endTime" : Date,
-*                   "gpsLocation" : "String,String",
-*                   "submittedBy" : """,
-*                   "isValid" : Boolean
-*               }
-* }
-* @apiUse successBody
-* @apiUse errorBody
-*/
-
-    async make(req) {
-        return new Promise(async (resolve, reject) => {
-
-            try {
-
-                let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
-
-                return resolve(response);
-
-            } catch (error) {
-
-                return reject({
-                    status: 500,
-                    message: "Oops! Something went wrong!",
-                    errorObject: error
-                });
-
-            }
-
-        })
-    }
 
 }
