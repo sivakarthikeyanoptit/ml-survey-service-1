@@ -62,7 +62,7 @@ module.exports = class Assessments {
             };
             let entityAssessorDocument = await database.models.entityAssessors.findOne(
                 entityAssessorObject
-            );
+            ).lean();
 
             if (!entityAssessorDocument) {
                 let responseMessage = 'Unauthorized.';
@@ -305,9 +305,10 @@ module.exports = class Assessments {
             submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
             submissionDocument.criteria = submissionDocumentCriterias;
 
-            let submissionDoc = await submissionsHelper.findSubmissionByEntityProgram(
+            let submissionDoc = await submissionsHelper.findSubmission(
                 submissionDocument,
-                req
+                req,
+                "submissions"
             );
             assessment.submissionId = submissionDoc.result._id;
 
