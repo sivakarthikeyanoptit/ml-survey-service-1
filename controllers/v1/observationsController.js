@@ -745,7 +745,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/markAsCompleted/:observationId Mark As Completed
+   * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
    * @apiVersion 0.0.1
    * @apiName Mark As Completed
    * @apiGroup Observations
@@ -756,7 +756,7 @@ module.exports = class Observations extends Abstract {
    */
 
 
-    async markAsCompleted(req) {
+    async complete(req) {
 
         return new Promise(async (resolve, reject) => {
 
@@ -776,7 +776,7 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Marked as completed."
+                    message: "Observation marked as completed."
                 })
 
             } catch (error) {
