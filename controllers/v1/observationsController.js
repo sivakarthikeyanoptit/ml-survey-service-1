@@ -483,7 +483,7 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId,entities: ObjectId(req.query.entityId) }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
@@ -744,5 +744,51 @@ module.exports = class Observations extends Abstract {
 
     }
 
+    /**
+   * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
+   * @apiVersion 0.0.1
+   * @apiName Mark As Completed
+   * @apiGroup Observations
+   * @apiHeader {String} X-authenticated-user-token Authenticity token
+   * @apiSampleRequest /assessment/api/v1/observations/markAsCompleted/:observationId
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+
+    async complete(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(req.params._id),
+                        status: { $ne: "completed" },
+                        createdBy: req.userDetails.id
+                    },
+                    {
+                        $set: {
+                            status: "completed"
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: "Observation marked as completed."
+                })
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
 
 }
