@@ -7,7 +7,8 @@ module.exports = class submissionsHelper {
             try {
 
                 let queryObject = {
-                    entityId: document.entityId
+                    entityId: document.entityId,
+                    solutionId: document.solutionId
                 };
                 (modelName == "submissions") ? queryObject["programId"] = document.programId : queryObject["observationId"] = document.observationId;
 

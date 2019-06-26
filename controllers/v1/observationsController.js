@@ -370,7 +370,9 @@ module.exports = class Observations extends Abstract {
 
                 await database.models.observations.updateOne(
                     {
-                        _id: ObjectId(req.params._id)
+                        _id: ObjectId(req.params._id),
+                        status: { $ne: "completed" },
+                        createdBy: req.userDetails.id
                     },
                     {
                         $pull: {
@@ -427,13 +429,20 @@ module.exports = class Observations extends Abstract {
 
                     },
                     {
-                        entityTypeId: 1
+                        entityTypeId: 1,
+                        entities: 1
                     }
                 ).lean();
 
                 if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
 
                 let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
+
+                let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
+
+                entityDocuments[0].schoolInformation.forEach(schoolInformation => {
+                    schoolInformation.selected = (observationEntityIds.includes(schoolInformation._id.toString())) ? true : false;
+                })
 
                 response.result = entityDocuments
 
@@ -474,7 +483,7 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId,entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
