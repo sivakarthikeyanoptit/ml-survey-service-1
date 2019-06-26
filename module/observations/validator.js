@@ -5,6 +5,32 @@ module.exports = (req) => {
         add: function () {
             req.checkParams('_id').exists().withMessage("required solution id")
             req.checkBody('data').exists().withMessage("required data")
+        },
+        metaForm: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+        },
+        solutions: function () {
+            req.checkParams('_id').exists().withMessage("required solution id")
+        },
+        addEntityToObservation: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+        },
+        removeEntityFromObservation: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+        },
+        create: function () {
+            req.checkQuery('solutionId').exists().withMessage("required solution id")
+            req.checkBody('data').exists().withMessage("required data")
+        },
+        search: function () {
+            req.checkQuery('search').exists().withMessage("required search text")
+        },
+        assessment: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+            req.checkQuery('entityId').exists().withMessage("required entity id")
+        },
+        complete: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
         }
 
 

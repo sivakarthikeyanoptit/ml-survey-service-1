@@ -38,12 +38,6 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                if (!req.params._id) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage })
-                }
-
-
                 let solutionsData = await database.models.solutions.find({
                     entityTypeId: req.params._id,
                     type: "observation",
@@ -90,12 +84,6 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
 
             try {
-
-                if (!req.params._id) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage })
-                }
-
 
                 let solutionsData = await database.models.solutions.findOne({
                     _id: ObjectId(req.params._id),
@@ -153,11 +141,6 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
 
             try {
-
-                if (!req.query.solutionId || req.query.solutionId == "") {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage })
-                }
 
                 let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
 
@@ -399,7 +382,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/search/:observationId Search Entities
+     * @api {get} /assessment/api/v1/observations/search/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
      * @apiVersion 0.0.1
      * @apiName Search Entities
      * @apiGroup Observations
@@ -463,7 +446,7 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {get} /assessment/api/v1/observations/assessment/:observationId Assessments
+     * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId Assessments
      * @apiVersion 0.0.1
      * @apiName Assessments
      * @apiGroup Observations
@@ -655,7 +638,7 @@ module.exports = class Observations extends Abstract {
 
                     criteria.evidences.forEach(evidenceMethod => {
 
-                        if (evidenceMethod.code && submissionDocumentEvidences[evidenceMethod.code].modeOfCollection === isRequestForOncallOrOnField) {
+                        if (evidenceMethod.code) {
 
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 
@@ -745,18 +728,18 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/markAsCompleted/:observationId Mark As Completed
+   * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
    * @apiVersion 0.0.1
    * @apiName Mark As Completed
    * @apiGroup Observations
    * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiSampleRequest /assessment/api/v1/observations/markAsCompleted/:observationId
+   * @apiSampleRequest /assessment/api/v1/observations/complete/:observationId
    * @apiUse successBody
    * @apiUse errorBody
    */
 
 
-    async markAsCompleted(req) {
+    async complete(req) {
 
         return new Promise(async (resolve, reject) => {
 
