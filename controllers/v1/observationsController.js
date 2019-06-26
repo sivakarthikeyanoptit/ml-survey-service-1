@@ -440,8 +440,8 @@ module.exports = class Observations extends Abstract {
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 
-                entityDocuments[0].schoolInformation.forEach(schoolInformation => {
-                    schoolInformation.selected = (observationEntityIds.includes(schoolInformation._id.toString())) ? true : false;
+                entityDocuments[0].metaInformation.forEach(metaInformation => {
+                    metaInformation.selected = (observationEntityIds.includes(metaInformation._id.toString())) ? true : false;
                 })
 
                 response.result = entityDocuments

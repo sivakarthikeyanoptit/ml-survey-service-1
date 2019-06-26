@@ -403,7 +403,7 @@ module.exports = class entitiesHelper {
                             "totalCount": [
                                 { "$count": "count" }
                             ],
-                            "schoolInformation": [
+                            "metaInformation": [
                                 { $skip: pageSize * (pageNo - 1) },
                                 { $limit: pageSize }
                             ],
