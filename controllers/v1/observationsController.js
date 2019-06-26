@@ -759,7 +759,7 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Marked as completed."
+                    message: "Observation marked as completed."
                 })
 
             } catch (error) {
