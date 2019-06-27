@@ -1,6 +1,6 @@
 module.exports = (req) => {
 
-    let entityValidator = {
+    let observationSubmissionValidator = {
 
         isAllowed: function () {
             req.checkParams('_id').exists().withMessage("required observation submission id")
@@ -9,6 +9,6 @@ module.exports = (req) => {
 
     }
 
-    if (entityValidator[req.params.method]) entityValidator[req.params.method]();
+    if (observationSubmissionValidator[req.params.method]) observationSubmissionValidator[req.params.method]();
 
 };
