@@ -200,4 +200,63 @@ module.exports = class ObservationSubmissions extends Abstract {
 
     })
   }
+
+  /**
+* @api {get} /assessment/api/v1/observationSubmissions/isAllowed/:observationSubmissionId?evidenceId="LW" check submissions status 
+* @apiVersion 0.0.1
+* @apiName check submissions status 
+* @apiGroup ObservationSubmissions
+* @apiParam {String} evidenceId Evidence ID.
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
+  async isAllowed(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = {
+          allowed: true
+        }
+
+        let message = "Observation submission check completed successfully";
+
+        let submissionDocument = await database.models.observationSubmissions.findOne(
+          { "_id": req.params._id },
+          {
+            ["evidences." + req.query.evidenceId + ".isSubmitted"]: 1,
+            ["evidences." + req.query.evidenceId + ".submissions"]: 1
+          }
+        );
+
+        if (!submissionDocument || !submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        } else {
+          if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
+            submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
+              if (submission.submittedBy == req.userDetails.userId) {
+                result.allowed = false
+              }
+            })
+          }
+        }
+
+        let response = {
+          message: message,
+          result: result
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
 };
