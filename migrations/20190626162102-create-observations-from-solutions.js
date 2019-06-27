@@ -134,7 +134,13 @@ module.exports = {
     
         }))
 
-
+        await db.collection('solutions').findOneAndUpdate({
+          _id: parentSolutionDocument[0]._id
+        }, { $set: {
+          type: "observation",
+          subType : parentSolutionDocument[0].entityType
+        }})
+        
         await db.collection('solutions').deleteOne( { _id: solutionDocument._id } )
 
         await db.collection('programs').deleteOne( { _id: solutionDocument.programId } )
