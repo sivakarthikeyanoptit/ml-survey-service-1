@@ -8,18 +8,18 @@ module.exports = class observationsHelper {
                     _id: ObjectId(solutionId),
                     isReusable: true
                 }, {
-                     _id: 1,
-                     frameworkId: 1,
-                     frameworkExternalId: 1,
-                     externalId: 1,
-                     entityTypeId: 1,
-                     entityType : 1
-                }).lean();
+                        _id: 1,
+                        frameworkId: 1,
+                        frameworkExternalId: 1,
+                        externalId: 1,
+                        entityTypeId: 1,
+                        entityType: 1
+                    }).lean();
 
                 if (!solutionDocument) throw "No solution id found."
 
                 let observationData = await database.models.observations.create(
-                    _.merge(data,{
+                    _.merge(data, {
                         "solutionId": solutionDocument._id,
                         "solutionExternalId": solutionDocument.externalId,
                         "frameworkId": solutionDocument.frameworkId,
@@ -32,7 +32,7 @@ module.exports = class observationsHelper {
                     })
                 );
 
-                return resolve(_.pick(observationData,["_id", "name","description"]));
+                return resolve(_.pick(observationData, ["_id", "name", "description"]));
 
             } catch (error) {
                 return reject(error);
@@ -70,6 +70,44 @@ module.exports = class observationsHelper {
             }
         })
 
+
+    }
+
+    static findSubmission(document) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let submissionDocument = await database.models.observationSubmissions.findOne(
+                    {
+                        entityId: document.entityId,
+                        solutionId: document.solutionId,
+                        observationId: document.observationId
+                    }
+                ).lean();
+
+                if (!submissionDocument) {
+
+                    submissionDocument = await database.models.observationSubmissions.create(
+                        document
+                    );
+
+                } else {
+                    throw "Submission already exists"
+                }
+
+                return resolve({
+                    message: "Submission found",
+                    result: submissionDocument
+                });
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
 
     }
 
