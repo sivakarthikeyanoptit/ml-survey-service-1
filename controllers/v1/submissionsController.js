@@ -1026,6 +1026,7 @@ module.exports = class Submission extends Abstract {
   * @apiName Multi Rate
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
+  * @apiParam {String} solutionId Solution External ID.
   * @apiParam {String} entityId Entity ID.
   * @apiUse successBody
   * @apiUse errorBody
@@ -1040,10 +1041,15 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
+        let solutionId = req.query.solutionId
         let entityId = req.query.entityId.split(",")
 
         if(!programId){
           throw "Program Id is not found"
+        }
+
+        if(!solutionId){
+          throw "Solution Id is not found"
         }
 
         if(!req.query.entityId){
@@ -1052,7 +1058,8 @@ module.exports = class Submission extends Abstract {
 
         let queryObject = {
           "entityExternalId": {$in:entityId},
-          "programExternalId":programId
+          "programExternalId":programId,
+          "solutionExternalId":solutionId
         }
 
         let submissionDocuments = await database.models.submissions.find(
