@@ -93,8 +93,6 @@ module.exports = class observationsHelper {
                         document
                     );
 
-                } else {
-                    throw "Submission already exists"
                 }
 
                 return resolve({
