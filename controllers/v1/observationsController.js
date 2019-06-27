@@ -204,14 +204,37 @@ module.exports = class Observations extends Abstract {
                 const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
 
                 let observation
+                let submissions
+                let entityObservationSubmissionStatus
 
                 for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
 
                     observation = userObservations[pointerToAssessorObservationArray];
+
+
+                    submissions = await database.models.observationSubmissions.find(
+                        {
+                          entityId: {
+                            $in: observation.entities
+                          },
+                          observationId:observation._id
+                        },
+                        {
+                          "entityId": 1,
+                          "status": 1
+                        }
+                    )
+
+
+                    entityObservationSubmissionStatus = submissions.reduce(
+                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending",} }), {})
+
+
                     observation.entities = new Array
                     observation.entityDocuments.forEach(observationEntity => {
                         observation.entities.push({
                             _id: observationEntity._id,
+                            submissionStatus:entityObservationSubmissionStatus[observationEntity._id.toString()],
                             ...observationEntity.metaInformation
                         })
                     })

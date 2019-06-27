@@ -354,23 +354,21 @@ module.exports = class submissionsHelper {
                         queryOptions
                     );
 
-                    if (isSubmission) {
-                        let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-                        let { ratingsEnabled } = canRatingsBeEnabled
+                    let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+                    let { ratingsEnabled } = canRatingsBeEnabled
 
-                        if (ratingsEnabled) {
-                            let updateStatusObject = {}
-                            updateStatusObject.$set = {}
-                            updateStatusObject.$set = {
-                                status: "completed",
-                                completedDate: new Date()
-                            }
-                            updatedSubmissionDocument = await database.models[modelName].findOneAndUpdate(
-                                queryObject,
-                                updateStatusObject,
-                                queryOptions
-                            );
+                    if (ratingsEnabled) {
+                        let updateStatusObject = {}
+                        updateStatusObject.$set = {}
+                        updateStatusObject.$set = {
+                            status: "completed",
+                            completedDate: new Date()
                         }
+                        updatedSubmissionDocument = await database.models[modelName].findOneAndUpdate(
+                            queryObject,
+                            updateStatusObject,
+                            queryOptions
+                        );
                     }
 
                     let status = await submissionsHelper.extractStatusOfSubmission(updatedSubmissionDocument)
