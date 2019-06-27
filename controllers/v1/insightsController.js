@@ -2,18 +2,6 @@ const moment = require("moment-timezone");
 const insightsHelper = require(ROOT_PATH + "/module/insights/helper")
 
 module.exports = class Insights extends Abstract {
-  /**
-     * @apiDefine errorBody
-     * @apiError {String} status 4XX,5XX
-     * @apiError {String} message Error
-     */
-
-  /**
-     * @apiDefine successBody
-     *  @apiSuccess {String} status 200
-     * @apiSuccess {String} result Data
-     */
-
 
   constructor() {
     super(insightsSchema);

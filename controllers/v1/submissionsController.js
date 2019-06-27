@@ -5,18 +5,6 @@ const csv = require("csvtojson");
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 
 module.exports = class Submission extends Abstract {
-  /**
-     * @apiDefine errorBody
-     * @apiError {String} status 4XX,5XX
-     * @apiError {String} message Error
-     */
-
-  /**
-     * @apiDefine successBody
-     *  @apiSuccess {String} status 200
-     * @apiSuccess {String} result Data
-     */
-
 
   constructor() {
     super(submissionsSchema);

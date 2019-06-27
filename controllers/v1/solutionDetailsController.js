@@ -3,19 +3,6 @@ const FileStream = require(ROOT_PATH + "/generics/fileStream")
 
 module.exports = class SolutionDetails {
 
-    /**
-        * @apiDefine errorBody
-        * @apiError {String} status 4XX,5XX
-        * @apiError {String} message Error
-        */
-
-    /**
-        * @apiDefine successBody
-        *  @apiSuccess {String} status 200
-        * @apiSuccess {String} result Data
-        */
-       
-
     static get name() {
       return "solutionDetails";
     }

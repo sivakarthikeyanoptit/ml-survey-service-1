@@ -10,19 +10,6 @@ module.exports = class SharedLink extends Abstract {
   }
 
   /**
-      * @apiDefine errorBody
-      * @apiError {String} status 4XX,5XX
-      * @apiError {String} message Error
-      */
-
-  /**
-     * @apiDefine successBody
-     *  @apiSuccess {String} status 200
-     * @apiSuccess {String} result Data
-     */
-
-
-  /**
   * @api {get} /assessment/api/v1/sharedLinks/generate Create a shared link
   * @apiVersion 0.0.1
   * @apiName Create shared link

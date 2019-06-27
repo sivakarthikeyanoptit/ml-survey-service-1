@@ -10,9 +10,9 @@ module.exports = class ObservationSubmissions extends Abstract {
     return "observationSubmissions";
   }
   /**
-* @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} 
+* @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} create observation submission
 * @apiVersion 0.0.1
-* @apiName submissions for observations added successfully
+* @apiName create observation submission
 * @apiGroup ObservationSubmissions
 * @apiParamExample {json} Request-Body:
 * {
