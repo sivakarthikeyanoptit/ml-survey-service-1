@@ -234,7 +234,7 @@ module.exports = class Observations extends Abstract {
                     observation.entityDocuments.forEach(observationEntity => {
                         observation.entities.push({
                             _id: observationEntity._id,
-                            submissionStatus:entityObservationSubmissionStatus[observationEntity._id.toString()].submissionStatus,
+                            submissionStatus: (entityObservationSubmissionStatus[observationEntity._id.toString()]) ? entityObservationSubmissionStatus[observationEntity._id.toString()].submissionStatus : "pending",
                             ...observationEntity.metaInformation
                         })
                     })
