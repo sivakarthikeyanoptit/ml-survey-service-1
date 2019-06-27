@@ -2,17 +2,6 @@ const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper");
 const insightsHelper = require(ROOT_PATH + "/module/insights/helper");
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
 module.exports = class Programs extends Abstract {
-  /**
-    * @apiDefine errorBody
-    * @apiError {String} status 4XX,5XX
-    * @apiError {String} message Error
-    */
-
-  /**
-     * @apiDefine successBody
-     *  @apiSuccess {String} status 200
-     * @apiSuccess {String} result Data
-     */
 
   constructor() {
     super(programsSchema);

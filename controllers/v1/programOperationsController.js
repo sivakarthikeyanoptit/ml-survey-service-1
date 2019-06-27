@@ -4,20 +4,7 @@ const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
 const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
 const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
 module.exports = class ProgramOperations {
-
-    /**
-      * @apiDefine errorBody
-      * @apiError {String} status 4XX,5XX
-      * @apiError {String} message Error
-      */
-
-    /**
-       * @apiDefine successBody
-       *  @apiSuccess {String} status 200
-       * @apiSuccess {String} result Data
-       */
-
-
+    
     /**
     * @api {get} /assessment/api/v1/programOperations/listByUser Fetch Program List By User
     * @apiVersion 0.0.1
