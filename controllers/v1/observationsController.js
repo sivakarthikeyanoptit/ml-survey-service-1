@@ -527,7 +527,7 @@ module.exports = class Observations extends Abstract {
                 }
 
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles)
-                let profileFieldAccessibility = (solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : {};
+                let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
 
                 let entityProfileForm = await database.models.entityTypes.findOne(
                     solutionDocument.entityTypeId,
@@ -558,8 +558,8 @@ module.exports = class Observations extends Abstract {
                 entityProfileForm.profileForm.forEach(profileFormField => {
                     if (filteredFieldsToBeShown.includes(profileFormField.field)) {
                         profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : ""
-                        profileFormField.visible = profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1
-                        profileFormField.editable = profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1
+                        profileFormField.visible = profileFieldAccessibility ? (profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1) : true;
+                        profileFormField.editable = profileFieldAccessibility ? (profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1) : true;
                         form.push(profileFormField)
                     }
                 })
