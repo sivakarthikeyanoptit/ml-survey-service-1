@@ -125,13 +125,18 @@ module.exports = class EntityAssessors extends Abstract {
               },
               {
                 "entityId": 1,
+                "status": 1,
                 "evidences.PAI.isSubmitted": 1
               }
             )
 
             entityPAISubmissionStatus = submissions.reduce(
-              (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {PAIStatus:(entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false,
-              submissionId:entitySubmission._id} }), {})
+              (ac, entitySubmission) => ({ ...ac, 
+                [entitySubmission.entityId.toString()]: {
+                  PAIStatus:(entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false,
+                  submissionId:entitySubmission._id,
+                  submissionStatus: (entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"
+                } }), {})
 
             let programDocument = program
             programDocument.solutions = new Array
@@ -141,6 +146,7 @@ module.exports = class EntityAssessors extends Abstract {
                 _id: assessorEntity._id,
                 isParentInterviewCompleted: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["PAIStatus"] : false,
                 submissionId: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionId"] : "",
+                submissionStatus: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionStatus"] : "pending",
                 ...assessorEntity.metaInformation
               })
             })

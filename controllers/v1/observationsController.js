@@ -227,7 +227,7 @@ module.exports = class Observations extends Abstract {
 
 
                     entityObservationSubmissionStatus = submissions.reduce(
-                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending",} }), {})
+                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
 
 
                     observation.entities = new Array
