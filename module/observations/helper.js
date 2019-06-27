@@ -73,4 +73,42 @@ module.exports = class observationsHelper {
 
     }
 
+    static findSubmission(document) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let submissionDocument = await database.models.observationSubmissions.findOne(
+                    {
+                        entityId: document.entityId,
+                        solutionId: document.solutionId,
+                        observationId: document.observationId
+                    }
+                ).lean();
+
+                if (!submissionDocument) {
+
+                    submissionDocument = await database.models.observationSubmissions.create(
+                        document
+                    );
+
+                } else {
+                    throw "Submission already exists"
+                }
+
+                return resolve({
+                    message: "Submission found",
+                    result: submissionDocument
+                });
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+
+    }
+
 };

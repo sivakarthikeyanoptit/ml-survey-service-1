@@ -8,6 +8,7 @@ module.exports = class submissionsHelper {
 
                 let queryObject = {
                     entityId: document.entityId,
+                    solutionId: document.solutionId,
                     programId: document.programId
                 };
 
