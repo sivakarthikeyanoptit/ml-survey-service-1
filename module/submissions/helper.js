@@ -416,7 +416,7 @@ module.exports = class submissionsHelper {
         return answer;
     }
 
-    static rateEntities(submissionDocuments,sourceApiHelp = "multiRateApi") {
+    static rateEntities(submissionDocuments, sourceApiHelp = "multiRateApi") {
 
         return new Promise(async (resolve, reject) => {
 
@@ -425,43 +425,43 @@ module.exports = class submissionsHelper {
                 let result = {}
                 let resultingArray = new Array
 
-                await Promise.all(submissionDocuments.map(async eachSubmissionDocument=>{
-                    
+                await Promise.all(submissionDocuments.map(async eachSubmissionDocument => {
+
                     result.runUpdateQuery = true
 
                     let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
-        
+
                     if (allSubmittedEvidence) {
 
-                        let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
+                        let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
 
-                            if(criteria.weightage > 0) {
+                            if (criteria.weightage > 0) {
 
                                 result[criteria.externalId] = {}
                                 result[criteria.externalId].criteriaName = criteria.name
                                 result[criteria.externalId].criteriaExternalId = criteria.externalId
-                                
-                                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
+
+                                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
                                     return eachRubricLevels.expression != ""
                                 })
-                                
+
                                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
-                                    
+
                                     let submissionAnswers = new Array
 
                                     const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                                         let result;
                                         const questionOrCriteriaArray = questionOrCriteria.split('.')
-                                        
-                                        if(_.includes(questionOrCriteriaArray,"entityProfile")) {
 
-                                            if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
-                                                result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
+                                        if (_.includes(questionOrCriteriaArray, "entityProfile")) {
+
+                                            if (submissionDocuments.entityProfile && submissionDocuments.entityProfile[questionOrCriteriaArray[1]]) {
+                                                result = submissionDocuments.entityProfile[questionOrCriteriaArray[1]]
                                             } else {
-                                                result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
+                                                result = submissionDocuments.entityInformation[questionOrCriteriaArray[1]]
                                             }
 
-                                            if(!result || result == "" || !(result.length>=0)) {
+                                            if (!result || result == "" || !(result.length >= 0)) {
                                                 result = "NA"
                                             }
 
@@ -469,138 +469,138 @@ module.exports = class submissionsHelper {
                                             return result
                                         }
 
-                                        if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
+                                        if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria")) >= 0) {
                                             result = 0
 
-                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
+                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "countOfAllQuestionInCriteria")))
                                             let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                                            if(criteriaIdIndex < 0) {
+                                            if (criteriaIdIndex < 0) {
                                                 return "NA"
                                             }
 
-                                            let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
+                                            let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria"))
                                             let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                                            if(criteriaQuestionFunctionIndex < 0) {
+                                            if (criteriaQuestionFunctionIndex < 0) {
                                                 return "NA"
                                             }
 
                                             criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                                                criteriaQuestionFunction.lastIndexOf("(") + 1, 
+                                                criteriaQuestionFunction.lastIndexOf("(") + 1,
                                                 criteriaQuestionFunction.lastIndexOf(")")
                                             );
-                                            
-                                            criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
 
-                                            let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                                            
+                                            criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g, '')
+
+                                            let allCriteriaQuestions = _.filter(_.values(submissionDocuments.answers), _.matchesProperty('criteriaId', criteriaId));
+
 
                                             let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                                            if(criteriaQuestionFilter[1]) {
-                                            
-                                            // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
+                                            if (criteriaQuestionFilter[1]) {
 
-                                            let multipleConditionOperator = ""
-                                            if(_.includes(criteriaQuestionFilter[1],"AND") > 0) {
-                                                multipleConditionOperator = "AND"
-                                            }
-                                            if(_.includes(criteriaQuestionFilter[1],"OR") > 0) {
-                                                multipleConditionOperator = "OR"
-                                            }
-                                            
-                                            let conditionArray = new Array
-                                            if(multipleConditionOperator != "") {
-                                                conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
-                                            } else {
-                                                conditionArray.push(criteriaQuestionFilter[1])
-                                            }
+                                                // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
 
+                                                let multipleConditionOperator = ""
+                                                if (_.includes(criteriaQuestionFilter[1], "AND") > 0) {
+                                                    multipleConditionOperator = "AND"
+                                                }
+                                                if (_.includes(criteriaQuestionFilter[1], "OR") > 0) {
+                                                    multipleConditionOperator = "OR"
+                                                }
 
-                                            let tempAllQuestion = new Array
-
-                                            allCriteriaQuestions.forEach(question => {
-
-                                                let conditionMatch = 0
-                                                let conditionNotMatch = 0
-
-                                                for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
-                                                let eachConditionArray = new Array
-                                                let questionMatchOperator = "=="
-                                                if(_.includes(conditionArray[pointerToConditionArray],"!=") > 0) {
-                                                    eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
-                                                    questionMatchOperator = "!="
+                                                let conditionArray = new Array
+                                                if (multipleConditionOperator != "") {
+                                                    conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
                                                 } else {
-                                                    eachConditionArray = conditionArray[pointerToConditionArray].split("=")
-                                                }
-
-                                                let singleConditionOperator = ""
-                                                if(_.includes(eachConditionArray[1],"&&") > 0) {
-                                                    singleConditionOperator = "&&"
-                                                }
-                                                if(_.includes(eachConditionArray[1],"||") > 0) {
-                                                    singleConditionOperator = "||"
+                                                    conditionArray.push(criteriaQuestionFilter[1])
                                                 }
 
 
-                                                let allPossibleValues = new Array
-                                                if(singleConditionOperator != "") {
-                                                    allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
-                                                } else {
-                                                    allPossibleValues.push(eachConditionArray[1])
-                                                }
+                                                let tempAllQuestion = new Array
 
-                                                let conditionValueMatch = 0
-                                                let conditionValueNotMatch = 0
-                                                for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
-                                                    const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                                                    if(questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                                    conditionValueMatch += 1
-                                                    } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                                    conditionValueMatch += 1
-                                                    } else {
-                                                    conditionValueNotMatch += 1
+                                                allCriteriaQuestions.forEach(question => {
+
+                                                    let conditionMatch = 0
+                                                    let conditionNotMatch = 0
+
+                                                    for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
+                                                        let eachConditionArray = new Array
+                                                        let questionMatchOperator = "=="
+                                                        if (_.includes(conditionArray[pointerToConditionArray], "!=") > 0) {
+                                                            eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
+                                                            questionMatchOperator = "!="
+                                                        } else {
+                                                            eachConditionArray = conditionArray[pointerToConditionArray].split("=")
+                                                        }
+
+                                                        let singleConditionOperator = ""
+                                                        if (_.includes(eachConditionArray[1], "&&") > 0) {
+                                                            singleConditionOperator = "&&"
+                                                        }
+                                                        if (_.includes(eachConditionArray[1], "||") > 0) {
+                                                            singleConditionOperator = "||"
+                                                        }
+
+
+                                                        let allPossibleValues = new Array
+                                                        if (singleConditionOperator != "") {
+                                                            allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
+                                                        } else {
+                                                            allPossibleValues.push(eachConditionArray[1])
+                                                        }
+
+                                                        let conditionValueMatch = 0
+                                                        let conditionValueNotMatch = 0
+                                                        for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
+                                                            const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
+                                                            if (questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]], eachValue)) {
+                                                                conditionValueMatch += 1
+                                                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]], eachValue)) {
+                                                                conditionValueMatch += 1
+                                                            } else {
+                                                                conditionValueNotMatch += 1
+                                                            }
+                                                        }
+
+                                                        if (singleConditionOperator == "||" && conditionValueMatch > 0) {
+                                                            conditionMatch += 1
+                                                        } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
+                                                            conditionMatch += 1
+                                                        } else {
+                                                            conditionNotMatch += 1
+                                                        }
+
                                                     }
-                                                }
 
-                                                if(singleConditionOperator == "||" && conditionValueMatch > 0) {
-                                                    conditionMatch += 1
-                                                } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
-                                                    conditionMatch += 1
-                                                } else {
-                                                    conditionNotMatch += 1
-                                                }
+                                                    if (multipleConditionOperator == "OR" && conditionMatch > 0) {
+                                                        tempAllQuestion.push(question)
+                                                    } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
+                                                        tempAllQuestion.push(question)
+                                                    }
 
-                                                }
+                                                })
 
-                                                if(multipleConditionOperator == "OR" && conditionMatch > 0) {
-                                                tempAllQuestion.push(question)
-                                                } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
-                                                tempAllQuestion.push(question)
-                                                }
-
-                                            })
-                                            
-                                            allCriteriaQuestions = tempAllQuestion
+                                                allCriteriaQuestions = tempAllQuestion
 
                                             }
-                                            
+
                                             submissionAnswers.push(...allCriteriaQuestions)
 
                                             allCriteriaQuestions.forEach(question => {
-                                            if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                                                result += 1
-                                            }
+                                                if (question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
+                                                    result += 1
+                                                }
                                             })
 
                                             return result
                                         }
 
-                                        submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
+                                        eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && submissionAnswers.push(eachSubmissionDocument.answers[questionOrCriteriaArray[0]])
                                         let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                                         inputTypes.forEach(inputType => {
                                             if (questionOrCriteriaArray[1] === inputType) {
-                                                if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                                                // if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                                                    result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
+                                                if (eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && (!eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument[0].answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                                                    // if (submissionDocuments.answers[questionOrCriteriaArray[0]] && (submissionDocuments.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                                                    result = eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                                                 } else {
                                                     result = "NA";
                                                 }
@@ -631,7 +631,7 @@ module.exports = class submissionsHelper {
                                         Object.keys(criteria.rubric.levels).forEach(level => {
 
                                             if (criteria.rubric.levels[level].expression != "") {
-                                                
+
                                                 try {
 
                                                     expressionResult[level] = {
@@ -653,12 +653,12 @@ module.exports = class submissionsHelper {
                                                     }
 
                                                     let errorObject = {
-                                                        errorName:error.message,
-                                                        criteriaName:criteria.name,
-                                                        expression:criteria.rubric.levels[level].expression,
-                                                        expressionVariables:JSON.stringify(expressionVariables),
-                                                        errorLevels:criteria.rubric.levels[level].level,
-                                                        expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
+                                                        errorName: error.message,
+                                                        criteriaName: criteria.name,
+                                                        expression: criteria.rubric.levels[level].expression,
+                                                        expressionVariables: JSON.stringify(expressionVariables),
+                                                        errorLevels: criteria.rubric.levels[level].level,
+                                                        expressionVariablesDefined: JSON.stringify(criteria.rubric.expressionVariables)
                                                     }
 
                                                     slackClient.rubricErrorLogs(errorObject)
@@ -719,44 +719,44 @@ module.exports = class submissionsHelper {
                             }
 
                         }));
-                
+
                         if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
                             result.runUpdateQuery = false
                         }
-                
+
                         if (result.runUpdateQuery) {
 
                             let updateObject = {}
-                
+
                             updateObject.$set = {
                                 criteria: criteriaData,
-                                ratingCompletedAt : new Date()
+                                ratingCompletedAt: new Date()
                             }
-                
+
                             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
                                 {
-                                    _id:eachSubmissionDocument._id
+                                    _id: eachSubmissionDocument._id
                                 },
                                 updateObject
                             );
 
                         }
+                        let message = "Crtieria rating completed successfully"
 
-                        if(sourceApiHelp == "singleRateApi") {
+                        if (sourceApiHelp == "singleRateApi") {
                             return resolve({
-                                message: "Crtieria rating completed successfully",
-                                result: result
+                                result: result,
+                                message: message
                             })
                         }
 
                         resultingArray.push({
-                            entityId:eachSubmissionDocument.entityExternalId,
+                            entityId: eachSubmissionDocument.entityExternalId,
                             message: message
                         })
-
                     } else {
 
-                        if(sourceApiHelp == "singleRateApi") {
+                        if (sourceApiHelp == "singleRateApi") {
                             return resolve({
                                 status: 404,
                                 message: "All ECM are not submitted"
@@ -764,15 +764,15 @@ module.exports = class submissionsHelper {
                         }
 
                         resultingArray.push({
-                            entityId:eachSubmissionDocument.entityExternalId,
+                            entityId: eachSubmissionDocument.entityExternalId,
                             message: "All ECM are not submitted"
                         })
-                        
+
                     }
-        
+
                 }))
 
-                
+
                 return resolve(resultingArray);
 
 
