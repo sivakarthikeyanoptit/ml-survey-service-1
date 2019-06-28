@@ -60,37 +60,42 @@ module.exports = {
 
       await Promise.all(oldSubmissionDocumentsArray.map(async (eachSubmissionDocument) => {
         
-        eachSubmissionDocument.isDeleted = false
-        eachSubmissionDocument.criteria = eachSubmissionDocument.criterias
-        eachSubmissionDocument.entityId = (eachSubmissionDocument.entityId) ? eachSubmissionDocument.entityId : eachSubmissionDocument.schoolId
-        eachSubmissionDocument.entityExternalId = (eachSubmissionDocument.entityExternalId) ? eachSubmissionDocument.entityExternalId : eachSubmissionDocument.schoolExternalId
-        eachSubmissionDocument.entityInformation = (eachSubmissionDocument.entityInformation) ? eachSubmissionDocument.entityInformation : eachSubmissionDocument.schoolInformation
+        if(solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()]) {
+
+          eachSubmissionDocument.isDeleted = false
+          eachSubmissionDocument.criteria = eachSubmissionDocument.criterias
+          eachSubmissionDocument.entityId = (eachSubmissionDocument.entityId) ? eachSubmissionDocument.entityId : eachSubmissionDocument.schoolId
+          eachSubmissionDocument.entityExternalId = (eachSubmissionDocument.entityExternalId) ? eachSubmissionDocument.entityExternalId : eachSubmissionDocument.schoolExternalId
+          eachSubmissionDocument.entityInformation = (eachSubmissionDocument.entityInformation) ? eachSubmissionDocument.entityInformation : eachSubmissionDocument.schoolInformation
+          
+          if(eachSubmissionDocument.schoolProfile) {
+            eachSubmissionDocument.entityProfile = eachSubmissionDocument.schoolProfile
+          }
+  
+          eachSubmissionDocument.solutionExternalId = eachSubmissionDocument.evaluationFrameworkExternalId
+          eachSubmissionDocument.solutionId = eachSubmissionDocument.evaluationFrameworkId
+  
+          eachSubmissionDocument.entityTypeId = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityTypeId
+          eachSubmissionDocument.entityType = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityType
+  
+          try {
+            await db.collection('submissions').insertOne(_.omit(eachSubmissionDocument,[
+              "schoolProfile",
+              "schoolInformation",
+              "schoolExternalId",
+              "schoolId",
+              "criterias",
+              "evaluationFrameworkExternalId",
+              "evaluationFrameworkId",
+              "deleted"
+            ]));
+          } catch (error) {
+            console.log(eachSubmissionDocument._id)
+            console.log(error)
+          }
+          
+        }
         
-        if(eachSubmissionDocument.schoolProfile) {
-          eachSubmissionDocument.entityProfile = eachSubmissionDocument.schoolProfile
-        }
-
-        eachSubmissionDocument.solutionExternalId = eachSubmissionDocument.evaluationFrameworkExternalId
-        eachSubmissionDocument.solutionId = eachSubmissionDocument.evaluationFrameworkId
-
-        eachSubmissionDocument.entityTypeId = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityTypeId
-        eachSubmissionDocument.entityType = solutionDocumentMap[eachSubmissionDocument.evaluationFrameworkId.toString()].entityType
-
-        try {
-          await db.collection('submissions').insertOne(_.omit(eachSubmissionDocument,[
-            "schoolProfile",
-            "schoolInformation",
-            "schoolExternalId",
-            "schoolId",
-            "criterias",
-            "evaluationFrameworkExternalId",
-            "evaluationFrameworkId",
-            "deleted"
-          ]));
-        } catch (error) {
-          console.log(eachSubmissionDocument._id)
-          console.log(error)
-        }
 
         return true
 
