@@ -455,10 +455,10 @@ module.exports = class submissionsHelper {
 
                                         if (_.includes(questionOrCriteriaArray, "entityProfile")) {
 
-                                            if (submissionDocuments.entityProfile && submissionDocuments.entityProfile[questionOrCriteriaArray[1]]) {
-                                                result = submissionDocuments.entityProfile[questionOrCriteriaArray[1]]
+                                            if (eachSubmissionDocument.entityProfile && eachSubmissionDocument.entityProfile[questionOrCriteriaArray[1]]) {
+                                                result = eachSubmissionDocument.entityProfile[questionOrCriteriaArray[1]]
                                             } else {
-                                                result = submissionDocuments.entityInformation[questionOrCriteriaArray[1]]
+                                                result = eachSubmissionDocument.entityInformation[questionOrCriteriaArray[1]]
                                             }
 
                                             if (!result || result == "" || !(result.length >= 0)) {
@@ -491,7 +491,7 @@ module.exports = class submissionsHelper {
 
                                             criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g, '')
 
-                                            let allCriteriaQuestions = _.filter(_.values(submissionDocuments.answers), _.matchesProperty('criteriaId', criteriaId));
+                                            let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
 
 
                                             let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
@@ -598,8 +598,8 @@ module.exports = class submissionsHelper {
                                         let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                                         inputTypes.forEach(inputType => {
                                             if (questionOrCriteriaArray[1] === inputType) {
-                                                if (eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && (!eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument[0].answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                                                    // if (submissionDocuments.answers[questionOrCriteriaArray[0]] && (submissionDocuments.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                                                if (eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && (!eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] || eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+
                                                     result = eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                                                 } else {
                                                     result = "NA";
