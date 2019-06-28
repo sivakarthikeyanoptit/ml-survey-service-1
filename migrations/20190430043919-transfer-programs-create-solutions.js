@@ -92,6 +92,10 @@ module.exports = {
           _id : programs[programsCounter].components[0].id
         }).toArray();
 
+        if(!evaluationFrameworkDocument[0] || !evaluationFrameworkDocument[0].themes) {
+          continue
+        }
+        
         let frameworkCriteriaArray = getCriteriaIds(evaluationFrameworkDocument[0].themes)
 
 
