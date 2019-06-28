@@ -239,6 +239,8 @@ module.exports = class Solutions extends Abstract {
         newSolutionDocument.isReusable = true
 
         let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+        
+        let newSolutionId
 
         if (newBaseSolutionId._id) {
 
@@ -251,7 +253,7 @@ module.exports = class Solutions extends Abstract {
           newSolutionDocument.isReusable = false
           newSolutionDocument.externalId = frameworkDocument.externalId
 
-          let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+          newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
 
           if (newSolutionId._id) {
             await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })

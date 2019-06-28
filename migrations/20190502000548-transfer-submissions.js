@@ -33,6 +33,8 @@ module.exports = {
 
     await db.collection('submissions').createIndex( {"entityType": "text" } )
 
+    await db.collection('submissions').createIndex({ "feedback.submissionDate": 1 })
+
     for (let pointerTosubmissionIdDocument = 0; pointerTosubmissionIdDocument < chunkOfSubmissionsIdsDocument.length; pointerTosubmissionIdDocument++) {
     
       let fetchSubmissionIds = new Array
