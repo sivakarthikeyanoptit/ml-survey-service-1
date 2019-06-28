@@ -1,5 +1,3 @@
-const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
-let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
@@ -963,6 +961,7 @@ module.exports = class Submission extends Abstract {
   * @apiName Rate an Entity
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
+  * @apiParam {String} solutionId Solution External ID.
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -976,10 +975,15 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
+        let solutionId = req.query.solutionId
         let entityId = req.params._id
 
         if(!programId){
           throw "Program Id is not found"
+        }
+
+        if(!solutionId){
+          throw "Solution Id is not found"
         }
 
         if(!entityId) {
@@ -988,7 +992,8 @@ module.exports = class Submission extends Abstract {
 
         let queryObject = {
           "entityExternalId": entityId,
-          "programExternalId": programId
+          "programExternalId": programId,
+          "solutionExternalId":solutionId
         }
 
         let submissionDocument = await database.models.submissions.findOne(
@@ -1000,321 +1005,10 @@ module.exports = class Submission extends Abstract {
           throw "Couldn't find the submission document"
         }
 
-        let result = {}
-        result.runUpdateQuery = true
+        let resultingArray = await submissionsHelper.rateEntities([submissionDocument],"singleRateApi")
 
-        let allSubmittedEvidence = submissionDocument.evidencesStatus.every(submissionsHelper.allSubmission)
-        
-        if (allSubmittedEvidence) {
-          let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
+        return resolve({result:resultingArray})
 
-            if(criteria.weightage > 0) {
-
-              result[criteria.externalId] = {}
-              result[criteria.externalId].criteriaName = criteria.name
-              result[criteria.externalId].criteriaExternalId = criteria.externalId
-              
-              let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
-                return eachRubricLevels.expression != ""
-              })
-            
-              if (criteria.rubric.expressionVariables && allCriteriaLevels) {
-                let submissionAnswers = new Array
-
-                const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
-                  let result;
-                  const questionOrCriteriaArray = questionOrCriteria.split('.')
-                  
-                  if(_.includes(questionOrCriteriaArray,"entityProfile")) {
-
-                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
-                      result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
-                    } else {
-                      result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
-                    }
-
-                    if(!result || result == "" || !(result.length>=0)) {
-                      result = "NA"
-                    }
-                    submissionAnswers.push(result)
-                    return result
-                  }
-
-                  if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
-                    result = 0
-
-                    let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
-                    let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                    if(criteriaIdIndex < 0) {
-                      return "NA"
-                    }
-
-                    let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
-                    let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                    if(criteriaQuestionFunctionIndex < 0) {
-                      return "NA"
-                    }
-
-                    criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                      criteriaQuestionFunction.lastIndexOf("(") + 1, 
-                      criteriaQuestionFunction.lastIndexOf(")")
-                    );
-                    
-                    criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-
-                    let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                    
-
-                    let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                    if(criteriaQuestionFilter[1]) {
-                      
-                      // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
-
-                      let multipleConditionOperator = ""
-                      if(_.includes(criteriaQuestionFilter[1],"AND") > 0) {
-                        multipleConditionOperator = "AND"
-                      }
-                      if(_.includes(criteriaQuestionFilter[1],"OR") > 0) {
-                        multipleConditionOperator = "OR"
-                      }
-                      
-                      let conditionArray = new Array
-                      if(multipleConditionOperator != "") {
-                        conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
-                      } else {
-                        conditionArray.push(criteriaQuestionFilter[1])
-                      }
-
-
-                      let tempAllQuestion = new Array
-
-                      allCriteriaQuestions.forEach(question => {
-
-                        let conditionMatch = 0
-                        let conditionNotMatch = 0
-
-                        for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
-                          let eachConditionArray = new Array
-                          let questionMatchOperator = "=="
-                          if(_.includes(conditionArray[pointerToConditionArray],"!=") > 0) {
-                            eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
-                            questionMatchOperator = "!="
-                          } else {
-                            eachConditionArray = conditionArray[pointerToConditionArray].split("=")
-                          }
-
-                          let singleConditionOperator = ""
-                          if(_.includes(eachConditionArray[1],"&&") > 0) {
-                            singleConditionOperator = "&&"
-                          }
-                          if(_.includes(eachConditionArray[1],"||") > 0) {
-                            singleConditionOperator = "||"
-                          }
-
-
-                          let allPossibleValues = new Array
-                          if(singleConditionOperator != "") {
-                            allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
-                          } else {
-                            allPossibleValues.push(eachConditionArray[1])
-                          }
-
-                          let conditionValueMatch = 0
-                          let conditionValueNotMatch = 0
-                          for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
-                            const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                            if(questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]],eachValue)) {
-                              conditionValueMatch += 1
-                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]],eachValue)) {
-                              conditionValueMatch += 1
-                            } else {
-                              conditionValueNotMatch += 1
-                            }
-                          }
-
-                          if(singleConditionOperator == "||" && conditionValueMatch > 0) {
-                            conditionMatch += 1
-                          } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
-                            conditionMatch += 1
-                          } else {
-                            conditionNotMatch += 1
-                          }
-
-                        }
-
-                        if(multipleConditionOperator == "OR" && conditionMatch > 0) {
-                          tempAllQuestion.push(question)
-                        } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
-                          tempAllQuestion.push(question)
-                        }
-
-                      })
-                      
-                      allCriteriaQuestions = tempAllQuestion
-
-                    }
-                    
-                    submissionAnswers.push(...allCriteriaQuestions)
-
-                    allCriteriaQuestions.forEach(question => {
-                      if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                        result += 1
-                      }
-                    })
-
-                    return result
-                  }
-
-                  submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
-                  let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                  inputTypes.forEach(inputType => {
-                    if (questionOrCriteriaArray[1] === inputType) {
-                      if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                      // if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                        result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
-                      } else {
-                        result = "NA";
-                      }
-                    }
-                  })
-                  return result;
-                }
-
-                let expressionVariables = {};
-                let expressionResult = {};
-                let allValuesAvailable = true;
-
-                Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-                  if (variable != "default") {
-                    expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
-                    expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
-                    if (expressionVariables[variable] === "NA") {
-                      allValuesAvailable = false;
-                   }
-                  }
-                })
-
-                let errorWhileParsingCriteriaExpression = false
-                let errorExpression = {}
-
-                if (allValuesAvailable) {
-                  Object.keys(criteria.rubric.levels).forEach(level => {
-
-                    if (criteria.rubric.levels[level].expression != "") {
-                      try {
-                        expressionResult[level] = {
-                          expressionParsed: criteria.rubric.levels[level].expression,
-                          result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
-                        }
-                      } catch (error) {
-                        console.log("---------------Some exception caught begins---------------")
-                        console.log(error)
-                        console.log(criteria.name)
-                        console.log(criteria.rubric.levels[level].expression)
-                        console.log(expressionVariables)
-                        console.log(criteria.rubric.expressionVariables)
-                        console.log("---------------Some exception caught ends---------------")
-
-                        expressionResult[level] = {
-                          expressionParsed: criteria.rubric.levels[level].expression
-                        }
-
-                        let errorObject = {
-                          errorName:error.message,
-                          criteriaName:criteria.name,
-                          expression:criteria.rubric.levels[level].expression,
-                          expressionVariables:JSON.stringify(expressionVariables),
-                          errorLevels:criteria.rubric.levels[level].level,
-                          expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
-                        }
-
-                        slackClient.rubricErrorLogs(errorObject)
-
-                        errorWhileParsingCriteriaExpression = true
-
-                      }
-
-                    } else {
-                      expressionResult[level] = {
-                        expressionParsed: criteria.rubric.levels[level].expression,
-                        result: false
-                      }
-                    }
-                  })
-                }
-
-                let score = "NA"
-                if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4 && expressionResult.L4.result) {
-                    score = "L4"
-                  } else if (expressionResult.L3 && expressionResult.L3.result) {
-                    score = "L3"
-                  } else if (expressionResult.L2 && expressionResult.L2.result) {
-                    score = "L2"
-                  } else if (expressionResult.L1 && expressionResult.L1.result) {
-                    score = "L1"
-                  } else {
-                    score = "No Level Matched"
-                  }
-                }
-
-                result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
-                result[criteria.externalId].expressionVariables = expressionVariables
-
-                if (score == "NA") {
-                  result[criteria.externalId].valuesNotFound = true
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                } else if (score == "No Level Matched") {
-                  result[criteria.externalId].noExpressionMatched = true
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                } else {
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                }
-
-                result[criteria.externalId].expressionResult = expressionResult
-                result[criteria.externalId].submissionAnswers = submissionAnswers
-             }
-
-              return criteria
-
-            }
-
-          }));
-
-          if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
-            result.runUpdateQuery = false
-          }
-
-          if (result.runUpdateQuery) {
-            let updateObject = {}
-
-            updateObject.$set = {
-              criteria: criteriaData,
-              ratingCompletedAt : new Date()
-            }
-
-            let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-              queryObject,
-              updateObject
-            );
-          }
-
-          let response = {
-            message: message,
-            result: result
-          };
-
-          return resolve(response);
-        }
-        else {
-          return resolve({
-            status: 404,
-            message: "All ECM are not submitted"
-          })
-        }
       } catch (error) {
         return reject({
           status: 500,
@@ -1332,6 +1026,7 @@ module.exports = class Submission extends Abstract {
   * @apiName Multi Rate
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
+  * @apiParam {String} solutionId Solution External ID.
   * @apiParam {String} entityId Entity ID.
   * @apiUse successBody
   * @apiUse errorBody
@@ -1346,10 +1041,15 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
+        let solutionId = req.query.solutionId
         let entityId = req.query.entityId.split(",")
 
         if(!programId){
           throw "Program Id is not found"
+        }
+
+        if(!solutionId){
+          throw "Solution Id is not found"
         }
 
         if(!req.query.entityId){
@@ -1358,334 +1058,23 @@ module.exports = class Submission extends Abstract {
 
         let queryObject = {
           "entityExternalId": {$in:entityId},
-          "programExternalId":programId
+          "programExternalId":programId,
+          "solutionExternalId":solutionId
         }
 
-        let submissionDocument = await database.models.submissions.find(
+        let submissionDocuments = await database.models.submissions.find(
           queryObject,
           { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile:1, entityInformation: 1, "programExternalId": 1,entityExternalId:1 }
         ).lean();
 
-        if (!submissionDocument) {
+        if (!submissionDocuments) {
           throw "Couldn't find the submission document"
         }
 
-        let resultingArray = new Array()
+        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments,"multiRateApi")
 
-        await Promise.all(submissionDocument.map(async eachSubmissionDocument=>{
+        return resolve({result:resultingArray})
 
-          let result = {}
-          result.runUpdateQuery = true
-          let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(submissionsHelper.allSubmission)
-
-          if (allSubmittedEvidence) {
-            let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
-              
-                result[criteria.externalId] = {}
-                result[criteria.externalId].criteriaName = criteria.name
-                result[criteria.externalId].criteriaExternalId = criteria.externalId
-
-                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels=>{
-                  return eachRubricLevels.expression != ""
-                })
-
-  
-                if (criteria.rubric.expressionVariables && allCriteriaLevels) {
-                  let submissionAnswers = new Array
-                  
-                  const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
-                    let result;
-                    const questionOrCriteriaArray = questionOrCriteria.split('.')
-                    
-                    if(_.includes(questionOrCriteriaArray,"entityProfile")) {
-  
-                      if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
-                        result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
-                      } else {
-                        result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
-                      }
-  
-                      if(!result || result == "" || !(result.length>=0)) {
-                        result = "NA"
-                      }
-                      submissionAnswers.push(result)
-                      return result
-                    }
-  
-                    if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
-                      result = 0
-  
-                      let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
-                      let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
-                      if(criteriaIdIndex < 0) {
-                        return "NA"
-                      }
-  
-                      let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
-                      let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
-                      if(criteriaQuestionFunctionIndex < 0) {
-                        return "NA"
-                      }
-  
-                      criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                        criteriaQuestionFunction.lastIndexOf("(") + 1, 
-                        criteriaQuestionFunction.lastIndexOf(")")
-                      );
-                      
-                      criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-  
-                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-                      
-  
-                      let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
-                      
-                      if(criteriaQuestionFilter[1]) {
-                      
-                        // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
-  
-                        let multipleConditionOperator = ""
-                        if(_.includes(criteriaQuestionFilter[1],"AND") > 0) {
-                          multipleConditionOperator = "AND"
-                        }
-                        if(_.includes(criteriaQuestionFilter[1],"OR") > 0) {
-                          multipleConditionOperator = "OR"
-                        }
-                        
-                        let conditionArray = new Array
-                        if(multipleConditionOperator != "") {
-                          conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator)
-                        } else {
-                          conditionArray.push(criteriaQuestionFilter[1])
-                        }
-  
-  
-                        let tempAllQuestion = new Array
-  
-                        allCriteriaQuestions.forEach(question => {
-  
-                          let conditionMatch = 0
-                          let conditionNotMatch = 0
-  
-                          for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
-                            let eachConditionArray = new Array
-                            let questionMatchOperator = "=="
-                            if(_.includes(conditionArray[pointerToConditionArray],"!=") > 0) {
-                              eachConditionArray = conditionArray[pointerToConditionArray].split("!=")
-                              questionMatchOperator = "!="
-                            } else {
-                              eachConditionArray = conditionArray[pointerToConditionArray].split("=")
-                            }
-  
-                            let singleConditionOperator = ""
-                            if(_.includes(eachConditionArray[1],"&&") > 0) {
-                              singleConditionOperator = "&&"
-                            }
-                            if(_.includes(eachConditionArray[1],"||") > 0) {
-                              singleConditionOperator = "||"
-                            }
-  
-  
-                            let allPossibleValues = new Array
-                            if(singleConditionOperator != "") {
-                              allPossibleValues = eachConditionArray[1].split(singleConditionOperator)
-                            } else {
-                              allPossibleValues.push(eachConditionArray[1])
-                            }
-  
-                            let conditionValueMatch = 0
-                            let conditionValueNotMatch = 0
-                            for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
-                              const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                              if(questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                conditionValueMatch += 1
-                              } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]],eachValue)) {
-                                conditionValueMatch += 1
-                              } else {
-                                conditionValueNotMatch += 1
-                              }
-                            }
-  
-                            if(singleConditionOperator == "||" && conditionValueMatch > 0) {
-                              conditionMatch += 1
-                            } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
-                              conditionMatch += 1
-                            } else {
-                              conditionNotMatch += 1
-                            }
-  
-                          }
-  
-                          if(multipleConditionOperator == "OR" && conditionMatch > 0) {
-                            tempAllQuestion.push(question)
-                          } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
-                            tempAllQuestion.push(question)
-                          }
-  
-                        })
-                        
-                        allCriteriaQuestions = tempAllQuestion
-  
-                      }
-
-                      submissionAnswers.push(...allCriteriaQuestions)
-  
-                      allCriteriaQuestions.forEach(question => {
-                        if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                          result += 1
-                        }
-                      })
-  
-                      return result
-                    }
-  
-                    submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
-                    let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                    inputTypes.forEach(inputType => {
-                      if (questionOrCriteriaArray[1] === inputType) {
-                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                        // if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                          result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
-                        } else {
-                          result = "NA";
-                        }
-                      }
-                    })
-                    return result;
-                  }
-
-                  let expressionVariables = {};
-                  let expressionResult = {};
-                  let allValuesAvailable = true;
-  
-                  Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-                    if (variable != "default") {
-                      expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
-                      expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
-                      if (expressionVariables[variable] === "NA") {
-                        allValuesAvailable = false;
-                      }
-                    }
-                  })
-  
-                  let errorWhileParsingCriteriaExpression = false
-  
-                  if (allValuesAvailable) {
-                    Object.keys(criteria.rubric.levels).forEach(level => {
-  
-                      if (criteria.rubric.levels[level].expression != "") {
-                        try {
-                          expressionResult[level] = {
-                            expressionParsed: criteria.rubric.levels[level].expression,
-                            result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
-                          }
-                        } catch (error) {
-                          console.log("---------------Some exception caught begins---------------")
-                          console.log(error)
-                          console.log(criteria.name)
-                          console.log(criteria.rubric.levels[level].expression)
-                          console.log(expressionVariables)
-                          console.log(criteria.rubric.expressionVariables)
-                          console.log("---------------Some exception caught ends---------------")
-                          
-                          let errorObject = {
-                            entityId:eachSubmissionDocument.entityExternalId,
-                            errorName:error.message,
-                            criteriaName:criteria.name,
-                            expression:criteria.rubric.levels[level].expression,
-                            expressionVariables:JSON.stringify(expressionVariables),
-                            errorLevels:criteria.rubric.levels[level].level,
-                            expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
-                          }
-
-                          slackClient.rubricErrorLogs(errorObject)
-  
-                          errorWhileParsingCriteriaExpression = true
-                        }
-                      } else {
-                        expressionResult[level] = {
-                          expressionParsed: criteria.rubric.levels[level].expression,
-                          result: false
-                        }
-                      }
-                    })
-                  }
-  
-                let score = "NA"
-                if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                  if (expressionResult.L4 && expressionResult.L4.result) {
-                    score = "L4"
-                  } else if (expressionResult.L3 && expressionResult.L3.result) {
-                    score = "L3"
-                  } else if (expressionResult.L2 && expressionResult.L2.result) {
-                    score = "L2"
-                  } else if (expressionResult.L1 && expressionResult.L1.result) {
-                    score = "L1"
-                  } else {
-                    score = "No Level Matched"
-                  }
-                }
-  
-                result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
-                result[criteria.externalId].expressionVariables = expressionVariables
-  
-                if (score == "NA") {
-                  result[criteria.externalId].valuesNotFound = true
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                } else if (score == "No Level Matched") {
-                  result[criteria.externalId].noExpressionMatched = true
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                } else {
-                  result[criteria.externalId].score = score
-                  criteria.score = score
-                }
-  
-                result[criteria.externalId].expressionResult = expressionResult
-                result[criteria.externalId].submissionAnswers = submissionAnswers
-  
-                }
-                return criteria
-            
-            }));
-  
-            if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
-              result.runUpdateQuery = false
-            }
-  
-            if (result.runUpdateQuery) {
-              let updateObject = {}
-  
-              updateObject.$set = {
-                criteria: criteriaData,
-                ratingCompletedAt : new Date()
-              }
-  
-              let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-                {
-                  _id:eachSubmissionDocument._id
-                },
-                updateObject
-              );
-            }
-  
-            let response = {
-              entityId:eachSubmissionDocument.entityExternalId,
-              message: message
-            };
-
-            resultingArray.push(response)
-          }else {
-            resultingArray.push({
-              entityId:eachSubmissionDocument.entityExternalId,
-              message: "All ECM are not submitted"
-            })
-          }
-
-        }))
-
-        return resolve({
-          result:resultingArray})
       } catch (error) {
         return reject({
           status: 500,
