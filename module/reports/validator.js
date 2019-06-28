@@ -26,6 +26,7 @@ module.exports = (req) => {
         },
         registryDetails:function(){
             req.checkParams('_id').exists().withMessage("required solution id");
+            req.checkQuery('type').exists().withMessage("required type");
             req.checkQuery('fromDate').exists().withMessage("required from date");
         },
         entityProfileInformation:function(){
