@@ -4,6 +4,7 @@ let dataRangeFilter = require(ROOT_PATH + "/generics/middleware/dateRangeFilter"
 let userPrograms = require(ROOT_PATH + "/generics/middleware/userPrograms");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const fs = require("fs");
+const inputValidator = require(ROOT_PATH + "/generics/middleware/validator");
 
 module.exports = function (app) {
 
@@ -26,7 +27,12 @@ module.exports = function (app) {
     else {
 
       try {
-        
+
+        let validationError = req.validationErrors();
+
+        if (validationError.length)
+          throw { status: 400, message: validationError }
+
         var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
         if (result.isResponseAStream == true) {
@@ -64,10 +70,10 @@ module.exports = function (app) {
             failed: result.failed
           });
         }
-        if(ENABLE_BUNYAN_LOGGING === "ON") {
+        if (ENABLE_BUNYAN_LOGGING === "ON") {
           loggerObj.info({ resp: result });
         }
-        if(ENABLE_CONSOLE_LOGGING === "ON") {
+        if (ENABLE_CONSOLE_LOGGING === "ON") {
           console.log('-------------------Response log starts here-------------------');
           console.log(result);
           console.log('-------------------Response log ends here-------------------');
@@ -109,9 +115,9 @@ module.exports = function (app) {
     }
   };
 
-  app.all(applicationBaseUrl + "api/:version/:controller/:method", router);
+  app.all(applicationBaseUrl + "api/:version/:controller/:method", inputValidator, router);
 
-  app.all(applicationBaseUrl + "api/:version/:controller/:method/:_id", router);
+  app.all(applicationBaseUrl + "api/:version/:controller/:method/:_id", inputValidator, router);
 
   app.use((req, res, next) => {
     res.status(404).send("Not found!");

@@ -39,7 +39,7 @@ module.exports = function () {
       return Model;
     }
   });
-
+ 
   //load base controllers
   fs.readdirSync(ROOT_PATH + '/controllers/v1/').forEach(function (file) {
     if (file.match(/\.js$/) !== null) {

@@ -2,20 +2,9 @@ const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
+const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 
 module.exports = class Submission extends Abstract {
-  /**
-     * @apiDefine errorBody
-     * @apiError {String} status 4XX,5XX
-     * @apiError {String} message Error
-     */
-
-  /**
-     * @apiDefine successBody
-     *  @apiSuccess {String} status 200
-     * @apiSuccess {String} result Data
-     */
-
 
   constructor() {
     super(submissionsSchema);
@@ -25,64 +14,11 @@ module.exports = class Submission extends Abstract {
     return "submissions";
   }
 
-  async findSubmissionBySchoolProgram(document, requestObject) {
-
-    let queryObject = {
-      schoolId: document.schoolId,
-      programId: document.programId
-    };
-
-    let submissionDocument = await database.models.submissions.findOne(
-      queryObject
-    );
-
-    if (!submissionDocument) {
-      let schoolAssessorsQueryObject = [
-        {
-          $match: { schools: document.schoolId, programId: document.programId }
-        }
-      ];
-
-      document.assessors = await database.models[
-        "schoolAssessors"
-      ].aggregate(schoolAssessorsQueryObject);
-
-      let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-      if (assessorElement && assessorElement.externalId != "") {
-        assessorElement.assessmentStatus = "started"
-        assessorElement.userAgent = requestObject.headers['user-agent']
-      }
-
-      submissionDocument = await database.models.submissions.create(
-        document
-      );
-    } else {
-      let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-      if (assessorElement && assessorElement.externalId != "") {
-        assessorElement.assessmentStatus = "started"
-        assessorElement.userAgent = requestObject.headers['user-agent']
-        let updateObject = {}
-        updateObject.$set = {
-          assessors: submissionDocument.assessors
-        }
-        submissionDocument = await database.models.submissions.findOneAndUpdate(
-          queryObject,
-          updateObject
-        );
-      }
-    }
-
-    return {
-      message: "Submission found",
-      result: submissionDocument
-    };
-  }
-
   /**
   * @api {post} /assessment/api/v1/submissions/make/{{submissionId}} 
   * @apiVersion 0.0.1
   * @apiName submissions added successfully
-  * @apiGroup submissions
+  * @apiGroup Submissions
   * @apiParamExample {json} Request-Body:
   * {
   * 	"evidence": {
@@ -272,8 +208,8 @@ module.exports = class Submission extends Abstract {
         let updateObject = {}
         let result = {}
 
-        if (req.body.schoolProfile) {
-          updateObject.$set = { schoolProfile: req.body.schoolProfile }
+        if (req.body.entityProfile) {
+          updateObject.$set = { entityProfile: req.body.entityProfile }
           runUpdateQuery = true
         }
 
@@ -401,7 +337,7 @@ module.exports = class Submission extends Abstract {
             queryOptions
           );
 
-          let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+          let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
           let { ratingsEnabled } = canRatingsBeEnabled
 
           if (ratingsEnabled) {
@@ -418,7 +354,7 @@ module.exports = class Submission extends Abstract {
             );
           }
 
-          let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
+          let status = await submissionsHelper.extractStatusOfSubmission(updatedSubmissionDocument)
 
           let response = {
             message: message,
@@ -448,14 +384,14 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/submissions/completeParentInterview/:submissionId Complete parent interview
-* @apiVersion 0.0.1
-* @apiName Complete Parent Interview
-* @apiSampleRequest /assessment/api/v1/submissions/completeParentInterview/5c5147ae95743c5718445eff
-* @apiGroup submissions
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/submissions/completeParentInterview/:submissionId Complete parent interview
+  * @apiVersion 0.0.1
+  * @apiName Complete Parent Interview
+  * @apiSampleRequest /assessment/api/v1/submissions/completeParentInterview/5c5147ae95743c5718445eff
+  * @apiGroup Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async completeParentInterview(req) {
     return new Promise(async (resolve, reject) => {
@@ -483,19 +419,15 @@ module.exports = class Submission extends Abstract {
         updateObject.$set = {}
 
 
-        let schoolQueryObject = {
-          _id: ObjectId(submissionDocument.schoolId)
+        let entityQueryObject = {
+          _id: ObjectId(submissionDocument.entityId)
         }
 
-        let schoolDocument = await database.models.schools.findOne(
-          schoolQueryObject
-        );
+        let entityUpdatedDocument = {};
 
-        let schoolUpdatedDocument = {};
+        let updateEntityObject = {}
 
-        let updateSchoolObject = {}
-
-        updateSchoolObject.$set = {}
+        updateEntityObject.$set = {}
 
         let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == parentInterviewEvidenceMethod);
 
@@ -606,13 +538,13 @@ module.exports = class Submission extends Abstract {
         } else {
 
 
-          updateSchoolObject.$set = {
-            isParentInterviewCompleted: true
+          updateEntityObject.$set = {
+            "metaInformation.isParentInterviewCompleted" : true
           }
 
-          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
-            schoolQueryObject,
-            updateSchoolObject,
+          entityUpdatedDocument = await database.models.entities.findOneAndUpdate(
+            entityQueryObject,
+            updateEntityObject,
             {}
           );
 
@@ -634,7 +566,7 @@ module.exports = class Submission extends Abstract {
             queryOptions
           );
 
-          let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
+          let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
           let { ratingsEnabled } = canRatingsBeEnabled
 
           if (ratingsEnabled) {
@@ -651,13 +583,13 @@ module.exports = class Submission extends Abstract {
             );
           }
 
-          updateSchoolObject.$set = {
-            isParentInterviewCompleted: true
+          updateEntityObject.$set = {
+            "metaInformation.isParentInterviewCompleted": true
           }
 
-          schoolUpdatedDocument = await database.models.schools.findOneAndUpdate(
-            schoolQueryObject,
-            updateSchoolObject,
+          entityUpdatedDocument = await database.models.entities.findOneAndUpdate(
+            entityQueryObject,
+            updateEntityObject,
             {}
           );
 
@@ -688,137 +620,159 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+  /**
+  * @api {post} /assessment/api/v1/submissions/generalQuestions/:submissionId General Question Submission
+  * @apiVersion 0.0.1
+  * @apiName General Question Submission
+  * @apiSampleRequest /assessment/api/v1/submissions/generalQuestions/5c5147ae95743c5718445eff
+  * @apiGroup Submissions
+  * @apiParam {String} submissionId Submission ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async generalQuestions(req) {
-    return new Promise(async (resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
 
-      try {
+          try {
 
-        req.body = req.body || {};
-        let message = "General question submitted successfully."
-        let runUpdateQuery = false
+            req.body = req.body || {};
+            let message = "General question submitted successfully."
+            let runUpdateQuery = false
 
-        let queryObject = {
-          _id: ObjectId(req.params._id)
-        }
+            let queryObject = {
+              _id: ObjectId(req.params._id)
+            }
 
-        let queryOptions = {
-          new: true
-        }
+            let queryOptions = {
+              new: true
+            }
 
-        let submissionDocument = await database.models.submissions.findOne(
-          queryObject
-        );
+            let submissionDocument = await database.models.submissions.findOne(
+              queryObject
+            );
 
-        let updateObject = {}
-        updateObject.$set = {}
+            let updateObject = {}
+            updateObject.$set = {}
 
-        if (req.body.answers) {
-          let gpsLocation = req.headers.gpslocation
-          let submittedBy = req.userDetails.userId
-          let submissionDate = new Date()
+            if (req.body.answers) {
+              let gpsLocation = req.headers.gpslocation
+              let submittedBy = req.userDetails.userId
+              let submissionDate = new Date()
 
-          Object.entries(req.body.answers).forEach(answer => {
-            if (answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
-              runUpdateQuery = true
-              answer[1].gpslocation = gpsLocation
-              answer[1].submittedBy = submittedBy
-              answer[1].submissionDate = submissionDate
-              if (submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                submissionDocument.generalQuestions[answer[0]].submissions.push(answer[1])
-              } else {
-                submissionDocument.generalQuestions = {
-                  [answer[0]]: {
-                    submissions: [answer[1]]
-                  }
-                }
-              }
-              if (submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
-                submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission, indexOfEvidenceMethodSubmission) => {
-                  if (evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
-                    answer[1].value.forEach(incomingGeneralQuestionInstance => {
-                      incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
-                      evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
-                    })
-                    answer[1].payload.labels[0].forEach(incomingGeneralQuestionInstancePayload => {
-                      evidenceMethodSubmission.answers[answer[0]].payload.labels[0].push(incomingGeneralQuestionInstancePayload)
-                    })
-                    evidenceMethodSubmission.answers[answer[0]].countOfInstances = evidenceMethodSubmission.answers[answer[0]].value.length
-                  }
-                  if (evidenceMethodSubmission.isValid === true) {
-
-                    for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-
-                      _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-
-                        if (submissionDocument.answers[question.qid]) {
-                          submissionDocument.answers[question.qid].instanceResponses.push(question.value)
-                          submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
-                          submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
-                        } else {
-                          let clonedQuestion = { ...question }
-                          clonedQuestion.instanceResponses = new Array
-                          clonedQuestion.instanceRemarks = new Array
-                          clonedQuestion.instanceFileName = new Array
-                          clonedQuestion.instanceResponses.push(question.value)
-                          clonedQuestion.instanceRemarks.push(question.remarks)
-                          clonedQuestion.instanceFileName.push(question.fileName)
-                          delete clonedQuestion.value
-                          delete clonedQuestion.remarks
-                          delete clonedQuestion.fileName
-                          delete clonedQuestion.payload
-                          submissionDocument.answers[question.qid] = clonedQuestion
-                        }
-
-                      })
+              Object.entries(req.body.answers).forEach(answer => {
+                if (answer[1].isAGeneralQuestion == true && answer[1].responseType === "matrix" && answer[1].evidenceMethod != "") {
+                  runUpdateQuery = true
+                  answer[1].gpslocation = gpsLocation
+                  answer[1].submittedBy = submittedBy
+                  answer[1].submissionDate = submissionDate
+                  if (submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
+                    submissionDocument.generalQuestions[answer[0]].submissions.push(answer[1])
+                  } else {
+                    submissionDocument.generalQuestions = {
+                      [answer[0]]: {
+                        submissions: [answer[1]]
+                      }
                     }
                   }
+                  if (submissionDocument.evidences[answer[1].evidenceMethod].isSubmitted === true) {
+                    submissionDocument.evidences[answer[1].evidenceMethod].submissions.forEach((evidenceMethodSubmission, indexOfEvidenceMethodSubmission) => {
+                      if (evidenceMethodSubmission.answers[answer[0]] && evidenceMethodSubmission.answers[answer[0]].notApplicable != true) {
+                        answer[1].value.forEach(incomingGeneralQuestionInstance => {
+                          incomingGeneralQuestionInstance.isAGeneralQuestionResponse = true
+                          evidenceMethodSubmission.answers[answer[0]].value.push(incomingGeneralQuestionInstance)
+                        })
+                        answer[1].payload.labels[0].forEach(incomingGeneralQuestionInstancePayload => {
+                          evidenceMethodSubmission.answers[answer[0]].payload.labels[0].push(incomingGeneralQuestionInstancePayload)
+                        })
+                        evidenceMethodSubmission.answers[answer[0]].countOfInstances = evidenceMethodSubmission.answers[answer[0]].value.length
+                      }
+                      if (evidenceMethodSubmission.isValid === true) {
 
-                })
-              }
+                        for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
+
+                          _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
+
+                            if (submissionDocument.answers[question.qid]) {
+                              submissionDocument.answers[question.qid].instanceResponses.push(question.value)
+                              submissionDocument.answers[question.qid].instanceRemarks.push(question.remarks)
+                              submissionDocument.answers[question.qid].instanceFileName.push(question.fileName)
+                            } else {
+                              let clonedQuestion = { ...question }
+                              clonedQuestion.instanceResponses = new Array
+                              clonedQuestion.instanceRemarks = new Array
+                              clonedQuestion.instanceFileName = new Array
+                              clonedQuestion.instanceResponses.push(question.value)
+                              clonedQuestion.instanceRemarks.push(question.remarks)
+                              clonedQuestion.instanceFileName.push(question.fileName)
+                              delete clonedQuestion.value
+                              delete clonedQuestion.remarks
+                              delete clonedQuestion.fileName
+                              delete clonedQuestion.payload
+                              submissionDocument.answers[question.qid] = clonedQuestion
+                            }
+
+                          })
+                        }
+                      }
+
+                    })
+                  }
+
+                }
+              });
+
+              updateObject.$set.generalQuestions = submissionDocument.generalQuestions
+              updateObject.$set.evidences = submissionDocument.evidences
+              updateObject.$set.answers = submissionDocument.answers
 
             }
-          });
 
-          updateObject.$set.generalQuestions = submissionDocument.generalQuestions
-          updateObject.$set.evidences = submissionDocument.evidences
-          updateObject.$set.answers = submissionDocument.answers
+            if (runUpdateQuery) {
+              let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+                queryObject,
+                updateObject,
+                queryOptions
+              );
 
-        }
+              let response = {
+                message: message
+              };
 
-        if (runUpdateQuery) {
-          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-            queryObject,
-            updateObject,
-            queryOptions
-          );
+              return resolve(response);
 
-          let response = {
-            message: message
-          };
+            } else {
 
-          return resolve(response);
+              let response = {
+                message: "Failed to submit general questions"
+              };
 
-        } else {
+              return resolve(response);
+            }
 
-          let response = {
-            message: "Failed to submit general questions"
-          };
+          } catch (error) {
+              return reject({
+                status: 500,
+                message: "Oops! Something went wrong!",
+                errorObject: error
+              });
+          }
 
-          return resolve(response);
-        }
-
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-
-    })
+      })
   }
 
+  /**
+  * @api {post} /assessment/api/v1/submissions/parentInterview/:submissionId Compete Parent Interview
+  * @apiVersion 0.0.1
+  * @apiName Compete Parent Interview
+  * @apiSampleRequest /assessment/api/v1/submissions/parentInterview/5c5147ae95743c5718445eff
+  * @apiGroup Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async parentInterview(req) {
+
     return new Promise(async (resolve, reject) => {
 
       try {
@@ -840,13 +794,14 @@ module.exports = class Submission extends Abstract {
 
         if (req.body.parentId && req.body.status && submissionDocument) {
 
-          let parentInformation = await database.models.parentRegistry.findOne(
-            { _id: ObjectId(req.body.parentId) }
-          );
+          let parentInformation = await database.models.entities.findOne(
+            { _id: ObjectId(req.body.parentId) },
+            {metaInformation : 1}
+          ).lean();
 
           if (parentInformation) {
             let parentInterview = {}
-            parentInterview.parentInformation = parentInformation
+            parentInterview.parentInformation = parentInformation.metaInformation
             parentInterview.status = req.body.status
             parentInterview.answers = req.body.answers
             if (req.body.status == "completed") {
@@ -917,14 +872,13 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/submissions/getParentInterviewResponse/:submissionId Fetch Parent interview
-* @apiVersion 0.0.1
-* @apiName Fetch Parent Interview
-* @apiGroup submissions
-* @apiParam {String} parentId Parent ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/submissions/getParentInterviewResponse/:submissionId Get Parent Interview Response
+  * @apiVersion 0.0.1
+  * @apiName Get Parent Interview Response
+  * @apiGroup Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async getParentInterviewResponse(req) {
     return new Promise(async (resolve, reject) => {
@@ -949,12 +903,13 @@ module.exports = class Submission extends Abstract {
 
         if (req.query.parentId && submissionDocument) {
 
-          let parentInformation = await database.models.parentRegistry.findOne(
-            { _id: ObjectId(req.query.parentId) }
+          let parentInformation = await database.models.entities.findOne(
+            { _id: ObjectId(req.query.parentId) },
+            {metaInformation : 1}
           );
 
           if (parentInformation) {
-            result.parentInformation = parentInformation
+            result.parentInformation = parentInformation.metaInformation
             result.parentId = req.query.parentId
           }
 
@@ -1002,6 +957,16 @@ module.exports = class Submission extends Abstract {
   }
 
 
+  /**
+  * @api {get} /assessment/api/v1/submissions/rate/:entityExternalId Rate an Entity
+  * @apiVersion 0.0.1
+  * @apiName Rate an Entity
+  * @apiGroup Submissions
+  * @apiParam {String} programId Program External ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async rate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -1011,24 +976,24 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
-        let schoolId = req.params._id
+        let entityId = req.params._id
 
         if(!programId){
           throw "Program Id is not found"
         }
 
-        if(!schoolId){
-          throw "School Id is not found"
+        if(!entityId) {
+          throw "Entity Id is not found"
         }
 
         let queryObject = {
-          "schoolExternalId": schoolId,
-          "programExternalId":programId
+          "entityExternalId": entityId,
+          "programExternalId": programId
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { "answers": 1, "criterias": 1, "evidencesStatus": 1, "schoolInformation": 1, "schoolProfile" : 1 , "programInformation.externalId": 1 }
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile" : 1 , "programExternalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1038,12 +1003,13 @@ module.exports = class Submission extends Abstract {
         let result = {}
         result.runUpdateQuery = true
 
-        let allSubmittedEvidence = submissionDocument.evidencesStatus.every(this.allSubmission)
+        let allSubmittedEvidence = submissionDocument.evidencesStatus.every(submissionsHelper.allSubmission)
         
         if (allSubmittedEvidence) {
-          let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+          let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
             if(criteria.weightage > 0) {
+
               result[criteria.externalId] = {}
               result[criteria.externalId].criteriaName = criteria.name
               result[criteria.externalId].criteriaExternalId = criteria.externalId
@@ -1054,16 +1020,17 @@ module.exports = class Submission extends Abstract {
             
               if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                 let submissionAnswers = new Array
+
                 const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                   let result;
                   const questionOrCriteriaArray = questionOrCriteria.split('.')
                   
-                  if(_.includes(questionOrCriteriaArray,"schoolProfile")) {
+                  if(_.includes(questionOrCriteriaArray,"entityProfile")) {
 
-                    if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionOrCriteriaArray[1]]){
-                      result = submissionDocument.schoolProfile[questionOrCriteriaArray[1]]
+                    if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                      result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                     } else {
-                      result = submissionDocument.schoolInformation[questionOrCriteriaArray[1]]
+                      result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                     }
 
                     if(!result || result == "" || !(result.length>=0)) {
@@ -1261,10 +1228,12 @@ module.exports = class Submission extends Abstract {
                           expressionVariablesDefined:JSON.stringify(criteria.rubric.expressionVariables)
                         }
 
-                          slackClient.rubricErrorLogs(errorObject)
+                        slackClient.rubricErrorLogs(errorObject)
 
                         errorWhileParsingCriteriaExpression = true
+
                       }
+
                     } else {
                       expressionResult[level] = {
                         expressionParsed: criteria.rubric.levels[level].expression,
@@ -1323,7 +1292,7 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData,
+              criteria: criteriaData,
               ratingCompletedAt : new Date()
             }
 
@@ -1357,7 +1326,17 @@ module.exports = class Submission extends Abstract {
     })
   }
 
-  
+  /**
+  * @api {get} /assessment/api/v1/submissions/multiRate Multi Rate
+  * @apiVersion 0.0.1
+  * @apiName Multi Rate
+  * @apiGroup Submissions
+  * @apiParam {String} programId Program External ID.
+  * @apiParam {String} entityId Entity ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async multiRate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -1367,24 +1346,24 @@ module.exports = class Submission extends Abstract {
         let message = "Crtieria rating completed successfully"
 
         let programId = req.query.programId
-        let schoolId = req.query.schoolId.split(",")
+        let entityId = req.query.entityId.split(",")
 
         if(!programId){
           throw "Program Id is not found"
         }
 
-        if(!req.query.schoolId){
-          throw "School Id is not found"
+        if(!req.query.entityId){
+          throw "Entity Id is not found"
         }
 
         let queryObject = {
-          "schoolExternalId": {$in:schoolId},
+          "entityExternalId": {$in:entityId},
           "programExternalId":programId
         }
 
         let submissionDocument = await database.models.submissions.find(
           queryObject,
-          { answers: 1, criterias: 1, evidencesStatus: 1, schoolProfile:1, schoolInformation: 1, "programInformation.externalId": 1,schoolExternalId:1 }
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile:1, entityInformation: 1, "programExternalId": 1,entityExternalId:1 }
         ).lean();
 
         if (!submissionDocument) {
@@ -1397,10 +1376,10 @@ module.exports = class Submission extends Abstract {
 
           let result = {}
           result.runUpdateQuery = true
-          let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
+          let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(submissionsHelper.allSubmission)
 
           if (allSubmittedEvidence) {
-            let criteriaData = await Promise.all(eachSubmissionDocument.criterias.map(async (criteria) => {
+            let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
               
                 result[criteria.externalId] = {}
                 result[criteria.externalId].criteriaName = criteria.name
@@ -1413,51 +1392,51 @@ module.exports = class Submission extends Abstract {
   
                 if (criteria.rubric.expressionVariables && allCriteriaLevels) {
                   let submissionAnswers = new Array
-
+                  
                   const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
                     let result;
                     const questionOrCriteriaArray = questionOrCriteria.split('.')
                     
-                    if(_.includes(questionOrCriteriaArray,"schoolProfile")) {
-
-                      if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionOrCriteriaArray[1]]){
-                        result = submissionDocument.schoolProfile[questionOrCriteriaArray[1]]
+                    if(_.includes(questionOrCriteriaArray,"entityProfile")) {
+  
+                      if(submissionDocument.entityProfile && submissionDocument.entityProfile[questionOrCriteriaArray[1]]){
+                        result = submissionDocument.entityProfile[questionOrCriteriaArray[1]]
                       } else {
-                        result = submissionDocument.schoolInformation[questionOrCriteriaArray[1]]
+                        result = submissionDocument.entityInformation[questionOrCriteriaArray[1]]
                       }
-
+  
                       if(!result || result == "" || !(result.length>=0)) {
                         result = "NA"
                       }
                       submissionAnswers.push(result)
                       return result
                     }
-
+  
                     if(questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria")) >= 0) {
                       result = 0
-
+  
                       let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria,"countOfAllQuestionInCriteria")))
                       let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
                       if(criteriaIdIndex < 0) {
                         return "NA"
                       }
-
+  
                       let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria,"countOfAllQuestionInCriteria"))
                       let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex]
                       if(criteriaQuestionFunctionIndex < 0) {
                         return "NA"
                       }
-
+  
                       criteriaQuestionFunction = criteriaQuestionFunction.substring(
                         criteriaQuestionFunction.lastIndexOf("(") + 1, 
                         criteriaQuestionFunction.lastIndexOf(")")
                       );
                       
                       criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
-
+  
                       let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
                       
-
+  
                       let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
                       
                       if(criteriaQuestionFilter[1]) {
@@ -1549,16 +1528,16 @@ module.exports = class Submission extends Abstract {
                       }
 
                       submissionAnswers.push(...allCriteriaQuestions)
-
+  
                       allCriteriaQuestions.forEach(question => {
                         if(question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
                           result += 1
                         }
                       })
-                      
+  
                       return result
                     }
-
+  
                     submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
                     let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                     inputTypes.forEach(inputType => {
@@ -1584,7 +1563,7 @@ module.exports = class Submission extends Abstract {
                       expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable]
                       if (expressionVariables[variable] === "NA") {
                         allValuesAvailable = false;
-                     }
+                      }
                     }
                   })
   
@@ -1609,7 +1588,7 @@ module.exports = class Submission extends Abstract {
                           console.log("---------------Some exception caught ends---------------")
                           
                           let errorObject = {
-                            schoolId:eachSubmissionDocument.schoolExternalId,
+                            entityId:eachSubmissionDocument.entityExternalId,
                             errorName:error.message,
                             criteriaName:criteria.name,
                             expression:criteria.rubric.levels[level].expression,
@@ -1678,7 +1657,7 @@ module.exports = class Submission extends Abstract {
               let updateObject = {}
   
               updateObject.$set = {
-                criterias: criteriaData,
+                criteria: criteriaData,
                 ratingCompletedAt : new Date()
               }
   
@@ -1691,14 +1670,14 @@ module.exports = class Submission extends Abstract {
             }
   
             let response = {
-              schoolId:eachSubmissionDocument.schoolExternalId,
+              entityId:eachSubmissionDocument.entityExternalId,
               message: message
             };
 
             resultingArray.push(response)
           }else {
             resultingArray.push({
-              schoolId:eachSubmissionDocument.schoolExternalId,
+              entityId:eachSubmissionDocument.entityExternalId,
               message: "All ECM are not submitted"
             })
           }
@@ -1727,12 +1706,12 @@ module.exports = class Submission extends Abstract {
         let message = "Dummy Crtieria rating completed successfully"
 
         let queryObject = {
-          "schoolExternalId": req.params._id
+          "entityExternalId": req.params._id
         }
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
-          { criterias: 1}
+          { criteria: 1}
         ).lean();
 
         if (!submissionDocument._id) {
@@ -1744,7 +1723,7 @@ module.exports = class Submission extends Abstract {
         let rubricLevels = ["L1", "L2", "L3", "L4"]
 
         if (true) {
-          let criteriaData = await Promise.all(submissionDocument.criterias.map(async (criteria) => {
+          let criteriaData = await Promise.all(submissionDocument.criteria.map(async (criteria) => {
 
             if(!criteria.score || criteria.score != "" || criteria.score == "No Level Matched" || criteria.score == "NA") {
               criteria.score = rubricLevels[Math.floor(Math.random() * rubricLevels.length)];
@@ -1762,7 +1741,7 @@ module.exports = class Submission extends Abstract {
             let updateObject = {}
 
             updateObject.$set = {
-              criterias: criteriaData,
+              criteria: criteriaData,
               ratingCompletedAt : new Date()
             }
 
@@ -1798,14 +1777,15 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/submissions/isAllowed/:submissionId Fetch submissions
-* @apiVersion 0.0.1
-* @apiName Fetch submissions
-* @apiGroup submissions
-* @apiParam {String} evidenceId Evidence ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/submissions/isAllowed/:submissionId Fetch submissions
+  * @apiVersion 0.0.1
+  * @apiName Fetch submissions
+  * @apiGroup Submissions
+  * @apiParam {String} evidenceId Evidence ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
   async isAllowed(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -2087,18 +2067,19 @@ module.exports = class Submission extends Abstract {
    * @api {post} {{url}}/assessment/api/v1/submissions/feedback/:submissionId Submission feedback added
    * @apiVersion 0.0.1
    * @apiName Submission Feedback 
-   * @apiGroup submissions
+   * @apiGroup Submissions
    * @apiParamExample {json} Request-Body:
    * {
-	 * "feedback": {
+	 *    "feedback": {
 	 *       "q1" : "",
 	 *       "q2" : "",
 	 *       "q3" : ""     
-	 * }
+	 *    }
    *  }
    * @apiUse successBody
    * @apiUse errorBody
    */
+
   async feedback(req) {
     return new Promise(async (resolve, reject) => {
       req.body = req.body || {};
@@ -2153,15 +2134,15 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
-* @apiVersion 0.0.1
-* @apiName Fetch submission status
-* @apiGroup submissions
-* @apiSampleRequest /assessment/api/v1/submissions/status/5c5147ae95743c5718445eff
-* @apiParam {String} submissionId Submission ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
+  * @apiVersion 0.0.1
+  * @apiName Fetch submission status
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/status/5c5147ae95743c5718445eff
+  * @apiParam {String} submissionId Submission ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async status(req) {
     return new Promise(async (resolve, reject) => {
@@ -2190,26 +2171,31 @@ module.exports = class Submission extends Abstract {
     });
   }
 
-    /**
-   * @api {get} {{url}}/assessment/api/v1/submissions/mergeAnswer Merging answer in Submissions 
+  /**
+   * @api {get} {{url}}/assessment/api/v1/submissions/mergeEcmSubmissionToAnswer Merging answer in Submissions 
    * @apiVersion 0.0.1
    * @apiName Merge Answers in submissions 
-   * @apiGroup submissions
-   * @apiParam {String} schoolId school external Id.
-    * @apiParam {String} ecm Evidence collection method.
+   * @apiGroup Submissions
+   * @apiParam {String} solutionId Solution external Id.
+   * @apiParam {String} entityId Entity external Id.
+   * @apiParam {String} ecm Evidence collection method.
    * @apiUse successBody
    * @apiUse errorBody
    */
 
 
-  async mergeAnswer(req){
+  async mergeEcmSubmissionToAnswer(req){
 
     return new Promise(async (resolve,reject)=>{
 
       try{
         
-        if (!req.query.schoolId){
-          throw "School id is required"
+        if (!req.query.solutionId){
+          throw "Entity id is required"
+        }
+
+        if (!req.query.entityId){
+          throw "Entity id is required"
         }
 
         if(!req.query.ecm){
@@ -2219,7 +2205,8 @@ module.exports = class Submission extends Abstract {
         let ecmMethod = "evidences."+req.query.ecm
 
         let submissionDocuments = await database.models.submissions.findOne({
-          schoolExternalId:req.query.schoolId
+          solutionExternalId:req.query.solutionId,
+          entityExternalId:req.query.entityId
         },{answers:1,[ecmMethod]:1}).lean()
 
         if(!submissionDocuments){
@@ -2351,32 +2338,21 @@ module.exports = class Submission extends Abstract {
 
   // }
 
-  canEnableRatingQuestionsOfSubmission(submissionDocument) {
 
-    let result = {}
-    result.ratingsEnabled = true
-    result.responseMessage = ""
-
-    if (submissionDocument.evidences && submissionDocument.status !== "blocked") {
-      const evidencesArray = Object.entries(submissionDocument.evidences)
-      for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
-        if (!evidencesArray[iterator][1].isSubmitted || evidencesArray[iterator][1].hasConflicts === true) {
-          result.ratingsEnabled = false
-          result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
-          break
-        }
-      }
-    } else {
-      result.ratingsEnabled = false
-      result.responseMessage = "Sorry! This could be because the assessment has been blocked. Resolve conflicts to proceed further."
-    }
-
-    return result;
-
-  }
+  /**
+  * @api {get} /assessment/api/v1/submissions/modifyByCsvUpload/ Update submission answers.
+  * @apiVersion 0.0.1
+  * @apiName Update submission answers.
+  * @apiGroup Submissions
+  * @apiParam {File} questions     Mandatory questions file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async modifyByCsvUpload(req) {
+
     return new Promise(async (resolve, reject) => {
+
       try {
         const submissionUpdateData = await csv().fromString(req.files.questions.data.toString())
 
@@ -2386,13 +2362,13 @@ module.exports = class Submission extends Abstract {
           questionCodeIds.push(eachsubmissionUpdateData.questionCode)
         })
 
-        let evaluationFrameworkData = await database.models.evaluationFrameworks.findOne({
-          externalId: submissionUpdateData[0].evaluationFrameworkId
+        let solutionData = await database.models.solutions.findOne({
+          externalId: submissionUpdateData[0].solutionId
         }, { themes: 1 }).lean()
 
-        let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkData.themes);
+        let criteriaIds = gen.utils.getCriteriaIds(solutionData.themes);
 
-        let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
+        let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } }, { evidences: 1 }).lean();
         let questionIds = gen.utils.getAllQuestionId(allCriteriaDocument)
 
         let questionDocument = await database.models.questions.find({
@@ -2424,7 +2400,7 @@ module.exports = class Submission extends Abstract {
         const chunkOfsubmissionUpdateData = _.chunk(submissionUpdateData, 10)
 
         const skipQuestionTypes = ["matrix"]
-        let schoolHistoryUpdatedArray = []
+        let entityHistoryUpdatedArray = []
 
         for (let pointerTosubmissionUpdateData = 0; pointerTosubmissionUpdateData < chunkOfsubmissionUpdateData.length; pointerTosubmissionUpdateData++) {
 
@@ -2453,14 +2429,14 @@ module.exports = class Submission extends Abstract {
               let answers = "answers." + questionExternalId[eachQuestionRow.questionCode].id
 
               let findQuery = {
-                schoolExternalId: eachQuestionRow.schoolId,
+                entityExternalId: eachQuestionRow.schoolId,
                 programExternalId: eachQuestionRow.programId,
                 [ecmByCsv]: { $exists: true },
                 [answers]: { $exists: true },
                 "evidencesStatus.externalId": eachQuestionRow.ECM
               }
 
-              let questionValueConversion = await this.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
+              let questionValueConversion = await submissionsHelper.questionValueConversion(questionExternalId[eachQuestionRow.questionCode], eachQuestionRow.oldResponse, eachQuestionRow.newResponse)
 
               if (!questionValueConversion.oldValue || !questionValueConversion.newValue || questionValueConversion.oldValue == "" || questionValueConversion.newValue == "") {
                 eachQuestionRow["status"] = "Invalid new or old response!"
@@ -2479,8 +2455,8 @@ module.exports = class Submission extends Abstract {
                     "evidencesStatus.$.submissions.0.submissionDate": new Date()
                   }
                 }
-                if (!schoolHistoryUpdatedArray.includes(eachQuestionRow.schoolId)) {
-                  schoolHistoryUpdatedArray.push(eachQuestionRow.schoolId)
+                if (!entityHistoryUpdatedArray.includes(eachQuestionRow.entityId)) {
+                  entityHistoryUpdatedArray.push(eachQuestionRow.entityId)
                   csvUpdateHistory.push({ userId: req.userDetails.id, date: new Date() })
                   updateQuery["$addToSet"] = { "submissionsUpdatedHistory": csvUpdateHistory }
                 }
@@ -2509,6 +2485,17 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+  /**
+  * @api {get} /assessment/api/v1/submissions/resetEcm/:programExternalId Reset Submission ECM
+  * @apiVersion 0.0.1
+  * @apiName Reset ECM of Submission.
+  * @apiGroup Submissions
+  * @apiParam {String} evidenceId Evidence ID.
+  * @apiParam {String} entityId Entity ID.
+  * @apiParam {String} ecmToBeReset ECM Code.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
   async resetEcm(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -2519,18 +2506,18 @@ module.exports = class Submission extends Abstract {
           throw "Program id is missing"
         }
 
-        let schoolId = req.query.schoolId
+        let entityId = req.query.entityId
         let ecmToBeReset = req.query.ecm
         let evidencesToBeReset = "evidences." +ecmToBeReset
         let submissionUpdated=new Array
 
-          if (!schoolId) {
-          throw "School id is missing"
+        if (!entityId) {
+          throw "Entity id is missing"
         }
 
         let findQuery = {
           programExternalId:programId,
-          schoolExternalId:schoolId,
+          entityExternalId:entityId,
           [evidencesToBeReset]:{$ne:null},
           "evidencesStatus.externalId":req.query.ecm
         }
@@ -2569,66 +2556,4 @@ module.exports = class Submission extends Abstract {
     });
   }
 
-  allSubmission(allSubmission) {
-    return allSubmission.isSubmitted
-  }
-
-  questionValueConversion(question, oldResponse, newResponse) {
-    let result = {}
-
-    if (question.responseType == "date") {
-
-      let oldResponseArray = oldResponse.split("/")
-
-      if (oldResponseArray.length > 2) {
-        [oldResponseArray[0], oldResponseArray[1]] = [oldResponseArray[1], oldResponseArray[0]];
-      }
-
-      let newResponseArray = newResponse.split("/")
-
-      if (newResponseArray.length > 2) {
-        [newResponseArray[0], newResponseArray[1]] = [newResponseArray[1], newResponseArray[0]];
-      }
-
-      result["oldValue"] = oldResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
-      result["newValue"] = newResponseArray.map(value => (value < 10) ? "0" + value : value).reverse().join("-")
-
-    } else if (question.responseType == "radio") {
-
-      question.options.forEach(eachOption => {
-
-        if (eachOption.label.replace(/\s/g, '').toLowerCase() == oldResponse.replace(/\s/g, '').toLowerCase()) {
-          result["oldValue"] = eachOption.value
-        }
-
-        if (eachOption.label.replace(/\s/g, '').toLowerCase() == newResponse.replace(/\s/g, '').toLowerCase()) {
-          result["newValue"] = eachOption.value
-        }
-      })
-
-    } else if (question.responseType == "multiselect") {
-
-      result["oldValue"] = result["newValue"] = new Array
-      let oldResponseArray = oldResponse.split(",").map((value) => { return value.replace(/\s/g, '').toLowerCase() })
-      let newResponseArray = newResponse.split(",").map((value) => { return value.replace(/\s/g, '').toLowerCase() })
-
-      question.options.forEach(eachOption => {
-
-        if (oldResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
-          result["oldValue"].push(eachOption.value)
-        }
-
-        if (newResponseArray.includes(eachOption.label.replace(/\s/g, '').toLowerCase())) {
-          result["newValue"].push(eachOption.value)
-        }
-      })
-
-    } else {
-
-      result["oldValue"] = oldResponse
-      result["newValue"] = newResponse
-    }
-
-    return result
-  }
 };
