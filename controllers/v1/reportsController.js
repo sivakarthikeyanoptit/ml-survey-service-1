@@ -16,7 +16,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/status/:solutionId Fetch submission reports for entity
+   * @api {get} /assessment/api/v1/reports/status/:solutionExternalId Fetch submission reports for entity
    * @apiVersion 0.0.1
    * @apiName Fetch submission reports for entity
    * @apiGroup Report
@@ -28,7 +28,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          solutionId: req.params._id
+          solutionExternalId: req.params._id
         };
 
         let submissionsIds = await database.models.submissions
@@ -166,7 +166,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/assessorEntities/:solutionId Fetch assessors reports for entities
+   * @api {get} /assessment/api/v1/reports/assessorEntities/:solutionExternalId Fetch assessors reports for entities
    * @apiVersion 0.0.1
    * @apiName Fetch assessors reports for entities
    * @apiGroup Report
@@ -177,14 +177,16 @@ module.exports = class Reports {
   async assessorEntities(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        const assessorDocument = await database.models.entityAssessors.find(
-          { solutionId: req.params._id },
+
+        const solutionDocument = await database.models.solutions.findOne(
+          { externalId: req.params._id },
           { _id: 1 }
-        );
-        const solutionDocuments = await solutionsHelper.solutionDocument(
-          req.params._id,
-          ["externalId"]
-        );
+        ).lean();
+
+        const assessorDocument = await database.models.entityAssessors.find(
+          { solutionId: solutionDocument._id },
+          { _id: 1 }
+        ).lean();
 
         const fileName = `assessorSchoolsfile`;
         let fileStream = new FileStream(fileName);
@@ -262,7 +264,7 @@ module.exports = class Reports {
                     "Assessor Name": assessor.name ? assessor.name : "",
                     "Assessor Email": assessor.email ? assessor.email : "",
                     "Assessor Role": assessor.role,
-                    "Solution Id": solutionDocuments[0].externalId,
+                    "Solution Id": req.params._id,
                     "Entity Id": eachAssessorentity.metaInformation.externalId,
                     "Entity Name": eachAssessorentity.metaInformation.name
                   });
@@ -283,7 +285,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/entityAssessors/:solutionId Fetch entity wise assessor reports
+   * @api {get} /assessment/api/v1/reports/entityAssessors/:solutionExternalId Fetch entity wise assessor reports
    * @apiVersion 0.0.1
    * @apiName Fetch entity wise assessor reports
    * @apiGroup Report
@@ -294,15 +296,16 @@ module.exports = class Reports {
   async entityAssessors(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        const assessorDocument = await database.models.entityAssessors.find(
-          { solutionId: req.params._id },
-          { _id: 1 }
-        );
 
-        const solutionDocuments = await solutionsHelper.solutionDocument(
-          req.params._id,
-          ["externalId"]
-        );
+        const solutionDocument = await database.models.solutions.findOne(
+          { externalId: req.params._id },
+          { _id: 1 }
+        ).lean();
+
+        const assessorDocument = await database.models.entityAssessors.find(
+          { solutionId: solutionDocument._id },
+          { _id: 1 }
+        ).lean();
 
         const fileName = `entityAssessors`;
         let fileStream = new FileStream(fileName);
@@ -384,7 +387,7 @@ module.exports = class Reports {
                     "Assessor Email": assessor.email ? assessor.email : "",
                     "Parent Id": assessor.parentId ? assessor.parentId : "",
                     "Assessor Role": assessor.role,
-                    "Solution Id": solutionDocuments[0].externalId
+                    "Solution Id": req.params._id
                   });
                 });
               })
@@ -403,7 +406,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/solutionEntityStatus/:solutionId Fetch entity status based on solution Id
+   * @api {get} /assessment/api/v1/reports/solutionEntityStatus/:solutionExternalId Fetch entity status based on solution Id
    * @apiVersion 0.0.1
    * @apiName Fetch entity status based on solution Id
    * @apiGroup Report
@@ -422,16 +425,11 @@ module.exports = class Reports {
         let solutionDocument = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             { entities: 1 }
           )
           .lean();
-
-        const solutionDocuments = await solutionsHelper.solutionDocument(
-          req.params._id,
-          ["externalId"]
-        );
 
         result.entityId.push(...solutionDocument.entities);
 
@@ -521,7 +519,7 @@ module.exports = class Reports {
             } else {
               entityDocument.forEach(entity => {
                 let solutionsEntityStatusObject = {
-                  "solutions Id": solutionDocuments[0].externalId,
+                  "solutions Id": req.params._id,
                   "Entity Name": entity.metaInformation.name,
                   "Entity Id": entity.metaInformation.externalId
                 };
@@ -563,7 +561,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/solutionsSubmissionStatus/:solutionId?evidenceId=LW Fetch solution submission status
+   * @api {get} /assessment/api/v1/reports/solutionsSubmissionStatus/:solutionExternalId?evidenceId=LW Fetch solution submission status
    * @apiVersion 0.0.1
    * @apiName Fetch solution submission status
    * @apiGroup Report
@@ -579,7 +577,7 @@ module.exports = class Reports {
         const evidenceQueryObject =
           "evidences." + evidenceIdFromRequestParam + ".isSubmitted";
         const fetchRequiredSubmissionDocumentIdQueryObj = {
-          solutionId: req.params._id,
+          solutionExternalId: req.params._id,
           [evidenceQueryObject]: true,
           status: {
             $nin: ["started"]
@@ -593,7 +591,7 @@ module.exports = class Reports {
         const solutionDocuments = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             { themes: 1 }
           )
@@ -972,7 +970,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:solutionId Fetch criterias based on schoolId
+   * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:solutionExternalId Fetch criterias based on schoolId
    * @apiVersion 0.0.1
    * @apiName Fetch criteria based on entityId
    * @apiParam {String} entityId Comma separated entity ID.
@@ -985,7 +983,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          solutionId: req.params._id,
+          solutionExternalId: req.params._id,
           entityExternalId: { $in: req.query.entityId.split(",") }
         };
 
@@ -1005,7 +1003,7 @@ module.exports = class Reports {
         }
 
         let solutionDocuments = await database.models.solutions
-          .findOne({ _id: req.params._id }, { themes: 1 })
+          .findOne({ externalId: req.params._id }, { themes: 1 })
           .lean();
 
         let criteriaName = {};
@@ -1138,7 +1136,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:solutionId Fetch Entity submission status
+   * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:solutionExternalId Fetch Entity submission status
    * @apiVersion 0.0.1
    * @apiName Fetch Entity submission status
    * @apiParam {String} entityId Comma separated entity ID.
@@ -1151,12 +1149,12 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {
-          solutionId: req.params._id,
+          solutionExternalId: req.params._id,
           entityExternalId: { $in: req.query.entityId.split(",") }
         };
 
         let solutionDocument = await database.models.solutions
-          .findOne({ _id: req.params._id }, { themes: 1 })
+          .findOne({ externalId: req.params._id }, { themes: 1 })
           .lean();
 
         let criteriaIdsByFramework = gen.utils.getCriteriaIds(
@@ -1633,7 +1631,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/registryDetails/:solutionId fetch registry details
+   * @api {get} /assessment/api/v1/reports/registryDetails/:solutionExternalId fetch registry details
    * @apiVersion 0.0.1
    * @apiName Fetch Registry details
    * @apiGroup Report
@@ -1651,7 +1649,7 @@ module.exports = class Reports {
         let solutionDocument = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             {
               registry: 1,
@@ -1744,7 +1742,7 @@ module.exports = class Reports {
                   }
                 );
 
-                allregistryObject["Program External Id"] = req.params._id;
+                allregistryObject["Solution External Id"] = req.params._id;
                 allregistryObject["Entity Type"] = singleRegistry.entityType;
                 allregistryObject["Parent Entity External Id"] =
                   entitiesDocument[
@@ -1784,7 +1782,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/entityProfileInformation/:solutionId Fetch Entity Profile Information
+   * @api {get} /assessment/api/v1/reports/entityProfileInformation/:solutionExternalId Fetch Entity Profile Information
    * @apiVersion 0.0.1
    * @apiName Fetch Entity Profile Information
    * @apiGroup Report
@@ -1796,7 +1794,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let queryParams = {
-          solutionId: req.params._id
+          solutionExternalId: req.params._id
         };
 
         const submissionIds = await database.models.submissions.find(
@@ -1809,7 +1807,7 @@ module.exports = class Reports {
         const solutionDocuments = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             { entityProfileFieldsPerEntityTypes: 1 }
           )
@@ -1906,7 +1904,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:solutionId Generate all ecm report by date
+   * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:solutionExternalId Generate all ecm report by date
    * @apiVersion 0.0.1
    * @apiName Generate all ecm report by date
    * @apiGroup Report
@@ -1921,7 +1919,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["solutionId"] =
+        fetchRequiredSubmissionDocumentIdQueryObj["solutionExternalId"] =
           req.params._id;
 
         if (
@@ -1955,7 +1953,7 @@ module.exports = class Reports {
         const solutionDocuments = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             { themes: 1 }
           )
@@ -2375,7 +2373,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/submissionFeedback/:solutionId Generate feedback for the submissions
+   * @api {get} /assessment/api/v1/reports/submissionFeedback/:solutionExternalId Generate feedback for the submissions
    * @apiVersion 0.0.1
    * @apiName Generate feedback for the submissions
    * @apiGroup Report
@@ -2389,7 +2387,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let submissionQueryObject = {};
-        submissionQueryObject.solutionId = req.params._id;
+        submissionQueryObject.solutionExternalId = req.params._id;
         submissionQueryObject["feedback.submissionDate"] = {};
         submissionQueryObject["feedback.submissionDate"]["$gte"] =
           req.query.fromDate;
@@ -2401,7 +2399,7 @@ module.exports = class Reports {
           {
             _id: 1
           }
-        );
+        ).lean();
 
         const fileName = `Generate Feedback For Submission`;
         let fileStream = new FileStream(fileName);
@@ -2485,7 +2483,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:solutionId Generate ECM submissions By date
+   * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:solutionExternalId Generate ECM submissions By date
    * @apiVersion 0.0.1
    * @apiName Generate ECM submissions By date
    * @apiGroup Report
@@ -2512,7 +2510,7 @@ module.exports = class Reports {
         let entityProfileSubmissionDocuments = await database.models.submissions.aggregate(
           [
             {
-              $match: { solutionId: ObjectId(req.params._id) }
+              $match: { solutionExternalId: req.params._id }
             },
             {
               $project: {
@@ -2598,7 +2596,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/completedParentInterviewsByDate/:solutionId Generate all parent report by date
+   * @api {get} /assessment/api/v1/reports/completedParentInterviewsByDate/:solutionExternalId Generate all parent report by date
    * @apiVersion 0.0.1
    * @apiName Generate all parent interview completed report by date
    * @apiGroup Report
@@ -2612,7 +2610,7 @@ module.exports = class Reports {
     return new Promise(async (resolve, reject) => {
       try {
         let fetchRequiredSubmissionDocumentIdQueryObj = {};
-        fetchRequiredSubmissionDocumentIdQueryObj["solutionId"] =
+        fetchRequiredSubmissionDocumentIdQueryObj["solutionExternalId"] =
           req.params._id;
         fetchRequiredSubmissionDocumentIdQueryObj[
           "parentInterviewResponses"
@@ -2767,7 +2765,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:SolutionId Generate report whose parent did not pick up the call
+   * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:solutionExternalId Generate report whose parent did not pick up the call
    * @apiVersion 0.0.1
    * @apiName Generate report of all the call responses recorded for parents by date
    * @apiGroup Report
@@ -2780,6 +2778,7 @@ module.exports = class Reports {
   async parentInterviewCallDidNotPickupReportByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
+
         let allParentsInSolution = await solutionsHelper.allSubGroupEntityIdsByGroupName(
           req.params._id,
           "parent"
@@ -2905,7 +2904,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:solutionId Generate report for the parent whose callResponse is present.
+   * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:solutionExternalId Generate report for the parent whose callResponse is present.
    * @apiVersion 0.0.1
    * @apiName Generate report for the parent whose callResponse is present.
    * @apiGroup Report
@@ -3054,7 +3053,7 @@ module.exports = class Reports {
   }
 
   /**
-   * @api {get} /assessment/api/v1/reports/entityList/:solutionId Fetch Entity list based on solutionId
+   * @api {get} /assessment/api/v1/reports/entityList/:solutionExternalId Fetch Entity list based on solutionId
    * @apiVersion 0.0.1
    * @apiName Fetch Entity list based on solutionId
    * @apiGroup Report
@@ -3067,7 +3066,7 @@ module.exports = class Reports {
         let solutionEntities = await database.models.solutions
           .findOne(
             {
-              _id: req.params._id
+              externalId: req.params._id
             },
             {
               entities: 1
