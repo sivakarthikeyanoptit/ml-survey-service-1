@@ -431,11 +431,6 @@ module.exports = class Reports {
           )
           .lean();
 
-        const solutionDocuments = await solutionsHelper.solutionDocument(
-          solutionDocument._id,
-          ["externalId"]
-        );
-
         result.entityId.push(...solutionDocument.entities);
 
         let entityDocument = database.models.entities
@@ -524,7 +519,7 @@ module.exports = class Reports {
             } else {
               entityDocument.forEach(entity => {
                 let solutionsEntityStatusObject = {
-                  "solutions Id": solutionDocuments[0].externalId,
+                  "solutions Id": req.params._id,
                   "Entity Name": entity.metaInformation.name,
                   "Entity Id": entity.metaInformation.externalId
                 };
