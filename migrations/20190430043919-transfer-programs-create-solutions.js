@@ -95,7 +95,7 @@ module.exports = {
         if(!evaluationFrameworkDocument[0] || !evaluationFrameworkDocument[0].themes) {
           continue
         }
-        
+
         let frameworkCriteriaArray = getCriteriaIds(evaluationFrameworkDocument[0].themes)
 
 
@@ -119,6 +119,12 @@ module.exports = {
               "sections"
             ])
             evidence.sections.forEach(section => {
+              if(!sectionCode[section.name]) {
+                sectionCode[section.name] = {
+                  code : section.name,
+                  name: section.name
+                }
+              }
               sections[sectionCode[section.name].code] = sectionCode[section.name].name
             })
           })
