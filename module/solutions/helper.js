@@ -68,16 +68,16 @@ module.exports = class solutionsHelper {
     return entityFieldArray;
   }
 
-  static allSubGroupEntityIdsByGroupName(solutionId = "", groupName = "") {
+  static allSubGroupEntityIdsByGroupName(solutionExternalId = "", groupName = "") {
     return new Promise(async (resolve, reject) => {
       try {
-        if (solutionId == "" || groupName == "") {
+        if (solutionExternalId == "" || groupName == "") {
           throw "Invalid paramters";
         }
 
         let solutionEntities = await database.models.solutions.findOne(
           {
-            _id: solutionId
+            externalId: solutionExternalId
           },
           {
             entities: 1

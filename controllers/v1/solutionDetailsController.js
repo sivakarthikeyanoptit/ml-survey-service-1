@@ -38,7 +38,7 @@ module.exports = class SolutionDetails {
           let entities = new Array
 
           if(req.query.primary == 0 && req.query.type != "") {
-            let allSubEntities = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.query.programId,req.query.type)
+            let allSubEntities = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.query.solutionId,req.query.type)
             entities = Object.keys(allSubEntities)
           } else {
             let solutionDocument = await database.models.solutions.findOne(findQuery,{entities:1}).lean()
