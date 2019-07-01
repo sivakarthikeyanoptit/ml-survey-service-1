@@ -294,7 +294,9 @@ module.exports = class entitiesHelper {
                     entityCSVData.map(async singleEntity => {
 
                         singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
-                            singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
+                            if(singleEntity[arrayTypeField]) {
+                                singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
+                            }
                         })
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
