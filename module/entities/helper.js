@@ -269,6 +269,17 @@ module.exports = class entitiesHelper {
                             entityTypeId: 1
                         }
                     ).lean();
+                } else {
+                    solutionsDocument = await database.models.solutions.find(
+                        {},
+                        {
+                            programId: 1,
+                            externalId: 1,
+                            subType: 1,
+                            entityType: 1,
+                            entityTypeId: 1
+                        }
+                    ).lean();
                 }
 
                 let solutionsData;
