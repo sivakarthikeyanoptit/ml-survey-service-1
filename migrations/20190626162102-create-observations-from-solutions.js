@@ -6,7 +6,12 @@ module.exports = {
 
     let solutionDocuments = await db.collection('solutions').find({
       type : "assessment",
-      subType: "observation",
+      subType: {
+        $in :[
+          "observation",
+          "cro"
+        ]
+      },
       isReusable: false
     }).toArray();
 
