@@ -1,4 +1,6 @@
 const csv = require("csvtojson");
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
   /**
@@ -241,7 +243,7 @@ module.exports = class Solutions extends Abstract {
 
         updateThemes(newSolutionDocument.themes)
 
-        newSolutionDocument.externalId = frameworkDocument.externalId+"-TEMPLATE"
+        newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE"
 
         newSolutionDocument.frameworkId = frameworkDocument._id
         newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
@@ -334,5 +336,49 @@ module.exports = class Solutions extends Abstract {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/solutions/edit/: Edit theme in solutions 
+  * @apiVersion 0.0.1
+  * @apiName Edit Theme in solutions
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} Id solution external Id
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async edit(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        const fileName = `Edit Theme`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        let editThemeDocuments = await solutionsHelper.editTheme("solutions", req.query.Id, req.files.themeData)
+
+        for (let pointerToEditTheme = 0; pointerToEditTheme < editThemeDocuments.length; pointerToEditTheme++) {
+          input.push(editThemeDocuments[pointerToEditTheme])
+        }
+
+        input.push(null)
+
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
 
 };

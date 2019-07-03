@@ -423,10 +423,13 @@ module.exports = class Observations extends Abstract {
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 
-                entityDocuments[0].metaInformation.forEach(metaInformation => {
-                    metaInformation.selected = (observationEntityIds.includes(metaInformation._id.toString())) ? true : false;
+                entityDocuments[0].data.forEach(eachMetaData => {
+                    eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                 })
 
+                entityDocuments[0]["count"] = entityDocuments[0].totalCount[0] ? entityDocuments[0].totalCount[0].count : 0
+
+                delete entityDocuments[0].totalCount
                 response.result = entityDocuments
 
                 return resolve(response);

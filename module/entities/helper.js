@@ -403,12 +403,13 @@ module.exports = class entitiesHelper {
                             "totalCount": [
                                 { "$count": "count" }
                             ],
-                            "metaInformation": [
+                            "data": [
                                 { $skip: pageSize * (pageNo - 1) },
                                 { $limit: pageSize }
                             ],
                         }
-                    }]);
+                    },
+                ]);
 
                 return resolve(entityDocuments)
 

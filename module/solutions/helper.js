@@ -1,3 +1,6 @@
+const csv = require("csvtojson");
+const reportsHelper = require(ROOT_PATH + "/module/reports/helper");
+
 module.exports = class solutionsHelper {
   static solutionDocument(solutionIds = "all", fields = "all") {
     return new Promise(async (resolve, reject) => {
@@ -128,4 +131,145 @@ module.exports = class solutionsHelper {
       }
     });
   }
+
+  static editTheme(type, typeId, themes) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+
+        let headerSequence
+        let editDocuments = await csv().fromString(themes.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let allCriteriaDocument = await database.models.criteria.find(
+          {},
+          { _id: 1 }
+        ).lean();
+
+        let criteriaArray = allCriteriaDocument.map(eachCriteria => eachCriteria._id.toString())
+
+        let splittedFrameworkArray = []
+        let frameworkObject = {}
+        let valueIncluded = ["theme", "subtheme"]
+        let csvArray = []
+
+
+        // get Array of object with splitted value
+        for (let pointerToEditDoc = 0; pointerToEditDoc < editDocuments.length; pointerToEditDoc++) {
+
+          let eachEditDocuments = {}
+          let csvObject = {}
+          csvObject = { ...editDocuments[pointerToEditDoc] }
+          csvObject["status"] = ""
+
+          Object.keys(editDocuments[pointerToEditDoc]).forEach(eachEditedKey => {
+
+            if (editDocuments[pointerToEditDoc][eachEditedKey] !== "") {
+
+              let splittedData = editDocuments[pointerToEditDoc][eachEditedKey].split("###")
+
+              if (eachEditedKey !== "criteriaInternalId") {
+
+                if (!valueIncluded.includes(splittedData[1])) {
+                  csvObject["status"] = "Type should be theme or subTheme"
+                } else {
+                  let name = splittedData[0] ? splittedData[0] : ""
+
+                  eachEditDocuments[eachEditedKey] = {
+                    name: name,
+                  }
+
+                  frameworkObject[splittedData[0]] = {
+                    name: name,
+                    label: eachEditedKey,
+                    type: splittedData[1] ? splittedData[1] : "",
+                    externalId: splittedData[2],
+                    weightage: splittedData[3] ? splittedData[3] : 0
+                  }
+                }
+              } else {
+
+                if (criteriaArray.includes(splittedData[0])) {
+                  eachEditDocuments[eachEditedKey] = {
+                    criteriaId: ObjectId(splittedData[0]),
+                    weightage: splittedData[1] ? splittedData[1] : 0,
+                  }
+                } else {
+                  csvObject["status"] = "Criteria is not Present"
+
+                }
+
+              }
+            }
+          })
+          csvArray.push(csvObject)
+          splittedFrameworkArray.push(eachEditDocuments)
+        }
+
+        function tree(frameworkArray, headerData) {
+          return frameworkArray.reduce((acc, eachFrameworkData) => {
+            headerData.reduce((parent, headerKey, index) => {
+              if (index === headerData.length - 1) {
+                if (!parent["criteriaId"]) {
+                  parent["criteriaId"] = []
+                }
+                parent.criteriaId.push(eachFrameworkData.criteriaInternalId)
+
+              } else {
+                if (eachFrameworkData[headerKey] !== undefined) {
+                  parent[eachFrameworkData[headerKey].name] = parent[eachFrameworkData[headerKey].name] ||
+                    {}
+                  return parent[eachFrameworkData[headerKey].name]
+                } else {
+                  return parent
+                }
+              }
+
+            }, acc);
+            return acc;
+          }, {});
+        }
+
+        let treeDataOfAnFrameworkObject = tree(splittedFrameworkArray, headerSequence)
+
+        function themeArray(data) {
+
+          return Object.keys(data).map(function (eachDataKey) {
+            let eachData = {}
+
+            if (eachDataKey !== "criteriaId") {
+              eachData["name"] = frameworkObject[eachDataKey].name
+              eachData["type"] = frameworkObject[eachDataKey].type
+              eachData["label"] = frameworkObject[eachDataKey].label
+              eachData["externalId"] = frameworkObject[eachDataKey].externalId
+              eachData["weightage"] = frameworkObject[eachDataKey].weightage
+            }
+
+            if (data[eachDataKey].criteriaId) eachData["criteria"] = data[eachDataKey].criteriaId
+            if (eachDataKey !== "criteriaId" && _.isObject(data[eachDataKey])) {
+              return _.merge(eachData, data[eachDataKey].criteriaId ? {} : { children: themeArray(data[eachDataKey]) });
+            }
+          });
+        }
+
+        let themesData = themeArray(treeDataOfAnFrameworkObject)
+
+        let checkCsvArray = csvArray.every(csvData => csvData.status === "")
+
+        if (checkCsvArray) {
+          let themeUpdated = await database.models[type].findOneAndUpdate({
+            externalId: typeId
+          }, {
+              $set: {
+                themes: themesData
+              }
+            })
+        }
+
+        return resolve(csvArray);
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
 };
