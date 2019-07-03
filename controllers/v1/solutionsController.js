@@ -337,7 +337,7 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/solutions/edit/: Edit theme in solutions 
+  * @api {get} /assessment/api/v1/solutions/edit Edit theme in solutions 
   * @apiVersion 0.0.1
   * @apiName Edit Theme in solutions
   * @apiGroup Solutions

@@ -1,5 +1,4 @@
 const csv = require("csvtojson");
-const reportsHelper = require(ROOT_PATH + "/module/reports/helper");
 
 module.exports = class solutionsHelper {
   static solutionDocument(solutionIds = "all", fields = "all") {
