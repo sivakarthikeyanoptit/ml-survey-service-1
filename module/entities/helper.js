@@ -408,7 +408,14 @@ module.exports = class entitiesHelper {
                                 { $limit: pageSize }
                             ],
                         }
-                    },
+                    }, {
+                        $project: {
+                            "data": 1,
+                            "count": {
+                                $arrayElemAt: ["$totalCount.count", 0]
+                            }
+                        }
+                    }
                 ]);
 
                 return resolve(entityDocuments)
