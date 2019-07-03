@@ -252,8 +252,6 @@ module.exports = class questionsHelper {
 
     static updateQuestion(parsedQuestion) {
           
-        let csvArray = new Array
-        
         return new Promise(async (resolve, reject) => {
             
             try {
@@ -271,14 +269,6 @@ module.exports = class questionsHelper {
         
                 let fieldNotIncluded = ["instanceIdentifier","dateFormat","autoCapture","isAGeneralQuestion"]
                 
-                let resultQuestion
-        
-                let csvResult = {}
-                
-                if (questionCollection && questionCollection[parsedQuestion["externalId"]]) {
-                  csvResult["internal id"] = "Question already exists"
-                } else {
-            
                   let allValues = {}
         
                   Object.keys(includeFieldByDefault).forEach(eachFieldToBeIncluded=>{
@@ -480,7 +470,6 @@ module.exports = class questionsHelper {
         
                   }
         
-                }
         
                 csvResult["Question External Id"] = parsedQuestion["externalId"]
                 csvResult["Question Name"] = parsedQuestion["question0"]
