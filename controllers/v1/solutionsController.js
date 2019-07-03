@@ -337,16 +337,17 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/solutions/edit Edit theme in solutions 
+  * @api {get} /assessment/api/v1/solutions/updateTheme update theme in solutions 
   * @apiVersion 0.0.1
-  * @apiName Edit Theme in solutions
+  * @apiName update Theme in solutions
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} Id solution external Id
+  * @apiParam {String} Id solutionExternalId
+  * @apiParam {File} themeData Mandatory Theme file of type CSV.  
   * @apiUse successBody
   * @apiUse errorBody
   */
-  async edit(req) {
+  async updateTheme(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -362,7 +363,10 @@ module.exports = class Solutions extends Abstract {
           });
         })();
 
-        let editThemeDocuments = await solutionsHelper.editTheme("solutions", req.query.Id, req.files.themeData)
+        let headerSequence
+        let themeArray = await csv().fromString(req.files.themeData.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let editThemeDocuments = await solutionsHelper.updateTheme("solutions", req.query.Id, themeArray, headerSequence)
 
         for (let pointerToEditTheme = 0; pointerToEditTheme < editThemeDocuments.length; pointerToEditTheme++) {
           input.push(editThemeDocuments[pointerToEditTheme])

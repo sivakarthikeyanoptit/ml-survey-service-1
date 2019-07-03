@@ -1,4 +1,3 @@
-const csv = require("csvtojson");
 
 module.exports = class solutionsHelper {
   static solutionDocument(solutionIds = "all", fields = "all") {
@@ -131,13 +130,9 @@ module.exports = class solutionsHelper {
     });
   }
 
-  static editTheme(type, typeId, themes) {
+  static updateTheme(modelName, modelExternalId, themesArray, headerSequence) {
     return new Promise(async (resolve, reject) => {
       try {
-
-
-        let headerSequence
-        let editDocuments = await csv().fromString(themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
         let allCriteriaDocument = await database.models.criteria.find(
           {},
@@ -153,44 +148,44 @@ module.exports = class solutionsHelper {
 
 
         // get Array of object with splitted value
-        for (let pointerToEditDoc = 0; pointerToEditDoc < editDocuments.length; pointerToEditDoc++) {
+        for (let pointerToThemeCsv = 0; pointerToThemeCsv < themesArray.length; pointerToThemeCsv++) {
 
-          let eachEditDocuments = {}
+          let result = {}
           let csvObject = {}
-          csvObject = { ...editDocuments[pointerToEditDoc] }
+          csvObject = { ...themesArray[pointerToThemeCsv] }
           csvObject["status"] = ""
 
-          Object.keys(editDocuments[pointerToEditDoc]).forEach(eachEditedKey => {
+          Object.keys(themesArray[pointerToThemeCsv]).forEach(eachThemesKey => {
 
-            if (editDocuments[pointerToEditDoc][eachEditedKey] !== "") {
+            if (themesArray[pointerToThemeCsv][eachThemesKey] !== "") {
 
-              let splittedData = editDocuments[pointerToEditDoc][eachEditedKey].split("###")
+              let themesSplittedArray = themesArray[pointerToThemeCsv][eachThemesKey].split("###")
 
-              if (eachEditedKey !== "criteriaInternalId") {
+              if (eachThemesKey !== "criteriaInternalId") {
 
-                if (!valueIncluded.includes(splittedData[1])) {
+                if (!valueIncluded.includes(themesSplittedArray[1])) {
                   csvObject["status"] = "Type should be theme or subTheme"
                 } else {
-                  let name = splittedData[0] ? splittedData[0] : ""
+                  let name = themesSplittedArray[0] ? themesSplittedArray[0] : ""
 
-                  eachEditDocuments[eachEditedKey] = {
-                    name: name,
+                  result[eachThemesKey] = {
+                    name: name
                   }
 
-                  frameworkObject[splittedData[0]] = {
+                  frameworkObject[themesSplittedArray[0]] = {
                     name: name,
-                    label: eachEditedKey,
-                    type: splittedData[1] ? splittedData[1] : "",
-                    externalId: splittedData[2],
-                    weightage: splittedData[3] ? splittedData[3] : 0
+                    label: eachThemesKey,
+                    type: themesSplittedArray[1] ? themesSplittedArray[1] : "",
+                    externalId: themesSplittedArray[2],
+                    weightage: themesSplittedArray[3] ? themesSplittedArray[3] : 0
                   }
                 }
               } else {
 
-                if (criteriaArray.includes(splittedData[0])) {
-                  eachEditDocuments[eachEditedKey] = {
-                    criteriaId: ObjectId(splittedData[0]),
-                    weightage: splittedData[1] ? splittedData[1] : 0,
+                if (criteriaArray.includes(themesSplittedArray[0])) {
+                  result[eachThemesKey] = {
+                    criteriaId: ObjectId(themesSplittedArray[0]),
+                    weightage: themesSplittedArray[1] ? themesSplittedArray[1] : 0,
                   }
                 } else {
                   csvObject["status"] = "Criteria is not Present"
@@ -201,7 +196,7 @@ module.exports = class solutionsHelper {
             }
           })
           csvArray.push(csvObject)
-          splittedFrameworkArray.push(eachEditDocuments)
+          splittedFrameworkArray.push(result)
         }
 
         function tree(frameworkArray, headerData) {
@@ -228,8 +223,6 @@ module.exports = class solutionsHelper {
           }, {});
         }
 
-        let treeDataOfAnFrameworkObject = tree(splittedFrameworkArray, headerSequence)
-
         function themeArray(data) {
 
           return Object.keys(data).map(function (eachDataKey) {
@@ -250,13 +243,15 @@ module.exports = class solutionsHelper {
           });
         }
 
+        let treeDataOfAnFrameworkObject = tree(splittedFrameworkArray, headerSequence)
+
         let themesData = themeArray(treeDataOfAnFrameworkObject)
 
         let checkCsvArray = csvArray.every(csvData => csvData.status === "")
 
         if (checkCsvArray) {
-          let themeUpdated = await database.models[type].findOneAndUpdate({
-            externalId: typeId
+          await database.models[modelName].findOneAndUpdate({
+            externalId: modelExternalId
           }, {
               $set: {
                 themes: themesData

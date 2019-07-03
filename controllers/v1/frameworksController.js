@@ -1,5 +1,6 @@
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const csv = require("csvtojson");
 
 module.exports = class Frameworks extends Abstract {
   constructor() {
@@ -11,16 +12,17 @@ module.exports = class Frameworks extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/frameworks/edit Edit theme in frameworks 
+* @api {get} /assessment/api/v1/frameworks/updateTheme updateTheme  in frameworks 
 * @apiVersion 0.0.1
-* @apiName Edit Theme in frameworks
+* @apiName updateTheme in frameworks
 * @apiGroup frameworks
 * @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiParam {String} Id Framework external Id
+* @apiParam {File} themeData Mandatory Theme file of type CSV.
+* @apiParam {String} Id frameworkExternalId
 * @apiUse successBody
 * @apiUse errorBody
 */
-  async edit(req) {
+  async updateTheme(req) {
     return new Promise(async (resolve, reject) => {
       try {
         const fileName = `Edit Theme`;
@@ -35,7 +37,10 @@ module.exports = class Frameworks extends Abstract {
           });
         })();
 
-        let frameworkThemes = await solutionsHelper.editTheme("frameworks", req.query.Id, req.files.themeData)
+        let headerSequence
+        let themeArray = await csv().fromString(req.files.themeData.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let frameworkThemes = await solutionsHelper.updateTheme("frameworks", req.query.Id, themeArray, headerSequence)
 
         for (let pointerToFrameworkTheme = 0; pointerToFrameworkTheme < frameworkThemes.length; pointerToFrameworkTheme++) {
           input.push(frameworkThemes[pointerToFrameworkTheme])
