@@ -365,62 +365,100 @@ module.exports = class Questions extends Abstract {
           solutionDocument.themes
         );
 
-        let criteriasArray = new Array();
-
-        criteriasIdArray.forEach(eachCriteriaIdArray => {
-          criteriasArray.push(eachCriteriaIdArray._id.toString());
-        });
-
-        questionData.forEach(eachQuestionData => {
-          let parsedQuestion = gen.utils.valueParser(eachQuestionData);
-
-          if (!questionIds.includes(parsedQuestion["externalId"]))
-            questionIds.push(parsedQuestion["externalId"]);
-
-          if (
-            parsedQuestion["hasAParentQuestion"] !== "NO" &&
-            !questionIds.includes(parsedQuestion["parentQuestionId"])
-          ) {
-            questionIds.push(parsedQuestion["parentQuestionId"]);
-          }
-
-          if (
-            parsedQuestion["instanceParentQuestionId"] !== "NA" &&
-            !questionIds.includes(parsedQuestion["instanceParentQuestionId"])
-          ) {
-            questionIds.push(parsedQuestion["instanceParentQuestionId"]);
-          }
-        });
-
-        let criteriaDocument = await database.models.criteria
-          .find({
-            externalId: { $in: criteriaIds }
-          })
-          .lean();
-
-        if (!criteriaDocument.length > 0) {
-          throw "Criteria is not found";
+        if(criteriasIdArray.length < 1) {
+          throw "No criteria found for the given solution"
         }
 
-        criteriaDocument.forEach(eachCriteriaDocument => {
-          if (criteriasArray.includes(eachCriteriaDocument._id.toString())) {
-            criteriaObject[
-              eachCriteriaDocument.externalId
-            ] = eachCriteriaDocument;
-          }
-        });
-
-        let questionsFromDatabase = await database.models.questions
-          .find({
-            externalId: { $in: questionIds }
-          })
+        let allCriteriaDocument = await database.models.criteria
+          .find({ _id: { $in: criteriasIdArray } }, { evidences: 1, externalId : 1 })
           .lean();
 
-        if (questionsFromDatabase.length > 0) {
-          questionsFromDatabase.forEach(question => {
-            questionCollection[question.externalId] = question;
-          });
+        if(allCriteriaDocument.length < 1) {
+          throw "No criteria found for the given solution"
         }
+
+        let currentQuestionMap = {};
+
+        let criteriaMap = {};
+
+        allCriteriaDocument.forEach(eachCriteria => {
+          
+          criteriaMap[eachCriteria.externalId] = eachCriteria._id
+
+          eachCriteria.evidences.forEach(eachEvidence => {
+            eachEvidence.sections.forEach(eachSection => {
+              eachSection.questions.forEach(eachQuestion => {
+                currentQuestionMap[eachQuestion.toString()] = {
+                  qid : eachQuestion.toString(),
+                  sectionCode: eachSection.code,
+                  evidenceMethodCode: eachEvidence.code,
+                  criteriaId: eachCriteria._id,
+                  criteriaExternalId: eachCriteria.externalId
+                }
+              })
+            })
+          })
+        })
+
+        let allQuestionsDocument = await database.models.questions
+        .find(
+          { _id: { $in: Object.keys(currentQuestionMap) } },
+          {
+            externalId : 1,
+            children : 1,
+            instanceQuestions : 1
+          }
+        )
+        .lean();
+
+        if(allQuestionsDocument.length < 1) {
+          throw "No question found for the given solution"
+        }
+
+        let questionExternalToInternalIdMap = {};
+        allQuestionsDocument.forEach(eachQuestion => {
+
+          currentQuestionMap[eachQuestion._id.toString()].externalId = eachQuestion.externalId
+          questionExternalToInternalIdMap[eachQuestion.externalId] = eachQuestion._id.toString()
+
+          if(eachQuestion.children && eachQuestion.children.length > 0) {
+            eachQuestion.children.forEach(childQuestion => {
+              if(currentQuestionMap[childQuestion.toString()]) {
+                currentQuestionMap[childQuestion.toString()].parent = eachQuestion._id
+              }
+            })
+          }
+
+          if(eachQuestion.instanceQuestions && eachQuestion.instanceQuestions.length > 0) {
+            eachQuestion.instanceQuestions.forEach(instanceChildQuestion => {
+              if(currentQuestionMap[instanceChildQuestion.toString()]) {
+                currentQuestionMap[instanceChildQuestion.toString()].instanceParent = eachQuestion._id
+              }
+            })
+          }
+
+        });
+
+        // questionData.forEach(eachQuestionData => {
+        //   let parsedQuestion = gen.utils.valueParser(eachQuestionData);
+
+        //   if (!questionIds.includes(parsedQuestion["externalId"]))
+        //     questionIds.push(parsedQuestion["externalId"]);
+
+        //   if (
+        //     parsedQuestion["hasAParentQuestion"] !== "NO" &&
+        //     !questionIds.includes(parsedQuestion["parentQuestionId"])
+        //   ) {
+        //     questionIds.push(parsedQuestion["parentQuestionId"]);
+        //   }
+
+        //   if (
+        //     parsedQuestion["instanceParentQuestionId"] !== "NA" &&
+        //     !questionIds.includes(parsedQuestion["instanceParentQuestionId"])
+        //   ) {
+        //     questionIds.push(parsedQuestion["instanceParentQuestionId"]);
+        //   }
+        // });
 
         const fileName = `Question-Upload-Result`;
         let fileStream = new FileStream(fileName);
@@ -441,135 +479,69 @@ module.exports = class Questions extends Abstract {
           pointerToQuestionData < questionData.length;
           pointerToQuestionData++
         ) {
+
           let parsedQuestion = gen.utils.valueParser(
             questionData[pointerToQuestionData]
           );
 
-          let criteria = {};
-          let ecm = {};
-
-          ecm[parsedQuestion["evidenceMethod"]] = {
-            code:
-              solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
-                .externalId
-          };
-
-          criteria[parsedQuestion.criteriaExternalId] =
-            criteriaObject[parsedQuestion.criteriaExternalId];
-
-          let section = solutionDocument.sections[parsedQuestion.section];
-
-          if (
-            (parsedQuestion["hasAParentQuestion"] == "YES" &&
-              !questionCollection[parsedQuestion["parentQuestionId"]]) ||
-            (parsedQuestion["instanceParentQuestionId"] !== "NA" &&
-              !questionCollection[parsedQuestion["instanceParentQuestionId"]])
-          ) {
-            pendingItems.push({
-              parsedQuestion: parsedQuestion,
-              criteriaToBeSent: criteria,
-              evaluationFrameworkMethod: ecm,
-              section: section
-            });
-          } else {
-            let question = {};
-
-            if (questionCollection[parsedQuestion["externalId"]]) {
-              question[parsedQuestion["externalId"]] =
-                questionCollection[parsedQuestion["externalId"]];
-            }
-
-            if (
-              parsedQuestion["instanceParentQuestionId"] !== "NA" &&
-              questionCollection[parsedQuestion["instanceParentQuestionId"]]
-            ) {
-              question[parsedQuestion["instanceParentQuestionId"]] =
-                questionCollection[parsedQuestion["instanceParentQuestionId"]];
-            }
-
-            if (
-              parsedQuestion["hasAParentQuestion"] == "YES" &&
-              questionCollection[parsedQuestion["parentQuestionId"]]
-            ) {
-              question[parsedQuestion["parentQuestionId"]] =
-                questionCollection[parsedQuestion["parentQuestionId"]];
-            }
-
-            let resultFromCreateQuestions = await questionsHelper.createQuestions(
-              parsedQuestion,
-              question,
-              criteria,
-              ecm,
-              section
-            );
-
-            if (resultFromCreateQuestions.result) {
-              questionCollection[resultFromCreateQuestions.result.externalId] =
-                resultFromCreateQuestions.result;
-            }
-            input.push(resultFromCreateQuestions.total[0]);
+          if(!parsedQuestion["_SYSTEM_ID"] || parsedQuestion["_SYSTEM_ID"] == "" || !currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]) {
+            parsedQuestion["_STATUS"] = "Invalid Question Internal ID"
+            input.push(parsedQuestion.total[0]);
+            continue
           }
-        }
 
-        if (pendingItems) {
-          for (
-            let pointerToPendingData = 0;
-            pointerToPendingData < pendingItems.length;
-            pointerToPendingData++
-          ) {
-            let question = {};
-            let eachPendingItem = gen.utils.valueParser(
-              pendingItems[pointerToPendingData]
-            );
+          let ecm = (solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]] && solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId) ? solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId : ""
+          let section = (solutionDocument.sections[parsedQuestion.section]) ? solutionDocument.sections[parsedQuestion.section] : ""
 
-            if (
-              questionCollection[eachPendingItem.parsedQuestion["externalId"]]
-            ) {
-              question[eachPendingItem.parsedQuestion["externalId"]] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["externalId"]
-                ];
-            }
-
-            if (
-              eachPendingItem.parsedQuestion["instanceParentQuestionId"] !==
-                "NA" &&
-              questionCollection[
-                eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-              ]
-            ) {
-              question[
-                eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-              ] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-                ];
-            }
-
-            if (
-              eachPendingItem.parsedQuestion["hasAParentQuestion"] == "YES" &&
-              questionCollection[
-                eachPendingItem.parsedQuestion["parentQuestionId"]
-              ]
-            ) {
-              question[eachPendingItem.parsedQuestion["parentQuestionId"]] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["parentQuestionId"]
-                ];
-            }
-            let csvQuestionData = await this.createQuestions(
-              eachPendingItem.parsedQuestion,
-              question,
-              eachPendingItem.criteriaToBeSent,
-              eachPendingItem.evaluationFrameworkMethod,
-              eachPendingItem.section
-            );
-
-            input.push(csvQuestionData.total[0]);
+          if(ecm == "") {
+            parsedQuestion["_STATUS"] = "Invalid Evidence Method Code"
+            continue
           }
+
+          if(section == "") {
+            parsedQuestion["_STATUS"] = "Invalid Section Method Code"
+            continue
+          }
+
+          if (parsedQuestion["hasAParentQuestion"] == "YES" && (parsedQuestion["parentQuestionId"] == "" || !currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]])) {
+            parsedQuestion["_STATUS"] = "Invalid Parent Question ID"
+            continue
+          }
+
+
+          if (parsedQuestion["instanceParentQuestionId"] !== "NA" && !currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]]) {
+            parsedQuestion["_STATUS"] = "Invalid Instance Parent Question ID"
+            continue
+          }
+
+          let currentQuestion = currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]
+
+          if(currentQuestion.criteriaExternalId != parsedQuestion["criteriaExternalId"] || currentQuestion.sectionCode != parsedQuestion["evidenceMethod"] || currentQuestion.evidenceMethodCode != parsedQuestion["section"]) {
+            // remove question from criteria (qid,criteiaid, ecm, section)
+          }          
+
+          if (parsedQuestion["instanceParentQuestionId"] != "" && currentQuestion.instanceParent && currentQuestion.instanceParent != questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]) {
+            // remove instance child from instance parent (childQid,instanceParentQid)
+          }
+
+          if (parsedQuestion["hasAParentQuestion"] == "YES" && parsedQuestion["parentQuestionId"] != "" && currentQuestion.parent && currentQuestion.parent != questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]) {
+            // remove child from parent and , parent from child (childQid,parentQid)
+          }
+
+          let updateQuestion = await questionsHelper.updateQuestion(
+            parsedQuestion,
+            question,
+            criteria,
+            ecm,
+            section
+          );
+
+          input.push(updateQuestion);
+
         }
 
         input.push(null);
+        
       } catch (error) {
         reject({
           message: error
