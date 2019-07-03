@@ -393,7 +393,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/search/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
+     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
      * @apiVersion 0.0.1
      * @apiName Search Entities
      * @apiGroup Observations
@@ -404,14 +404,13 @@ module.exports = class Observations extends Abstract {
      */
 
 
-    async search(req) {
+    async searchEntities(req) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
                 let response = {
-                    message: "Entities fetched successfully",
                     result: {}
                 };
 
@@ -434,11 +433,17 @@ module.exports = class Observations extends Abstract {
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 
-                entityDocuments[0].metaInformation.forEach(metaInformation => {
-                    metaInformation.selected = (observationEntityIds.includes(metaInformation._id.toString())) ? true : false;
+                entityDocuments[0].data.forEach(eachMetaData => {
+                    eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                 })
 
+                let messageData = "Entities fetched successfully"
+                if (!entityDocuments[0].count) {
+                    entityDocuments[0].count = 0
+                    messageData = "No entities found"
+                }
                 response.result = entityDocuments
+                response["message"] = messageData
 
                 return resolve(response);
 

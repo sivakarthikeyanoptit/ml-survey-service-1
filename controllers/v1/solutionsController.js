@@ -1,4 +1,6 @@
 const csv = require("csvtojson");
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
   constructor() {
@@ -229,7 +231,7 @@ module.exports = class Solutions extends Abstract {
 
         updateThemes(newSolutionDocument.themes)
 
-        newSolutionDocument.externalId = frameworkDocument.externalId+"-TEMPLATE"
+        newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE"
 
         newSolutionDocument.frameworkId = frameworkDocument._id
         newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
@@ -324,5 +326,53 @@ module.exports = class Solutions extends Abstract {
     });
   }
 
+  /**
+  * @api {get} /assessment/api/v1/solutions/updateTheme update theme in solutions 
+  * @apiVersion 0.0.1
+  * @apiName update Theme in solutions
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} Id solutionExternalId
+  * @apiParam {File} themeData Mandatory Theme file of type CSV.  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async updateTheme(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        const fileName = `Edit Theme`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        let headerSequence
+        let themeArray = await csv().fromString(req.files.themeData.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let editThemeDocuments = await solutionsHelper.updateTheme("solutions", req.query.Id, themeArray, headerSequence)
+
+        for (let pointerToEditTheme = 0; pointerToEditTheme < editThemeDocuments.length; pointerToEditTheme++) {
+          input.push(editThemeDocuments[pointerToEditTheme])
+        }
+
+        input.push(null)
+
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
 
 };
