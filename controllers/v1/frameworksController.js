@@ -37,10 +37,22 @@ module.exports = class Frameworks extends Abstract {
           });
         })();
 
+
+        let frameworkDocument = await database.models.frameworks
+          .findOne({ externalId: req.params._id }, { _id: 1 })
+          .lean();
+
+        if (!frameworkDocument) {
+          return resolve({
+            status: 404,
+            message: "No framework found."
+          });
+        }
+
         let headerSequence
         let themeArray = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let frameworkThemes = await solutionsHelper.updateTheme("frameworks", req.query.Id, themeArray, headerSequence)
+        let frameworkThemes = await solutionsHelper.updateTheme("frameworks", frameworkDocument._id, themeArray, headerSequence)
 
         for (let pointerToFrameworkTheme = 0; pointerToFrameworkTheme < frameworkThemes.length; pointerToFrameworkTheme++) {
           input.push(frameworkThemes[pointerToFrameworkTheme])
