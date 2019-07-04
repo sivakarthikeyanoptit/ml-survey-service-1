@@ -12,20 +12,20 @@ module.exports = class Frameworks extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/frameworks/updateTheme updateTheme  in frameworks 
-* @apiVersion 0.0.1
-* @apiName updateTheme in frameworks
-* @apiGroup frameworks
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiParam {File} themeData Mandatory Theme file of type CSV.
-* @apiParam {String} Id frameworkExternalId
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async updateTheme(req) {
+  * @api {post} /assessment/api/v1/frameworks/uploadThemes/{frameworkExternalID} Upload Themes For Frameworks
+  * @apiVersion 0.0.1
+  * @apiName Upload Themes For Frameworks
+  * @apiGroup Frameworks
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/frameworks/uploadThemes/:frameworkExternalID
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async uploadThemes(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        const fileName = `Edit Theme`;
+        const fileName = `Theme-Upload-Result`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -38,7 +38,7 @@ module.exports = class Frameworks extends Abstract {
         })();
 
         let headerSequence
-        let themeArray = await csv().fromString(req.files.themeData.data.toString()).on('header', (headers) => { headerSequence = headers });
+        let themeArray = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
         let frameworkThemes = await solutionsHelper.updateTheme("frameworks", req.query.Id, themeArray, headerSequence)
 
