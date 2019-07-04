@@ -180,7 +180,7 @@ module.exports = class solutionsHelper {
                     label: themeKey,
                     type: firstThemeKey === themeKey ? "theme" : "subtheme",
                     externalId: themesSplittedArray[1],
-                    weightage: themesSplittedArray[2] ? themesSplittedArray[2] : 0
+                    weightage: themesSplittedArray[2] ? parseInt(themesSplittedArray[2]) : 0
                   }
                 }
               } else {
@@ -188,7 +188,7 @@ module.exports = class solutionsHelper {
                 if (criteriaArray.includes(themesSplittedArray[0])) {
                   result[themeKey] = {
                     criteriaId: ObjectId(themesSplittedArray[0]),
-                    weightage: themesSplittedArray[1] ? themesSplittedArray[1] : 0,
+                    weightage: themesSplittedArray[1] ? parseInt(themesSplittedArray[1]) : 0,
                   }
                 } else {
                   csvObject["status"] = "Criteria is not Present"
@@ -250,6 +250,11 @@ module.exports = class solutionsHelper {
         let checkCsvArray = csvArray.every(csvData => csvData.status === "")
 
         if (checkCsvArray) {
+
+          csvArray = csvArray.map(csvData => {
+            csvData.status = "success"
+            return csvData
+          })
 
           let nestedThemeObject = generateNestedThemes(modifiedThemes, headerSequence)
 
