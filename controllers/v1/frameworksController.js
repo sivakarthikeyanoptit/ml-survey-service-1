@@ -51,9 +51,9 @@ module.exports = class Frameworks extends Abstract {
         }
 
         let headerSequence
-        let themeArray = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
+        let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let frameworkThemes = await solutionsHelper.uploadTheme("frameworks", frameworkDocument._id, themeArray, headerSequence)
+        let frameworkThemes = await solutionsHelper.uploadTheme("frameworks", frameworkDocument._id, themes, headerSequence)
 
         for (let pointerToFrameworkTheme = 0; pointerToFrameworkTheme < frameworkThemes.length; pointerToFrameworkTheme++) {
           input.push(frameworkThemes[pointerToFrameworkTheme])
