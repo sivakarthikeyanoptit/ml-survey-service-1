@@ -17,7 +17,8 @@ module.exports = class Frameworks extends Abstract {
   * @apiName Upload Themes For Frameworks
   * @apiGroup Frameworks
   * @apiParam {File} themes Mandatory file upload with themes data.
-  * @apiSampleRequest /assessment/api/v1/frameworks/uploadThemes/:frameworkExternalID
+  * @apiSampleRequest /assessment/api/v1/frameworks/uploadThemes/EF-DCPCR-2018-001
+  * @apiHeader {String} X-authenticated-user-token Authenticity token  
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -52,7 +53,7 @@ module.exports = class Frameworks extends Abstract {
         let headerSequence
         let themeArray = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let frameworkThemes = await solutionsHelper.updateTheme("frameworks", frameworkDocument._id, themeArray, headerSequence)
+        let frameworkThemes = await solutionsHelper.uploadTheme("frameworks", frameworkDocument._id, themeArray, headerSequence)
 
         for (let pointerToFrameworkTheme = 0; pointerToFrameworkTheme < frameworkThemes.length; pointerToFrameworkTheme++) {
           input.push(frameworkThemes[pointerToFrameworkTheme])

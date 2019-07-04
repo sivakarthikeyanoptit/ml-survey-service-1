@@ -241,7 +241,7 @@ module.exports = class Solutions extends Abstract {
         newSolutionDocument.isReusable = true
 
         let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
-        
+
         let newSolutionId
 
         if (newBaseSolutionId._id) {
@@ -327,21 +327,21 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/solutions/updateTheme update theme in solutions 
+  * @api {post} /assessment/api/v1/solutions/uploadThemes/{solutionsExternalID} Upload Themes For Solutions
   * @apiVersion 0.0.1
-  * @apiName update Theme in solutions
+  * @apiName Upload Themes in Solutions
   * @apiGroup Solutions
-  * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} Id solutionExternalId
-  * @apiParam {File} themeData Mandatory Theme file of type CSV.  
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/uploadThemes/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
   * @apiUse successBody
   * @apiUse errorBody
   */
-  async updateTheme(req) {
+  async uploadThemes(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        const fileName = `Edit Theme`;
+        const fileName = `Solution-Upload-Result`;
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
@@ -353,13 +353,24 @@ module.exports = class Solutions extends Abstract {
           });
         })();
 
+        let solutionDocument = await database.models.solutions
+          .findOne({ externalId: req.params._id }, { _id: 1 })
+          .lean();
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 404,
+            message: "No solution found."
+          });
+        }
+
         let headerSequence
-        let themeArray = await csv().fromString(req.files.themeData.data.toString()).on('header', (headers) => { headerSequence = headers });
+        let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let editThemeDocuments = await solutionsHelper.updateTheme("solutions", req.query.Id, themeArray, headerSequence)
+        let solutionThemes = await solutionsHelper.uploadTheme("solutions", solutionDocument._id, themes, headerSequence)
 
-        for (let pointerToEditTheme = 0; pointerToEditTheme < editThemeDocuments.length; pointerToEditTheme++) {
-          input.push(editThemeDocuments[pointerToEditTheme])
+        for (let pointerToEditTheme = 0; pointerToEditTheme < solutionThemes.length; pointerToEditTheme++) {
+          input.push(solutionThemes[pointerToEditTheme])
         }
 
         input.push(null)
