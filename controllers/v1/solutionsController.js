@@ -386,4 +386,59 @@ module.exports = class Solutions extends Abstract {
     })
   }
 
+  /**
+* @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
+* @apiVersion 0.0.1
+* @apiName update Solutions
+* @apiGroup Solutions
+* @apiParam {File} Mandatory solution file of type json.
+* @apiSampleRequest /assessment/api/v1/solutions/update
+* @apiHeader {String} X-authenticated-user-token Authenticity token  
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
+  async update(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+
+        let solutionData = JSON.parse(req.files.solution.data.toString());
+
+        let queryObject = {
+          externalId: req.query.solutionExternalId
+        };
+
+        let solutionDocument = await database.models.solutions.findOne(queryObject, { themes: 0 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution doesnot exist"
+          });
+        }
+
+        let updateObject = _.merge(_.omit(solutionDocument, "createdAt"), solutionData)
+
+        updateObject.updatedBy = req.userDetails.id
+
+        await database.models.solutions.findOneAndUpdate({
+          _id: solutionDocument._id
+        }, updateObject)
+
+        return resolve({
+          status: 200,
+          message: "Solution updated successfully."
+        });
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
+
 };

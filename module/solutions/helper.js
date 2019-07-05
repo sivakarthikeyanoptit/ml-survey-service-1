@@ -276,4 +276,67 @@ module.exports = class solutionsHelper {
     });
   }
 
+  static search(entityTypeId, searchText, pageSize, pageNo, type) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionDocument = []
+
+        let matchQuery = {}
+        matchQuery["$match"] = {}
+        matchQuery["$match"]["entityTypeId"] = ObjectId(entityTypeId);
+        matchQuery["$match"]["type"] = type
+        matchQuery["$match"]["isReusable"] = true
+
+        let projection1 = {}
+        projection1["$project"] = {
+          name: 1,
+          description: 1,
+          keywords: 1,
+          externalId: 1,
+          programId: 1,
+          entityTypeId: 1
+        };
+
+        let facetQuery = {}
+        facetQuery["$facet"] = {}
+
+        facetQuery["$facet"]["totalCount"] = [
+          { "$count": "count" }
+        ]
+
+        facetQuery["$facet"]["data"] = [{
+          $unwind: "$externalId"
+        }]
+
+        let projection2 = {}
+        projection2["$project"] = {
+          "data": 1,
+          "count": {
+            $arrayElemAt: ["$totalCount.count", 0]
+          }
+        }
+
+        if (searchText && pageSize && pageNo) {
+
+          matchQuery["$match"]["$or"] = []
+          matchQuery["$match"]["$or"].push({ "name": new RegExp(searchText, 'i') }, { "description": new RegExp(searchText, 'i') }, { "keywords": new RegExp(searchText, 'i') })
+
+          facetQuery["$facet"]["data"] = [
+            { $skip: pageSize * (pageNo - 1) },
+            { $limit: pageSize }
+          ]
+        }
+
+        solutionDocument.push(matchQuery, projection1, facetQuery, projection2)
+
+        let solutionDocuments = await database.models.solutions.aggregate(solutionDocument)
+
+        return resolve(solutionDocuments)
+
+      } catch (error) {
+        return reject(error);
+      }
+    })
+  }
 };

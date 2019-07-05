@@ -2,6 +2,7 @@ const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -9,13 +10,14 @@ module.exports = class Observations extends Abstract {
         super(observationsSchema);
     }
 
+
     /**
-    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId Observation Solution
+    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
     * @apiVersion 0.0.1
     * @apiName Observation Solution
     * @apiGroup Observations
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/observations/solutions
+    * @apiSampleRequest /assessment/api/v1/observations/solutions/5cd955487e100b4dded3ebb3?search=Framework&pageSize=10&pageNo=1
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -26,22 +28,24 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                let solutionsData = await database.models.solutions.find({
-                    entityTypeId: req.params._id,
-                    type: "observation",
-                    isReusable: true
-                }, {
-                        name: 1,
-                        description: 1,
-                        externalId: 1,
-                        programId: 1,
-                        entityTypeId: 1
-                    }).lean();
+                let response = {}
+                let messageData
+                let solutionDocument
 
-                return resolve({
-                    message: "Solution list fetched successfully.",
-                    result: solutionsData
-                });
+                solutionDocument = await solutionsHelper.search(req.params._id, req.searchText, req.pageSize, req.pageNo, "observation")
+
+
+                messageData = "Solutions fetched successfully"
+
+                if (!solutionDocument[0].count) {
+                    solutionDocument[0].count = 0
+                    messageData = "Solution is not found"
+                }
+
+                response.result = solutionDocument
+                response["message"] = messageData
+
+                return resolve(response);
 
             } catch (error) {
                 return reject({
@@ -214,20 +218,20 @@ module.exports = class Observations extends Abstract {
 
                     submissions = await database.models.observationSubmissions.find(
                         {
-                          entityId: {
-                            $in: observation.entities
-                          },
-                          observationId:observation._id
+                            entityId: {
+                                $in: observation.entities
+                            },
+                            observationId: observation._id
                         },
                         {
-                          "entityId": 1,
-                          "status": 1
+                            "entityId": 1,
+                            "status": 1
                         }
                     )
 
 
                     entityObservationSubmissionStatus = submissions.reduce(
-                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
+                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: { submissionStatus: (entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending" } }), {})
 
 
                     observation.entities = new Array

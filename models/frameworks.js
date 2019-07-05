@@ -11,10 +11,13 @@ module.exports = {
     keywords: Array,
     concepts: Array,
     createdFor: Array,
-    scoringSystem : String,
-    levelToScoreMapping : Object,
+    scoringSystem: String,
+    levelToScoreMapping: Object,
     themes: Array,
     noOfRatingLevels: Number,
-    isRubricDriven: Boolean
+    isRubricDriven: Boolean,
+    updatedBy: String,
+    isDeleted: Boolean,
+    createdBy: String
   }
 };
