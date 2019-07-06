@@ -363,7 +363,7 @@ module.exports = class questionsHelper {
 
 
                 if(parsedQuestion["questionGroup"]) {
-                  existingQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',')
+                  existingQuestion["questionGroup"] = parsedQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',')
                 }
 
                 existingQuestion["options"] = new Array
@@ -415,11 +415,12 @@ module.exports = class questionsHelper {
                   }
       
 
-                  if (parsedQuestion["_instanceParentQuestionId"] != "") {
+                  if (parsedQuestion["_instanceParentQuestionId"] != "" && parsedQuestion["responseType"] != "matrix") {
       
                     await database.models.questions.findOneAndUpdate(
                       {
-                        _id : parsedQuestion["_instanceParentQuestionId"]
+                        _id : parsedQuestion["_instanceParentQuestionId"],
+                        responseType : "matrix"
                       },
                       {
                           $addToSet: {
