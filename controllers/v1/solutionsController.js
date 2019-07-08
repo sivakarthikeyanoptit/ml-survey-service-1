@@ -418,6 +418,14 @@ module.exports = class Solutions extends Abstract {
           });
         }
 
+        let solutionMandatoryField = solutionsHelper.mandatoryField()
+
+        Object.keys(solutionMandatoryField).forEach(eachSolutionMandatoryField => {
+          if (solutionDocument[eachSolutionMandatoryField] === undefined && solutionData[eachSolutionMandatoryField] === undefined) {
+            solutionData[eachSolutionMandatoryField] = solutionMandatoryField[eachSolutionMandatoryField]
+          }
+        })
+
         let updateObject = _.merge(_.omit(solutionDocument, "createdAt"), solutionData)
 
         updateObject.updatedBy = req.userDetails.id

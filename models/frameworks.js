@@ -18,6 +18,8 @@ module.exports = {
     isRubricDriven: Boolean,
     updatedBy: String,
     isDeleted: Boolean,
-    createdBy: String
+    createdBy: String,
+    entityTypeId: "ObjectId",
+    entityType: String
   }
 };

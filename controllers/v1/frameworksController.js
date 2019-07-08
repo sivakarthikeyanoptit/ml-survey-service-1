@@ -1,4 +1,5 @@
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const frameworksHelper = require(ROOT_PATH + "/module/frameworks/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 
@@ -90,16 +91,49 @@ module.exports = class Frameworks extends Abstract {
 
         let frameworkData = JSON.parse(req.files.framework.data.toString());
 
+        if (!frameworkData.externalId) {
+          throw "External Id for framework is required"
+        }
+
+        if (!frameworkData.name) {
+          throw "Name for framework is required"
+        }
+
+        if (!frameworkData.description) {
+          throw "Description for framework is required"
+        }
+        if (!frameworkData.entityType) {
+          throw "Entity Type for framework is required"
+        }
+
+        let entityDocument = await database.models.entityTypes.findOne({
+          name: frameworkData.entityType
+        }, { _id: 1 }).lean()
+
         let queryObject = {
-          externalId: frameworkData.externalId
+          externalId: frameworkData.externalId,
+          name: frameworkData.name,
+          description: frameworkData.description,
+          entityType: frameworkData.entityType
         };
 
+
+        let frameworkMandatoryFields = frameworksHelper.mandatoryField()
+
         let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 }).lean()
+
 
         if (frameworkDocument) {
           throw "Framework already exists"
         }
 
+        Object.keys(frameworkMandatoryFields).forEach(eachMandatoryField => {
+          if (frameworkData[eachMandatoryField] === undefined) {
+            frameworkData[eachMandatoryField] = frameworkMandatoryFields[eachMandatoryField]
+          }
+        })
+
+        frameworkData["entityTypeId"] = entityDocument._id
         frameworkData["createdBy"] = req.userDetails.id
         frameworkData.isDeleted = false
 

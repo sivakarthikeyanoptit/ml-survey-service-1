@@ -339,4 +339,144 @@ module.exports = class solutionsHelper {
       }
     })
   }
+
+  static mandatoryField() {
+
+    let mandatoryFields = {
+      type: "assessment",
+      subType: "institutional",
+
+      status: "active",
+
+      isDeleted: false,
+
+      roles: {
+        projectManagers: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        },
+        leadAssessors: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        },
+        assessors: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        }
+      },
+
+      evidenceMethods: {
+        LW: {
+          "externalId": "LW",
+          "tip": "Some tip for the criteria.",
+          "name": "Learning Walk",
+          "description": "Criteria description",
+          "modeOfCollection": "onfield",
+          "canBeNotApplicable": true,
+          "notApplicable": false,
+          "canBeNotAllowed": true,
+          "remarks": ""
+        }
+      },
+      registry: [
+        "schoolLeader",
+        "teacher"
+      ],
+      type: "assessment",
+      subType: "institutional",
+      entityProfileFieldsPerEntityTypes: {
+        "A1": [
+          "externalId",
+          "emailId",
+          "addressLine1",
+          "addressLine2",
+          "city",
+          "name",
+          "phone",
+          "principalName",
+          "pincode",
+          "administration",
+          "gender",
+          "shift",
+          "types",
+          "totalStudents",
+          "totalBoys",
+          "totalGirls",
+          "lowestGrade",
+          "highestGrade",
+          "gpsLocation",
+          "totalSection",
+          "totalTeachersPresentInTheSchool",
+          "totalEnglishTeachers",
+          "totalHindiTeachers",
+          "totalMathsTeachers",
+          "totalScienceTeachers",
+          "totalSocialTeachers",
+          "totalSocialScienceTeachers",
+          "totalComputerTeachers",
+          "totalStudentsInGrade9",
+          "totalStudentsInGrade10",
+          "totalStudentsInGrade11",
+          "totalStudentsInGrade12",
+          "mediumOfInstruction"
+        ],
+        "A3": [
+          "totalSanctionedTeachingPosts",
+          "totalFilledTeachingPosts",
+          "totalPermanentTeachers",
+          "totalGuestTeachers"
+        ],
+        "A4": [
+          "totalPrimaryTeachersHavingDiploma",
+          "totalTeachersTeaching6to10",
+          "totalCTETQualifiedTeachers",
+          "totalStudentsAdmittedIn2018-19InLowestClass",
+          "totalEWS/DGStudentsStudyingIn2018-19InLowestClass",
+          "totalStudentsAdmittedLastYearInLowestClass",
+          "totalEWS/DGStudentsAdmittedLastYearInLowestClass",
+          "totalEWS/DGStudentsCurrentlyStudyingInSecondLowestClass"
+        ],
+        "A5": [
+          "totalPhysicsTeachers",
+          "totalChemistryTeachers",
+          "totalBiologyTeachers",
+          "totalEconomicsTeachers",
+          "totalPoliticalScienceTeachers",
+          "totalAccountsTeachers",
+          "totalBusinessStudiesTeachers",
+          "totalHistoryTeachers",
+          "totalGeographyTeachers",
+          "streamOffered"
+        ]
+      }
+
+    }
+
+    return mandatoryFields
+
+  }
 };
