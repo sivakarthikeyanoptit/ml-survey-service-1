@@ -36,7 +36,7 @@ module.exports = class Observations extends Abstract {
                 matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
                 matchQuery["$match"]["type"] = "observation"
                 matchQuery["$match"]["isReusable"] = true
-                matchQuery["$match"]["isReusable"] = "active"
+                matchQuery["$match"]["status"] = "active"
 
                 matchQuery["$match"]["$or"] = []
                 matchQuery["$match"]["$or"].push({ "name": new RegExp(req.searchText, 'i') }, { "description": new RegExp(req.searchText, 'i') }, { "keywords": new RegExp(req.searchText, 'i') })
