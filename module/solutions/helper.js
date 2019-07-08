@@ -276,7 +276,7 @@ module.exports = class solutionsHelper {
     });
   }
 
-  static search(entityTypeId = "notRequired", searchText, pageSize, pageNo, type) {
+  static search(entityTypeId = "", type, paginationData) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -285,7 +285,7 @@ module.exports = class solutionsHelper {
         let matchQuery = {}
         matchQuery["$match"] = {}
 
-        if (entityTypeId !== "notRequired") {
+        if (entityTypeId !== "") {
           matchQuery["$match"]["entityTypeId"] = ObjectId(entityTypeId);
         }
 
@@ -309,9 +309,10 @@ module.exports = class solutionsHelper {
           { "$count": "count" }
         ]
 
-        facetQuery["$facet"]["data"] = [{
-          $unwind: "$externalId"
-        }]
+        facetQuery["$facet"]["data"] = [
+          { $skip: paginationData.pageSize * (paginationData.pageNo - 1) },
+          { $limit: paginationData.pageSize }
+        ]
 
         let projection2 = {}
         projection2["$project"] = {
@@ -321,16 +322,11 @@ module.exports = class solutionsHelper {
           }
         }
 
-        if (searchText && pageSize && pageNo) {
-
+        if (paginationData.searchText) {
           matchQuery["$match"]["$or"] = []
-          matchQuery["$match"]["$or"].push({ "name": new RegExp(searchText, 'i') }, { "description": new RegExp(searchText, 'i') }, { "keywords": new RegExp(searchText, 'i') })
-
-          facetQuery["$facet"]["data"] = [
-            { $skip: pageSize * (pageNo - 1) },
-            { $limit: pageSize }
-          ]
+          matchQuery["$match"]["$or"].push({ "name": new RegExp(paginationData.searchText, 'i') }, { "description": new RegExp(paginationData.searchText, 'i') }, { "keywords": new RegExp(paginationData.searchText, 'i') })
         }
+
 
         solutionDocument.push(matchQuery, projection1, facetQuery, projection2)
 
@@ -353,6 +349,7 @@ module.exports = class solutionsHelper {
       status: "active",
 
       isDeleted: false,
+      isReusable: false,
 
       roles: {
         projectManagers: {
@@ -393,89 +390,13 @@ module.exports = class solutionsHelper {
         }
       },
 
-      evidenceMethods: {
-        LW: {
-          "externalId": "LW",
-          "tip": "Some tip for the criteria.",
-          "name": "Learning Walk",
-          "description": "Criteria description",
-          "modeOfCollection": "onfield",
-          "canBeNotApplicable": true,
-          "notApplicable": false,
-          "canBeNotAllowed": true,
-          "remarks": ""
-        }
-      },
-      registry: [
-        "schoolLeader",
-        "teacher"
-      ],
+      evidenceMethods: {},
+      sections: {},
+      registry: [],
       type: "assessment",
       subType: "institutional",
       entityProfileFieldsPerEntityTypes: {
-        "A1": [
-          "externalId",
-          "emailId",
-          "addressLine1",
-          "addressLine2",
-          "city",
-          "name",
-          "phone",
-          "principalName",
-          "pincode",
-          "administration",
-          "gender",
-          "shift",
-          "types",
-          "totalStudents",
-          "totalBoys",
-          "totalGirls",
-          "lowestGrade",
-          "highestGrade",
-          "gpsLocation",
-          "totalSection",
-          "totalTeachersPresentInTheSchool",
-          "totalEnglishTeachers",
-          "totalHindiTeachers",
-          "totalMathsTeachers",
-          "totalScienceTeachers",
-          "totalSocialTeachers",
-          "totalSocialScienceTeachers",
-          "totalComputerTeachers",
-          "totalStudentsInGrade9",
-          "totalStudentsInGrade10",
-          "totalStudentsInGrade11",
-          "totalStudentsInGrade12",
-          "mediumOfInstruction"
-        ],
-        "A3": [
-          "totalSanctionedTeachingPosts",
-          "totalFilledTeachingPosts",
-          "totalPermanentTeachers",
-          "totalGuestTeachers"
-        ],
-        "A4": [
-          "totalPrimaryTeachersHavingDiploma",
-          "totalTeachersTeaching6to10",
-          "totalCTETQualifiedTeachers",
-          "totalStudentsAdmittedIn2018-19InLowestClass",
-          "totalEWS/DGStudentsStudyingIn2018-19InLowestClass",
-          "totalStudentsAdmittedLastYearInLowestClass",
-          "totalEWS/DGStudentsAdmittedLastYearInLowestClass",
-          "totalEWS/DGStudentsCurrentlyStudyingInSecondLowestClass"
-        ],
-        "A5": [
-          "totalPhysicsTeachers",
-          "totalChemistryTeachers",
-          "totalBiologyTeachers",
-          "totalEconomicsTeachers",
-          "totalPoliticalScienceTeachers",
-          "totalAccountsTeachers",
-          "totalBusinessStudiesTeachers",
-          "totalHistoryTeachers",
-          "totalGeographyTeachers",
-          "streamOffered"
-        ]
+        "A1": []
       }
 
     }

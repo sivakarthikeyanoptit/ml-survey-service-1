@@ -31,8 +31,13 @@ module.exports = class Observations extends Abstract {
                 let response = {}
                 let messageData
                 let solutionDocument
+                let paginationData = {
+                    searchText: req.searchText ? req.searchText : "",
+                    pageSize: req.pageSize ? req.pageSize : 100,
+                    pageNo: req.pageNo ? req.pageNo : 1
+                }
 
-                solutionDocument = await solutionsHelper.search(req.params._id, req.searchText, req.pageSize, req.pageNo, "observation")
+                solutionDocument = await solutionsHelper.search(req.params._id, "observation", paginationData)
 
 
                 messageData = "Solutions fetched successfully"
