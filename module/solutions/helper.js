@@ -276,4 +276,116 @@ module.exports = class solutionsHelper {
     });
   }
 
+  static search(filteredData, pageSize, pageNo) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionDocument = []
+
+        let projection1 = {}
+        projection1["$project"] = {
+          name: 1,
+          description: 1,
+          keywords: 1,
+          externalId: 1,
+          programId: 1,
+          entityTypeId: 1
+        };
+
+        let facetQuery = {}
+        facetQuery["$facet"] = {}
+
+        facetQuery["$facet"]["totalCount"] = [
+          { "$count": "count" }
+        ]
+
+        facetQuery["$facet"]["data"] = [
+          { $skip: pageSize * (pageNo - 1) },
+          { $limit: pageSize }
+        ]
+
+        let projection2 = {}
+        projection2["$project"] = {
+          "data": 1,
+          "count": {
+            $arrayElemAt: ["$totalCount.count", 0]
+          }
+        }
+
+        solutionDocument.push(filteredData, projection1, facetQuery, projection2)
+
+        let solutionDocuments = await database.models.solutions.aggregate(solutionDocument)
+
+        return resolve(solutionDocuments)
+
+      } catch (error) {
+        return reject(error);
+      }
+    })
+  }
+
+  static mandatoryField() {
+
+    let mandatoryFields = {
+      type: "assessment",
+      subType: "institutional",
+
+      status: "active",
+
+      isDeleted: false,
+      isReusable: false,
+
+      roles: {
+        projectManagers: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        },
+        leadAssessors: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        },
+        assessors: {
+          acl: {
+            entityProfile: {
+              editable: [
+                "all"
+              ],
+              visible: [
+                "all"
+              ]
+            }
+          }
+        }
+      },
+
+      evidenceMethods: {},
+      sections: {},
+      registry: [],
+      type: "assessment",
+      subType: "institutional",
+      entityProfileFieldsPerEntityTypes: {
+        "A1": []
+      }
+
+    }
+
+    return mandatoryFields
+
+  }
 };

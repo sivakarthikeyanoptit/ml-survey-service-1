@@ -1,4 +1,5 @@
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const frameworksHelper = require(ROOT_PATH + "/module/frameworks/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 
@@ -60,6 +61,142 @@ module.exports = class Frameworks extends Abstract {
         }
 
         input.push(null)
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
+
+  /**
+ * @api {post} /assessment/api/v1/frameworks/create create Frameworks
+ * @apiVersion 0.0.1
+ * @apiName create Frameworks
+ * @apiGroup Frameworks
+ * @apiParam {File} Mandatory framework file of type json.
+ * @apiSampleRequest /assessment/api/v1/frameworks/create
+ * @apiHeader {String} X-authenticated-user-token Authenticity token  
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
+  async create(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+
+        let frameworkData = JSON.parse(req.files.framework.data.toString());
+
+        if (!frameworkData.externalId) {
+          throw "External Id for framework is required"
+        }
+
+        if (!frameworkData.name) {
+          throw "Name for framework is required"
+        }
+
+        if (!frameworkData.description) {
+          throw "Description for framework is required"
+        }
+        if (!frameworkData.entityType) {
+          throw "Entity Type for framework is required"
+        }
+
+        let entityDocument = await database.models.entityTypes.findOne({
+          name: frameworkData.entityType
+        }, { _id: 1 }).lean()
+
+        let queryObject = {
+          externalId: frameworkData.externalId,
+          name: frameworkData.name,
+          description: frameworkData.description,
+          entityType: frameworkData.entityType
+        };
+
+
+        let frameworkMandatoryFields = frameworksHelper.mandatoryField()
+
+        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 }).lean()
+
+
+        if (frameworkDocument) {
+          throw "Framework already exists"
+        }
+
+        Object.keys(frameworkMandatoryFields).forEach(eachMandatoryField => {
+          if (frameworkData[eachMandatoryField] === undefined) {
+            frameworkData[eachMandatoryField] = frameworkMandatoryFields[eachMandatoryField]
+          }
+        })
+
+        frameworkData["entityTypeId"] = entityDocument._id
+        frameworkData["createdBy"] = req.userDetails.id
+        frameworkData.isDeleted = false
+
+        frameworkDocument = await database.models.frameworks.create(frameworkData)
+
+        return resolve({
+          status: 200,
+          message: "Framework inserted successfully."
+        });
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
+
+  /**
+* @api {post} /assessment/api/v1/frameworks/update?frameworkExternalId={frameworkExternalId} Update Frameworks
+* @apiVersion 0.0.1
+* @apiName update Frameworks
+* @apiGroup Frameworks
+* @apiParam {File} Mandatory framework file of type json.
+* @apiSampleRequest /assessment/api/v1/frameworks/update?frameworkExternalId=TAF-2019
+* @apiHeader {String} X-authenticated-user-token Authenticity token  
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
+  async update(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+
+        let frameworkData = JSON.parse(req.files.framework.data.toString());
+
+        let queryObject = {
+          externalId: req.query.frameworkExternalId
+        };
+
+        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { themes: 0 }).lean()
+
+        if (!frameworkDocument) {
+          return resolve({
+            status: 400,
+            message: "Framework doesnot exist"
+          });
+        }
+
+        let updateObject = _.merge(_.omit(frameworkDocument, "createdAt"), frameworkData)
+        updateObject.updatedBy = req.userDetails.id
+
+        frameworkDocument = await database.models.frameworks.findOneAndUpdate({
+          _id: frameworkDocument._id
+        }, updateObject)
+
+        return resolve({
+          status: 200,
+          message: "Framework updated successfully."
+        });
       }
       catch (error) {
         reject({
