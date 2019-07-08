@@ -276,7 +276,7 @@ module.exports = class solutionsHelper {
     });
   }
 
-  static search(entityTypeId, searchText, pageSize, pageNo, type) {
+  static search(entityTypeId = "notRequired", searchText, pageSize, pageNo, type) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -284,7 +284,11 @@ module.exports = class solutionsHelper {
 
         let matchQuery = {}
         matchQuery["$match"] = {}
-        matchQuery["$match"]["entityTypeId"] = ObjectId(entityTypeId);
+
+        if (entityTypeId !== "notRequired") {
+          matchQuery["$match"]["entityTypeId"] = ObjectId(entityTypeId);
+        }
+
         matchQuery["$match"]["type"] = type
         matchQuery["$match"]["isReusable"] = true
 
