@@ -276,21 +276,11 @@ module.exports = class solutionsHelper {
     });
   }
 
-  static search(entityTypeId = "", type, paginationData) {
+  static search(filteredData, pageSize, pageNo) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let solutionDocument = []
-
-        let matchQuery = {}
-        matchQuery["$match"] = {}
-
-        if (entityTypeId !== "") {
-          matchQuery["$match"]["entityTypeId"] = ObjectId(entityTypeId);
-        }
-
-        matchQuery["$match"]["type"] = type
-        matchQuery["$match"]["isReusable"] = true
 
         let projection1 = {}
         projection1["$project"] = {
@@ -310,8 +300,8 @@ module.exports = class solutionsHelper {
         ]
 
         facetQuery["$facet"]["data"] = [
-          { $skip: paginationData.pageSize * (paginationData.pageNo - 1) },
-          { $limit: paginationData.pageSize }
+          { $skip: pageSize * (pageNo - 1) },
+          { $limit: pageSize }
         ]
 
         let projection2 = {}
@@ -322,13 +312,7 @@ module.exports = class solutionsHelper {
           }
         }
 
-        if (paginationData.searchText) {
-          matchQuery["$match"]["$or"] = []
-          matchQuery["$match"]["$or"].push({ "name": new RegExp(paginationData.searchText, 'i') }, { "description": new RegExp(paginationData.searchText, 'i') }, { "keywords": new RegExp(paginationData.searchText, 'i') })
-        }
-
-
-        solutionDocument.push(matchQuery, projection1, facetQuery, projection2)
+        solutionDocument.push(filteredData, projection1, facetQuery, projection2)
 
         let solutionDocuments = await database.models.solutions.aggregate(solutionDocument)
 

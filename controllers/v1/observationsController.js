@@ -30,14 +30,18 @@ module.exports = class Observations extends Abstract {
 
                 let response = {}
                 let messageData
+                let matchQuery = {}
 
-                let paginationData = {
-                    searchText: req.searchText ? req.searchText : "",
-                    pageSize: req.pageSize ? req.pageSize : 100,
-                    pageNo: req.pageNo ? req.pageNo : 1
-                }
+                matchQuery["$match"] = {}
+                matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+                matchQuery["$match"]["type"] = "observation"
+                matchQuery["$match"]["isReusable"] = true
+                matchQuery["$match"]["isReusable"] = "active"
 
-                let solutionDocument = await solutionsHelper.search(req.params._id, "observation", paginationData)
+                matchQuery["$match"]["$or"] = []
+                matchQuery["$match"]["$or"].push({ "name": new RegExp(req.searchText, 'i') }, { "description": new RegExp(req.searchText, 'i') }, { "keywords": new RegExp(req.searchText, 'i') })
+
+                let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo)
 
 
                 messageData = "Solutions fetched successfully"
