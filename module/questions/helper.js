@@ -134,13 +134,18 @@ module.exports = class questionsHelper {
                 allValues["value"] = ""
       
                 for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
-                  let responseValue = "R"+pointerToResponseCount
+                  let optionValue = "R"+pointerToResponseCount
+                  let optionHint = "R"+pointerToResponseCount+"-hint"
       
-                  if(parsedQuestion[responseValue] && parsedQuestion[responseValue] != ""){
-                    allValues.options.push({
-                      value:responseValue,
-                      label:parsedQuestion[responseValue]
-                    })
+                  if(parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
+                    let eachOption = {
+                      value:optionValue,
+                      label:parsedQuestion[optionValue]
+                    }
+                    if(parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
+                      eachOption.hint = parsedQuestion[optionHint]
+                    }
+                    allValues.options.push(eachOption)
                   }
                 }
           
@@ -369,14 +374,20 @@ module.exports = class questionsHelper {
               existingQuestion["options"] = new Array
     
               for(let pointerToResponseCount=1;pointerToResponseCount<10;pointerToResponseCount++){
-                let responseValue = "R"+pointerToResponseCount
+                let optionValue = "R"+pointerToResponseCount
+                let optionHint = "R"+pointerToResponseCount+"-hint"
     
-                if(parsedQuestion[responseValue] && parsedQuestion[responseValue] != ""){
-                  existingQuestion.options.push({
-                    value:responseValue,
-                    label:parsedQuestion[responseValue]
-                  })
+                if(parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
+                  let eachOption = {
+                    value:optionValue,
+                    label:parsedQuestion[optionValue]
+                  }
+                  if(parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
+                    eachOption.hint = parsedQuestion[optionHint]
+                  }
+                  existingQuestion.options.push(eachOption)
                 }
+                
               }
         
               Object.keys(parsedQuestion).forEach(parsedQuestionData=>{
