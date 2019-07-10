@@ -110,9 +110,14 @@ module.exports = class questionsHelper {
               
                   allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
                   allValues.file["type"] = new Array
-                  allValues.file.type.push(parsedQuestion["fileUploadType"])
-                  allValues.file["minCount"] = parsedQuestion["minFileCount"]
-                  allValues.file["maxCount"] = parsedQuestion["maxFileCount"]
+                  let allowedFileUploads = this.allowedFileUploads()
+                  parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
+                    if(allowedFileUploads[fileType] && allowedFileUploads[fileType] != "") {
+                      allValues.file.type.push(allowedFileUploads[fileType])
+                    }
+                  })
+                  allValues.file["minCount"] = parseInt(parsedQuestion["minFileCount"])
+                  allValues.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"])
                   allValues.file["caption"] = parsedQuestion["caption"]
                 }
       
@@ -347,17 +352,24 @@ module.exports = class questionsHelper {
       
               }
       
-              existingQuestion["fileName"] = []
+              existingQuestion["fileName"] = new Array
               existingQuestion["file"] = {}
     
               if(parsedQuestion["file"] != "NA") {
             
                 existingQuestion.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
                 existingQuestion.file["type"] = new Array
-                existingQuestion.file.type.push(parsedQuestion["fileUploadType"])
-                existingQuestion.file["minCount"] = parsedQuestion["minFileCount"]
-                existingQuestion.file["maxCount"] = parsedQuestion["maxFileCount"]
+                let allowedFileUploads = this.allowedFileUploads()
+                parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
+                  if(allowedFileUploads[fileType] && allowedFileUploads[fileType] != "") {
+                    existingQuestion.file.type.push(allowedFileUploads[fileType])
+                  }
+                })
+                existingQuestion.file["minCount"] = parseInt(parsedQuestion["minFileCount"])
+                existingQuestion.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"])
                 existingQuestion.file["caption"] = parsedQuestion["caption"]
+
+                parsedQuestion["file"] = existingQuestion.file
               }
 
               if(parsedQuestion["showRemarks"] && (parsedQuestion["showRemarks"] == "true" || parsedQuestion["showRemarks"] == "TRUE")) {
@@ -387,7 +399,7 @@ module.exports = class questionsHelper {
                   }
                   existingQuestion.options.push(eachOption)
                 }
-                
+
               }
         
               Object.keys(parsedQuestion).forEach(parsedQuestionData=>{
@@ -504,6 +516,44 @@ module.exports = class questionsHelper {
               return reject(error);
           }
       })
+
+  }
+
+
+  static allowedFileUploads() {
+
+    // Key is what is supplied in CSV and value is what is sent to app
+    let fileTypes = {
+      "image/jpeg":"image/jpeg",
+      "aif": "aif",
+      "cda": "cda",
+      "mp3": "mp3",
+      "mpa": "mpa",
+      "ogg": "ogg",
+      "wav": "wav",
+      "wma": "wma",
+      "mp4": "mp4",
+      "mp3": "mp3",
+      "wmv": "wmv",
+      "webm": "webm",
+      "flv": "flv",
+      "avi": "avi",
+      "3gp":"3gp",
+      "ogg": "ogg",
+      "ppt": "ppt",
+      "pptx": "pptx",
+      "pps": "pps",
+      "ppsx": "ppsx",
+      "pdf": "pdf",
+      "docx": "docx",
+      "doc": "doc",
+      "docm": "docm",
+      "dotx": "dotx",
+      "xls": "xls",
+      "xlsx": "xlsx"
+    }
+
+    return fileTypes
 
   }
 
