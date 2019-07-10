@@ -1420,10 +1420,10 @@ module.exports = class Submission extends Abstract {
                     
                     if(_.includes(questionOrCriteriaArray,"schoolProfile")) {
 
-                      if(submissionDocument.schoolProfile && submissionDocument.schoolProfile[questionOrCriteriaArray[1]]){
-                        result = submissionDocument.schoolProfile[questionOrCriteriaArray[1]]
+                      if(eachSubmissionDocument.schoolProfile && eachSubmissionDocument.schoolProfile[questionOrCriteriaArray[1]]){
+                        result = eachSubmissionDocument.schoolProfile[questionOrCriteriaArray[1]]
                       } else {
-                        result = submissionDocument.schoolInformation[questionOrCriteriaArray[1]]
+                        result = eachSubmissionDocument.schoolInformation[questionOrCriteriaArray[1]]
                       }
 
                       if(!result || result == "" || !(result.length>=0)) {
@@ -1455,7 +1455,7 @@ module.exports = class Submission extends Abstract {
                       
                       criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g,'')
 
-                      let allCriteriaQuestions = _.filter(_.values(submissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+                      let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
                       
 
                       let criteriaQuestionFilter = criteriaQuestionFunction.split(",")
@@ -1559,13 +1559,13 @@ module.exports = class Submission extends Abstract {
                       return result
                     }
 
-                    submissionAnswers.push(submissionDocument.answers[questionOrCriteriaArray[0]])
+                    submissionAnswers.push(eachSubmissionDocument.answers[questionOrCriteriaArray[0]])
                     let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
                     inputTypes.forEach(inputType => {
                       if (questionOrCriteriaArray[1] === inputType) {
-                        if (submissionDocument.answers[questionOrCriteriaArray[0]] && (!submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || submissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
+                        if (eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && (!eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] || eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
                         // if (submissionDocument.answers[questionOrCriteriaArray[0]] && (submissionDocument.answers[questionOrCriteriaArray[0]][inputType] || submissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-                          result = submissionDocument.answers[questionOrCriteriaArray[0]][inputType];
+                          result = eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType];
                         } else {
                           result = "NA";
                         }
