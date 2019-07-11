@@ -784,4 +784,121 @@ module.exports = class Observations extends Abstract {
 
     }
 
+    /**
+     * @api {get} /assessment/api/v1/observations/importFromFramework/?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
+     * @apiVersion 0.0.1
+     * @apiName Create observation solution from framework.
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiParam {String} frameworkId Framework External ID.
+     * @apiParam {String} entityType Entity Type.
+     * @apiSampleRequest /assessment/api/v1/observations/importFromFramework?frameworkId=EF-SMC&entityType=school
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    async importFromFramework(req) {
+        return new Promise(async (resolve, reject) => {
+        try {
+
+            if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
+                throw "Invalid parameters."
+            }
+
+            let frameworkDocument = await database.models.frameworks.findOne({
+                externalId: req.query.frameworkId
+            }).lean()
+
+            if (!frameworkDocument._id) {
+                throw "Invalid parameters."
+            }
+
+            let entityTypeDocument = await database.models.entityTypes.findOne({
+                name: req.query.entityType,
+                isObservable : true
+            }, {
+                _id: 1,
+                name: 1
+            }).lean()
+
+            if (!entityTypeDocument._id) {
+                throw "Invalid parameters."
+            }
+
+            let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
+
+            let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
+            let solutionCriteriaToFrameworkCriteriaMap = {}
+
+            await Promise.all(frameworkCriteria.map(async (criteria) => {
+                criteria.frameworkCriteriaId = criteria._id
+                
+                let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
+                
+                if (newCriteriaId._id) {
+                    solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+                }
+            }))
+
+
+            let updateThemes = function (themes) {
+                themes.forEach(theme => {
+                    let criteriaIdArray = new Array
+                    let themeCriteriaToSet = new Array
+                    if (theme.children) {
+                        updateThemes(theme.children);
+                    } else {
+                        criteriaIdArray = theme.criteria;
+                        criteriaIdArray.forEach(eachCriteria => {
+                            eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
+                            themeCriteriaToSet.push(eachCriteria)
+                        })
+                        theme.criteria = themeCriteriaToSet
+                    }
+                })
+                return true;
+            }
+
+            let newSolutionDocument = _.cloneDeep(frameworkDocument)
+
+            updateThemes(newSolutionDocument.themes)
+
+            newSolutionDocument.type = "observation"
+            newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
+
+            newSolutionDocument.externalId = frameworkDocument.externalId+"-OBSERVATION-TEMPLATE"
+
+            newSolutionDocument.frameworkId = frameworkDocument._id
+            newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+
+            newSolutionDocument.entityTypeId = entityTypeDocument._id
+            newSolutionDocument.entityType = entityTypeDocument.name
+            newSolutionDocument.isReusable = true
+
+            let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+            
+            if (newSolutionId._id) {
+
+                let response = {
+                    message: "Observation Solution generated.",
+                    result: newSolutionId._id
+                };
+
+                return resolve(response);
+
+            } else {
+                throw "Some error while creating observation solution."
+            }
+
+        } catch (error) {
+            return reject({
+            status: 500,
+            message: error,
+            errorObject: error
+            });
+        }
+        });
+    }
+
 }

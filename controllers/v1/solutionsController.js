@@ -139,7 +139,7 @@ module.exports = class Solutions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId Create solution from framework.
+  * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId&entityType:entityType Create solution from framework.
   * @apiVersion 0.0.1
   * @apiName Create solution from framework.
   * @apiGroup Solutions
@@ -147,7 +147,7 @@ module.exports = class Solutions extends Abstract {
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} frameworkId Framework External ID.
   * @apiParam {String} entityType Entity Type.
-  * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC
+  * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC&entityType=school
   * @apiUse successBody
   * @apiUse errorBody
   */
