@@ -1,12 +1,24 @@
-var fs = require('fs');
-const moment = require("moment-timezone");
+const filesHelper = require(ROOT_PATH + "/module/files/helper")
+
 module.exports = class Export {
+
     constructor() {
     }
 
     static get name() {
         return "export";
     }
+    
+    /**
+    * @api {get} /assessment/api/v1/export/program/:programExternalId Export Program Document
+    * @apiVersion 0.0.1
+    * @apiName Export Program Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/program/PROGID01
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     program(req) {
         return new Promise(async (resolve, reject) => {
@@ -19,16 +31,10 @@ module.exports = class Export {
                         message: "No programs found for given params."
                     });
                 }
-                programDocument.components.forEach(component => {
-                    component.schools = [];
-                    Object.keys(component.roles).forEach(role => {
-                        component.roles[role]['users'] = [];
-                    })
-                })
 
-                let filePath = this.getFileName(`Program_${programId}`);
+                let filePath = await filesHelper.createFileWithName(`Program_${programId}`);
 
-                return resolve(this.returnFile(filePath,programDocument));
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,programDocument));
                 
             } catch (error) {
                 return reject({
@@ -40,21 +46,31 @@ module.exports = class Export {
         })
     }
 
-    evaluationFramework(req) {
+    /**
+    * @api {get} /assessment/api/v1/export/solution/:solutionExternalId Export Solution Document
+    * @apiVersion 0.0.1
+    * @apiName Export Solution Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/solution/EF-DCPCR-2018-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    solution(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let evaluationFrameworkId = req.params._id
-                let evaluationFrameworkIdDocument = await database.models.evaluationFrameworks.findOne({ _id: ObjectId(evaluationFrameworkId) });
-                if (!evaluationFrameworkIdDocument) {
+                let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id });
+                if (!solutionDocument) {
                     return resolve({
                         status: 400,
                         message: "No evaluationFramework found for given params."
                     });
                 }
 
-                let filePath = this.getFileName(`EvaluationFramework_${evaluationFrameworkId}`);
+                let filePath = await filesHelper.createFileWithName(`Solution_${req.params._id}`);
                 
-                return resolve(this.returnFile(filePath,evaluationFrameworkIdDocument));
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,solutionDocument));
                 
             } catch (error) {
                 return reject({
@@ -66,22 +82,31 @@ module.exports = class Export {
         })
     }
 
-    criterias(req) {
+    /**
+    * @api {get} /assessment/api/v1/export/framework/:frameworkExternalId Export Framework Document
+    * @apiVersion 0.0.1
+    * @apiName Export Framework Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/framework/EF-DCPCR-2018-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+    framework(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let evaluationFrameworkId = req.params._id;
-                let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({ _id: ObjectId(evaluationFrameworkId) });
-                if (!evaluationFrameworkDocument) {
+
+                let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id});
+                if (!frameworkDocument) {
                     return resolve({
                         status: 400,
                         message: "No evaluationFramework found for given params."
                     });
                 }
-                let filePath = this.getFileName(`Criteria_${evaluationFrameworkId}`);
-                let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
-                let allCriteriaDocument = await database.models.criterias.find({ _id: { $in: criteriaIds } });
 
-                return resolve(this.returnFile(filePath,allCriteriaDocument));
+                let filePath = await filesHelper.createFileWithName(`Framework_${req.params._id}`);
+                
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,frameworkDocument));
                 
             } catch (error) {
                 return reject({
@@ -93,20 +118,106 @@ module.exports = class Export {
         })
     }
 
+    /**
+    * @api {get} /assessment/api/v1/export/frameworkCriteria/:frameworkExternalId Export Framework Criteria Document
+    * @apiVersion 0.0.1
+    * @apiName Export Framework Criteria Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/frameworkCriteria/EF-DCPCR-2018-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+    frameworkCriteria(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id}, {themes : 1});
+                if (!frameworkDocument) {
+                    return resolve({
+                        status: 400,
+                        message: "No evaluationFramework found for given params."
+                    });
+                }
+
+                let filePath = await filesHelper.createFileWithName(`FrameworkCriteria_${req.params._id}`);
+                let criteriaIds = gen.utils.getCriteriaIds(frameworkDocument.themes);
+                let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } });
+
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allCriteriaDocument));
+                
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+    /**
+    * @api {get} /assessment/api/v1/export/solutionCriteria/:frameworkExternalId Export Solution Criteria Document
+    * @apiVersion 0.0.1
+    * @apiName Export Solution Criteria Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/solutionCriteria/EF-DCPCR-2018-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+    solutionCriteria(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id}, {themes : 1});
+                if (!solutionDocument) {
+                    return resolve({
+                        status: 400,
+                        message: "No solution found for given params."
+                    });
+                }
+
+                let filePath = await filesHelper.createFileWithName(`SolutionCriteria_${req.params._id}`);
+                let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
+                let allCriteriaDocument = await database.models.criteria.find({ _id: { $in: criteriaIds } });
+
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allCriteriaDocument));
+                
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+    /**
+    * @api {get} /assessment/api/v1/export/questions/:frameworkExternalId Export Solution Questions Document
+    * @apiVersion 0.0.1
+    * @apiName Export Solution Questions Document
+    * @apiGroup Export
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/export/questions/EF-DCPCR-2018-001
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
     questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let evaluationFrameworkId = req.params._id;
-                let evaluationFrameworkDocument = await database.models.evaluationFrameworks.findOne({ _id: ObjectId(evaluationFrameworkId) });
-                if (!evaluationFrameworkDocument) {
+
+                let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id}, {themes : 1});
+                if (!solutionDocument) {
                     return resolve({
                         status: 400,
-                        message: "No evaluationFramework found for given params."
+                        message: "No solution found for given params."
                     });
                 }
                 
-                let filePath = this.getFileName(`Question_${evaluationFrameworkId}`);
-                let criteriaIds = gen.utils.getCriteriaIds(evaluationFrameworkDocument.themes);
+                let filePath = await filesHelper.createFileWithName(`QuestionInSolution_${req.params._id}`);
+                let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
     
                 let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: {$in:criteriaIds} })
 
@@ -121,7 +232,7 @@ module.exports = class Export {
                     })
                 })
 
-                return resolve(this.returnFile(filePath,allQuestions));
+                return resolve(await filesHelper.writeJsObjectToJsonFile(filePath,allQuestions));
 
             } catch (error) {
                 return reject({
@@ -132,32 +243,5 @@ module.exports = class Export {
             }
         })
     }
-
-    getFileName(name) {
-        let currentDate = new Date();
-        let fileExtensionWithTime = moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".json";
-        let filePath = ROOT_PATH + '/public/exports';
-        if (!fs.existsSync(filePath)) fs.mkdirSync(filePath);
-        return filePath + name + '_' + fileExtensionWithTime;
-    }
-
-    returnFile(filePath,document){
-        return new Promise(async (resolve, reject) => {
-            fs.writeFile(filePath, JSON.stringify(document), 'utf8', function (error) {
-                if (error) {
-                    return reject({
-                        status: 500,
-                        message: error,
-                        errorObject: error
-                    });
-                }
-                return resolve({
-                    isResponseAStream: true,
-                    fileNameWithPath: filePath
-                });
-            });
-        })
-    }
-
 
 };

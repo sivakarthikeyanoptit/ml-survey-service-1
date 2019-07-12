@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 const program = require("commander");
-const _ = require("lodash");
+global._ = require("lodash");
 const Table = require("cli-table");
 const migrateMongo = require("../lib/migrate");
 const pkgjson = require("../../../package.json");
@@ -110,7 +110,8 @@ program
   .alias('s') 
   .description("print the changelog of the database")
   .option("-f --file <file>", "use a custom config file")
-  .action(options => {
+  .action((env,options) => {
+    global.alias = env._alias
     global.options = options;
     migrateMongo.database
       .connect()

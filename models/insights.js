@@ -2,13 +2,13 @@ module.exports = {
   name: "insights",
   schema: {
     submissionId: "ObjectId",
-    schoolId: "ObjectId",
-    schoolExternalId: String,
-    schoolName: String,
+    entityId: "ObjectId",
+    entityExternalId: String,
+    entityName: String,
     programId: "ObjectId",
     programExternalId: String,
-    evaluationFrameworkId: "ObjectId",
-    evaluationFrameworkExternalId: String,
+    solutionId: "ObjectId",
+    solutionExternalId: String,
     submissionStartedAt: Date,
     submissionCompletedAt: Date,
     ratingCompletedAt : Date,
@@ -17,6 +17,8 @@ module.exports = {
     criteriaScores: Array,
     scoringSystem : String,
     levelToScoreMapping : Object,
-    criteriaLevelCount : Object
+    criteriaLevelCount : Object,
+    entityTypeId: "ObjectId",
+    entityType: String
   }
 };

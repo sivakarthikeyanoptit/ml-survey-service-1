@@ -1,10 +1,12 @@
-// let ObjectId = require("mongoose").Types.ObjectId;
 module.exports = {
     name: "entities",
     schema: {
-      name: "String",
-      userId: "String",
-      externalId: "String"
+      entityTypeId: "ObjectId",
+      entityType: String,
+      regsitryDetails : Object,
+      groups: Object,
+      metaInformation : Object,
+      updatedBy: String,
+      createdBy: String
     }
   };
-  
