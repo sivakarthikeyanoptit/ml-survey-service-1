@@ -5,6 +5,8 @@ module.exports = {
 
     let parents = await sourceDB.collection('parentRegistry').find({}).toArray();
 
+    if(!parents.length > 0) return
+
     let schoolParents = {}
 
     let parentsArray = new Array
