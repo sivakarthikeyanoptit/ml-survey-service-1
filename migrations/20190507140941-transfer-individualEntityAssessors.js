@@ -4,9 +4,7 @@ module.exports = {
     let sourceDB = global.transferFromDb
 
     let entityAssessors = await sourceDB.collection('entityAssessors').find({}).toArray();
-    
-    if(!entityAssessors.length > 0) return
-    
+
     let entityAssessorsArray = new Array
     
     let teacherEntity = await db.collection('entityTypes').find({
