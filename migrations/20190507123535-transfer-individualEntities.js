@@ -4,6 +4,8 @@ module.exports = {
     let sourceDB = global.transferFromDb
 
     let individualEntities = await sourceDB.collection('entities').find({}).toArray();
+    
+    if(!individualEntities.length > 0) return
 
     let individualEntitiesArray = new Array
     
