@@ -5,6 +5,8 @@ module.exports = {
 
     let individualEntities = await sourceDB.collection('entities').find({}).toArray();
 
+    if(!individualEntities.length > 0) return
+
     let individualEntitiesArray = new Array
     
     let teacherEntity = await db.collection('entityTypes').find({
