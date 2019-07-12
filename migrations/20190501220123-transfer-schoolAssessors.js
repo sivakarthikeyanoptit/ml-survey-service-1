@@ -17,13 +17,16 @@ module.exports = {
       (ac, solution) => ({ ...ac, [solution.programId.toString()]: {solutionId:solution._id} }), {})
     
       for (let schoolAssessorCounter = 0; schoolAssessorCounter < schoolAssessors.length; schoolAssessorCounter++) {
-      schoolAssessors[schoolAssessorCounter].entities = schoolAssessors[schoolAssessorCounter].schools
-      schoolAssessors[schoolAssessorCounter].solutionId = (solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()] && solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()].solutionId) ? solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()].solutionId : null
-      schoolAssessors[schoolAssessorCounter].entityTypeId = schoolEntity[0]._id
-      schoolAssessors[schoolAssessorCounter].entityType = schoolEntity[0].name
-      schoolAssessorsArray.push(_.omit(schoolAssessors[schoolAssessorCounter],[
-        "schools"
-      ]))
+        
+        if(!schoolAssessors[schoolAssessorCounter].userId || schoolAssessors[schoolAssessorCounter].userId == "") continue
+
+        schoolAssessors[schoolAssessorCounter].entities = schoolAssessors[schoolAssessorCounter].schools
+        schoolAssessors[schoolAssessorCounter].solutionId = (solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()] && solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()].solutionId) ? solutionsData[schoolAssessors[schoolAssessorCounter].programId.toString()].solutionId : null
+        schoolAssessors[schoolAssessorCounter].entityTypeId = schoolEntity[0]._id
+        schoolAssessors[schoolAssessorCounter].entityType = schoolEntity[0].name
+        schoolAssessorsArray.push(_.omit(schoolAssessors[schoolAssessorCounter],[
+          "schools"
+        ]))
     }
 
     global.migrationMsg = "Total school assessors transferred - "+schoolAssessors.length

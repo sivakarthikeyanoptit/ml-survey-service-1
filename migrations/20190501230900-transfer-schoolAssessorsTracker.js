@@ -22,6 +22,9 @@ module.exports = {
         (ac, assessor) => ({ ...ac, [assessor.userId]: assessor._id }), {})
       
     for (let schoolAssessorCounter = 0; schoolAssessorCounter < schoolAssessors.length; schoolAssessorCounter++) {
+      
+      if(!schoolAssessors[schoolAssessorCounter].assessorId || schoolAssessors[schoolAssessorCounter].assessorId == "") continue      
+      
       schoolAssessors[schoolAssessorCounter].actionObject = schoolAssessors[schoolAssessorCounter].actionObject.map(function(el) { 
         return ObjectID(el)
       })
