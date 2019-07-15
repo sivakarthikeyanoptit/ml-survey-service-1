@@ -1,4 +1,6 @@
 const csv = require("csvtojson");
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
   constructor() {
@@ -229,7 +231,7 @@ module.exports = class Solutions extends Abstract {
 
         updateThemes(newSolutionDocument.themes)
 
-        newSolutionDocument.externalId = frameworkDocument.externalId+"-TEMPLATE"
+        newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE"
 
         newSolutionDocument.frameworkId = frameworkDocument._id
         newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
@@ -239,7 +241,7 @@ module.exports = class Solutions extends Abstract {
         newSolutionDocument.isReusable = true
 
         let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
-        
+
         let newSolutionId
 
         if (newBaseSolutionId._id) {
@@ -324,5 +326,127 @@ module.exports = class Solutions extends Abstract {
     });
   }
 
+  /**
+  * @api {post} /assessment/api/v1/solutions/uploadThemes/{solutionsExternalID} Upload Themes For Solutions
+  * @apiVersion 0.0.1
+  * @apiName Upload Themes in Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/uploadThemes/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadThemes(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        const fileName = `Solution-Upload-Result`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        let solutionDocument = await database.models.solutions
+          .findOne({ externalId: req.params._id }, { _id: 1 })
+          .lean();
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 404,
+            message: "No solution found."
+          });
+        }
+
+        let headerSequence
+        let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let solutionThemes = await solutionsHelper.uploadTheme("solutions", solutionDocument._id, themes, headerSequence)
+
+        for (let pointerToEditTheme = 0; pointerToEditTheme < solutionThemes.length; pointerToEditTheme++) {
+          input.push(solutionThemes[pointerToEditTheme])
+        }
+
+        input.push(null)
+
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
+
+  /**
+* @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
+* @apiVersion 0.0.1
+* @apiName update Solutions
+* @apiGroup Solutions
+* @apiParam {File} Mandatory solution file of type json.
+* @apiSampleRequest /assessment/api/v1/solutions/update
+* @apiHeader {String} X-authenticated-user-token Authenticity token  
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
+  async update(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+
+        let solutionData = JSON.parse(req.files.solution.data.toString());
+
+        let queryObject = {
+          externalId: req.query.solutionExternalId
+        };
+
+        let solutionDocument = await database.models.solutions.findOne(queryObject, { themes: 0 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution doesnot exist"
+          });
+        }
+
+        let solutionMandatoryField = solutionsHelper.mandatoryField()
+
+        Object.keys(solutionMandatoryField).forEach(eachSolutionMandatoryField => {
+          if (solutionDocument[eachSolutionMandatoryField] === undefined && solutionData[eachSolutionMandatoryField] === undefined) {
+            solutionData[eachSolutionMandatoryField] = solutionMandatoryField[eachSolutionMandatoryField]
+          }
+        })
+
+        let updateObject = _.merge(_.omit(solutionDocument, "createdAt"), solutionData)
+
+        updateObject.updatedBy = req.userDetails.id
+
+        await database.models.solutions.findOneAndUpdate({
+          _id: solutionDocument._id
+        }, updateObject)
+
+        return resolve({
+          status: 200,
+          message: "Solution updated successfully."
+        });
+      }
+      catch (error) {
+        reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        })
+      }
+    })
+  }
 
 };
