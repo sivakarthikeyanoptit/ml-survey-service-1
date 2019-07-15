@@ -416,20 +416,12 @@ module.exports = class entitiesHelper {
                             "totalCount": [
                                 { "$count": "count" }
                             ],
-                            "data": [
+                            "metaInformation": [
                                 { $skip: pageSize * (pageNo - 1) },
                                 { $limit: pageSize }
                             ],
                         }
-                    }, {
-                        $project: {
-                            "data": 1,
-                            "count": {
-                                $arrayElemAt: ["$totalCount.count", 0]
-                            }
-                        }
-                    }
-                ]);
+                    }]);
 
                 return resolve(entityDocuments)
 
