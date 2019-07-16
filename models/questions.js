@@ -8,6 +8,7 @@ module.exports = {
     },
     question: Array,
     tip: "String",
+    hint: "String",
     responseType: "String",
     value: "String",
     isCompleted: Boolean,

@@ -1588,6 +1588,247 @@ module.exports = class Reports {
                         }
                       }
                     }
+
+                    if (
+                      criteriaScoreObject[singleAnswer.criteriaId] &&
+                      criteriasThatIsNotIncluded.includes(
+                        criteriaScoreObject[singleAnswer.criteriaId].externalId)
+                        && !singleAnswer.notApplicable && singleAnswer.responseType == "matrix"   
+                    ) {
+                      let singleAnswerRecord = {
+                        "Entity Id": singleEntitySubmission.entityExternalId,
+                        "Criteria Id":
+                          criteriaScoreObject[singleAnswer.criteriaId]
+                            .externalId,
+                        "Criteria Name":
+                          criteriaQuestionDetailsObject[singleAnswer.qid] ==
+                          undefined
+                            ? "Question Deleted Post Submission"
+                            : criteriaQuestionDetailsObject[singleAnswer.qid]
+                                .criteriaName,
+                        QuestionId: questionOptionObject[singleAnswer.qid]
+                          ? questionOptionObject[singleAnswer.qid].externalId
+                          : "",
+                        Question: questionOptionObject[singleAnswer.qid]
+                          ? questionOptionObject[singleAnswer.qid]
+                              .questionName[0]
+                          : "",
+                        Answer: singleAnswer.notApplicable
+                          ? "Not Applicable"
+                          : "",
+                        "Answer Option Value":
+                          questionOptionObject[singleAnswer.qid] == undefined
+                            ? "NA"
+                            : "",
+                        "Question Rubric Level": singleAnswer.rubricLevel || "",
+                        "Option Values":
+                          questionOptionObject[singleAnswer.qid] == undefined
+                            ? "No Options"
+                            : questionOptionObject[singleAnswer.qid]
+                                .questionOptionValueString,
+                        Options:
+                          questionOptionObject[singleAnswer.qid] == undefined
+                            ? "No Options"
+                            : questionOptionObject[singleAnswer.qid]
+                                .questionOptionString,
+                        Score: criteriaScoreObject[singleAnswer.criteriaId]
+                          ? criteriaScoreObject[singleAnswer.criteriaId].score
+                          : "",
+                        Remarks: singleAnswer.remarks || "",
+                        Files: ""
+                      };
+
+                      if (
+                        singleAnswer.fileName &&
+                        singleAnswer.fileName.length > 0
+                      ) {
+                        singleAnswer.fileName.forEach(file => {
+                          singleAnswerRecord.Files +=
+                            imageBaseUrl + file.sourcePath + ",";
+                        });
+                        singleAnswerRecord.Files = singleAnswerRecord.Files.replace(
+                          /,\s*$/,
+                          ""
+                        );
+                      }
+
+                      let entityId =
+                            singleEntitySubmission.entityExternalId;
+                          singleAnswerRecord["Answer"] = "Instance Question";
+
+                          input.push(singleAnswerRecord);
+
+                          if (singleAnswer.value || singleAnswer.value == 0) {
+                            for (
+                              let instance = 0;
+                              instance < singleAnswer.value.length;
+                              instance++
+                            ) {
+                              Object.values(
+                                singleAnswer.value[instance]
+                              ).forEach(eachInstanceChildQuestion => {
+                                if (
+                                  criteriaScoreObject[
+                                    eachInstanceChildQuestion.criteriaId
+                                  ] &&
+                                  !criteriasThatIsNotIncluded.includes(
+                                    criteriaScoreObject[
+                                      eachInstanceChildQuestion.criteriaId
+                                    ].externalId
+                                  )
+                                ) {
+                                  let eachInstanceChildRecord = {
+                                    "Entity Id": entityId,
+                                    "Criteria Id":
+                                      criteriaScoreObject[
+                                        eachInstanceChildQuestion.criteriaId
+                                      ].externalId,
+                                    "Criteria Name":
+                                      criteriaQuestionDetailsObject[
+                                        eachInstanceChildQuestion.qid
+                                      ] == undefined
+                                        ? "Question Deleted Post Submission"
+                                        : criteriaQuestionDetailsObject[
+                                            eachInstanceChildQuestion.qid
+                                          ].criteriaName,
+                                    QuestionId: questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ]
+                                      ? questionOptionObject[
+                                          eachInstanceChildQuestion.qid
+                                        ].externalId
+                                      : "",
+                                    Question: questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ]
+                                      ? questionOptionObject[
+                                          eachInstanceChildQuestion.qid
+                                        ].questionName[0]
+                                      : "",
+                                    Answer: eachInstanceChildQuestion.value,
+                                    "Answer Option Value":
+                                      questionOptionObject[
+                                        eachInstanceChildQuestion.qid
+                                      ] == undefined
+                                        ? "NA"
+                                        : "",
+                                    "Question Rubric Level":
+                                      eachInstanceChildQuestion.rubricLevel ||
+                                      "",
+                                    "Option Values":
+                                      questionOptionObject[
+                                        eachInstanceChildQuestion.qid
+                                      ] == undefined
+                                        ? "No Options"
+                                        : questionOptionObject[
+                                            eachInstanceChildQuestion.qid
+                                          ].questionOptionValueString,
+                                    Options:
+                                      questionOptionObject[
+                                        eachInstanceChildQuestion.qid
+                                      ] == undefined
+                                        ? "No Options"
+                                        : questionOptionObject[
+                                            eachInstanceChildQuestion.qid
+                                          ].questionOptionString,
+                                    Score: criteriaScoreObject[
+                                      eachInstanceChildQuestion.criteriaId
+                                    ]
+                                      ? criteriaScoreObject[
+                                          eachInstanceChildQuestion.criteriaId
+                                        ].score
+                                      : "",
+                                    Remarks:
+                                      eachInstanceChildQuestion.remarks || "",
+                                    Files: ""
+                                  };
+
+                                  if (
+                                    eachInstanceChildQuestion.fileName &&
+                                    eachInstanceChildQuestion.fileName.length >
+                                      0
+                                  ) {
+                                    eachInstanceChildQuestion.fileName.forEach(
+                                      file => {
+                                        eachInstanceChildRecord["Files"] +=
+                                          imageBaseUrl + file + ",";
+                                      }
+                                    );
+                                    eachInstanceChildRecord[
+                                      "Files"
+                                    ] = eachInstanceChildRecord[
+                                      "Files"
+                                    ].replace(/,\s*$/, "");
+                                  }
+
+                                  let radioResponse = {};
+                                  let multiSelectResponse = {};
+                                  let multiSelectResponseArray = [];
+
+                                  if (
+                                    eachInstanceChildQuestion.responseType ==
+                                    "radio"
+                                  ) {
+                                    questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions.forEach(option => {
+                                      radioResponse[option.value] =
+                                        option.label;
+                                    });
+                                    eachInstanceChildRecord[
+                                      "Answer"
+                                    ] = radioResponse[
+                                      eachInstanceChildQuestion.value
+                                    ]
+                                      ? radioResponse[
+                                          eachInstanceChildQuestion.value
+                                        ]
+                                      : "NA";
+                                    eachInstanceChildRecord[
+                                      "Answer Option Value"
+                                    ] = eachInstanceChildQuestion.value;
+                                  } else if (
+                                    eachInstanceChildQuestion.responseType ==
+                                    "multiselect"
+                                  ) {
+                                    questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions.forEach(option => {
+                                      multiSelectResponse[option.value] =
+                                        option.label;
+                                    });
+
+                                    if (
+                                      eachInstanceChildQuestion.value != "" &&
+                                      eachInstanceChildQuestion.value != "NA"
+                                    ) {
+                                      eachInstanceChildQuestion.value.forEach(
+                                        value => {
+                                          multiSelectResponseArray.push(
+                                            multiSelectResponse[value]
+                                          );
+                                        }
+                                      );
+                                      eachInstanceChildRecord[
+                                        "Answer"
+                                      ] = multiSelectResponseArray.toString();
+                                      eachInstanceChildRecord[
+                                        "Answer Option Value"
+                                      ] = eachInstanceChildQuestion.value.toString();
+                                    } else {
+                                      eachInstanceChildRecord["Answer"] =
+                                        "No value given";
+                                    }
+                                  }
+
+                                  input.push(eachInstanceChildRecord);
+                                }
+                              });
+                            }
+                          }
+                          
+                    }
+
                   }
                 );
 
