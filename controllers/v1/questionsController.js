@@ -115,6 +115,7 @@ module.exports = class Questions extends Abstract {
           criteriasArray.push(eachCriteriaIdArray._id.toString());
         });
 
+        // No changes required here.
         questionData.forEach(eachQuestionData => {
           let parsedQuestion = gen.utils.valueParser(eachQuestionData);
 
@@ -174,7 +175,7 @@ module.exports = class Questions extends Abstract {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -183,6 +184,46 @@ module.exports = class Questions extends Abstract {
         })();
 
         let pendingItems = new Array();
+
+        // Question from csv
+        function questionInCsv(parsedQuestionData) {
+          let question = {};
+
+          if (questionCollection[parsedQuestionData["externalId"]]) {
+            question[parsedQuestionData["externalId"]] =
+              questionCollection[parsedQuestionData["externalId"]];
+          }
+
+          if (
+            parsedQuestionData["instanceParentQuestionId"] !== "NA" &&
+            questionCollection[parsedQuestionData["instanceParentQuestionId"]]
+          ) {
+            question[parsedQuestionData["instanceParentQuestionId"]] =
+              questionCollection[parsedQuestionData["instanceParentQuestionId"]];
+          }
+
+          if (
+            parsedQuestionData["hasAParentQuestion"] == "YES" &&
+            questionCollection[parsedQuestionData["parentQuestionId"]]
+          ) {
+            question[parsedQuestionData["parentQuestionId"]] =
+              questionCollection[parsedQuestionData["parentQuestionId"]];
+          }
+          return question
+        }
+
+        // Create question
+        function createQuestion(parsedQuestion, question, criteria, ecm, section) {
+          let resultFromCreateQuestions = questionsHelper.createQuestions(
+            parsedQuestion,
+            question,
+            criteria,
+            ecm,
+            section
+          );
+
+          return resultFromCreateQuestions
+        }
 
         for (
           let pointerToQuestionData = 0;
@@ -205,8 +246,11 @@ module.exports = class Questions extends Abstract {
           criteria[parsedQuestion.criteriaExternalId] =
             criteriaObject[parsedQuestion.criteriaExternalId];
 
-          let section = solutionDocument.sections[parsedQuestion.section];
+          let section
 
+          if (solutionDocument.sections[parsedQuestion.section]) {
+            section = parsedQuestion.section;
+          }
           if (
             (parsedQuestion["hasAParentQuestion"] == "YES" &&
               !questionCollection[parsedQuestion["parentQuestionId"]]) ||
@@ -220,36 +264,10 @@ module.exports = class Questions extends Abstract {
               section: section
             });
           } else {
-            let question = {};
 
-            if (questionCollection[parsedQuestion["externalId"]]) {
-              question[parsedQuestion["externalId"]] =
-                questionCollection[parsedQuestion["externalId"]];
-            }
+            let question = questionInCsv(parsedQuestion)
 
-            if (
-              parsedQuestion["instanceParentQuestionId"] !== "NA" &&
-              questionCollection[parsedQuestion["instanceParentQuestionId"]]
-            ) {
-              question[parsedQuestion["instanceParentQuestionId"]] =
-                questionCollection[parsedQuestion["instanceParentQuestionId"]];
-            }
-
-            if (
-              parsedQuestion["hasAParentQuestion"] == "YES" &&
-              questionCollection[parsedQuestion["parentQuestionId"]]
-            ) {
-              question[parsedQuestion["parentQuestionId"]] =
-                questionCollection[parsedQuestion["parentQuestionId"]];
-            }
-
-            let resultFromCreateQuestions = await questionsHelper.createQuestions(
-              parsedQuestion,
-              question,
-              criteria,
-              ecm,
-              section
-            );
+            let resultFromCreateQuestions = await createQuestion(parsedQuestion, question, criteria, ecm, section)
 
             if (resultFromCreateQuestions.result) {
               questionCollection[resultFromCreateQuestions.result.externalId] =
@@ -265,53 +283,14 @@ module.exports = class Questions extends Abstract {
             pointerToPendingData < pendingItems.length;
             pointerToPendingData++
           ) {
-            let question = {};
+
             let eachPendingItem = gen.utils.valueParser(
               pendingItems[pointerToPendingData]
             );
 
-            if (
-              questionCollection[eachPendingItem.parsedQuestion["externalId"]]
-            ) {
-              question[eachPendingItem.parsedQuestion["externalId"]] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["externalId"]
-                ];
-            }
+            let question = questionInCsv(eachPendingItem)
 
-            if (
-              eachPendingItem.parsedQuestion["instanceParentQuestionId"] !==
-                "NA" &&
-              questionCollection[
-                eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-              ]
-            ) {
-              question[
-                eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-              ] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["instanceParentQuestionId"]
-                ];
-            }
-
-            if (
-              eachPendingItem.parsedQuestion["hasAParentQuestion"] == "YES" &&
-              questionCollection[
-                eachPendingItem.parsedQuestion["parentQuestionId"]
-              ]
-            ) {
-              question[eachPendingItem.parsedQuestion["parentQuestionId"]] =
-                questionCollection[
-                  eachPendingItem.parsedQuestion["parentQuestionId"]
-                ];
-            }
-            let csvQuestionData = await this.createQuestions(
-              eachPendingItem.parsedQuestion,
-              question,
-              eachPendingItem.criteriaToBeSent,
-              eachPendingItem.evaluationFrameworkMethod,
-              eachPendingItem.section
-            );
+            let csvQuestionData = await createQuestion(eachPendingItem.parsedQuestion, question, eachPendingItem.criteriaToBeSent, eachPendingItem.evaluationFrameworkMethod, eachPendingItem.section)
 
             input.push(csvQuestionData.total[0]);
           }
@@ -354,20 +333,20 @@ module.exports = class Questions extends Abstract {
             { evidenceMethods: 1, sections: 1, themes: 1 }
           )
           .lean();
-        
+
         let criteriasIdArray = gen.utils.getCriteriaIds(
           solutionDocument.themes
         );
 
-        if(criteriasIdArray.length < 1) {
+        if (criteriasIdArray.length < 1) {
           throw "No criteria found for the given solution"
         }
 
         let allCriteriaDocument = await database.models.criteria
-          .find({ _id: { $in: criteriasIdArray } }, { evidences: 1, externalId : 1 })
+          .find({ _id: { $in: criteriasIdArray } }, { evidences: 1, externalId: 1 })
           .lean();
 
-        if(allCriteriaDocument.length < 1) {
+        if (allCriteriaDocument.length < 1) {
           throw "No criteria found for the given solution"
         }
 
@@ -376,14 +355,14 @@ module.exports = class Questions extends Abstract {
         let criteriaMap = {};
 
         allCriteriaDocument.forEach(eachCriteria => {
-          
+
           criteriaMap[eachCriteria.externalId] = eachCriteria._id.toString()
 
           eachCriteria.evidences.forEach(eachEvidence => {
             eachEvidence.sections.forEach(eachSection => {
               eachSection.questions.forEach(eachQuestion => {
                 currentQuestionMap[eachQuestion.toString()] = {
-                  qid : eachQuestion.toString(),
+                  qid: eachQuestion.toString(),
                   sectionCode: eachSection.code,
                   evidenceMethodCode: eachEvidence.code,
                   criteriaId: eachCriteria._id.toString(),
@@ -395,17 +374,17 @@ module.exports = class Questions extends Abstract {
         })
 
         let allQuestionsDocument = await database.models.questions
-        .find(
-          { _id: { $in: Object.keys(currentQuestionMap) } },
-          {
-            externalId : 1,
-            children : 1,
-            instanceQuestions : 1
-          }
-        )
-        .lean();
+          .find(
+            { _id: { $in: Object.keys(currentQuestionMap) } },
+            {
+              externalId: 1,
+              children: 1,
+              instanceQuestions: 1
+            }
+          )
+          .lean();
 
-        if(allQuestionsDocument.length < 1) {
+        if (allQuestionsDocument.length < 1) {
           throw "No question found for the given solution"
         }
 
@@ -415,17 +394,17 @@ module.exports = class Questions extends Abstract {
           currentQuestionMap[eachQuestion._id.toString()].externalId = eachQuestion.externalId
           questionExternalToInternalIdMap[eachQuestion.externalId] = eachQuestion._id.toString()
 
-          if(eachQuestion.children && eachQuestion.children.length > 0) {
+          if (eachQuestion.children && eachQuestion.children.length > 0) {
             eachQuestion.children.forEach(childQuestion => {
-              if(currentQuestionMap[childQuestion.toString()]) {
+              if (currentQuestionMap[childQuestion.toString()]) {
                 currentQuestionMap[childQuestion.toString()].parent = eachQuestion._id.toString()
               }
             })
           }
 
-          if(eachQuestion.instanceQuestions && eachQuestion.instanceQuestions.length > 0) {
+          if (eachQuestion.instanceQuestions && eachQuestion.instanceQuestions.length > 0) {
             eachQuestion.instanceQuestions.forEach(instanceChildQuestion => {
-              if(currentQuestionMap[instanceChildQuestion.toString()]) {
+              if (currentQuestionMap[instanceChildQuestion.toString()]) {
                 currentQuestionMap[instanceChildQuestion.toString()].instanceParent = eachQuestion._id.toString()
               }
             })
@@ -437,7 +416,7 @@ module.exports = class Questions extends Abstract {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -457,13 +436,13 @@ module.exports = class Questions extends Abstract {
             questionData[pointerToQuestionData]
           );
 
-          if(!parsedQuestion["_SYSTEM_ID"] || parsedQuestion["_SYSTEM_ID"] == "" || !currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]) {
+          if (!parsedQuestion["_SYSTEM_ID"] || parsedQuestion["_SYSTEM_ID"] == "" || !currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]) {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Question Internal ID"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
             continue
           }
 
-          if(!parsedQuestion["criteriaExternalId"] || parsedQuestion["criteriaExternalId"] == "" || !criteriaMap[parsedQuestion["criteriaExternalId"]]) {
+          if (!parsedQuestion["criteriaExternalId"] || parsedQuestion["criteriaExternalId"] == "" || !criteriaMap[parsedQuestion["criteriaExternalId"]]) {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Criteria External ID"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
             continue
@@ -472,7 +451,7 @@ module.exports = class Questions extends Abstract {
           }
 
           let ecm = (solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]] && solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId) ? solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId : ""
-          if(ecm == "") {
+          if (ecm == "") {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Evidence Method Code"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
             continue
@@ -481,7 +460,7 @@ module.exports = class Questions extends Abstract {
           }
 
           let section = (solutionDocument.sections[parsedQuestion.section]) ? solutionDocument.sections[parsedQuestion.section] : ""
-          if(section == "") {
+          if (section == "") {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Section Method Code"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }))
             continue
@@ -492,15 +471,15 @@ module.exports = class Questions extends Abstract {
           // Parent question CSV data validation begins.
           parsedQuestion["hasAParentQuestion"] = parsedQuestion["hasAParentQuestion"].toUpperCase()
 
-          if(parsedQuestion["hasAParentQuestion"] != "YES" && parsedQuestion["hasAParentQuestion"] != "NO" ) {
-            
+          if (parsedQuestion["hasAParentQuestion"] != "YES" && parsedQuestion["hasAParentQuestion"] != "NO") {
+
             parsedQuestion["UPDATE_STATUS"] = "Invalid value for column hasAParentQuestion"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
             continue
 
           } else if (parsedQuestion["hasAParentQuestion"] == "YES") {
 
-            if(parsedQuestion["parentQuestionId"] == "" || !currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]]) {
+            if (parsedQuestion["parentQuestionId"] == "" || !currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]]) {
               parsedQuestion["UPDATE_STATUS"] = "Invalid Parent Question ID"
               input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
               continue
@@ -516,18 +495,18 @@ module.exports = class Questions extends Abstract {
 
           // Instance Parent question CSV data validation begins.
           parsedQuestion["instanceParentQuestionId"] = parsedQuestion["instanceParentQuestionId"].toUpperCase()
-          if(parsedQuestion["instanceParentQuestionId"] == "" ) {
-            
+          if (parsedQuestion["instanceParentQuestionId"] == "") {
+
             parsedQuestion["UPDATE_STATUS"] = "Invalid value for column instanceParentQuestionId"
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
             continue
 
           } else if (parsedQuestion["instanceParentQuestionId"] == "NA") {
-            
+
             parsedQuestion["_instanceParentQuestionId"] = ""
 
           } else {
-            
+
             if (currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]] && currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]] != "") {
               parsedQuestion["_instanceParentQuestionId"] = questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]
             } else {
@@ -538,27 +517,27 @@ module.exports = class Questions extends Abstract {
 
           }
           // Instance Parent question CSV data validation ends.
-          
+
           let currentQuestion = currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]
 
-          if(currentQuestion.criteriaId != parsedQuestion["_criteriaInternalId"] || currentQuestion.sectionCode != parsedQuestion["_sectionCode"] || currentQuestion.evidenceMethodCode != parsedQuestion["_evidenceMethodCode"]) {
+          if (currentQuestion.criteriaId != parsedQuestion["_criteriaInternalId"] || currentQuestion.sectionCode != parsedQuestion["_sectionCode"] || currentQuestion.evidenceMethodCode != parsedQuestion["_evidenceMethodCode"]) {
             // remove question from criteria (qid,criteiaid, ecm, section)
             let criteriaToUpdate = await database.models.criteria.findOne(
               {
                 _id: ObjectId(currentQuestion.criteriaId)
               },
               {
-                evidences : 1
+                evidences: 1
               }
             )
 
             criteriaToUpdate.evidences.forEach(eachEvidence => {
-              if(eachEvidence.code == currentQuestion.evidenceMethodCode) {
+              if (eachEvidence.code == currentQuestion.evidenceMethodCode) {
                 eachEvidence.sections.forEach(eachSection => {
-                  if(eachSection.code == currentQuestion.sectionCode) {
+                  if (eachSection.code == currentQuestion.sectionCode) {
                     let newSectionQuestions = new Array
-                    for (let questionObjectPointer = 0; questionObjectPointer < eachSection.questions.length; questionObjectPointer++) {   
-                      if(eachSection.questions[questionObjectPointer].toString() != currentQuestion.qid) {
+                    for (let questionObjectPointer = 0; questionObjectPointer < eachSection.questions.length; questionObjectPointer++) {
+                      if (eachSection.questions[questionObjectPointer].toString() != currentQuestion.qid) {
                         newSectionQuestions.push(eachSection.questions[questionObjectPointer])
                       }
                     }
@@ -583,45 +562,45 @@ module.exports = class Questions extends Abstract {
             )
 
             parsedQuestion["_setQuestionInCriteria"] = true
-          }          
+          }
 
-          if(currentQuestion.instanceParent && currentQuestion.instanceParent != "" && currentQuestion.instanceParent != parsedQuestion["_instanceParentQuestionId"]) {
-              // remove instance child from instance parent (childQid,instanceParentQid)
-              await database.models.questions.findOneAndUpdate(
-                {
-                  _id : ObjectId(currentQuestion.instanceParent)
-                },
-                { 
-                  $pull: { instanceQuestions: ObjectId(currentQuestion.qid) }
-                }, {
-                    _id: 1
-                }
-              );
+          if (currentQuestion.instanceParent && currentQuestion.instanceParent != "" && currentQuestion.instanceParent != parsedQuestion["_instanceParentQuestionId"]) {
+            // remove instance child from instance parent (childQid,instanceParentQid)
+            await database.models.questions.findOneAndUpdate(
+              {
+                _id: ObjectId(currentQuestion.instanceParent)
+              },
+              {
+                $pull: { instanceQuestions: ObjectId(currentQuestion.qid) }
+              }, {
+                _id: 1
+              }
+            );
           }
 
 
-          if(currentQuestion.parent && currentQuestion.parent != "" &&  currentQuestion.parent != parsedQuestion["_parentQuestionId"]) {
+          if (currentQuestion.parent && currentQuestion.parent != "" && currentQuestion.parent != parsedQuestion["_parentQuestionId"]) {
             // remove child from parent and , parent from child (childQid,parentQid)
 
             await database.models.questions.findOneAndUpdate(
               {
-                _id : ObjectId(currentQuestion.qid)
+                _id: ObjectId(currentQuestion.qid)
               },
-              { 
-                $pull: { visibleIf: { "_id" : ObjectId(currentQuestion.parent) } }
+              {
+                $pull: { visibleIf: { "_id": ObjectId(currentQuestion.parent) } }
               }, {
-                  _id: 1
+                _id: 1
               }
             );
 
             await database.models.questions.findOneAndUpdate(
               {
-                _id : ObjectId(currentQuestion.parent)
+                _id: ObjectId(currentQuestion.parent)
               },
-              { 
+              {
                 $pull: { children: ObjectId(currentQuestion.qid) }
               }, {
-                  _id: 1
+                _id: 1
               }
             );
           }
