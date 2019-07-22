@@ -17,7 +17,10 @@ module.exports = class questionsHelper {
           "usedForScoring": "",
           "questionType": "auto",
           "deleted": false,
-          "canBeNotApplicable": "false"
+          "canBeNotApplicable": "false",
+          "isCompleted": false,
+          "value": ""
+
         }
 
         let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"]
@@ -60,16 +63,8 @@ module.exports = class questionsHelper {
             parsedQuestion["question1"]
           )
 
-          // if (parsedQuestion["isAGeneralQuestion"] && (parsedQuestion["isAGeneralQuestion"] == "true" || parsedQuestion["isAGeneralQuestion"] == "TRUE")) {
-          //   allValues["isAGeneralQuestion"] = true
-          // } else {
-          //   allValues["isAGeneralQuestion"] = false
-          // }
-
-          allValues["externalId"] = parsedQuestion["externalId"]
-
+          // Generate Validation
           if (parsedQuestion["responseType"] !== "") {
-            allValues["responseType"] = parsedQuestion["responseType"]
             allValues["validation"] = {}
             allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
 
@@ -121,23 +116,10 @@ module.exports = class questionsHelper {
             allValues.file["caption"] = parsedQuestion["caption"]
           }
 
-          // if (parsedQuestion["showRemarks"] && (parsedQuestion["showRemarks"] == "true" || parsedQuestion["showRemarks"] == "TRUE")) {
-          //   allValues["showRemarks"] = true
-          // } else {
-          //   allValues["showRemarks"] = false
-          // }
-
-          allValues["tip"] = parsedQuestion["tip"]
-
           allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
-
-          allValues["modeOfCollection"] = parsedQuestion["modeOfCollection"]
-          allValues["accessibility"] = parsedQuestion["accessibility"]
-
           allValues["options"] = new Array
-          allValues["isCompleted"] = false
-          allValues["value"] = ""
 
+          // Adding data in options field
           for (let pointerToResponseCount = 1; pointerToResponseCount < 10; pointerToResponseCount++) {
             let optionValue = "R" + pointerToResponseCount
             let optionHint = "R" + pointerToResponseCount + "-hint"
@@ -154,6 +136,7 @@ module.exports = class questionsHelper {
             }
           }
 
+
           Object.keys(parsedQuestion).forEach(parsedQuestionData => {
             if (!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)) {
               if (this.booleanData().includes(parsedQuestionData)) {
@@ -163,6 +146,7 @@ module.exports = class questionsHelper {
               }
             }
           })
+
           let createQuestion = await database.models.questions.create(
             allValues
           )
