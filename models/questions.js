@@ -36,9 +36,10 @@ module.exports = {
     instanceQuestionsString: "String",
     instanceQuestions: Array,
     isAGeneralQuestion: Boolean,
-    dateFormat:String,
-    autoCapture:String,
+    dateFormat: String,
+    autoCapture: String,
     rubricLevel: String,
-    sectionHeader: String
+    sectionHeader: String,
+    allowAudioRecording: Boolean
   }
 };
