@@ -20,6 +20,7 @@ module.exports = {
     solutionExternalId: String,
     submissionsUpdatedHistory: Array,
     entityTypeId: "ObjectId",
-    entityType: "String"
+    entityType: "String",
+    submissionNumber: Number
   }
 };

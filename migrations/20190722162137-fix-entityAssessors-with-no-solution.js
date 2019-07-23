@@ -23,8 +23,6 @@ module.exports = {
       programsToUpdate[eachAssessor.programId.toString()].entities = _.uniq(programsToUpdate[eachAssessor.programId.toString()].entities)
     }
 
-    // console.log(programsToUpdate)
-
     if(Object.keys(programsToUpdate).length < 1) return true
 
     let programQueryObject = Object.keys(programsToUpdate).map(function(el) { 
@@ -73,11 +71,8 @@ module.exports = {
 
         let newSolutionId = await db.collection('solutions').insertOne(_.omit(eachSolution,["_id"]))
 
-        console.log("New solution with ID - "+newSolutionId.insertedId.toString()+" has been created.")
-        
         if(newSolutionId.insertedId) {
           
-          console.log("Updating program with old solution ID as - "+eachSolution._id.toString()+" with new solution ID - "+newSolutionId.insertedId.toString())
           await db.collection('programs').findOneAndUpdate({
             _id: ObjectID(solutionsToCopy[eachSolution._id.toString()].programId)
           }, { $set: {components: [newSolutionId.insertedId]}})
@@ -85,7 +80,6 @@ module.exports = {
           solutionsToCopy[eachSolution._id.toString()].newSolutionId = newSolutionId.insertedId.toString()
           
           programsToUpdate[solutionsToCopy[eachSolution._id.toString()].programId].assessors.forEach(assessor => {
-            console.log("Updating entityAssessor with ID -"+assessor)
             db.collection('entityAssessors').findOneAndUpdate({
               _id: ObjectID(assessor)
             }, { $set: {solutionId: newSolutionId.insertedId}})
@@ -93,7 +87,6 @@ module.exports = {
 
 
           programsToUpdate[solutionsToCopy[eachSolution._id.toString()].programId].entities.forEach(entity => {
-            console.log("Updating submission for entity ID - "+entity+" and program Id - "+solutionsToCopy[eachSolution._id.toString()].programId)
             db.collection('submissions').findOneAndUpdate({
               entityId: ObjectID(entity),
               programId: ObjectID(solutionsToCopy[eachSolution._id.toString()].programId)
@@ -105,15 +98,6 @@ module.exports = {
       }
 
     }
-
-
-    // if(Object.keys(solutionsToCopy).length < 1) return true
-
-    // let solutionsQueryObject = Object.keys(solutionsToCopy).map(function(el) { 
-    //   return ObjectID(el)
-    // })
-
-
 
   },
 
