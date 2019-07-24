@@ -16,7 +16,8 @@ module.exports = class Gotenberg {
     * @apiGroup Gotenberg
     * @apiParam {File} program Mandatory file of type PDF.
     * @apiParam {String} observationSubmissionId Observation Submission ID.
-    * @apiSampleRequest /assessment/api/v1/gotenberg/fileUpload
+    * @apiParam {String} fileName Filename to be uploaded.
+    * @apiSampleRequest /assessment/api/v1/gotenberg/fileUpload/5ce52aa259b3b17de8c2b310?internal-access-token={{internal-access-token}}&fileName=submission.pdf
     * @apiUse successBody
     * @apiUse errorBody
     */
