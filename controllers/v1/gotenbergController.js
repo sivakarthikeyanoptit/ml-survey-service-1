@@ -70,8 +70,8 @@ module.exports = class Gotenberg {
                 
                 stream.on('finish', () => {
                     req.file.cloudStorageObject = filePath
-                    gcpFile.makePublic().then((data) => {
-                        req.file.cloudStoragePublicUrl = data
+                    gcpFile.makePublic().then(() => {
+                        req.file.cloudStoragePublicUrl = `https://storage.googleapis.com/sl-dev-storage/${filePath}`;
                     });
                 });
 
