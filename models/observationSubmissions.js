@@ -21,6 +21,7 @@ module.exports = {
     submissionsUpdatedHistory: Array,
     entityTypeId: "ObjectId",
     entityType: "String",
-    submissionNumber: Number
+    submissionNumber: Number,
+    pdfFileUrl:String
   }
 };
