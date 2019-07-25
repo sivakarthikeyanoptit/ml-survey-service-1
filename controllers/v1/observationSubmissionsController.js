@@ -532,29 +532,77 @@ module.exports = class ObservationSubmissions extends Abstract {
           fs.unlinkSync(htmlPath + "footer.html");
         }
 
-        
+      let ejsIndex = await ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
+      fs.appendFileSync(htmlPath + "index.html", ejsIndex);
 
-        ejs.renderFile(header).then((resolve) => {
-          fs.appendFile(htmlPath + "header.html", resolve, function (err) {
-            if (err) throw err;
-            ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
-              fs.appendFile(htmlPath + "index.html", resolve, function (err) {
-                if (err) throw err;
-                ejs.renderFile(footer).then((resolve) => {
-                  fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
-                    if (err) throw err;
-                    observationSubmissionsHelper.generatePdf(req.params._id)
-                    return resolve({
-                      message: "HTML generated successfully."
-                    })
-                  });
-                })
-              });
-            })
-          });
-        })
 
-        
+      let ejsHeader = await ejs.renderFile(header)
+      fs.appendFileSync(htmlPath + "header.html", ejsHeader);
+
+
+      let ejsFooter = await ejs.renderFile(footer)
+      fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
+
+      console.log("All appended")
+      return await observationSubmissionsHelper.generatePdf(req.params._id)
+
+      // ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
+      // .then((resolve) => 
+      //   fs.appendFile(htmlPath + "index.html", resolve, function (err) {
+      //     if (err) throw err;
+      //     console.log('Saved!');
+      //   }))
+      // .then(() => {
+      //   ejs.renderFile(header)
+      // })
+      // .then((resolve) => {
+      //   fs.appendFile(htmlPath + "header.html", resolve, function (err) {
+      //     if (err) throw err;
+      //     console.log('Saved!');
+      //   });
+      // })
+      // .then(() => {
+      //   ejs.renderFile(footer)
+      // })
+      // .then((resolve) => {
+      //   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
+      //     if (err) throw err;
+      //     console.log('Saved!');
+      //   });
+      // })
+      // .then(() => {
+      //   observationSubmissionsHelper.generatePdf(req.params._id)
+      // })
+      // .then(() => {
+      //   return resolve({message: "HTML generated successfully."})
+      // })
+      // .catch(err => {
+      //   handleError(err);
+      //   printMigrated(err.migrated);
+      // });
+
+      
+
+        // ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
+        //   fs.appendFile(htmlPath + "index.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   });
+        // })
+
+        // ejs.renderFile(header).then((resolve) => {
+        //   fs.appendFile(htmlPath + "header.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   });
+        // })
+
+        // ejs.renderFile(footer).then((resolve) => {
+        //   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   });
+        // })
 
         // const gotenbergHelper = await observationSubmissionsHelper.generatePdf(req.params._id)
 
