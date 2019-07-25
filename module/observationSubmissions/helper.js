@@ -25,8 +25,7 @@ module.exports = class observationSubmissionsHelper {
 
                 let webHookUrl = applicationHost + baseUrl + gotenBergWebhookEndpoint + observationSubmissionId + "?internal-access-token=" + process.env.INTERNAL_ACCESS_TOKEN + "&fileName=submission.pdf"
                 let remoteURL = applicationHost + baseUrl + observationSubmissionHtmlPath + "/" + observationSubmissionId + "/index.html"
-                console.log(webHookUrl)
-                console.log(remoteURL)
+
                 form.append("remoteURL", remoteURL);
                 form.append("marginTop", 0);
                 form.append("marginBottom", 0);

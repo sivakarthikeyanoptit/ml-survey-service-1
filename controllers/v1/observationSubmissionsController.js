@@ -532,28 +532,28 @@ module.exports = class ObservationSubmissions extends Abstract {
           fs.unlinkSync(htmlPath + "footer.html");
         }
 
-        ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
-          fs.appendFile(htmlPath + "index.html", resolve, function (err) {
-            if (err) throw err;
-            console.log('Saved!');
-          });
-        })
+        
 
         ejs.renderFile(header).then((resolve) => {
           fs.appendFile(htmlPath + "header.html", resolve, function (err) {
             if (err) throw err;
-            console.log('Saved!');
+            ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
+              fs.appendFile(htmlPath + "index.html", resolve, function (err) {
+                if (err) throw err;
+                ejs.renderFile(footer).then((resolve) => {
+                  fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
+                    if (err) throw err;
+                    return resolve(await observationSubmissionsHelper.generatePdf(req.params._id))
+                  });
+                })
+              });
+            })
           });
         })
 
-        ejs.renderFile(footer).then((resolve) => {
-          fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
-            if (err) throw err;
-            console.log('Saved!');
-          });
-        })
+        
 
-        const gotenbergHelper = await observationSubmissionsHelper.generatePdf(req.params._id)
+        // const gotenbergHelper = await observationSubmissionsHelper.generatePdf(req.params._id)
 
       } catch (error) {
         return reject({
