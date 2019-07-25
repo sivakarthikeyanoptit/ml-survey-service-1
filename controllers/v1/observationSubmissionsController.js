@@ -543,7 +543,8 @@ module.exports = class ObservationSubmissions extends Abstract {
                 ejs.renderFile(footer).then((resolve) => {
                   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
                     if (err) throw err;
-                    return resolve(await observationSubmissionsHelper.generatePdf(req.params._id))
+                    observationSubmissionsHelper.generatePdf(req.params._id)
+                    return
                   });
                 })
               });
