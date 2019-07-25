@@ -272,14 +272,14 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
-* @api {get} /assessment/api/v1/observationSubmissions/makePdf/:observationSubmissionId  observation submissions pdf 
+* @api {get} /assessment/api/v1/observationSubmissions/generateHtml/:observationSubmissionId  observation submissions pdf 
 * @apiVersion 0.0.1
 * @apiName Generate Observation Submissions PDF 
 * @apiGroup ObservationSubmissions
 * @apiUse successBody
 * @apiUse errorBody
 */
-  async makePdf(req) {
+  async generateHtml(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -288,7 +288,6 @@ module.exports = class ObservationSubmissions extends Abstract {
           status: "completed"
         }, {
             "entityInformation.name": 1,
-            "entityInformation.schoolName": 1,
             "observationInformation.name": 1,
             "observationInformation.createdBy": 1,
             "answers": 1,
@@ -327,21 +326,18 @@ module.exports = class ObservationSubmissions extends Abstract {
           return acc
         }, {})
 
-        let generalInfo = [{
-          keyword: "School Name",
-          name: observationSubmissionsDocument.entityInformation.schoolName ? observationSubmissionsDocument.entityInformation.schoolName : observationSubmissionsDocument.entityInformation.name
-        },
-        {
-          keyword: "Observation Name",
-          name: observationSubmissionsDocument.observationInformation.name ? observationSubmissionsDocument.observationInformation.name : "Sample Observation"
-        }, {
-          keyword: "Assessors Name",
-          name: observationSubmissionsDocument.observationInformation.createdBy
-        },
-        {
-          keyword: "Entity Name",
-          name: observationSubmissionsDocument.entityInformation.name
-        }
+        let generalInfo = [
+          {
+            keyword: "Observation Name",
+            name: observationSubmissionsDocument.observationInformation.name ? observationSubmissionsDocument.observationInformation.name : "Sample Observation"
+          }, {
+            keyword: "Created By",
+            name: observationSubmissionsDocument.observationInformation.createdBy
+          },
+          {
+            keyword: "Entity Name",
+            name: observationSubmissionsDocument.entityInformation.name
+          }
         ]
 
         let allSubmittedData = []
@@ -511,7 +507,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           }
         }
 
-        const htmlPath = `${process.env.HTML_PATH}/${observationSubmissionsDocument._id.toString()}/`;
+        const htmlPath = ROOT_PATH + `/public/${process.env.OBSERVATION_SUBMISSIONS_HTML_PATH}/${observationSubmissionsDocument._id.toString()}/`;
         if (!fs.existsSync(htmlPath)) fs.mkdirSync(htmlPath);
 
         let indexTemplate = ROOT_PATH + "/template/observationSubmissions/index.ejs"
@@ -553,8 +549,6 @@ module.exports = class ObservationSubmissions extends Abstract {
         })
 
         const gotenbergHelper = await observationSubmissionsHelper.generatePdf(req.params._id)
-
-        console.log("here")
 
       } catch (error) {
         return reject({
