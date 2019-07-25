@@ -507,7 +507,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           }
         }
 
-        const htmlPath = ROOT_PATH + `/public/${process.env.OBSERVATION_SUBMISSIONS_HTML_PATH}/${observationSubmissionsDocument._id.toString()}/`;
+        let observationSubmissionHtmlPath = process.env.OBSERVATION_SUBMISSIONS_HTML_PATH ? process.env.OBSERVATION_SUBMISSIONS_HTML_PATH : "observationSubmissions"
+
+        const htmlPath = ROOT_PATH + `/public/${observationSubmissionHtmlPath}/${observationSubmissionsDocument._id.toString()}/`;
         if (!fs.existsSync(htmlPath)) fs.mkdirSync(htmlPath);
 
         let indexTemplate = ROOT_PATH + "/template/observationSubmissions/index.ejs"
