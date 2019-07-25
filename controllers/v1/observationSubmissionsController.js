@@ -5,7 +5,6 @@ const moment = require("moment-timezone");
 
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
-// const ejsTemplate = require(ROOT_PATH + "/template/observationSubmissions/index.ejs")
 
 
 module.exports = class ObservationSubmissions extends Abstract {
@@ -270,7 +269,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/observationSubmissions/makePdf/:observationSubmissionId generate observation submissions pdf 
+* @api {get} /assessment/api/v1/observationSubmissions/makePdf/:observationSubmissionId  observation submissions pdf 
 * @apiVersion 0.0.1
 * @apiName Generate Observation Submissions PDF 
 * @apiGroup ObservationSubmissions
