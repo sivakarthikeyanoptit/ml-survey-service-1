@@ -83,7 +83,8 @@ module.exports = class observationsHelper {
                     {
                         entityId: document.entityId,
                         solutionId: document.solutionId,
-                        observationId: document.observationId
+                        observationId: document.observationId,
+                        submissionNumber: document.submissionNumber
                     }
                 ).lean();
 

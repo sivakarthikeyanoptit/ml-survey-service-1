@@ -232,21 +232,35 @@ module.exports = class Observations extends Abstract {
                             observationId: observation._id
                         },
                         {
-                            "entityId": 1,
-                            "status": 1
+                          "criteria": 0,
+                          "evidences": 0,
+                          "answers":0
                         }
                     )
 
+                    let observationEntitySubmissions = {}
+                    submissions.forEach(observationEntitySubmission => {
+                        if(!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
+                            observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
+                                submissionStatus: "",
+                                submissions: new Array,
+                                entityId: observationEntitySubmission.entityId.toString()
+                            }
+                        }
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
+                    })
 
-                    entityObservationSubmissionStatus = submissions.reduce(
-                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: { submissionStatus: (entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending" } }), {})
+                    // entityObservationSubmissionStatus = submissions.reduce(
+                    //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
 
 
                     observation.entities = new Array
                     observation.entityDocuments.forEach(observationEntity => {
                         observation.entities.push({
                             _id: observationEntity._id,
-                            submissionStatus: (entityObservationSubmissionStatus[observationEntity._id.toString()]) ? entityObservationSubmissionStatus[observationEntity._id.toString()].submissionStatus : "pending",
+                            submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
+                            submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
                             ...observationEntity.metaInformation
                         })
                     })
@@ -474,12 +488,14 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId Assessments
+     * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
      * @apiVersion 0.0.1
      * @apiName Assessments
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/assessment/:observationId
+     * @apiParam {String} entityId Entity ID.
+     * @apiParam {Int} submissionNumber Submission Number.
+     * @apiSampleRequest /assessment/api/v1/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
      * @apiUse successBody
      * @apiUse errorBody
      */
@@ -513,6 +529,8 @@ module.exports = class Observations extends Abstract {
                     let responseMessage = 'No entity found.';
                     return resolve({ status: 400, message: responseMessage })
                 }
+
+                const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
 
                 let solutionQueryObject = {
                     _id: observationDocument.solutionId,
@@ -717,6 +735,7 @@ module.exports = class Observations extends Abstract {
                 submissionDocument.evidences = submissionDocumentEvidences;
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
+                submissionDocument.submissionNumber = submissionNumber;
 
                 let submissionDoc = await observationsHelper.findSubmission(
                     submissionDocument

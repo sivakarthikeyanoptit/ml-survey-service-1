@@ -1,4 +1,5 @@
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
+const imageBaseUrl = "https://storage.cloud.google.com/sl-" +(process.env.NODE_ENV == "production" ? "prod" : "dev") +"-storage/";
 
 module.exports = class ObservationSubmissions extends Abstract {
 
@@ -202,14 +203,14 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/observationSubmissions/isAllowed/:observationSubmissionId?evidenceId="LW" check submissions status 
-* @apiVersion 0.0.1
-* @apiName check submissions status 
-* @apiGroup ObservationSubmissions
-* @apiParam {String} evidenceId Evidence ID.
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" check submissions status 
+  * @apiVersion 0.0.1
+  * @apiName check submissions status 
+  * @apiGroup ObservationSubmissions
+  * @apiParam {String} evidenceId Evidence ID.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async isAllowed(req) {
     return new Promise(async (resolve, reject) => {
@@ -259,4 +260,63 @@ module.exports = class ObservationSubmissions extends Abstract {
 
     })
   }
+
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/pdfFileUrl/:observationSubmissionId Get observation submission PDF URL 
+  * @apiVersion 0.0.1
+  * @apiName Get observation submission PDF URL 
+  * @apiGroup ObservationSubmissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async pdfFileUrl(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = {
+          url: ""
+        }
+
+        let message = "Observation submission PDF File URL fetched successfully";
+
+        let submissionDocument = await database.models.observationSubmissions.findOne(
+          { 
+            $and: [ 
+              {"_id": req.params._id},
+              { pdfFileUrl: { $ne: "" } }, 
+              { pdfFileUrl: { $exists: true } }
+            ]
+          },
+          {
+            pdfFileUrl: 1
+          }
+        );
+
+        if (!submissionDocument || !submissionDocument._id) {
+          message = "PDF not available."
+        } else {
+          result.url = imageBaseUrl+submissionDocument.pdfFileUrl
+        }
+
+        let response = {
+          message: message,
+          result: result
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 };
