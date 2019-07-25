@@ -1,0 +1,15 @@
+<div class="column">
+    <p><b><%= allRadioData.question %></b></p>
+    <br>
+    <% for(let pointerToSubmittedData= 0 ; pointerToSubmittedData < allRadioData.options.length ; pointerToSubmittedData++){ %>
+    <div class="spacing">
+        <%if (allRadioData.options[pointerToSubmittedData].checked === true) { %>
+        <input type="radio" checked="checked"><%= allRadioData.options[pointerToSubmittedData].label %><br>
+        <% } %>
+        <%if (!allRadioData.options[pointerToSubmittedData].checked === true) { %>
+        <input type="radio"><%= allRadioData.options[pointerToSubmittedData].label %><br>
+        <% } %>
+    </div>
+    <% } %>
+
+</div>
