@@ -544,7 +544,9 @@ module.exports = class ObservationSubmissions extends Abstract {
                   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
                     if (err) throw err;
                     observationSubmissionsHelper.generatePdf(req.params._id)
-                    return
+                    return resolve({
+                      message: "HTML generated successfully."
+                    })
                   });
                 })
               });
