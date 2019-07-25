@@ -509,7 +509,10 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let observationSubmissionHtmlPath = process.env.OBSERVATION_SUBMISSIONS_HTML_PATH ? process.env.OBSERVATION_SUBMISSIONS_HTML_PATH : "observationSubmissions"
 
-        const htmlPath = ROOT_PATH + `/public/${observationSubmissionHtmlPath}/${observationSubmissionsDocument._id.toString()}/`;
+        const observationSubmissionFolder = `./public/${observationSubmissionHtmlPath}/`
+        if (!fs.existsSync(observationSubmissionFolder)) fs.mkdirSync(observationSubmissionFolder);
+
+        const htmlPath = `./public/${observationSubmissionHtmlPath}/${observationSubmissionsDocument._id.toString()}/`;
         if (!fs.existsSync(htmlPath)) fs.mkdirSync(htmlPath);
 
         let indexTemplate = ROOT_PATH + "/template/observationSubmissions/index.ejs"
@@ -530,7 +533,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
 
         ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
-          fs.appendFile(fileToBeAppended, resolve, function (err) {
+          fs.appendFile(htmlPath + "index.html", resolve, function (err) {
             if (err) throw err;
             console.log('Saved!');
           });
