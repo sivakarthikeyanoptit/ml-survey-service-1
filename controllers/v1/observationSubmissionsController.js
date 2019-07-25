@@ -7,8 +7,6 @@ const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
 
-const imageBaseUrl = "https://storage.cloud.google.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/";
-
 module.exports = class ObservationSubmissions extends Abstract {
 
   constructor() {
@@ -653,7 +651,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         if (!submissionDocument || !submissionDocument._id) {
           message = "PDF not available."
         } else {
-          result.url = imageBaseUrl + submissionDocument.pdfFileUrl
+          result.url = submissionDocument.pdfFileUrl
         }
 
         let response = {

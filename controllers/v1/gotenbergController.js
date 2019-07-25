@@ -82,9 +82,11 @@ module.exports = class Gotenberg {
                 await database.models.observationSubmissions.findOneAndUpdate(
                     { "_id": submissionDocument._id},
                     {
-                      $set : {pdfFileUrl: filePath}
+                      $set : {pdfFileUrl: req.file.cloudStoragePublicUrl}
                     }
                 );
+
+                // console.log(req.file.cloudStoragePublicUrl)
 
                 return resolve({
                     status: 200,
