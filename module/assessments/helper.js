@@ -109,8 +109,8 @@ module.exports = class assessmentsHelper {
                             
                             evidence.sections.forEach(section => {
                 
-                                if (questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
-                                    let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
+                                if (questionSequenceByEcm[evidence.externalId][section.code] && questionSequenceByEcm[evidence.externalId][section.code].length > 0) {
+                                    let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.code]
                                     let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
                                     let sortedQuestionArray = new Array
                     
