@@ -36,6 +36,14 @@ fs.existsSync("logs") || fs.mkdirSync("logs");
 
 const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/";
 
+const observationSubmissionsHtmlPath = process.env.OBSERVATION_SUBMISSIONS_HTML_PATH ? process.env.OBSERVATION_SUBMISSIONS_HTML_PATH : "observationSubmissions"
+app.use(express.static(observationSubmissionsHtmlPath));
+app.get(serviceBaseUrl+observationSubmissionsHtmlPath+"/*", (req, res) => {
+      let urlArray = req.path.split("/")
+      urlArray.splice(0,3)
+      res.sendFile(path.join(__dirname, "/public/"+observationSubmissionsHtmlPath+"/"+urlArray.join("/")));
+});
+
 //API documentation (apidoc)
 if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == "local") {
   app.use(express.static("apidoc"));
