@@ -50,7 +50,27 @@ module.exports = class Gotenberg {
         
                 const filePath = req.params._id+"/"+req.query.fileName
                 let gcpFile = gcp.bucket.file(filePath)
-        
+                
+                const checkIfFileExists = await new Promise(function (resolve, reject) {
+                    gcpFile.exists().then(function(data) {
+                        resolve(data[0])
+                    }).catch(err => {
+                        reject(err)
+                    });
+                });
+                console.log(checkIfFileExists)
+
+                if(checkIfFileExists) {
+                    const fileDeletion = await new Promise(function (resolve, reject) {
+                        gcpFile.delete().then(function(data) {
+                            console.log(`File deleted.`);
+                            resolve(data)
+                        }).catch(err => {
+                            reject(err)
+                        });
+                    });
+                }
+
                 // req.pipe(fs.createWriteStream('/Users/akash/projects/shikshalokam/backend/sl-assessments-service/some-upload.pdf'));
                 
                 // const gcsname = Date.now() + req.file.originalname;
@@ -65,34 +85,52 @@ module.exports = class Gotenberg {
                 
                 stream.on('error', (err) => {
                     req.file.cloudStorageError = err;
+                    console.log("On error - "+err)
                     throw "Something went wrong!"
                 });
                 
-                stream.on('finish', () => {
-                    req.file.cloudStorageObject = filePath
-                    gcpFile.makePublic().then(() => {
-                        req.file.cloudStoragePublicUrl = `https://storage.googleapis.com/sl-dev-storage/${filePath}`;
-                    });
-                });
+                // stream.on('finish', () => {
+                //     req.file.cloudStorageObject = filePath
+                //     console.log("On finish - "+filePath)
+                //     gcpFile.makePublic().then(() => {
+                //         req.file.cloudStoragePublicUrl = `https://storage.googleapis.com/sl-dev-storage/5d3a786941526142d27bfd54/submission.pdf`;
+                //     });
+                // });
 
                 // stream.end(req.file.buffer);
 
+                (async function() {
+                    await new Promise(function (resolve, reject) {
+                        stream.on('finish', resolve);
+                    });
+                    req.file.cloudStorageObject = filePath
+                    console.log("On finish - "+filePath)
+                    
+                    await gcpFile.makePublic()
+
+                    req.file.cloudStoragePublicUrl = "https://storage.googleapis.com/sl-" +(process.env.NODE_ENV == "production" ? "prod" : "dev") +"-storage/"+filePath;
+
+                    await database.models.observationSubmissions.findOneAndUpdate(
+                        { "_id": submissionDocument._id},
+                        {
+                          $set : {pdfFileUrl: req.file.cloudStoragePublicUrl}
+                        }
+                    );
+
+                    console.log(req.file.cloudStoragePublicUrl)
+
+                    console.log("Before resolve.")
+
+                    return resolve({
+                        status: 200,
+                        message: "File uploaded successfully."
+                    });
+
+                })();
+
                 req.pipe(stream)
 
-                await database.models.observationSubmissions.findOneAndUpdate(
-                    { "_id": submissionDocument._id},
-                    {
-                      $set : {pdfFileUrl: req.file.cloudStoragePublicUrl}
-                    }
-                );
 
-                // console.log(req.file.cloudStoragePublicUrl)
-
-                return resolve({
-                    status: 200,
-                    message: "File uploaded successfully."
-                });
-                
             } catch (error) {
                 return reject({
                     status: 500,
