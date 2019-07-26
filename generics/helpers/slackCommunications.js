@@ -3,6 +3,7 @@ const slackCommunicationsOnOff = process.env.SLACK_COMMUNICATIONS_ON_OFF
 const sendRubricErrorMessagesToSlack = process.env.RUBRIC_ERROR_MESSAGES_TO_SLACK
 const slackToken = process.env.SLACK_TOKEN
 const exceptionLogPostUrl = process.env.SLACK_EXCEPTION_LOG_URL;
+const gotenbergCommunicationsOnOff = process.env.GOTENBERG_ERROR_MESSAGES
 
 const headers = { "Content-Type": "application/json", token: slackToken }
 
@@ -192,25 +193,25 @@ const badSharedLinkAccessAttemptAlert = function (errorMessage) {
       })
     })
 
-    
+
     fieldsData.push({
       title: "App Details",
       value: errorMessage.headers["user-agent"],
       short: false
     })
-    
+
     fieldsData.push({
       title: "User Details",
       value: "NON_LOGGED_IN_USER",
       short: false
     })
-    
+
     fieldsData.push({
       title: "User IP",
       value: errorMessage.userIP || "",
       short: false
     })
-    
+
     fieldsData.push({
       title: "Environment",
       value: process.env.NODE_ENV,
@@ -267,8 +268,80 @@ const badSharedLinkAccessAttemptAlert = function (errorMessage) {
   }
 }
 
+const gotenbergErrorLogs = function (errorMessage) {
+  if (slackCommunicationsOnOff === "ON" && gotenbergCommunicationsOnOff === "ON" && slackToken != "") {
+
+    const reqObj = new Request()
+    let attachmentData = new Array
+    let fieldsData = new Array
+
+    Object.keys(errorMessage.formData).forEach(objValue => {
+      fieldsData.push({
+        title: objValue,
+        value: errorMessage.formData[objValue],
+        short: false
+      })
+    })
+
+    fieldsData.push({
+      title: "Environment",
+      value: process.env.NODE_ENV,
+      short: false
+    })
+
+    let attachment = {
+      color: "#7296a1",
+      pretext: errorMessage,
+      text: "More information below",
+      fields: fieldsData
+    }
+    attachmentData.push(attachment)
+
+    var options = {
+      json: {
+        text: "GotenBerg Error Logs",
+        attachments: attachmentData
+      }
+    }
+
+
+    let returnResponse = {}
+
+    new Promise((resolve, reject) => {
+      return resolve(reqObj.post(
+        exceptionLogPostUrl,
+        options
+      ));
+    }).then(result => {
+      if (result.data === "ok") {
+        returnResponse = {
+          success: true,
+          message: "Slack message posted."
+        }
+      } else {
+        throw Error("Slack message was not posted")
+      }
+      return returnResponse
+    }).catch((err) => {
+      returnResponse = {
+        success: false,
+        message: "Slack message was not posted"
+      }
+      return returnResponse
+    })
+
+  } else {
+    return {
+      success: false,
+      message: "Slack configuration is not done"
+    }
+  }
+}
+
 module.exports = {
   sendExceptionLogMessage: sendExceptionLogMessage,
   rubricErrorLogs: rubricErrorLogs,
-  badSharedLinkAccessAttemptAlert: badSharedLinkAccessAttemptAlert
+  badSharedLinkAccessAttemptAlert: badSharedLinkAccessAttemptAlert,
+  gotenbergErrorLogs: gotenbergErrorLogs
 };
+

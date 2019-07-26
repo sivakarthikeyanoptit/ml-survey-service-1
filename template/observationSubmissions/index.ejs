@@ -225,6 +225,14 @@
     </div>
     <% } %>
 
+    <% if (submissionData[pointerToSubmittedData].responseType === "NA") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('notApplicable', {notApplicableData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+
     <% if (submissionData[pointerToSubmittedData].responseType === "matrix") { %>
     <%- include('matrix', {allmatrixData: submissionData[pointerToSubmittedData]}); %>
     <% } %>

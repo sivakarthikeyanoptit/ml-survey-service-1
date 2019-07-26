@@ -1,5 +1,5 @@
-var request = require('request');
-
+let request = require('request');
+let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 
 module.exports = class observationSubmissionsHelper {
 
@@ -42,9 +42,14 @@ module.exports = class observationSubmissionsHelper {
                     formData: formData
                 }, function (err, res, body) {
                     if (err) {
-                        throw 'upload failed:'
+
+                        let errorObject = {
+                            formData: formData
+                        }
+
+                        slackClient.gotenbergErrorLogs(errorObject)
                     }
-                    
+
                     console.log('Upload successful!  Server responded with:', body);
                     return
                 });

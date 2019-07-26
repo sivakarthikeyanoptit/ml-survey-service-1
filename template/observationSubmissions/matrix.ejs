@@ -22,6 +22,12 @@
         <%- include('slider.ejs', {allSliderData: allmatrixData.data[pointer][i]}); %>
         <% } %>
 
+        <% if (allmatrixData.data[pointer][i].responseType === "NA") { %>
+
+        <%- include('notApplicable.ejs', {notApplicableData: allmatrixData.data[pointer][i]}); %>
+
+        <% } %>
+
 
         <% if (allmatrixData.data[pointer][i].responseType === "date") { %>
         <%- include('date.ejs', {allDateData: allmatrixData.data[pointer][i]}); %>

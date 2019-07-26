@@ -297,11 +297,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
 
         let answerData = Object.values(observationSubmissionsDocument.answers)
-        let questionIds = []
-
-        for (let pointerToAnswer = 0; pointerToAnswer < answerData.length; pointerToAnswer++) {
-          questionIds.push(answerData[pointerToAnswer].qid)
-        }
+        let questionIds = Object.keys(observationSubmissionsDocument.answers)
 
         let questionDocument = await database.models.questions.find({
           _id: { $in: questionIds }
@@ -414,6 +410,13 @@ module.exports = class ObservationSubmissions extends Abstract {
           return sliderResponse
         }
 
+        function checkForNotApplicable() {
+          let notApplicable = {}
+          notApplicable["answer"] = "Not Applicable"
+          notApplicable["responseType"] = "NA"
+          return notApplicable
+        }
+
         function matrix(value, parentQuestion) {
           let matrixResponse = {}
           let matrixData = []
@@ -429,27 +432,31 @@ module.exports = class ObservationSubmissions extends Abstract {
             for (let i = 0; i < allValueArray.length; i++) {
               let result
 
-              if (allValueArray[i].responseType === "number") {
-                result = number(allValueArray[i])
+              if (allValueArray[i].notApplicable === true) {
+                result = checkForNotApplicable()
+              } else {
+                switch (allValueArray[i].responseType) {
+                  case 'text':
+                    result = text(allValueArray[i])
+                    break;
+                  case 'number':
+                    result = number(allValueArray[i])
+                    break;
+                  case 'radio':
+                    result = radio(allValueArray[i])
+                    break;
+                  case 'multiselect':
+                    result = multiselect(allValueArray[i])
+                    break;
+                  case 'slider':
+                    result = slider(allValueArray[i])
+                    break;
+                  case 'date':
+                    result = date(allValueArray[i])
+                    break;
+                }
+              }
 
-              }
-              if (allValueArray[i].responseType == "text") {
-                result = text(allValueArray[i])
-
-              }
-              if (allValueArray[i].responseType === "radio") {
-                result = radio(allValueArray[i])
-
-              }
-              if (allValueArray[i].responseType === "multiselect") {
-                result = multiselect(allValueArray[i])
-              }
-              if (allValueArray[i].responseType === "slider") {
-                result = slider(allValueArray[i])
-              }
-              if (allValueArray[i].responseType === "date") {
-                result = date(allValueArray[i])
-              }
               result["instanceChildrenCount"] = matrixCount + 1
 
               result["question"] = `${i + 1}. ${allValueArray[i].payload.question[0]}`
@@ -474,23 +481,29 @@ module.exports = class ObservationSubmissions extends Abstract {
           if (answerData[pointerToAnswer].responseType != "matrix" &&
             answerData[pointerToAnswer].value != undefined) {
 
-            if (answerData[pointerToAnswer].responseType === "text") {
-              result = text(answerData[pointerToAnswer])
-            }
-            if (answerData[pointerToAnswer].responseType === "number") {
-              result = number(answerData[pointerToAnswer])
-            }
-            if (answerData[pointerToAnswer].responseType === "radio") {
-              result = radio(answerData[pointerToAnswer])
-            }
-            if (answerData[pointerToAnswer].responseType === "multiselect") {
-              result = multiselect(answerData[pointerToAnswer])
-            }
-            if (answerData[pointerToAnswer].responseType === "slider") {
-              result = slider(answerData[pointerToAnswer])
-            }
-            if (answerData[pointerToAnswer].responseType === "date") {
-              result = date(answerData[pointerToAnswer])
+            if (answerData[pointerToAnswer].notApplicable === true) {
+              result = checkForNotApplicable()
+            } else {
+              switch (answerData[pointerToAnswer].responseType) {
+                case 'text':
+                  result = text(answerData[pointerToAnswer])
+                  break;
+                case 'number':
+                  result = number(answerData[pointerToAnswer])
+                  break;
+                case 'radio':
+                  result = radio(answerData[pointerToAnswer])
+                  break;
+                case 'multiselect':
+                  result = multiselect(answerData[pointerToAnswer])
+                  break;
+                case 'slider':
+                  result = slider(answerData[pointerToAnswer])
+                  break;
+                case 'date':
+                  result = date(answerData[pointerToAnswer])
+                  break;
+              }
             }
 
             result["question"] = `${count + 1}. ${answerData[pointerToAnswer].payload.question[0]}`
@@ -530,58 +543,58 @@ module.exports = class ObservationSubmissions extends Abstract {
           fs.unlinkSync(htmlPath + "footer.html");
         }
 
-      let ejsIndex = await ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
-      fs.appendFileSync(htmlPath + "index.html", ejsIndex);
+        let ejsIndex = await ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
+        fs.appendFileSync(htmlPath + "index.html", ejsIndex);
 
 
-      let ejsHeader = await ejs.renderFile(header)
-      fs.appendFileSync(htmlPath + "header.html", ejsHeader);
+        let ejsHeader = await ejs.renderFile(header)
+        fs.appendFileSync(htmlPath + "header.html", ejsHeader);
 
 
-      let ejsFooter = await ejs.renderFile(footer)
-      fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
+        let ejsFooter = await ejs.renderFile(footer)
+        fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
 
-      console.log("All appended")
-      observationSubmissionsHelper.generatePdf(req.params._id)
+        console.log("All appended")
+        observationSubmissionsHelper.generatePdf(req.params._id)
 
-      return resolve({message : "HTML generated."});
+        return resolve({ message: "HTML generated." });
 
-      // ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
-      // .then((resolve) => 
-      //   fs.appendFile(htmlPath + "index.html", resolve, function (err) {
-      //     if (err) throw err;
-      //     console.log('Saved!');
-      //   }))
-      // .then(() => {
-      //   ejs.renderFile(header)
-      // })
-      // .then((resolve) => {
-      //   fs.appendFile(htmlPath + "header.html", resolve, function (err) {
-      //     if (err) throw err;
-      //     console.log('Saved!');
-      //   });
-      // })
-      // .then(() => {
-      //   ejs.renderFile(footer)
-      // })
-      // .then((resolve) => {
-      //   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
-      //     if (err) throw err;
-      //     console.log('Saved!');
-      //   });
-      // })
-      // .then(() => {
-      //   observationSubmissionsHelper.generatePdf(req.params._id)
-      // })
-      // .then(() => {
-      //   return resolve({message: "HTML generated successfully."})
-      // })
-      // .catch(err => {
-      //   handleError(err);
-      //   printMigrated(err.migrated);
-      // });
+        // ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData })
+        // .then((resolve) => 
+        //   fs.appendFile(htmlPath + "index.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   }))
+        // .then(() => {
+        //   ejs.renderFile(header)
+        // })
+        // .then((resolve) => {
+        //   fs.appendFile(htmlPath + "header.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   });
+        // })
+        // .then(() => {
+        //   ejs.renderFile(footer)
+        // })
+        // .then((resolve) => {
+        //   fs.appendFile(htmlPath + "footer.html", resolve, function (err) {
+        //     if (err) throw err;
+        //     console.log('Saved!');
+        //   });
+        // })
+        // .then(() => {
+        //   observationSubmissionsHelper.generatePdf(req.params._id)
+        // })
+        // .then(() => {
+        //   return resolve({message: "HTML generated successfully."})
+        // })
+        // .catch(err => {
+        //   handleError(err);
+        //   printMigrated(err.migrated);
+        // });
 
-      
+
 
         // ejs.renderFile(indexTemplate, { generalInfo: generalInfo, submissionData: allSubmittedData }).then((resolve) => {
         //   fs.appendFile(htmlPath + "index.html", resolve, function (err) {
@@ -679,5 +692,4 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
 };
-
 
