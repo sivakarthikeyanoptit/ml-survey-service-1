@@ -542,7 +542,7 @@ module.exports = class ObservationSubmissions extends Abstract {
       fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
 
       console.log("All appended")
-      observationSubmissionsHelper.generatePdf(req.params._id)
+      await observationSubmissionsHelper.generatePdf(req.params._id)
 
       return resolve({message : "HTML generated."});
 

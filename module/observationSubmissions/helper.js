@@ -7,6 +7,7 @@ module.exports = class observationSubmissionsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
+                
                 // Remote url 
 
                 let gotenBergServiceURL = process.env.GOTENBERG_SERVICE_URL ? process.env.GOTENBERG_SERVICE_URL : "http://10.160.0.2:3000/convert/url"
@@ -37,17 +38,24 @@ module.exports = class observationSubmissionsHelper {
                 }
 
 
+                const gotenbergCallBack = function (err, res, body) {
+                    if (err) {
+                        throw 'Failed to connect to gotenberg service.'
+                    }
+                    clearTimeout(gotenbergRequestTimeoutId)
+                    return resolve({message : "Success"});
+                }
+
                 var gotenBerg = request.post(gotenBergServiceURL, {
                     headers: { "Content-Type": "multipart/form-data" },
                     formData: formData
-                }, function (err, res, body) {
-                    if (err) {
-                        throw 'upload failed:'
-                    }
-                    
-                    console.log('Upload successful!  Server responded with:', body);
-                    return
-                });
+                },gotenbergCallBack);
+
+                // console.log(gotenBerg)
+                const gotenbergRequestTimeoutId = setTimeout(() => {
+                    gotenBerg.abort();
+                    return reject("Failed to connect to gotenberg service.");
+                }, 10000);
 
                 // From Files
 
