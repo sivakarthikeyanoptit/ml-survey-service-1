@@ -10,7 +10,7 @@ module.exports = class observationSubmissionsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let observationSubmissionsDocument = await database.models.observationSubmissions.findOne({
+                let observationSubmissionsDocument = await database.models.submissions.findOne({
                     _id: observationSubmissionId,
                     status: "completed"
                 }, {
@@ -57,7 +57,7 @@ module.exports = class observationSubmissionsHelper {
                 let generalInfo = [
                     {
                         keyword: "Observation Name",
-                        name: observationSubmissionsDocument.observationInformation.name ? observationSubmissionsDocument.observationInformation.name : "Sample Observation"
+                        name: observationSubmissionsDocument.observationInformation && observationSubmissionsDocument.observationInformation.name ? observationSubmissionsDocument.observationInformation.name : "Sample Observation"
                     }, {
                         keyword: "Created At",
                         name: observationSubmissionsDocument.createdAt
@@ -294,8 +294,7 @@ module.exports = class observationSubmissionsHelper {
                 let ejsFooter = await ejs.renderFile(footer)
                 fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
 
-                console.log("All appended")
-                let observationData = await observationSubmissionsHelper.generatePdf(observationSubmissionId)
+                let observationData = await self.generatePdf(observationSubmissionId)
 
                 return resolve(observationData)
 
@@ -312,7 +311,7 @@ module.exports = class observationSubmissionsHelper {
                 // Remote url 
 
                 let gotenBergServiceURL = process.env.GOTENBERG_SERVICE_URL ? process.env.GOTENBERG_SERVICE_URL : "http://10.160.0.2:3000/convert/url"
-                let applicationHost = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST : "https://devhome.shikshalokam.org"
+                let applicationHost = process.env.APPLICATION_BASE_HOST ? process.env.APPLICATION_BASE_HOST : "https://devhome.shikshalokam.org"
                 let baseUrl = process.env.APPLICATION_BASE_URL ? process.env.APPLICATION_BASE_URL : "/assessment/"
                 let gotenBergWebhookEndpoint = process.env.GOTENBERG_WEBHOOK_ENDPOINT ? process.env.GOTENBERG_WEBHOOK_ENDPOINT : "api/v1/gotenberg/fileUpload/"
                 let observationSubmissionHtmlPath = process.env.OBSERVATION_SUBMISSIONS_HTML_PATH ? process.env.OBSERVATION_SUBMISSIONS_HTML_PATH : "observationSubmissions"
@@ -332,6 +331,7 @@ module.exports = class observationSubmissionsHelper {
 
                 const gotenbergCallBack = function (err, res, body) {
                     if (err) {
+                        formData.message = "Failed to connect to gotenberg service. - Error from gotenberg service."
                         let errorObject = {
                             formData: formData
                         }
@@ -350,6 +350,11 @@ module.exports = class observationSubmissionsHelper {
 
                 const gotenbergRequestTimeoutId = setTimeout(() => {
                     gotenBerg.abort();
+                    formData.message = "Failed to connect to gotenberg service. Request timed out after 10 seconds."
+                    let errorObject = {
+                        formData: formData
+                    }
+                    slackClient.gotenbergErrorLogs(errorObject)
                     return reject("Failed to connect to gotenberg service.");
                 }, 10000);
 

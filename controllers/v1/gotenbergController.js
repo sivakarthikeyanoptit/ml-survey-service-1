@@ -58,12 +58,10 @@ module.exports = class Gotenberg {
                         reject(err)
                     });
                 });
-                console.log(checkIfFileExists)
 
                 if(checkIfFileExists) {
                     const fileDeletion = await new Promise(function (resolve, reject) {
                         gcpFile.delete().then(function(data) {
-                            console.log(`File deleted.`);
                             resolve(data)
                         }).catch(err => {
                             reject(err)
@@ -104,11 +102,10 @@ module.exports = class Gotenberg {
                         stream.on('finish', resolve);
                     });
                     req.file.cloudStorageObject = filePath
-                    console.log("On finish - "+filePath)
                     
                     await gcpFile.makePublic()
 
-                    req.file.cloudStoragePublicUrl = "https://storage.googleapis.com/sl-" +(process.env.NODE_ENV == "production" ? "prod" : "dev") +"-storage/"+filePath;
+                    req.file.cloudStoragePublicUrl = filePath;
 
                     await database.models.observationSubmissions.findOneAndUpdate(
                         { "_id": submissionDocument._id},
@@ -116,10 +113,6 @@ module.exports = class Gotenberg {
                           $set : {pdfFileUrl: req.file.cloudStoragePublicUrl}
                         }
                     );
-
-                    console.log(req.file.cloudStoragePublicUrl)
-
-                    console.log("Before resolve.")
 
                     return resolve({
                         status: 200,

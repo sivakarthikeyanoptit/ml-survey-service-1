@@ -3,7 +3,7 @@ const slackCommunicationsOnOff = process.env.SLACK_COMMUNICATIONS_ON_OFF
 const sendRubricErrorMessagesToSlack = process.env.RUBRIC_ERROR_MESSAGES_TO_SLACK
 const slackToken = process.env.SLACK_TOKEN
 const exceptionLogPostUrl = process.env.SLACK_EXCEPTION_LOG_URL;
-const gotenbergCommunicationsOnOff = process.env.GOTENBERG_ERROR_MESSAGES
+const gotenbergCommunicationsOnOff = process.env.GOTENBERG_ERROR_MESSAGES_TO_SLACK
 
 const headers = { "Content-Type": "application/json", token: slackToken }
 

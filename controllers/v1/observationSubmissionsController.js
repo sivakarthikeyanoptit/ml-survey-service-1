@@ -329,7 +329,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         if (!submissionDocument || !submissionDocument._id) {
           message = "PDF not available."
         } else {
-          result.url = submissionDocument.pdfFileUrl
+          result.url = "https://storage.googleapis.com/sl-" +(process.env.NODE_ENV == "production" ? "prod" : "dev") +"-storage/"+ submissionDocument.pdfFileUrl
         }
 
         let response = {
