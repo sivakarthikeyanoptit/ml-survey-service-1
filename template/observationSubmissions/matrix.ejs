@@ -1,11 +1,11 @@
-<div class="matrixData">
-    <div><%= allmatrixData.question %>(Parent question)</div>
+<div class="matrixData textDecoration">
+    <div><%= allmatrixData.question %>(InstanceParentQuestion)</div>
 </div>
 <% for(let pointer= 0 ; pointer < allmatrixData.data.length ; pointer++){ %>
 <div class="card">
     <div class="container">
         <div class="instanceChildren">
-            Instance Children <%= allmatrixData.data[pointer][0].instanceChildrenCount %>
+            <%= allmatrixData.data[pointer][0].instanceChildrenCount %>
         </div>
         <% for(let i= 0 ; i < allmatrixData.data[pointer].length ; i++){ %>
 
@@ -20,6 +20,12 @@
 
         <% if (allmatrixData.data[pointer][i].responseType === "slider") { %>
         <%- include('slider.ejs', {allSliderData: allmatrixData.data[pointer][i]}); %>
+        <% } %>
+
+        <% if (allmatrixData.data[pointer][i].responseType === "NA") { %>
+
+        <%- include('notApplicable.ejs', {notApplicableData: allmatrixData.data[pointer][i]}); %>
+
         <% } %>
 
 

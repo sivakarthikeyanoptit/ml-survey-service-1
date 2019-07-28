@@ -106,13 +106,14 @@
             justify-content: center;
             font-size: 15px;
             color: #454341;
+            font-weight: bold
         }
 
         .instanceChildren {
             font-size: 15px;
             color: #454341;
             display: flex;
-            justify-content: flex-end
+            justify-content: center
         }
 
         .center {
@@ -148,6 +149,9 @@
 </head>
 
 <body>
+    <header>
+        <%- include('header.ejs') %>
+    </header>
     <div class="textData">
         <img src="https://media.licdn.com/dms/image/C510BAQHez72DlGeU9Q/company-logo_200_200/0?e=2159024400&v=beta&t=UYqNLUeIoAojgS8wlzkVw0FUBjJGNAK3FS8ppDJTisI"
             alt="shikshalokam!" />
@@ -225,12 +229,22 @@
     </div>
     <% } %>
 
+    <% if (submissionData[pointerToSubmittedData].responseType === "NA") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('notApplicable', {notApplicableData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+
     <% if (submissionData[pointerToSubmittedData].responseType === "matrix") { %>
     <%- include('matrix', {allmatrixData: submissionData[pointerToSubmittedData]}); %>
     <% } %>
     <% } %>
 
-
+    <footer>
+        <%- include('footer.ejs') %>
+    </footer>
 </body>
 
 </html>
