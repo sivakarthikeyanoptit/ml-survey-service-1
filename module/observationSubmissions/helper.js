@@ -10,7 +10,7 @@ module.exports = class observationSubmissionsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let observationSubmissionsDocument = await database.models.submissions.findOne({
+                let observationSubmissionsDocument = await database.models.observationSubmissions.findOne({
                     _id: observationSubmissionId,
                     status: "completed"
                 }, {
