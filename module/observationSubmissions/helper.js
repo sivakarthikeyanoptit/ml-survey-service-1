@@ -294,7 +294,7 @@ module.exports = class observationSubmissionsHelper {
                 let ejsFooter = await ejs.renderFile(footer)
                 fs.appendFileSync(htmlPath + "footer.html", ejsFooter);
 
-                let observationData = await self.generatePdf(observationSubmissionId)
+                let observationData = await this.generatePdf(observationSubmissionId)
 
                 return resolve(observationData)
 
