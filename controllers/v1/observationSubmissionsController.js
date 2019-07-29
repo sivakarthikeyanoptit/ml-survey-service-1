@@ -190,7 +190,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
 
         if (response.result.status && response.result.status === "completed") {
-          await this.generateHtml(req.params._id)
+          await observationSubmissionsHelper.generateHtml(req.params._id)
         }
 
         return resolve(response);
