@@ -776,7 +776,8 @@ module.exports = class Reports {
                               } else if (
                                 singleAnswer.responseType == "multiselect"
                               ) {
-                                questionIdObject[
+                                questionIdObject[singleAnswer.qid] && questionIdObject[singleAnswer.qid]
+                                .questionOptions && questionIdObject[
                                   singleAnswer.qid
                                 ].questionOptions.forEach(option => {
                                   multiSelectResponse[option.value] =
@@ -897,6 +898,10 @@ module.exports = class Reports {
                                       ) {
                                         questionIdObject[
                                           eachInstanceChildQuestion.qid
+                                        ] && questionIdObject[
+                                          eachInstanceChildQuestion.qid
+                                        ].questionOptions && questionIdObject[
+                                          eachInstanceChildQuestion.qid
                                         ].questionOptions.forEach(option => {
                                           radioResponse[option.value] =
                                             option.label;
@@ -910,6 +915,10 @@ module.exports = class Reports {
                                         "multiselect"
                                       ) {
                                         questionIdObject[
+                                          eachInstanceChildQuestion.qid
+                                        ] && questionIdObject[
+                                          eachInstanceChildQuestion.qid
+                                        ].questionOptions && questionIdObject[
                                           eachInstanceChildQuestion.qid
                                         ].questionOptions.forEach(option => {
                                           multiSelectResponse[option.value] =
@@ -1371,6 +1380,10 @@ module.exports = class Reports {
                           if (singleAnswer.responseType == "radio") {
                             questionOptionObject[
                               singleAnswer.qid
+                            ] && questionOptionObject[
+                              singleAnswer.qid
+                            ].questionOptions && questionOptionObject[
+                              singleAnswer.qid
                             ].questionOptions.forEach(option => {
                               radioResponse[option.value] = option.label;
                             });
@@ -1385,6 +1398,10 @@ module.exports = class Reports {
                             singleAnswer.responseType == "multiselect"
                           ) {
                             questionOptionObject[
+                              singleAnswer.qid
+                            ] && questionOptionObject[
+                              singleAnswer.qid
+                            ].questionOptions && questionOptionObject[
                               singleAnswer.qid
                             ].questionOptions.forEach(option => {
                               multiSelectResponse[option.value] = option.label;
@@ -1530,6 +1547,10 @@ module.exports = class Reports {
                                   ) {
                                     questionOptionObject[
                                       eachInstanceChildQuestion.qid
+                                    ] && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
                                     ].questionOptions.forEach(option => {
                                       radioResponse[option.value] =
                                         option.label;
@@ -1551,6 +1572,10 @@ module.exports = class Reports {
                                     "multiselect"
                                   ) {
                                     questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ] && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions && questionOptionObject[
                                       eachInstanceChildQuestion.qid
                                     ].questionOptions.forEach(option => {
                                       multiSelectResponse[option.value] =
@@ -1771,6 +1796,10 @@ module.exports = class Reports {
                                   ) {
                                     questionOptionObject[
                                       eachInstanceChildQuestion.qid
+                                    ] && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
                                     ].questionOptions.forEach(option => {
                                       radioResponse[option.value] =
                                         option.label;
@@ -1792,6 +1821,10 @@ module.exports = class Reports {
                                     "multiselect"
                                   ) {
                                     questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ] && questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptions && questionOptionObject[
                                       eachInstanceChildQuestion.qid
                                     ].questionOptions.forEach(option => {
                                       multiSelectResponse[option.value] =
@@ -2390,7 +2423,9 @@ module.exports = class Reports {
                                   } else if (
                                     singleAnswer.responseType == "multiselect"
                                   ) {
-                                    questionIdObject[
+                                    questionIdObject[singleAnswer.qid] &&
+                                      questionIdObject[singleAnswer.qid]
+                                        .questionOptions && questionIdObject[
                                       singleAnswer.qid
                                     ].questionOptions.forEach(option => {
                                       multiSelectResponse[option.value] =
@@ -2537,6 +2572,11 @@ module.exports = class Reports {
                                             "multiselect"
                                           ) {
                                             questionIdObject[
+                                              eachInstanceChildQuestion.qid
+                                            ] &&
+                                              questionIdObject[
+                                                eachInstanceChildQuestion.qid
+                                              ].questionOptions && questionIdObject[
                                               eachInstanceChildQuestion.qid
                                             ].questionOptions.forEach(
                                               option => {
