@@ -269,6 +269,51 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
+  * @api {get} /assessment/api/v1/observationSubmissions/delete:observationSubmissionId Delete observation submission. 
+  * @apiVersion 0.0.1
+  * @apiName Delete observation submission. 
+  * @apiGroup ObservationSubmissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let message = "Observation submission deleted successfully";
+
+        let submissionDocument = await database.models.observationSubmissions.deleteOne(
+          { 
+            "_id": req.params._id,
+            status: "started",
+            createdBy: req.userDetails.userId
+         }
+        );
+
+        if (!submissionDocument.n) {
+          throw "Couldn't find the submission document"
+        }
+
+        let response = {
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
 * @api {get} /assessment/api/v1/observationSubmissions/generateHtml/:observationSubmissionId  observation submissions pdf 
 * @apiVersion 0.0.1
 * @apiName Generate Observation Submissions PDF 
