@@ -26,11 +26,11 @@ module.exports = class assessmentsHelper {
                 let submissionsObjects = {};
 
                 let checkEcmSequenceExists = evidences.every(ecm => {
-                    return ecm.ecmSequenceNumber
+                    return ecm["sequenceNo"] != undefined
                 })
 
                 if (checkEcmSequenceExists) {
-                    evidences = _.sortBy(evidences, "ecmSequenceNumber")
+                    evidences = _.sortBy(evidences, "sequenceNo")
                 } else {
                     evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
                 }
