@@ -25,7 +25,15 @@ module.exports = class assessmentsHelper {
                 let questionArray = {};
                 let submissionsObjects = {};
 
-                // evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
+                let checkEcmSequenceExists = evidences.every(ecm => {
+                    return ecm.ecmSequenceNumber
+                })
+
+                if (checkEcmSequenceExists) {
+                    evidences = _.sortBy(evidences, "ecmSequenceNumber")
+                } else {
+                    evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
+                }
 
                 evidences.forEach(evidence => {
 
@@ -103,20 +111,8 @@ module.exports = class assessmentsHelper {
 
                 });
 
-                // Sort questions by sequence
                 if (questionSequenceByEcm) {
-                    let evidence = Object.keys(questionSequenceByEcm)
-                    evidences = evidence.map(eachMaped => {
-                        for (let pointer = 0; pointer < evidences.length; pointer++) {
-                            if (eachMaped === evidences[pointer].code) {
-                                return evidences[pointer]
-                            }
-                        }
-                    })
 
-                    // for(let pointerToEvidence=0;pointerToEvidence<evidence.length;pointerToEvidence++){
-
-                    // }
                     evidences.forEach(evidence => {
                         if (questionSequenceByEcm[evidence.externalId]) {
 
