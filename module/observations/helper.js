@@ -110,7 +110,7 @@ module.exports = class observationsHelper {
 
     }
 
-    static upload(observationData, solution, entityAssessorData) {
+    static upload(observationData, solution, entityDocument, userId) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -120,16 +120,16 @@ module.exports = class observationsHelper {
                     csvResult[eachObservationData] = observationData[eachObservationData]
                 })
 
-                if (entityAssessorData !== undefined && solution !== undefined) {
+                if (entityDocument !== undefined && solution !== undefined && userId !== "inValid") {
 
                     let observationDocument = await database.models.observations.findOne({
-                        solutionExternalId: observationData.solutionExternalId,
-                        createdBy: entityAssessorData.userId
+                        solutionExternalId: solution.externalId,
+                        createdBy: userId
                     }, { _id: 1 }).lean()
 
                     if (observationDocument) {
                         let updateObservationData = await database.models.observations.findOneAndUpdate({ _id: observationDocument._id }, {
-                            $addToSet: { entities: ObjectId(observationData.entityId) }
+                            $addToSet: { entities: entityDocument._id }
                         }).lean();
                         updateObservationData ? csvResult["status"] = `${updateObservationData._id.toString()} Updated Successfully` : csvResult["status"] = `${updateObservationData._id.toString()} Could not be Updated`
                     } else {
@@ -142,14 +142,14 @@ module.exports = class observationsHelper {
                         observation["solutionExternalId"] = solution.externalId
                         observation["frameworkId"] = solution.frameworkId
                         observation["frameworkExternalId"] = solution.frameworkExternalId
-                        observation["entityTypeId"] = entityAssessorData.entityTypeId
-                        observation["entityType"] = entityAssessorData.entityType
-                        observation["parentId"] = entityAssessorData.parentId ? entityAssessorData.parentId : ""
-                        observation["createdBy"] = entityAssessorData.userId
+                        observation["entityTypeId"] = entityDocument.entityTypeId
+                        observation["entityType"] = entityDocument.entityType
+                        observation["parentId"] = entityDocument.parentId ? entityDocument.parentId : ""
+                        observation["createdBy"] = userId
                         observation["name"] = observationData.name ? observationData.name : "Default Observation"
                         observation["description"] = observationData.description ? observationData.description : "Default description"
                         observation["entities"] = []
-                        observation["entities"].push(ObjectId(observationData.entityId))
+                        observation["entities"].push(entityDocument._id)
 
                         let observationDocument = await database.models.observations.create(
                             observation

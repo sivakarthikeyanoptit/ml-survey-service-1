@@ -81,7 +81,7 @@ module.exports = class entityAssessorHelper {
                 trackerObject.solutionId = entityAssessor.solutionId;
 
                 trackerObject.entityType = entityAssessor.entityType;
-                
+
                 trackerObject.entityTypeId = entityAssessor.entityTypeId;
 
                 trackerObject.dateOfOperation = new Date;
@@ -174,7 +174,7 @@ module.exports = class entityAssessorHelper {
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
-                    if(!userExternalIds.includes(assessor.externalId))userExternalIds.push(assessor.externalId);
+                    if (!userExternalIds.includes(assessor.externalId)) userExternalIds.push(assessor.externalId);
                     if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
 
                 });
@@ -311,7 +311,11 @@ module.exports = class entityAssessorHelper {
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
-                    externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    if (result[index][0]) {
+                        externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    } else {
+                        externalIdToUserIdMap[loginId] = "inValid"
+                    }
                 })
 
                 return resolve(externalIdToUserIdMap);

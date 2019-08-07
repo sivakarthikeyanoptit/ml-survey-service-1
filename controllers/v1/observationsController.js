@@ -4,6 +4,7 @@ const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const assessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -977,30 +978,26 @@ module.exports = class Observations extends Abstract {
                 let entityIds = []
 
                 observationData.forEach(eachObservationData => {
-                    users.push(eachObservationData.user)
+                    if (!users.includes(eachObservationData.user)) {
+                        users.push(eachObservationData.user)
+                    }
                     solutionExternalIds.push(eachObservationData.solutionExternalId)
                     entityIds.push(ObjectId(eachObservationData.entityId))
                 })
 
-                let entityAssessorDocument = await database.models.entityAssessors.find({
-                    email: {
-                        $in: users
-                    },
-                    entities: {
-                        $in: entityIds
-                    },
-                }, {
-                        entityTypeId: 1,
-                        entityType: 1,
-                        parentId: 1,
-                        userId: 1,
-                        email: 1
-                    }).lean();
+                let userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
 
-                let entityAssessors = {}
-                if (entityAssessorDocument.length > 0) {
-                    entityAssessorDocument.forEach(eachEntityAssessor => {
-                        entityAssessors[eachEntityAssessor.email] = eachEntityAssessor
+                let entityDocument = await database.models.entities.find({
+                    _id: {
+                        $in: entityIds
+                    }
+                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean()
+
+                let entityObject = {}
+
+                if (entityDocument.length > 0) {
+                    entityDocument.forEach(eachEntityDocument => {
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument
                     })
                 }
 
@@ -1025,17 +1022,19 @@ module.exports = class Observations extends Abstract {
 
                 for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
                     let solution
-                    let entityAssessorData
+                    let entityDocument
                     let currentData = observationData[pointerToObservation]
+
+                    let userId = userIdByExternalId[currentData.user]
 
                     if (solutionObject[currentData.solutionExternalId] !== undefined) {
                         solution = solutionObject[currentData.solutionExternalId]
                     }
 
-                    if (solutionObject[currentData.solutionExternalId] !== undefined) {
-                        entityAssessorData = entityAssessors[currentData.user]
+                    if (entityObject[currentData.entityId.toString()] !== undefined) {
+                        entityDocument = entityObject[currentData.entityId.toString()]
                     }
-                    let observationHelperData = await observationsHelper.upload(currentData, solution, entityAssessorData);
+                    let observationHelperData = await observationsHelper.upload(currentData, solution, entityDocument, userId);
                     input.push(observationHelperData.csvResult)
                 }
                 input.push(null);
