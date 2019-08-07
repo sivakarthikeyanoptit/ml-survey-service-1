@@ -110,4 +110,67 @@ module.exports = class observationsHelper {
 
     }
 
+    static upload(observationData, solution, entityAssessorData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                console.log(solution)
+                console.log(entityAssessorData)
+                let csvResult = {}
+
+                Object.keys(observationData).forEach(eachObservationData => {
+                    csvResult[eachObservationData] = observationData[eachObservationData]
+                })
+
+                if (entityAssessorData !== undefined && solution !== undefined) {
+
+                    let observationDocument = await database.models.observations.findOne({
+                        solutionExternalId: observationData.solutionExternalId,
+                        createdBy: entityAssessorData.userId
+                    }, { _id: 1 }).lean()
+
+                    if (observationDocument) {
+                        let updateObservationData = await database.models.observations.findOneAndUpdate({ _id: observationDocument._id }, {
+                            $addToSet: { entities: ObjectId(observationData.entityId) }
+                        }).lean();
+                        updateObservationData ? csvResult["status"] = `${updateObservationData._id.toString()} Updated Successfully` : csvResult["status"] = `${updateObservationData._id.toString()} Could not be Updated`
+                    } else {
+
+                        let observation = {}
+
+                        observation["status"] = "published"
+                        observation["deleted"] = "false"
+                        observation["solutionId"] = solution._id
+                        observation["solutionExternalId"] = solution.externalId
+                        observation["frameworkId"] = solution.frameworkId
+                        observation["frameworkExternalId"] = solution.frameworkExternalId
+                        observation["entityTypeId"] = entityAssessorData.entityTypeId
+                        observation["entityType"] = entityAssessorData.entityType
+                        observation["parentId"] = entityAssessorData.parentId ? entityAssessorData.parentId : ""
+                        observation["createdBy"] = entityAssessorData.userId
+                        observation["name"] = observationData.name ? observationData.name : "Default Observation"
+                        observation["description"] = observationData.description ? observationData.description : "Default description"
+                        observation["entities"] = []
+                        observation["entities"].push(ObjectId(observationData.entityId))
+
+                        let observationDocument = await database.models.observations.create(
+                            observation
+                        );
+                        observationDocument._id ? csvResult["status"] = `${observationDocument._id} created` : csvResult["status"] = `${observationDocument._id} could not be created`
+
+                    }
+                } else {
+                    csvResult["status"] = "Entity Id or User or solution is not present"
+                }
+
+                return resolve({
+                    csvResult: csvResult
+                })
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
+    }
+
 };
