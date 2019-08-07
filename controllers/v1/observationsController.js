@@ -1037,7 +1037,6 @@ module.exports = class Observations extends Abstract {
                     }
                     let observationHelperData = await observationsHelper.upload(currentData, solution, entityAssessorData);
                     input.push(observationHelperData.csvResult)
-                    console.log("here")
                 }
                 input.push(null);
             } catch (error) {

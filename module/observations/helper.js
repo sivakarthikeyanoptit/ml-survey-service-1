@@ -114,8 +114,6 @@ module.exports = class observationsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                console.log(solution)
-                console.log(entityAssessorData)
                 let csvResult = {}
 
                 Object.keys(observationData).forEach(eachObservationData => {
