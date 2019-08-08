@@ -117,7 +117,7 @@ module.exports = class observationsHelper {
                 let status
 
                 let startDate = new Date()
-                startDate.setFullYear(startDate.getFullYear() - 1);
+                startDate.setFullYear(startDate.getFullYear());
                 let endDate = new Date()
                 endDate.setFullYear(endDate.getFullYear() + 1);
 
