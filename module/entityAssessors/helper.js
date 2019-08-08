@@ -314,7 +314,7 @@ module.exports = class entityAssessorHelper {
                     if (result[index][0]) {
                         externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
                     } else {
-                        externalIdToUserIdMap[loginId] = "inValid"
+                        externalIdToUserIdMap[loginId] = "invalid"
                     }
                 })
 

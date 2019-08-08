@@ -942,16 +942,16 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {post} /assessment/api/v1/observations/upload Upload Observations CSV
+     * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
      * @apiVersion 0.0.1
-     * @apiName Upload observations CSV
+     * @apiName bulkCreate observations CSV
      * @apiGroup Observations
      * @apiParam {File} observation  Mandatory observation file of type CSV.
      * @apiUse successBody
      * @apiUse errorBody
      */
 
-    async upload(req) {
+    async bulkCreate(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!req.files || !req.files.observation) {
@@ -1004,11 +1004,16 @@ module.exports = class Observations extends Abstract {
                 let solutionDocument = await database.models.solutions.find({
                     externalId: {
                         $in: solutionExternalIds
-                    }
+                    },
+                    status: "active",
+                    isDeleted: false,
+                    isReusable: true
                 }, {
                         externalId: 1,
                         frameworkExternalId: 1,
-                        frameworkId: 1
+                        frameworkId: 1,
+                        name: 1,
+                        description: 1
                     }).lean()
 
                 let solutionObject = {}
@@ -1023,7 +1028,14 @@ module.exports = class Observations extends Abstract {
                 for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
                     let solution
                     let entityDocument
+                    let observationHelperData
                     let currentData = observationData[pointerToObservation]
+                    let csvResult = {}
+                    let status
+
+                    Object.keys(currentData).forEach(eachObservationData => {
+                        csvResult[eachObservationData] = currentData[eachObservationData]
+                    })
 
                     let userId = userIdByExternalId[currentData.user]
 
@@ -1034,8 +1046,15 @@ module.exports = class Observations extends Abstract {
                     if (entityObject[currentData.entityId.toString()] !== undefined) {
                         entityDocument = entityObject[currentData.entityId.toString()]
                     }
-                    let observationHelperData = await observationsHelper.upload(currentData, solution, entityDocument, userId);
-                    input.push(observationHelperData.csvResult)
+                    if (entityDocument !== undefined && solution !== undefined && userId !== "invalid") {
+                        observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
+                        status = observationHelperData.status
+                    } else {
+                        status = "Entity Id or User or solution is not present"
+                    }
+
+                    csvResult["status"] = status
+                    input.push(csvResult)
                 }
                 input.push(null);
             } catch (error) {
