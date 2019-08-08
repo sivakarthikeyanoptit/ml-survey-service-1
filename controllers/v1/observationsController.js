@@ -1007,7 +1007,8 @@ module.exports = class Observations extends Abstract {
                     },
                     status: "active",
                     isDeleted: false,
-                    isReusable: true
+                    isReusable: true,
+                    type: "observation"
                 }, {
                         externalId: 1,
                         frameworkExternalId: 1,
