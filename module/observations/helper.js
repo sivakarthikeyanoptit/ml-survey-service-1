@@ -116,6 +116,11 @@ module.exports = class observationsHelper {
 
                 let status
 
+                let startDate = new Date()
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                let endDate = new Date()
+                endDate.setFullYear(endDate.getFullYear() + 1);
+
                 let observationDocument = await database.models.observations.findOne({
                     solutionExternalId: solution.externalId,
                     createdBy: userId
@@ -140,6 +145,8 @@ module.exports = class observationsHelper {
                     observation["entityType"] = entityDocument.entityType
                     observation["parentId"] = entityDocument.parentId ? entityDocument.parentId : ""
                     observation["createdBy"] = userId
+                    observation["startDate"] = startDate
+                    observation["endDate"] = endDate
                     observation["name"] = solution.name
                     observation["description"] = solution.description
                     observation["entities"] = []
