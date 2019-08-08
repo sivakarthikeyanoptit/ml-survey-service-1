@@ -2,6 +2,9 @@ const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const csv = require("csvtojson");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const assessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -232,15 +235,15 @@ module.exports = class Observations extends Abstract {
                             observationId: observation._id
                         },
                         {
-                          "criteria": 0,
-                          "evidences": 0,
-                          "answers":0
+                            "criteria": 0,
+                            "evidences": 0,
+                            "answers": 0
                         }
                     )
 
                     let observationEntitySubmissions = {}
                     submissions.forEach(observationEntitySubmission => {
-                        if(!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
+                        if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
                             observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
                                 submissionStatus: "",
                                 submissions: new Array,
@@ -835,105 +838,233 @@ module.exports = class Observations extends Abstract {
 
     async importFromFramework(req) {
         return new Promise(async (resolve, reject) => {
-        try {
+            try {
 
-            if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-                throw "Invalid parameters."
-            }
-
-            let frameworkDocument = await database.models.frameworks.findOne({
-                externalId: req.query.frameworkId
-            }).lean()
-
-            if (!frameworkDocument._id) {
-                throw "Invalid parameters."
-            }
-
-            let entityTypeDocument = await database.models.entityTypes.findOne({
-                name: req.query.entityType,
-                isObservable : true
-            }, {
-                _id: 1,
-                name: 1
-            }).lean()
-
-            if (!entityTypeDocument._id) {
-                throw "Invalid parameters."
-            }
-
-            let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
-
-            let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
-
-            let solutionCriteriaToFrameworkCriteriaMap = {}
-
-            await Promise.all(frameworkCriteria.map(async (criteria) => {
-                criteria.frameworkCriteriaId = criteria._id
-                
-                let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
-                
-                if (newCriteriaId._id) {
-                    solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+                if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
+                    throw "Invalid parameters."
                 }
-            }))
 
+                let frameworkDocument = await database.models.frameworks.findOne({
+                    externalId: req.query.frameworkId
+                }).lean()
 
-            let updateThemes = function (themes) {
-                themes.forEach(theme => {
-                    let criteriaIdArray = new Array
-                    let themeCriteriaToSet = new Array
-                    if (theme.children) {
-                        updateThemes(theme.children);
-                    } else {
-                        criteriaIdArray = theme.criteria;
-                        criteriaIdArray.forEach(eachCriteria => {
-                            eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
-                            themeCriteriaToSet.push(eachCriteria)
-                        })
-                        theme.criteria = themeCriteriaToSet
+                if (!frameworkDocument._id) {
+                    throw "Invalid parameters."
+                }
+
+                let entityTypeDocument = await database.models.entityTypes.findOne({
+                    name: req.query.entityType,
+                    isObservable: true
+                }, {
+                        _id: 1,
+                        name: 1
+                    }).lean()
+
+                if (!entityTypeDocument._id) {
+                    throw "Invalid parameters."
+                }
+
+                let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
+
+                let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
+                let solutionCriteriaToFrameworkCriteriaMap = {}
+
+                await Promise.all(frameworkCriteria.map(async (criteria) => {
+                    criteria.frameworkCriteriaId = criteria._id
+
+                    let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
+
+                    if (newCriteriaId._id) {
+                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
                     }
+                }))
+
+
+                let updateThemes = function (themes) {
+                    themes.forEach(theme => {
+                        let criteriaIdArray = new Array
+                        let themeCriteriaToSet = new Array
+                        if (theme.children) {
+                            updateThemes(theme.children);
+                        } else {
+                            criteriaIdArray = theme.criteria;
+                            criteriaIdArray.forEach(eachCriteria => {
+                                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
+                                themeCriteriaToSet.push(eachCriteria)
+                            })
+                            theme.criteria = themeCriteriaToSet
+                        }
+                    })
+                    return true;
+                }
+
+                let newSolutionDocument = _.cloneDeep(frameworkDocument)
+
+                updateThemes(newSolutionDocument.themes)
+
+                newSolutionDocument.type = "observation"
+                newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
+
+                newSolutionDocument.externalId = frameworkDocument.externalId + "-OBSERVATION-TEMPLATE"
+
+                newSolutionDocument.frameworkId = frameworkDocument._id
+                newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+
+                newSolutionDocument.entityTypeId = entityTypeDocument._id
+                newSolutionDocument.entityType = entityTypeDocument.name
+                newSolutionDocument.isReusable = true
+
+                let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+
+                if (newSolutionId._id) {
+
+                    let response = {
+                        message: "Observation Solution generated.",
+                        result: newSolutionId._id
+                    };
+
+                    return resolve(response);
+
+                } else {
+                    throw "Some error while creating observation solution."
+                }
+
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+
+    /**
+     * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
+     * @apiVersion 0.0.1
+     * @apiName bulkCreate observations CSV
+     * @apiGroup Observations
+     * @apiParam {File} observation  Mandatory observation file of type CSV.
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    async bulkCreate(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!req.files || !req.files.observation) {
+                    let responseMessage = "Bad request.";
+                    return resolve({ status: 400, message: responseMessage });
+                }
+
+                const fileName = `Observation-Upload-Result`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
+
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                        isResponseAStream: true,
+                        fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                })();
+
+                let observationData = await csv().fromString(req.files.observation.data.toString())
+
+                let users = []
+                let solutionExternalIds = []
+                let entityIds = []
+
+                observationData.forEach(eachObservationData => {
+                    if (!users.includes(eachObservationData.user)) {
+                        users.push(eachObservationData.user)
+                    }
+                    solutionExternalIds.push(eachObservationData.solutionExternalId)
+                    entityIds.push(ObjectId(eachObservationData.entityId))
                 })
-                return true;
+
+                let userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+
+                let entityDocument = await database.models.entities.find({
+                    _id: {
+                        $in: entityIds
+                    }
+                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean()
+
+                let entityObject = {}
+
+                if (entityDocument.length > 0) {
+                    entityDocument.forEach(eachEntityDocument => {
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument
+                    })
+                }
+
+                let solutionDocument = await database.models.solutions.find({
+                    externalId: {
+                        $in: solutionExternalIds
+                    },
+                    status: "active",
+                    isDeleted: false,
+                    isReusable: true,
+                    type: "observation"
+                }, {
+                        externalId: 1,
+                        frameworkExternalId: 1,
+                        frameworkId: 1,
+                        name: 1,
+                        description: 1
+                    }).lean()
+
+                let solutionObject = {}
+
+                if (solutionDocument.length > 0) {
+                    solutionDocument.forEach(eachSolutionDocument => {
+                        solutionObject[eachSolutionDocument.externalId] = eachSolutionDocument
+                    })
+                }
+
+
+                for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
+                    let solution
+                    let entityDocument
+                    let observationHelperData
+                    let currentData = observationData[pointerToObservation]
+                    let csvResult = {}
+                    let status
+
+                    Object.keys(currentData).forEach(eachObservationData => {
+                        csvResult[eachObservationData] = currentData[eachObservationData]
+                    })
+
+                    let userId = userIdByExternalId[currentData.user]
+
+                    if (solutionObject[currentData.solutionExternalId] !== undefined) {
+                        solution = solutionObject[currentData.solutionExternalId]
+                    }
+
+                    if (entityObject[currentData.entityId.toString()] !== undefined) {
+                        entityDocument = entityObject[currentData.entityId.toString()]
+                    }
+                    if (entityDocument !== undefined && solution !== undefined && userId !== "invalid") {
+                        observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
+                        status = observationHelperData.status
+                    } else {
+                        status = "Entity Id or User or solution is not present"
+                    }
+
+                    csvResult["status"] = status
+                    input.push(csvResult)
+                }
+                input.push(null);
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
             }
-
-            let newSolutionDocument = _.cloneDeep(frameworkDocument)
-
-            updateThemes(newSolutionDocument.themes)
-
-            newSolutionDocument.type = "observation"
-            newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
-
-            newSolutionDocument.externalId = frameworkDocument.externalId+"-OBSERVATION-TEMPLATE"
-
-            newSolutionDocument.frameworkId = frameworkDocument._id
-            newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
-
-            newSolutionDocument.entityTypeId = entityTypeDocument._id
-            newSolutionDocument.entityType = entityTypeDocument.name
-            newSolutionDocument.isReusable = true
-
-            let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
-            
-            if (newSolutionId._id) {
-
-                let response = {
-                    message: "Observation Solution generated.",
-                    result: newSolutionId._id
-                };
-
-                return resolve(response);
-
-            } else {
-                throw "Some error while creating observation solution."
-            }
-
-        } catch (error) {
-            return reject({
-            status: 500,
-            message: error,
-            errorObject: error
-            });
-        }
         });
     }
 
