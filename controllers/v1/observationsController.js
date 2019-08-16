@@ -14,7 +14,7 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
+    * @api {get} /assessment/api/v1/observations/solutions?search=:searchText&limit=1&page=1 Observation Solution
     * @apiVersion 0.0.1
     * @apiName Observation Solution
     * @apiGroup Observations
@@ -35,7 +35,11 @@ module.exports = class Observations extends Abstract {
                 let matchQuery = {}
 
                 matchQuery["$match"] = {}
-                matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+
+                if (req.params._id) {
+                    matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+                }
+
                 matchQuery["$match"]["type"] = "observation"
                 matchQuery["$match"]["isReusable"] = true
                 matchQuery["$match"]["status"] = "active"
@@ -1087,6 +1091,7 @@ module.exports = class Observations extends Abstract {
                 let observationDocument = await database.models.observations.findOne(
                     {
                         _id: req.params._id,
+                        createdBy: req.userDetails.userId
                     }, {
                         _id: 1
                     }

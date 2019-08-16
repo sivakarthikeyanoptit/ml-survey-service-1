@@ -9,9 +9,6 @@ module.exports = (req) => {
         metaForm: function () {
             req.checkParams('_id').exists().withMessage("required observation id")
         },
-        solutions: function () {
-            req.checkParams('_id').exists().withMessage("required entity id")
-        },
         addEntityToObservation: function () {
             req.checkParams('_id').exists().withMessage("required observation id")
         },
