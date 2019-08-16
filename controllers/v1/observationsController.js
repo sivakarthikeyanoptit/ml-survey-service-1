@@ -1092,6 +1092,10 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean();
 
+                if (!observationDocument) {
+                    throw "Observation is not found"
+                }
+
                 let updateQuery = {};
                 updateQuery["$set"] = {}
 
@@ -1118,9 +1122,8 @@ module.exports = class Observations extends Abstract {
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! something went wrong.",
-                    errorObject: error
+                    status: 500,
+                    message: error,
                 })
 
             }
