@@ -31,8 +31,10 @@ module.exports = (req) => {
         },
         complete: function () {
             req.checkParams('_id').exists().withMessage("required observation id")
-        }
-
+        },
+        update: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+        },
 
     }
 

@@ -1068,4 +1068,64 @@ module.exports = class Observations extends Abstract {
         });
     }
 
+    /**
+        * @api {post} /assessment/api/v1/observations/update/:observationId update name and description of Observations
+        * @apiVersion 0.0.1
+        * @apiName update observations
+        * @apiGroup Observations
+        * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
+        * @apiUse successBody
+        * @apiUse errorBody
+        */
+
+    async update(req) {
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+
+                let observationDocument = await database.models.observations.findOne(
+                    {
+                        _id: req.params._id,
+                    }, {
+                        _id: 1
+                    }
+                ).lean();
+
+                let updateQuery = {};
+                updateQuery["$set"] = {}
+
+                if (req.body.name) {
+                    updateQuery["$set"]["name"] = req.body.name
+                }
+
+                if (req.body.description) {
+                    updateQuery["$set"]["description"] = req.body.description
+                }
+
+                await database.models.observations.findOneAndUpdate(
+                    {
+                        _id: observationDocument._id
+                    },
+                    updateQuery
+                );
+
+
+                return resolve({
+                    message: "Observation successfully updated.",
+                });
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! something went wrong.",
+                    errorObject: error
+                })
+
+            }
+
+
+        })
+    }
 }
