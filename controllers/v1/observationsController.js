@@ -1,7 +1,10 @@
 const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
-const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const csv = require("csvtojson");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const assessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -9,13 +12,14 @@ module.exports = class Observations extends Abstract {
         super(observationsSchema);
     }
 
+
     /**
-    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId Observation Solution
+    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
     * @apiVersion 0.0.1
     * @apiName Observation Solution
     * @apiGroup Observations
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/observations/solutions
+    * @apiSampleRequest /assessment/api/v1/observations/solutions/5cd955487e100b4dded3ebb3?search=Framework&pageSize=10&pageNo=1
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -26,22 +30,33 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                let solutionsData = await database.models.solutions.find({
-                    entityTypeId: req.params._id,
-                    type: "observation",
-                    isReusable: true
-                }, {
-                        name: 1,
-                        description: 1,
-                        externalId: 1,
-                        programId: 1,
-                        entityTypeId: 1
-                    }).lean();
+                let response = {}
+                let messageData
+                let matchQuery = {}
 
-                return resolve({
-                    message: "Solution list fetched successfully.",
-                    result: solutionsData
-                });
+                matchQuery["$match"] = {}
+                matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+                matchQuery["$match"]["type"] = "observation"
+                matchQuery["$match"]["isReusable"] = true
+                matchQuery["$match"]["status"] = "active"
+
+                matchQuery["$match"]["$or"] = []
+                matchQuery["$match"]["$or"].push({ "name": new RegExp(req.searchText, 'i') }, { "description": new RegExp(req.searchText, 'i') }, { "keywords": new RegExp(req.searchText, 'i') })
+
+                let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo)
+
+
+                messageData = "Solutions fetched successfully"
+
+                if (!solutionDocument[0].count) {
+                    solutionDocument[0].count = 0
+                    messageData = "Solution is not found"
+                }
+
+                response.result = solutionDocument
+                response["message"] = messageData
+
+                return resolve(response);
 
             } catch (error) {
                 return reject({
@@ -214,27 +229,41 @@ module.exports = class Observations extends Abstract {
 
                     submissions = await database.models.observationSubmissions.find(
                         {
-                          entityId: {
-                            $in: observation.entities
-                          },
-                          observationId:observation._id
+                            entityId: {
+                                $in: observation.entities
+                            },
+                            observationId: observation._id
                         },
                         {
-                          "entityId": 1,
-                          "status": 1
+                            "criteria": 0,
+                            "evidences": 0,
+                            "answers": 0
                         }
                     )
 
+                    let observationEntitySubmissions = {}
+                    submissions.forEach(observationEntitySubmission => {
+                        if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
+                            observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
+                                submissionStatus: "",
+                                submissions: new Array,
+                                entityId: observationEntitySubmission.entityId.toString()
+                            }
+                        }
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
+                    })
 
-                    entityObservationSubmissionStatus = submissions.reduce(
-                        (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
+                    // entityObservationSubmissionStatus = submissions.reduce(
+                    //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
 
 
                     observation.entities = new Array
                     observation.entityDocuments.forEach(observationEntity => {
                         observation.entities.push({
                             _id: observationEntity._id,
-                            submissionStatus: (entityObservationSubmissionStatus[observationEntity._id.toString()]) ? entityObservationSubmissionStatus[observationEntity._id.toString()].submissionStatus : "pending",
+                            submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
+                            submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
                             ...observationEntity.metaInformation
                         })
                     })
@@ -393,7 +422,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/search/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
+     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
      * @apiVersion 0.0.1
      * @apiName Search Entities
      * @apiGroup Observations
@@ -404,14 +433,13 @@ module.exports = class Observations extends Abstract {
      */
 
 
-    async search(req) {
+    async searchEntities(req) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
                 let response = {
-                    message: "Entities fetched successfully",
                     result: {}
                 };
 
@@ -434,11 +462,17 @@ module.exports = class Observations extends Abstract {
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 
-                entityDocuments[0].metaInformation.forEach(metaInformation => {
-                    metaInformation.selected = (observationEntityIds.includes(metaInformation._id.toString())) ? true : false;
+                entityDocuments[0].data.forEach(eachMetaData => {
+                    eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                 })
 
+                let messageData = "Entities fetched successfully"
+                if (!entityDocuments[0].count) {
+                    entityDocuments[0].count = 0
+                    messageData = "No entities found"
+                }
                 response.result = entityDocuments
+                response["message"] = messageData
 
                 return resolve(response);
 
@@ -457,12 +491,14 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId Assessments
+     * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
      * @apiVersion 0.0.1
      * @apiName Assessments
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/assessment/:observationId
+     * @apiParam {String} entityId Entity ID.
+     * @apiParam {Int} submissionNumber Submission Number.
+     * @apiSampleRequest /assessment/api/v1/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
      * @apiUse successBody
      * @apiUse errorBody
      */
@@ -496,6 +532,8 @@ module.exports = class Observations extends Abstract {
                     let responseMessage = 'No entity found.';
                     return resolve({ status: 400, message: responseMessage })
                 }
+
+                const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
 
                 let solutionQueryObject = {
                     _id: observationDocument.solutionId,
@@ -700,6 +738,7 @@ module.exports = class Observations extends Abstract {
                 submissionDocument.evidences = submissionDocumentEvidences;
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
+                submissionDocument.submissionNumber = submissionNumber;
 
                 let submissionDoc = await observationsHelper.findSubmission(
                     submissionDocument
@@ -799,105 +838,233 @@ module.exports = class Observations extends Abstract {
 
     async importFromFramework(req) {
         return new Promise(async (resolve, reject) => {
-        try {
+            try {
 
-            if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-                throw "Invalid parameters."
-            }
-
-            let frameworkDocument = await database.models.frameworks.findOne({
-                externalId: req.query.frameworkId
-            }).lean()
-
-            if (!frameworkDocument._id) {
-                throw "Invalid parameters."
-            }
-
-            let entityTypeDocument = await database.models.entityTypes.findOne({
-                name: req.query.entityType,
-                isObservable : true
-            }, {
-                _id: 1,
-                name: 1
-            }).lean()
-
-            if (!entityTypeDocument._id) {
-                throw "Invalid parameters."
-            }
-
-            let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
-
-            let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
-
-            let solutionCriteriaToFrameworkCriteriaMap = {}
-
-            await Promise.all(frameworkCriteria.map(async (criteria) => {
-                criteria.frameworkCriteriaId = criteria._id
-                
-                let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
-                
-                if (newCriteriaId._id) {
-                    solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+                if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
+                    throw "Invalid parameters."
                 }
-            }))
 
+                let frameworkDocument = await database.models.frameworks.findOne({
+                    externalId: req.query.frameworkId
+                }).lean()
 
-            let updateThemes = function (themes) {
-                themes.forEach(theme => {
-                    let criteriaIdArray = new Array
-                    let themeCriteriaToSet = new Array
-                    if (theme.children) {
-                        updateThemes(theme.children);
-                    } else {
-                        criteriaIdArray = theme.criteria;
-                        criteriaIdArray.forEach(eachCriteria => {
-                            eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
-                            themeCriteriaToSet.push(eachCriteria)
-                        })
-                        theme.criteria = themeCriteriaToSet
+                if (!frameworkDocument._id) {
+                    throw "Invalid parameters."
+                }
+
+                let entityTypeDocument = await database.models.entityTypes.findOne({
+                    name: req.query.entityType,
+                    isObservable: true
+                }, {
+                        _id: 1,
+                        name: 1
+                    }).lean()
+
+                if (!entityTypeDocument._id) {
+                    throw "Invalid parameters."
+                }
+
+                let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
+
+                let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
+                let solutionCriteriaToFrameworkCriteriaMap = {}
+
+                await Promise.all(frameworkCriteria.map(async (criteria) => {
+                    criteria.frameworkCriteriaId = criteria._id
+
+                    let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
+
+                    if (newCriteriaId._id) {
+                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
                     }
+                }))
+
+
+                let updateThemes = function (themes) {
+                    themes.forEach(theme => {
+                        let criteriaIdArray = new Array
+                        let themeCriteriaToSet = new Array
+                        if (theme.children) {
+                            updateThemes(theme.children);
+                        } else {
+                            criteriaIdArray = theme.criteria;
+                            criteriaIdArray.forEach(eachCriteria => {
+                                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
+                                themeCriteriaToSet.push(eachCriteria)
+                            })
+                            theme.criteria = themeCriteriaToSet
+                        }
+                    })
+                    return true;
+                }
+
+                let newSolutionDocument = _.cloneDeep(frameworkDocument)
+
+                updateThemes(newSolutionDocument.themes)
+
+                newSolutionDocument.type = "observation"
+                newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
+
+                newSolutionDocument.externalId = frameworkDocument.externalId + "-OBSERVATION-TEMPLATE"
+
+                newSolutionDocument.frameworkId = frameworkDocument._id
+                newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+
+                newSolutionDocument.entityTypeId = entityTypeDocument._id
+                newSolutionDocument.entityType = entityTypeDocument.name
+                newSolutionDocument.isReusable = true
+
+                let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+
+                if (newSolutionId._id) {
+
+                    let response = {
+                        message: "Observation Solution generated.",
+                        result: newSolutionId._id
+                    };
+
+                    return resolve(response);
+
+                } else {
+                    throw "Some error while creating observation solution."
+                }
+
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+
+    /**
+     * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
+     * @apiVersion 0.0.1
+     * @apiName bulkCreate observations CSV
+     * @apiGroup Observations
+     * @apiParam {File} observation  Mandatory observation file of type CSV.
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    async bulkCreate(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!req.files || !req.files.observation) {
+                    let responseMessage = "Bad request.";
+                    return resolve({ status: 400, message: responseMessage });
+                }
+
+                const fileName = `Observation-Upload-Result`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
+
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                        isResponseAStream: true,
+                        fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                })();
+
+                let observationData = await csv().fromString(req.files.observation.data.toString())
+
+                let users = []
+                let solutionExternalIds = []
+                let entityIds = []
+
+                observationData.forEach(eachObservationData => {
+                    if (!users.includes(eachObservationData.user)) {
+                        users.push(eachObservationData.user)
+                    }
+                    solutionExternalIds.push(eachObservationData.solutionExternalId)
+                    entityIds.push(ObjectId(eachObservationData.entityId))
                 })
-                return true;
+
+                let userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+
+                let entityDocument = await database.models.entities.find({
+                    _id: {
+                        $in: entityIds
+                    }
+                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean()
+
+                let entityObject = {}
+
+                if (entityDocument.length > 0) {
+                    entityDocument.forEach(eachEntityDocument => {
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument
+                    })
+                }
+
+                let solutionDocument = await database.models.solutions.find({
+                    externalId: {
+                        $in: solutionExternalIds
+                    },
+                    status: "active",
+                    isDeleted: false,
+                    isReusable: true,
+                    type: "observation"
+                }, {
+                        externalId: 1,
+                        frameworkExternalId: 1,
+                        frameworkId: 1,
+                        name: 1,
+                        description: 1
+                    }).lean()
+
+                let solutionObject = {}
+
+                if (solutionDocument.length > 0) {
+                    solutionDocument.forEach(eachSolutionDocument => {
+                        solutionObject[eachSolutionDocument.externalId] = eachSolutionDocument
+                    })
+                }
+
+
+                for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
+                    let solution
+                    let entityDocument
+                    let observationHelperData
+                    let currentData = observationData[pointerToObservation]
+                    let csvResult = {}
+                    let status
+
+                    Object.keys(currentData).forEach(eachObservationData => {
+                        csvResult[eachObservationData] = currentData[eachObservationData]
+                    })
+
+                    let userId = userIdByExternalId[currentData.user]
+
+                    if (solutionObject[currentData.solutionExternalId] !== undefined) {
+                        solution = solutionObject[currentData.solutionExternalId]
+                    }
+
+                    if (entityObject[currentData.entityId.toString()] !== undefined) {
+                        entityDocument = entityObject[currentData.entityId.toString()]
+                    }
+                    if (entityDocument !== undefined && solution !== undefined && userId !== "invalid") {
+                        observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
+                        status = observationHelperData.status
+                    } else {
+                        status = "Entity Id or User or solution is not present"
+                    }
+
+                    csvResult["status"] = status
+                    input.push(csvResult)
+                }
+                input.push(null);
+            } catch (error) {
+                return reject({
+                    status: 500,
+                    message: error,
+                    errorObject: error
+                });
             }
-
-            let newSolutionDocument = _.cloneDeep(frameworkDocument)
-
-            updateThemes(newSolutionDocument.themes)
-
-            newSolutionDocument.type = "observation"
-            newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
-
-            newSolutionDocument.externalId = frameworkDocument.externalId+"-OBSERVATION-TEMPLATE"
-
-            newSolutionDocument.frameworkId = frameworkDocument._id
-            newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
-
-            newSolutionDocument.entityTypeId = entityTypeDocument._id
-            newSolutionDocument.entityType = entityTypeDocument.name
-            newSolutionDocument.isReusable = true
-
-            let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
-            
-            if (newSolutionId._id) {
-
-                let response = {
-                    message: "Observation Solution generated.",
-                    result: newSolutionId._id
-                };
-
-                return resolve(response);
-
-            } else {
-                throw "Some error while creating observation solution."
-            }
-
-        } catch (error) {
-            return reject({
-            status: 500,
-            message: error,
-            errorObject: error
-            });
-        }
         });
     }
 
