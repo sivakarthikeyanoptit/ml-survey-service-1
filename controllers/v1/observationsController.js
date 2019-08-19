@@ -1087,20 +1087,6 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-
-                let observationDocument = await database.models.observations.findOne(
-                    {
-                        _id: req.params._id,
-                        createdBy: req.userDetails.userId
-                    }, {
-                        _id: 1
-                    }
-                ).lean();
-
-                if (!observationDocument) {
-                    throw "Observation is not found"
-                }
-
                 let updateQuery = {};
                 updateQuery["$set"] = {}
 
@@ -1112,13 +1098,17 @@ module.exports = class Observations extends Abstract {
                     updateQuery["$set"]["description"] = req.body.description
                 }
 
-                await database.models.observations.findOneAndUpdate(
+                let observationDocument = await database.models.observations.findOneAndUpdate(
                     {
-                        _id: observationDocument._id
+                        _id: req.params._id,
+                        createdBy: req.userDetails.userId
                     },
                     updateQuery
-                );
+                ).lean();
 
+                if (!observationDocument) {
+                    throw "Observation is not found"
+                }
 
                 return resolve({
                     message: "Observation successfully updated.",
