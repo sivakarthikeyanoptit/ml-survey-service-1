@@ -291,7 +291,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {post}   Map entities to observations
+     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
      * @apiVersion 0.0.1
      * @apiName Map entities to observations
      * @apiGroup Observations
