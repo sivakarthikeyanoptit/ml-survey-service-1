@@ -1,3 +1,5 @@
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+
 module.exports = class observationsHelper {
 
     static create(solutionId, data, userDetails) {
@@ -17,6 +19,13 @@ module.exports = class observationsHelper {
                     }).lean();
 
                 if (!solutionDocument) throw "No solution id found."
+
+                if (data.entities) {
+                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId)
+
+                    data.entities = entitiesToAdd.entityIds
+
+                }
 
                 let observationData = await database.models.observations.create(
                     _.merge(data, {

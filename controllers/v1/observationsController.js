@@ -137,7 +137,8 @@ module.exports = class Observations extends Abstract {
      *          "description": String,
      *          "startDate": String,
      *          "endDate": String,
-     *          "status": String
+     *          "status": String,
+     *          "entities":["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      *      }
      * }
      * @apiUse successBody
@@ -333,28 +334,21 @@ module.exports = class Observations extends Abstract {
                     })
                 }
 
-                let entitiesDocuments = await database.models.entities.find(
-                    {
-                        _id: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) },
-                        entityTypeId: observationDocument.entityTypeId
-                    },
-                    {
-                        _id: 1
-                    }
-                );
+                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId)
 
-                let entityIds = entitiesDocuments.map(entityId => entityId._id);
+                if (entitiesToAdd.entityIds.length > 0) {
+                    await database.models.observations.updateOne(
+                        {
+                            _id: observationDocument._id
+                        },
+                        {
+                            $addToSet: { entities: entitiesToAdd.entityIds }
+                        }
+                    );
+                }
 
-                await database.models.observations.updateOne(
-                    {
-                        _id: observationDocument._id
-                    },
-                    {
-                        $addToSet: { entities: entityIds }
-                    }
-                );
 
-                if (entityIds.length != req.body.data.length) {
+                if (entitiesToAdd.entityIds.length != req.body.data.length) {
                     responseMessage = "Not all entities are updated."
                 }
 

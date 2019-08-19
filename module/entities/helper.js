@@ -305,7 +305,7 @@ module.exports = class entitiesHelper {
                     entityCSVData.map(async singleEntity => {
 
                         singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
-                            if(singleEntity[arrayTypeField]) {
+                            if (singleEntity[arrayTypeField]) {
                                 singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
                             }
                         })
@@ -432,6 +432,36 @@ module.exports = class entitiesHelper {
                 ]);
 
                 return resolve(entityDocuments)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static validateEntities(entityIds, entityTypeId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let ids = []
+
+                let entitiesDocuments = await database.models.entities.find(
+                    {
+                        _id: { $in: gen.utils.arrayIdsTobjectIds(entityIds) },
+                        entityTypeId: entityTypeId
+                    },
+                    {
+                        _id: 1
+                    }
+                ).lean();
+
+                if (entitiesDocuments.length > 0) {
+                    ids = entitiesDocuments.map(entityId => entityId._id)
+                }
+
+                return resolve({
+                    entityIds: ids
+                })
+
 
             } catch (error) {
                 return reject(error);
