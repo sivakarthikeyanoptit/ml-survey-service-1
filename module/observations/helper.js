@@ -1,3 +1,5 @@
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+
 module.exports = class observationsHelper {
 
     static create(solutionId, data, userDetails) {
@@ -19,24 +21,9 @@ module.exports = class observationsHelper {
                 if (!solutionDocument) throw "No solution id found."
 
                 if (data.entities) {
-                    let entityIds
-                    let entitiesDocuments = await database.models.entities.find(
-                        {
-                            _id: { $in: gen.utils.arrayIdsTobjectIds(data.entities) },
-                            entityType: solutionDocument.entityType
-                        },
-                        {
-                            _id: 1
-                        }
-                    ).lean();
+                    let getEntities = await entitiesHelper.findEntities(data.entities, solutionDocument.entityTypeId)
 
-                    if (entitiesDocuments.length > 0) {
-                        entityIds = entitiesDocuments.map(entityId => entityId._id)
-                    } else {
-                        entityIds = []
-                    }
-
-                    data.entities = entityIds
+                    data.entities = getEntities.entityIds
 
                 }
 

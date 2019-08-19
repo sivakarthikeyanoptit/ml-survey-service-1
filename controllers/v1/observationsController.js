@@ -291,7 +291,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
+     * @api {post}   Map entities to observations
      * @apiVersion 0.0.1
      * @apiName Map entities to observations
      * @apiGroup Observations
@@ -330,28 +330,18 @@ module.exports = class Observations extends Abstract {
                     })
                 }
 
-                let entitiesDocuments = await database.models.entities.find(
-                    {
-                        _id: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) },
-                        entityTypeId: observationDocument.entityTypeId
-                    },
-                    {
-                        _id: 1
-                    }
-                );
-
-                let entityIds = entitiesDocuments.map(entityId => entityId._id);
+                let getEntity = await entitiesHelper.findEntities(req.body.data, observationDocument.entityTypeId)
 
                 await database.models.observations.updateOne(
                     {
                         _id: observationDocument._id
                     },
                     {
-                        $addToSet: { entities: entityIds }
+                        $addToSet: { entities: getEntity.entityIds }
                     }
                 );
 
-                if (entityIds.length != req.body.data.length) {
+                if (getEntity.entityIds.length != req.body.data.length) {
                     responseMessage = "Not all entities are updated."
                 }
 
