@@ -330,18 +330,21 @@ module.exports = class Observations extends Abstract {
                     })
                 }
 
-                let getEntity = await entitiesHelper.findEntities(req.body.data, observationDocument.entityTypeId)
+                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId)
 
-                await database.models.observations.updateOne(
-                    {
-                        _id: observationDocument._id
-                    },
-                    {
-                        $addToSet: { entities: getEntity.entityIds }
-                    }
-                );
+                if (entitiesToAdd.entityIds.length > 0) {
+                    await database.models.observations.updateOne(
+                        {
+                            _id: observationDocument._id
+                        },
+                        {
+                            $addToSet: { entities: entitiesToAdd.entityIds }
+                        }
+                    );
+                }
 
-                if (getEntity.entityIds.length != req.body.data.length) {
+
+                if (entitiesToAdd.entityIds.length != req.body.data.length) {
                     responseMessage = "Not all entities are updated."
                 }
 

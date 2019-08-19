@@ -439,7 +439,7 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static findEntities(entityIds, entityTypeId) {
+    static validateEntities(entityIds, entityTypeId) {
         return new Promise(async (resolve, reject) => {
             try {
                 let ids = []

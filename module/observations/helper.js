@@ -21,9 +21,9 @@ module.exports = class observationsHelper {
                 if (!solutionDocument) throw "No solution id found."
 
                 if (data.entities) {
-                    let getEntities = await entitiesHelper.findEntities(data.entities, solutionDocument.entityTypeId)
+                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId)
 
-                    data.entities = getEntities.entityIds
+                    data.entities = entitiesToAdd.entityIds
 
                 }
 
