@@ -133,7 +133,8 @@ module.exports = class Observations extends Abstract {
      *          "description": String,
      *          "startDate": String,
      *          "endDate": String,
-     *          "status": String
+     *          "status": String,
+     *          "entities":["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      *      }
      * }
      * @apiUse successBody

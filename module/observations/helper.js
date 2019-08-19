@@ -18,6 +18,28 @@ module.exports = class observationsHelper {
 
                 if (!solutionDocument) throw "No solution id found."
 
+                if (data.entities) {
+                    let entityIds
+                    let entitiesDocuments = await database.models.entities.find(
+                        {
+                            _id: { $in: gen.utils.arrayIdsTobjectIds(data.entities) },
+                            entityType: solutionDocument.entityType
+                        },
+                        {
+                            _id: 1
+                        }
+                    ).lean();
+
+                    if (entitiesDocuments.length > 0) {
+                        entityIds = entitiesDocuments.map(entityId => entityId._id)
+                    } else {
+                        entityIds = []
+                    }
+
+                    data.entities = entityIds
+
+                }
+
                 let observationData = await database.models.observations.create(
                     _.merge(data, {
                         "solutionId": solutionDocument._id,
