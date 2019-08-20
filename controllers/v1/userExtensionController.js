@@ -32,15 +32,12 @@ module.exports = class UserExtension extends Abstract {
           status : "active",
           isDeleted : false
         }, {
-          roles : 1,
-          platformRoles: 1
+          roles : 1
         });
 
-        result = result.pop()
-        result.roles = Object.values(result.roles)
         return resolve({
           message: "User profile fetched successfully.",
-          result: result
+          result: result.pop()
         });
 
       } catch (error) {
@@ -76,7 +73,7 @@ module.exports = class UserExtension extends Abstract {
 
         if(!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
 
-        let newUserRoleData = await userRolesHelper.bulkCreate(userRolesCSVData,req.userDetails);
+        let newUserRoleData = await userExtensionHelper.bulkCreateOrUpdate(userRolesCSVData,req.userDetails);
 
         if (newUserRoleData.length > 0) {
 
