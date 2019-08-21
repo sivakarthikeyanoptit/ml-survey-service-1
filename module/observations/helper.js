@@ -199,28 +199,4 @@ module.exports = class observationsHelper {
         })
     }
 
-    static searchEntitiesResponse(entityDocuments, observationEntities) {
-
-        let response = {
-            result: {}
-        };
-
-        if (observationEntities && observationEntities.length > 0) {
-            let observationEntityIds = observationEntities.map(entity => entity.toString());
-
-            entityDocuments[0].data.forEach(eachMetaData => {
-                eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
-            })
-        }
-
-        let messageData = "Entities fetched successfully"
-        if (!entityDocuments[0].count) {
-            entityDocuments[0].count = 0
-            messageData = "No entities found"
-        }
-        response.result = entityDocuments
-        response["message"] = messageData
-
-        return response;
-    }
 };
