@@ -9,8 +9,7 @@ module.exports = {
         type: String,
         required: true
       },
-      roles: Object,
-      platformRoles: Array,
+      roles: Array,
       createdBy: {
         type: String,
         required: true

@@ -1,3 +1,5 @@
+const userRolesHelper = require(ROOT_PATH + "/module/userRoles/helper");
+
 module.exports = class userExtensionHelper {
 
     static profile(filterQueryObject, projectionQueryObject) {
@@ -16,89 +18,61 @@ module.exports = class userExtensionHelper {
 
     }
 
-    static bulkCreate(userRolesCSVData, userDetails) {
+    static bulkCreateOrUpdate(userRolesCSVData, userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                const userRolesUploadedData = await Promise.all(
-                    userRolesCSVData.map(async userRole => {
+                let userRolesUploadedData = new Array
 
-                        try {
+                const userRolesArray = await userRolesHelper.list({
+                    status: "active",
+                    isDeleted: false
+                }, {
+                        code: 1,
+                        title: 1
+                    });
 
-                            let newRole = await database.models.userRoles.create(
-                                _.merge({
-                                    "status": "active",
-                                    "updatedBy": userDetails.id,
-                                    "createdBy": userDetails.id
-                                }, gen.utils.valueParser(userRole))
-                            );
+                let userRoleMap = {}
 
-                            if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id
-                                userRole.status = "Success"
-                            } else {
-                                userRole["_SYSTEM_ID"] = ""
-                                userRole.status = "Failed"
-                            }
+                userRolesArray.forEach(userRole => {
+                    userRoleMap[userRole.code] = {
+                        _id: userRole._id,
+                        code: userRole.code
+                    }
+                })
 
-                        } catch (error) {
+                let usernameToKeycloakIdMap = {}
+
+                for (let csvRowNumber = 0; csvRowNumber < userRolesCSVData.length; csvRowNumber++) {
+
+                    let userRole = userRolesCSVData[csvRowNumber];
+                    userRole.status = "Failed"
+                    try {
+
+                        let newRole = await database.models.userRoles.create(
+                            _.merge({
+                                "status": "active",
+                                "updatedBy": userDetails.id,
+                                "createdBy": userDetails.id
+                            }, gen.utils.valueParser(userRole))
+                        );
+
+                        if (newRole._id) {
+                            userRole["_SYSTEM_ID"] = newRole._id
+                            userRole.status = "Success"
+                        } else {
                             userRole["_SYSTEM_ID"] = ""
-                            userRole.status = error.message
+                            userRole.status = "Failed"
                         }
 
-
-                        return userRole
-                    })
-                )
-
-
-                return resolve(userRolesUploadedData);
-
-            } catch (error) {
-                return reject(error)
-            }
-        })
-
-    }
+                    } catch (error) {
+                        userRole.status = error.message
+                    }
 
 
-    static bulkUpdate(userRolesCSVData, userDetails) {
-
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                const userRolesUploadedData = await Promise.all(
-                    userRolesCSVData.map(async userRole => {
-
-                        try {
-
-                            let updateRole = await database.models.userRoles.findOneAndUpdate(
-                                {
-                                    code: userRole.code
-                                },
-                                _.merge({
-                                    "updatedBy": userDetails.id
-                                }, gen.utils.valueParser(userRole))
-                            );
-
-                            if (updateRole._id) {
-                                userRole["_SYSTEM_ID"] = updateRole._id
-                                userRole.status = "Success"
-                            } else {
-                                userRole["_SYSTEM_ID"] = ""
-                                userRole.status = "Failed"
-                            }
-
-                        } catch (error) {
-                            userRole["_SYSTEM_ID"] = ""
-                            userRole.status = error.message
-                        }
-
-
-                        return userRole
-                    })
-                )
+                    userRolesUploadedData.push(userRole)
+                }
 
 
                 return resolve(userRolesUploadedData);
@@ -123,10 +97,9 @@ module.exports = class userExtensionHelper {
 
                 let entities = []
 
-                await Object.values(userExtensionDoument.roles).forEach(eachEntityRole => {
-                    entities = _.concat(entities, eachEntityRole.entities)
-                })
-
+                for (let pointerToUserExtension = 0; pointerToUserExtension < userExtensionDoument.roles.length; pointerToUserExtension++) {
+                    entities = _.concat(entities, userExtensionDoument.roles[pointerToUserExtension].entities)
+                }
 
                 return resolve({
                     entities: entities
