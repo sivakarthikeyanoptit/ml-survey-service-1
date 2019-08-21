@@ -4,7 +4,7 @@ module.exports = class userExtensionHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userExtensionData = await database.models.userExtension.find(filterQueryObject,projectionQueryObject).lean();
+                let userExtensionData = await database.models.userExtension.find(filterQueryObject, projectionQueryObject).lean();
 
                 return resolve(userExtensionData);
 
@@ -16,7 +16,7 @@ module.exports = class userExtensionHelper {
 
     }
 
-    static bulkCreate(userRolesCSVData,userDetails) {
+    static bulkCreate(userRolesCSVData, userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -25,17 +25,17 @@ module.exports = class userExtensionHelper {
                     userRolesCSVData.map(async userRole => {
 
                         try {
-                            
+
                             let newRole = await database.models.userRoles.create(
                                 _.merge({
-                                    "status" : "active",
+                                    "status": "active",
                                     "updatedBy": userDetails.id,
                                     "createdBy": userDetails.id
-                                },gen.utils.valueParser(userRole))
+                                }, gen.utils.valueParser(userRole))
                             );
 
                             if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id 
+                                userRole["_SYSTEM_ID"] = newRole._id
                                 userRole.status = "Success"
                             } else {
                                 userRole["_SYSTEM_ID"] = ""
@@ -63,7 +63,7 @@ module.exports = class userExtensionHelper {
     }
 
 
-    static bulkUpdate(userRolesCSVData,userDetails) {
+    static bulkUpdate(userRolesCSVData, userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -72,18 +72,18 @@ module.exports = class userExtensionHelper {
                     userRolesCSVData.map(async userRole => {
 
                         try {
-                            
+
                             let updateRole = await database.models.userRoles.findOneAndUpdate(
                                 {
-                                    code : userRole.code
+                                    code: userRole.code
                                 },
                                 _.merge({
                                     "updatedBy": userDetails.id
-                                },gen.utils.valueParser(userRole))
+                                }, gen.utils.valueParser(userRole))
                             );
 
                             if (updateRole._id) {
-                                userRole["_SYSTEM_ID"] = updateRole._id 
+                                userRole["_SYSTEM_ID"] = updateRole._id
                                 userRole.status = "Success"
                             } else {
                                 userRole["_SYSTEM_ID"] = ""
@@ -108,6 +108,34 @@ module.exports = class userExtensionHelper {
             }
         })
 
+    }
+
+    static entities(userId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let userExtensionDoument = await database.models.userExtension.findOne({
+                    userId: userId
+                }, { roles: 1 }).lean()
+
+                if (!userExtensionDoument) {
+                    throw { status: 400, message: "User Extension not found ." }
+                }
+
+                let entities = []
+
+                await Object.values(userExtensionDoument.roles).forEach(eachEntityRole => {
+                    entities = _.concat(entities, eachEntityRole.entities)
+                })
+
+
+                return resolve({
+                    entities: entities
+                })
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
     }
 
 };
