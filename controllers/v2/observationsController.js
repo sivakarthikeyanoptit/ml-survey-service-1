@@ -40,8 +40,8 @@ module.exports = class Observations extends Abstract {
                     result = await this.searchEntitiesBySolution(req.query.solutionId, userId)
                 }
 
-                let entityDocuments = await entitiesHelper.search(result.entityTypeId, searchText, pageSize, pageNo, result.userExtension ? result.userExtension : false);
-                let responseDocument = this.searchEntitiesResponse(entityDocuments, result.entities ? result.entities : false)
+                let entityDocuments = await entitiesHelper.search(result.entityTypeId, searchText, pageSize, pageNo, result.userExtensionEntities ? result.userExtensionEntities : false);
+                let responseDocument = this.searchEntitiesResponse(entityDocuments, result.observationEntities ? result.observationEntities : false)
                 return resolve(responseDocument);
 
             } catch (error) {
@@ -72,11 +72,11 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean();
 
-                if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
+                if (!observationDocument) throw { status: 400, message: "Observation not found for given observationId." }
 
                 return resolve({
                     entityTypeId: observationDocument.entityTypeId,
-                    entities: observationDocument.entities
+                    observationEntities: observationDocument.entities
                 });
             }
             catch (error) {
@@ -103,13 +103,13 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean();
 
-                if (!solutionDocument) throw { status: 400, message: "Solution not found for given params." }
+                if (!solutionDocument) throw { status: 400, message: "Solution not found for given solutionId." }
 
                 let userExtensionDocument = await userExtensionHelper.entities(userId)
 
                 return resolve({
                     entityTypeId: solutionDocument.entityTypeId,
-                    userExtension: userExtensionDocument.entities
+                    userExtensionEntities: userExtensionDocument.entities
                 });
             }
             catch (error) {
