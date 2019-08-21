@@ -1,5 +1,7 @@
 const userExtensionHelper = require(ROOT_PATH + "/module/userExtension/helper")
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -25,24 +27,55 @@ module.exports = class Observations extends Abstract {
 
             try {
 
+                let response = {
+                    result: {}
+                };
+
                 let userId = req.userDetails.userId
-                let searchText = req.searchText
-                let pageSize = req.pageSize
-                let pageNo = req.pageNo
                 let result
+
+                let findQuery = {}
+                let projection = {}
 
 
                 if (req.query.observationId) {
-                    result = await this.searchEntitiesByObservation(req.query.observationId, userId)
+                    findQuery["_id"] = req.query.observationId
+                    findQuery["createdBy"] = userId
+                    projection["entityTypeId"] = 1
+                    projection["entities"] = 1
+
+                    result = await observationsHelper.getObservationDocument(findQuery, projection)
                 }
 
                 if (req.query.solutionId) {
-                    result = await this.searchEntitiesBySolution(req.query.solutionId, userId)
+                    findQuery["_id"] = req.query.solutionId
+                    projection["entityTypeId"] = 1
+
+                    let solutionDocument = await solutionsHelper.getSolutionDocument(findQuery, projection)
+                    let userExtensionDocument = await userExtensionHelper.entities(userId)
+                    result = _.merge(solutionDocument, userExtensionDocument)
                 }
 
-                let entityDocuments = await entitiesHelper.search(result.entityTypeId, searchText, pageSize, pageNo, result.userExtensionEntities ? result.userExtensionEntities : false);
-                let responseDocument = this.searchEntitiesResponse(entityDocuments, result.observationEntities ? result.observationEntities : false)
-                return resolve(responseDocument);
+
+                let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, result.userExtensionEntities ? result.userExtensionEntities : false);
+
+                if (result.entities && result.entities.length > 0) {
+                    let observationEntityIds = result.entities.map(entity => entity.toString());
+
+                    entityDocuments[0].data.forEach(eachMetaData => {
+                        eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    })
+                }
+
+                let messageData = "Entities fetched successfully"
+                if (!entityDocuments[0].count) {
+                    entityDocuments[0].count = 0
+                    messageData = "No entities found"
+                }
+                response.result = entityDocuments
+                response["message"] = messageData
+
+                return resolve(response);
 
             } catch (error) {
                 return reject({
@@ -55,97 +88,5 @@ module.exports = class Observations extends Abstract {
         });
 
     }
-
-    searchEntitiesByObservation(observationId, userId) {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                let observationDocument = await database.models.observations.findOne(
-                    {
-                        _id: observationId,
-                        createdBy: userId,
-
-                    },
-                    {
-                        entityTypeId: 1,
-                        entities: 1
-                    }
-                ).lean();
-
-                if (!observationDocument) throw { status: 400, message: "Observation not found for given observationId." }
-
-                return resolve({
-                    entityTypeId: observationDocument.entityTypeId,
-                    observationEntities: observationDocument.entities
-                });
-            }
-            catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
-                    errorObject: error
-                })
-            }
-        })
-    }
-
-    searchEntitiesBySolution(solutionId, userId) {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                let solutionDocument = await database.models.solutions.findOne(
-                    {
-                        _id: solutionId,
-
-                    },
-                    {
-                        entityTypeId: 1,
-                    }
-                ).lean();
-
-                if (!solutionDocument) throw { status: 400, message: "Solution not found for given solutionId." }
-
-                let userExtensionDocument = await userExtensionHelper.entities(userId)
-
-                return resolve({
-                    entityTypeId: solutionDocument.entityTypeId,
-                    userExtensionEntities: userExtensionDocument.entities
-                });
-            }
-            catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
-                    errorObject: error
-                })
-            }
-        })
-    }
-
-    searchEntitiesResponse(entityDocuments, observationEntities) {
-
-        let response = {
-            result: {}
-        };
-
-        if (observationEntities && observationEntities.length > 0) {
-            let observationEntityIds = observationEntities.map(entity => entity.toString());
-
-            entityDocuments[0].data.forEach(eachMetaData => {
-                eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
-            })
-        }
-
-        let messageData = "Entities fetched successfully"
-        if (!entityDocuments[0].count) {
-            entityDocuments[0].count = 0
-            messageData = "No entities found"
-        }
-        response.result = entityDocuments
-        response["message"] = messageData
-
-        return response;
-    }
-
 
 }

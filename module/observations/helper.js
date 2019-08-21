@@ -177,4 +177,50 @@ module.exports = class observationsHelper {
         })
     }
 
+    static getObservationDocument(find, project) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let observationDocument = await database.models.observations.findOne(
+                    find,
+                    project
+                ).lean();
+
+                if (!observationDocument) throw { status: 400, message: "Observation not found for given observationId." }
+
+                return resolve(observationDocument)
+            }
+            catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || error,
+                    errorObject: error
+                })
+            }
+        })
+    }
+
+    static searchEntitiesResponse(entityDocuments, observationEntities) {
+
+        let response = {
+            result: {}
+        };
+
+        if (observationEntities && observationEntities.length > 0) {
+            let observationEntityIds = observationEntities.map(entity => entity.toString());
+
+            entityDocuments[0].data.forEach(eachMetaData => {
+                eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+            })
+        }
+
+        let messageData = "Entities fetched successfully"
+        if (!entityDocuments[0].count) {
+            entityDocuments[0].count = 0
+            messageData = "No entities found"
+        }
+        response.result = entityDocuments
+        response["message"] = messageData
+
+        return response;
+    }
 };

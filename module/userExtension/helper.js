@@ -102,7 +102,7 @@ module.exports = class userExtensionHelper {
                 }
 
                 return resolve({
-                    entities: entities
+                    userExtensionEntities: entities
                 })
 
             } catch (error) {

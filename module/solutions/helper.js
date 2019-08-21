@@ -388,4 +388,24 @@ module.exports = class solutionsHelper {
     return mandatoryFields
 
   }
+
+  static getSolutionDocument(find, projection) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionDocument = await database.models.solutions.findOne(find, projection).lean();
+
+        if (!solutionDocument) throw { status: 400, message: "Solution not found for given solutionId." }
+
+        return resolve(solutionDocument);
+      }
+      catch (error) {
+        return reject({
+          status: error.status || 500,
+          message: error.message || error,
+          errorObject: error
+        })
+      }
+    })
+  }
 };
