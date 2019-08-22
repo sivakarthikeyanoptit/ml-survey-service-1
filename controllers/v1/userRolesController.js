@@ -32,7 +32,8 @@ module.exports = class UserRoles extends Abstract {
           isDeleted : false
         }, {
           code : 1,
-          title: 1
+          title: 1,
+          entityTypes:1
         });
 
         return resolve({

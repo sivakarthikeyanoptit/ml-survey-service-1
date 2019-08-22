@@ -32,16 +32,24 @@ module.exports = class userExtensionHelper {
                     isDeleted : false
                   }, {
                     code : 1,
-                    title: 1
+                    title: 1,
+                    entityTypes : 1
                 });
                 
                 let userRoleMap = {}
+                let userRoleAllowedEntityTypes = {}
 
                 userRolesArray.forEach(userRole => {
                     userRoleMap[userRole.code] = {
                         roleId:userRole._id,
                         code:userRole.code,
                         entities:[]
+                    }
+                    userRoleAllowedEntityTypes[userRole.code] = new Array
+                    if(userRole.entityTypes && userRole.entityTypes.length > 0) {
+                        userRole.entityTypes.forEach(entityType => {
+                            userRoleAllowedEntityTypes[userRole.code].push(entityType.entityTypeId)
+                        })
                     }
                 })
 
@@ -69,10 +77,16 @@ module.exports = class userExtensionHelper {
 
                         if(!entityOperation[userRole.entityOperation]) throw "Invalid entity operation."
 
+                        let entityQueryObject = {
+                            _id : userRole.entity
+                        }
+                        if(userRoleAllowedEntityTypes[userRole.role] && userRoleAllowedEntityTypes[userRole.role].length > 0) {
+                            entityQueryObject.entityTypeId = {
+                                $in:userRoleAllowedEntityTypes[userRole.role]
+                            }
+                        }
                         existingEntity = await database.models.entities.findOne(
-                            {
-                                _id : userRole.entity
-                            },
+                            entityQueryObject,
                             {
                                 _id :1 
                             }
