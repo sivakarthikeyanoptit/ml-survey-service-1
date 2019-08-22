@@ -9,6 +9,7 @@ module.exports = {
         type: String,
         required: true
       },
+      entityTypes: Array,
       createdBy: String,
       updatedBy: String,
       status: {
