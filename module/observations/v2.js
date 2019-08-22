@@ -11,7 +11,6 @@ module.exports = (req) => {
                 existId = 'observationId'
             }
             req.checkQuery(existId).exists().withMessage("required solution or observation Id")
-            // req.checkQuery('observationId').exists().withMessage("required solution or observation Id")
         }
 
     }
