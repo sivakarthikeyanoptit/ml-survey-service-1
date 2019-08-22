@@ -8,12 +8,12 @@ module.exports = class Observations extends v1Observation {
 
 
     /**
-     * @api {get} /assessment/api/v2/observations/searchEntities?solutionId=:solutionId&&search=:searchText&&limit=1&&page=1 Search Entities based on observationId or solutionId
+     * @api {get} /assessment/api/v2/observations/searchEntities?solutionId=:solutionId&search=:searchText&limit=1&page=1 Search Entities based on observationId or solutionId
      * @apiVersion 0.0.2
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/searchEntities?observationId=5d4bdcab44277a08145d7258&&search=a&&limit=10&&page=1
+     * @apiSampleRequest /assessment/api/v1/observations/searchEntities?observationId=5d4bdcab44277a08145d7258&search=a&limit=10&page=1
      * @apiUse successBody
      * @apiUse errorBody
      */
