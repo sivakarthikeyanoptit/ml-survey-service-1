@@ -3,9 +3,20 @@ module.exports = {
     global.migrationMsg = "Created default user roles."
 
     await db.collection('userRoles').createIndex( { code: 1}, { unique: true } )
+    
+    let entityTypes = await db.collection('entityTypes').find({}).toArray();
+    let entityCodeToEntityMap = {}
+
+    entityTypes.forEach(entityType => {
+      entityCodeToEntityMap[entityType.name] = {
+        entityTypeId: entityType._id,
+        entityType:entityType.name
+      }
+    });
 
     let hmrole = {
       code: "HM",
+      entityTypes:[entityCodeToEntityMap["school"]],
       title : "Headmaster",
       createdAt : new Date,
       updatedAt : new Date,
@@ -17,6 +28,7 @@ module.exports = {
 
     let crprole = {
       code: "CRP",
+      entityTypes:[entityCodeToEntityMap["school"]],
       title : "Cluster Resource Person",
       createdAt : new Date,
       updatedAt : new Date,
@@ -28,6 +40,7 @@ module.exports = {
 
     let beorole = {
       code: "BEO",
+      entityTypes:[entityCodeToEntityMap["cluster"]],
       title : "Block Education Officer",
       createdAt : new Date,
       updatedAt : new Date,
@@ -39,6 +52,7 @@ module.exports = {
 
     let deorole = {
       code: "DEO",
+      entityTypes:[entityCodeToEntityMap["block"]],
       title : "District Education Officer",
       createdAt : new Date,
       updatedAt : new Date,
@@ -50,6 +64,7 @@ module.exports = {
 
     let spdrole = {
       code: "SPD",
+      entityTypes:[entityCodeToEntityMap["district"]],
       title : "State Project Director",
       createdAt : new Date,
       updatedAt : new Date,
