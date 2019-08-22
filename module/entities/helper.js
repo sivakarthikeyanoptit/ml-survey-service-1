@@ -393,23 +393,23 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static search(entityTypeId, searchText, pageSize, pageNo, entityIds) {
+    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let matchedQuery = {}
+                let queryObject = {}
 
-                matchedQuery["$match"] = {}
-                matchedQuery["$match"]["$or"] = [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }]
-                matchedQuery["$match"]["entityTypeId"] = entityTypeId
+                queryObject["$match"] = {}
+                queryObject["$match"]["$or"] = [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }]
+                queryObject["$match"]["entityTypeId"] = entityTypeId
 
                 if (entityIds && entityIds.length > 0) {
-                    matchedQuery["$match"]["_id"] = {}
-                    matchedQuery["$match"]["_id"]["$in"] = entityIds
+                    queryObject["$match"]["_id"] = {}
+                    queryObject["$match"]["_id"]["$in"] = entityIds
                 }
 
                 let entityDocuments = await database.models.entities.aggregate([
-                    matchedQuery,
+                    queryObject,
                     {
                         $project: {
                             name: "$metaInformation.name",
