@@ -2,6 +2,33 @@ const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 
 module.exports = class observationsHelper {
 
+    static observationDocument(findQuery = "all", fields = "all") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let queryObject = {};
+
+                if (findQuery != "all") {
+                    queryObject = _.merge(queryObject, findQuery[0])
+                }
+
+                let projectionObject = {};
+
+                if (fields != "all") {
+                    fields.forEach(element => {
+                        projectionObject[element] = 1;
+                    });
+                }
+
+                let observationDocuments = await database.models.observations
+                    .find(queryObject, projectionObject)
+                    .lean();
+                return resolve(observationDocuments);
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
     static create(solutionId, data, userDetails) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -173,28 +200,6 @@ module.exports = class observationsHelper {
 
             } catch (error) {
                 return reject(error)
-            }
-        })
-    }
-
-    static getObservationDocument(find, project) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let observationDocument = await database.models.observations.findOne(
-                    find,
-                    project
-                ).lean();
-
-                if (!observationDocument) throw { status: 400, message: "Observation not found for given observationId." }
-
-                return resolve(observationDocument)
-            }
-            catch (error) {
-                return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
-                    errorObject: error
-                })
             }
         })
     }

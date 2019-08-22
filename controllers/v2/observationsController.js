@@ -31,26 +31,29 @@ module.exports = class Observations extends v1Observation {
                 let userId = req.userDetails.userId
                 let result
 
-                let findQuery = {}
-                let projection = {}
-
+                let findQuery = []
+                let projection = []
 
                 if (req.query.observationId) {
-                    findQuery["_id"] = req.query.observationId
-                    findQuery["createdBy"] = userId
-                    projection["entityTypeId"] = 1
-                    projection["entities"] = 1
+                    let findObject = {}
+                    findObject["_id"] = req.query.observationId
+                    findObject["createdBy"] = userId
+                    findQuery.push(findObject)
 
-                    result = await observationsHelper.getObservationDocument(findQuery, projection)
+                    projection.push("entityTypeId", "entities")
+
+                    let observationDocument = await observationsHelper.observationDocument(findQuery, projection)
+                    result = observationDocument[0]
                 }
 
                 if (req.query.solutionId) {
-                    findQuery["_id"] = req.query.solutionId
-                    projection["entityTypeId"] = 1
 
-                    let solutionDocument = await solutionsHelper.getSolutionDocument(findQuery, projection)
+                    findQuery.push(req.query.solutionId)
+                    projection.push("entityTypeId")
+
+                    let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
                     let userExtensionDocument = await userExtensionHelper.entities(userId)
-                    result = _.merge(solutionDocument, userExtensionDocument)
+                    result = _.merge(solutionDocument[0], userExtensionDocument)
                 }
 
 
@@ -67,7 +70,7 @@ module.exports = class Observations extends v1Observation {
                 let messageData = "Entities fetched successfully"
                 if (!entityDocuments[0].count) {
                     entityDocuments[0].count = 0
-                    messageData = "No entities found"
+                    messageData = "No entity found"
                 }
                 response.result = entityDocuments
                 response["message"] = messageData
