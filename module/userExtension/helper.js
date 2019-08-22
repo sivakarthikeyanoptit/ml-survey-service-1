@@ -200,9 +200,11 @@ module.exports = class userExtensionHelper {
 
     }
 
-    static entities(userId) {
+    static getUserEntities(userId = false) {
         return new Promise(async (resolve, reject) => {
             try {
+                if(!userId) throw "User ID is required."
+
                 let userExtensionDoument = await database.models.userExtension.findOne({
                     userId: userId
                 }, { roles: 1 }).lean()
@@ -217,9 +219,7 @@ module.exports = class userExtensionHelper {
                     entities = _.concat(entities, userExtensionDoument.roles[pointerToUserExtension].entities)
                 }
 
-                return resolve({
-                    userExtensionEntities: entities
-                })
+                return resolve(entities)
 
             } catch (error) {
                 return reject(error)

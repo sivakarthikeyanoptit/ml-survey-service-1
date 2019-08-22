@@ -30,6 +30,7 @@ module.exports = class Observations extends v1Observation {
 
                 let userId = req.userDetails.userId
                 let result
+                let userAllowedEntities = false
 
                 let projection = []
 
@@ -50,12 +51,12 @@ module.exports = class Observations extends v1Observation {
                     projection.push("entityTypeId")
 
                     let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
-                    let userExtensionDocument = await userExtensionHelper.entities(userId)
-                    result = _.merge(solutionDocument[0], userExtensionDocument)
+                    userAllowedEntities = await userExtensionHelper.getUserEntities(userId)
+                    result = _.merge(solutionDocument[0])
                 }
 
 
-                let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, result.userExtensionEntities ? result.userExtensionEntities : false);
+                let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
 
                 if (result.entities && result.entities.length > 0) {
                     let observationEntityIds = result.entities.map(entity => entity.toString());
