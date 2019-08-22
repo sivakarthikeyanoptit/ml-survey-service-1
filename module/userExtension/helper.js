@@ -4,13 +4,66 @@ const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shiksha
 
 module.exports = class userExtensionHelper {
 
-    static profile(filterQueryObject, projectionQueryObject) {
+    static profileWithEntityDetails(filterQueryObject) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userExtensionData = await database.models.userExtension.find(filterQueryObject, projectionQueryObject).lean();
+                let queryObject = [
+                    {
+                        $match: filterQueryObject
+                    },
+                    {
+                        $lookup : {
+                            "from" : "entities",
+                            "localField" : "roles.entities",
+                            "foreignField" : "_id",
+                            "as" : "entityDocuments"
+                        }
+                    },
+                    {
+                        $lookup : {
+                            "from" : "userRoles",
+                            "localField" : "roles.roleId",
+                            "foreignField" : "_id",
+                            "as" : "roleDocuments"
+                        }
+                    },
+                    {
+                        $project: {
+                            "externalId":1,
+                            "roles":1,
+                            "roleDocuments._id": 1,
+                            "roleDocuments.code": 1,
+                            "roleDocuments.title": 1,
+                            "entityDocuments._id": 1,
+                            "entityDocuments.metaInformation.externalId": 1,
+                            "entityDocuments.metaInformation.name": 1
+                        }
+                    }
+                ];
+  
+                let userExtensionData = await database.models.userExtension.aggregate(queryObject)
 
-                return resolve(userExtensionData);
+                let roleMap = {}
+                userExtensionData[0].roleDocuments.forEach(role => {
+                    roleMap[role._id.toString()] = role
+                })
+                let entityMap = {}
+                userExtensionData[0].entityDocuments.forEach(entity => {
+                    entityMap[entity._id.toString()] = entity
+                })
+
+                for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
+                    for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
+                        userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
+                            _id : entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
+                            ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
+                        }
+                    }
+                    roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities
+                }
+                
+                return resolve(_.merge(_.omit(userExtensionData[0],["roles","entityDocuments","roleDocuments"]),{roles:Object.values(roleMap)}));
 
             } catch (error) {
                 return reject(error);

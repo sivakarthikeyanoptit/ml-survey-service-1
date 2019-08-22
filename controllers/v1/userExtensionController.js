@@ -12,12 +12,12 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/userExtension/getProfile Get user profile
+  * @api {get} /assessment/api/v1/userExtension/getProfile/{{userId}} Get user profile
   * @apiVersion 0.0.1
   * @apiName Get user profile
   * @apiGroup User Extension
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/userExtension/getProfile
+  * @apiSampleRequest /assessment/api/v1/userExtension/getProfile/e97b5582-471c-4649-8401-3cc4249359bb
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -27,17 +27,15 @@ module.exports = class UserExtension extends Abstract {
 
       try {
 
-        let result = await userExtensionHelper.profile({
-          userId:req.userDetails.userId,
+        let result = await userExtensionHelper.profileWithEntityDetails({
+          userId:(req.params._id && req.params._id !="") ? req.params._id :req.userDetails.userId,
           status : "active",
           isDeleted : false
-        }, {
-          roles : 1
         });
 
         return resolve({
           message: "User profile fetched successfully.",
-          result: result.pop()
+          result: result
         });
 
       } catch (error) {
