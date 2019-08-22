@@ -30,7 +30,6 @@ module.exports = class Observations extends v1Observation {
 
                 let userId = req.userDetails.userId
                 let result
-                let userAllowedEntities = false
 
                 let projection = []
 
@@ -51,10 +50,10 @@ module.exports = class Observations extends v1Observation {
                     projection.push("entityTypeId")
 
                     let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
-                    userAllowedEntities = await userExtensionHelper.getUserEntities(userId)
                     result = _.merge(solutionDocument[0])
                 }
 
+                let userAllowedEntities = await userExtensionHelper.getUserEntities(userId)
 
                 let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
 
