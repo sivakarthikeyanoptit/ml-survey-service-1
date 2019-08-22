@@ -8,7 +8,7 @@ module.exports = class observationsHelper {
                 let queryObject = {};
 
                 if (findQuery != "all") {
-                    queryObject = _.merge(queryObject, findQuery[0])
+                    queryObject = _.merge(queryObject, findQuery)
                 }
 
                 let projectionObject = {};

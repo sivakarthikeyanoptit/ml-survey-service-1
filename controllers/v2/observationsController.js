@@ -31,23 +31,21 @@ module.exports = class Observations extends v1Observation {
                 let userId = req.userDetails.userId
                 let result
 
-                let findQuery = []
                 let projection = []
 
                 if (req.query.observationId) {
                     let findObject = {}
                     findObject["_id"] = req.query.observationId
                     findObject["createdBy"] = userId
-                    findQuery.push(findObject)
 
                     projection.push("entityTypeId", "entities")
 
-                    let observationDocument = await observationsHelper.observationDocument(findQuery, projection)
+                    let observationDocument = await observationsHelper.observationDocument(findObject, projection)
                     result = observationDocument[0]
                 }
 
                 if (req.query.solutionId) {
-
+                    let findQuery = []
                     findQuery.push(req.query.solutionId)
                     projection.push("entityTypeId")
 
