@@ -393,17 +393,23 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static search(entityTypeId, searchText, pageSize, pageNo) {
+    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
+                let queryObject = {}
+
+                queryObject["$match"] = {}
+                queryObject["$match"]["$or"] = [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }]
+                queryObject["$match"]["entityTypeId"] = entityTypeId
+
+                if (entityIds && entityIds.length > 0) {
+                    queryObject["$match"]["_id"] = {}
+                    queryObject["$match"]["_id"]["$in"] = entityIds
+                }
+
                 let entityDocuments = await database.models.entities.aggregate([
-                    {
-                        $match: {
-                            $or: [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }],
-                            "entityTypeId": entityTypeId
-                        }
-                    },
+                    queryObject,
                     {
                         $project: {
                             name: "$metaInformation.name",

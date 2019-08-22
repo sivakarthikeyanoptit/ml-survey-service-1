@@ -8,7 +8,7 @@ module.exports = class userExtensionHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let userExtensionData = await database.models.userExtension.find(filterQueryObject,projectionQueryObject).lean();
+                let userExtensionData = await database.models.userExtension.find(filterQueryObject, projectionQueryObject).lean();
 
                 return resolve(userExtensionData);
 
@@ -20,7 +20,7 @@ module.exports = class userExtensionHelper {
 
     }
 
-    static bulkCreateOrUpdate(userRolesCSVData,userDetails) {
+    static bulkCreateOrUpdate(userRolesCSVData, userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -28,25 +28,25 @@ module.exports = class userExtensionHelper {
                 let userRolesUploadedData = new Array
 
                 const userRolesArray = await userRolesHelper.list({
-                    status : "active",
-                    isDeleted : false
-                  }, {
-                    code : 1,
-                    title: 1,
-                    entityTypes : 1
-                });
-                
+                    status: "active",
+                    isDeleted: false
+                }, {
+                        code: 1,
+                        title: 1,
+                        entityTypes: 1
+                    });
+
                 let userRoleMap = {}
                 let userRoleAllowedEntityTypes = {}
 
                 userRolesArray.forEach(userRole => {
                     userRoleMap[userRole.code] = {
-                        roleId:userRole._id,
-                        code:userRole.code,
-                        entities:[]
+                        roleId: userRole._id,
+                        code: userRole.code,
+                        entities: []
                     }
                     userRoleAllowedEntityTypes[userRole.code] = new Array
-                    if(userRole.entityTypes && userRole.entityTypes.length > 0) {
+                    if (userRole.entityTypes && userRole.entityTypes.length > 0) {
                         userRole.entityTypes.forEach(entityType => {
                             userRoleAllowedEntityTypes[userRole.code].push(entityType.entityTypeId)
                         })
@@ -54,10 +54,10 @@ module.exports = class userExtensionHelper {
                 })
 
                 let entityOperation = {
-                    "ADD":1,
-                    "APPEND":1,
-                    "REMOVE":1,
-                    "OVERRIDE":1
+                    "ADD": 1,
+                    "APPEND": 1,
+                    "REMOVE": 1,
+                    "OVERRIDE": 1
                 }
 
                 let userToKeycloakIdMap = {}
@@ -65,41 +65,41 @@ module.exports = class userExtensionHelper {
                 let userRole
                 let existingEntity
                 let existingUserRole
-                
+
                 for (let csvRowNumber = 0; csvRowNumber < userRolesCSVData.length; csvRowNumber++) {
-                    
+
                     userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
                     userRole["_SYSTEM_ID"] = ""
-                    
+
                     try {
 
-                        if(!userRoleMap[userRole.role]) throw "Invalid role code."
+                        if (!userRoleMap[userRole.role]) throw "Invalid role code."
 
-                        if(!entityOperation[userRole.entityOperation]) throw "Invalid entity operation."
+                        if (!entityOperation[userRole.entityOperation]) throw "Invalid entity operation."
 
                         let entityQueryObject = {
-                            _id : userRole.entity
+                            _id: userRole.entity
                         }
-                        if(userRoleAllowedEntityTypes[userRole.role] && userRoleAllowedEntityTypes[userRole.role].length > 0) {
+                        if (userRoleAllowedEntityTypes[userRole.role] && userRoleAllowedEntityTypes[userRole.role].length > 0) {
                             entityQueryObject.entityTypeId = {
-                                $in:userRoleAllowedEntityTypes[userRole.role]
+                                $in: userRoleAllowedEntityTypes[userRole.role]
                             }
                         }
                         existingEntity = await database.models.entities.findOne(
                             entityQueryObject,
                             {
-                                _id :1 
+                                _id: 1
                             }
                         );
 
-                        if(!existingEntity || !existingEntity._id) throw "Invalid entity id."
-                        
-                        if(userToKeycloakIdMap[userRole.user]) {
+                        if (!existingEntity || !existingEntity._id) throw "Invalid entity id."
+
+                        if (userToKeycloakIdMap[userRole.user]) {
                             userKeycloakId = userToKeycloakIdMap[userRole.user]
                         } else {
                             let keycloakUserId = await shikshalokamGenericHelper.getKeycloakUserIdByLoginId(userDetails.userToken, userRole.user)
-                            
-                            if(keycloakUserId && keycloakUserId.length > 0 && keycloakUserId[0].userLoginId) {
+
+                            if (keycloakUserId && keycloakUserId.length > 0 && keycloakUserId[0].userLoginId) {
                                 userKeycloakId = keycloakUserId[0].userLoginId
                                 userToKeycloakIdMap[userRole.user] = keycloakUserId[0].userLoginId
                             } else {
@@ -109,28 +109,28 @@ module.exports = class userExtensionHelper {
 
                         existingUserRole = await database.models.userExtension.findOne(
                             {
-                                userId : userKeycloakId
+                                userId: userKeycloakId
                             },
                             {
-                                roles :1 
+                                roles: 1
                             }
                         );
 
                         if (existingUserRole && existingUserRole._id) {
-                            
+
                             let userRoleToUpdate
-                            
-                            if(existingUserRole.roles && existingUserRole.roles.length > 0) {
+
+                            if (existingUserRole.roles && existingUserRole.roles.length > 0) {
                                 userRoleToUpdate = _.findIndex(existingUserRole.roles, { 'code': userRole.role });
                             }
 
-                            if(!(userRoleToUpdate >= 0)) {
+                            if (!(userRoleToUpdate >= 0)) {
                                 userRoleToUpdate = existingUserRole.roles.length
                                 existingUserRole.roles.push(userRoleMap[userRole.role])
                             }
-                            
+
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => eachEntity.toString());
-                            
+
                             if (userRole.entityOperation == "OVERRIDE") {
                                 existingUserRole.roles[userRoleToUpdate].entities = [userRole.entity]
                             } else if (userRole.entityOperation == "APPEND" || userRole.entityOperation == "ADD") {
@@ -141,38 +141,38 @@ module.exports = class userExtensionHelper {
                             }
 
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => ObjectId(eachEntity))
-                            
+
                             await database.models.userExtension.findOneAndUpdate(
                                 {
-                                    _id : existingUserRole._id
+                                    _id: existingUserRole._id
                                 },
                                 _.merge({
-                                    "roles":existingUserRole.roles,
+                                    "roles": existingUserRole.roles,
                                     "updatedBy": userDetails.id
-                                },_.omit(userRole,["externalId","userId", "createdBy","updatedBy","createdAt","updatedAt"]))
+                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt"]))
                             );
 
-                            userRole["_SYSTEM_ID"] = existingUserRole._id 
+                            userRole["_SYSTEM_ID"] = existingUserRole._id
                             userRole.status = "Success"
 
                         } else {
-                            
+
                             let roles = [userRoleMap[userRole.role]]
                             roles[0].entities = [ObjectId(userRole.entity)]
 
                             let newRole = await database.models.userExtension.create(
                                 _.merge({
-                                    "roles":roles,
-                                    "userId":userKeycloakId,
-                                    "externalId":userRole.user,
-                                    "status" : "active",
+                                    "roles": roles,
+                                    "userId": userKeycloakId,
+                                    "externalId": userRole.user,
+                                    "status": "active",
                                     "updatedBy": userDetails.id,
                                     "createdBy": userDetails.id
-                                },_.omit(userRole,["externalId", "userId", "createdBy","updatedBy","createdAt","updatedAt","status","roles"]))
+                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt", "status", "roles"]))
                             );
 
                             if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id 
+                                userRole["_SYSTEM_ID"] = newRole._id
                                 userRole.status = "Success"
                             } else {
                                 userRole["_SYSTEM_ID"] = ""
@@ -180,14 +180,14 @@ module.exports = class userExtensionHelper {
                             }
 
                         }
-                         
+
 
                     } catch (error) {
                         userRole.status = (error && error.message) ? error.message : error
                     }
 
 
-                    userRolesUploadedData.push(userRole) 
+                    userRolesUploadedData.push(userRole)
                 }
 
 
@@ -198,6 +198,33 @@ module.exports = class userExtensionHelper {
             }
         })
 
+    }
+
+    static getUserEntities(userId = false) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if(!userId) throw "User ID is required."
+
+                let userExtensionDoument = await database.models.userExtension.findOne({
+                    userId: userId
+                }, { roles: 1 }).lean()
+
+                if (!userExtensionDoument) {
+                    throw { status: 400, message: "User Extension not found ." }
+                }
+
+                let entities = []
+
+                for (let pointerToUserExtension = 0; pointerToUserExtension < userExtensionDoument.roles.length; pointerToUserExtension++) {
+                    entities = _.concat(entities, userExtensionDoument.roles[pointerToUserExtension].entities)
+                }
+
+                return resolve(entities)
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
     }
 
 };
