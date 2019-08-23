@@ -28,7 +28,7 @@ module.exports = {
 
     let crprole = {
       code: "CRP",
-      entityTypes:[entityCodeToEntityMap["school"]],
+      entityTypes:[entityCodeToEntityMap["cluster"]],
       title : "Cluster Resource Person",
       createdAt : new Date,
       updatedAt : new Date,
@@ -40,7 +40,7 @@ module.exports = {
 
     let beorole = {
       code: "BEO",
-      entityTypes:[entityCodeToEntityMap["cluster"]],
+      entityTypes:[entityCodeToEntityMap["block"]],
       title : "Block Education Officer",
       createdAt : new Date,
       updatedAt : new Date,
@@ -52,7 +52,7 @@ module.exports = {
 
     let deorole = {
       code: "DEO",
-      entityTypes:[entityCodeToEntityMap["block"]],
+      entityTypes:[entityCodeToEntityMap["district"]],
       title : "District Education Officer",
       createdAt : new Date,
       updatedAt : new Date,
@@ -62,24 +62,12 @@ module.exports = {
       isDeleted: false
     }
 
-    let spdrole = {
-      code: "SPD",
-      entityTypes:[entityCodeToEntityMap["district"]],
-      title : "State Project Director",
-      createdAt : new Date,
-      updatedAt : new Date,
-      createdBy: "SYSTEM",
-      updatedBy: "SYSTEM",
-      status: "active",
-      isDeleted: false
-    }
 
     return await db.collection('userRoles').insertMany( [
       hmrole,
       crprole,
       beorole,
-      deorole,
-      spdrole
+      deorole
     ]);
 
   },
