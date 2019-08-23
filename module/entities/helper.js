@@ -475,4 +475,76 @@ module.exports = class entitiesHelper {
         })
     }
 
+    static entitiesDocument(findQuery = "all", fields = "all") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let queryObject = {};
+
+                if (findQuery != "all") {
+                    queryObject = findQuery
+                }
+
+                let projectionObject = {};
+
+                if (fields != "all") {
+                    fields.forEach(element => {
+                        projectionObject[element] = 1;
+                    });
+                }
+
+                let entitiesDocuments = await database.models.entities
+                    .find(queryObject, projectionObject)
+                    .lean();
+
+                if (!entitiesDocuments.length < 0) {
+                    throw { status: 400, message: "Entities not found" };
+                }
+
+                return resolve(entitiesDocuments);
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getEntityDetails(entityId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let projection = ["metaInformation", "entityTypeId", "entityType"]
+
+                let entityDocument = await this.entitiesDocument({ _id: entityId }, projection)
+
+                let relatedEntitiesQuery = {}
+                relatedEntitiesQuery["entityTypeId"] = {}
+                relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument[0].entityTypeId
+                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`] = entityDocument[0]._id
+
+                let reatedEntitiesDocument = await this.entitiesDocument(relatedEntitiesQuery, projection)
+
+                let responseObject = {}
+
+                responseObject["message"] = "Fetched Entities details"
+
+                Object.keys(entityDocument[0]).forEach(eachEntityDocument => {
+                    responseObject[eachEntityDocument] = entityDocument[0][eachEntityDocument]
+                })
+
+                responseObject["relatedEntities"] = []
+
+                for (let pointerToRelatedEntities = 0; pointerToRelatedEntities < reatedEntitiesDocument.length; pointerToRelatedEntities++) {
+                    responseObject.relatedEntities.push(reatedEntitiesDocument[pointerToRelatedEntities])
+                }
+
+                return resolve({
+                    result: responseObject
+                })
+
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 };

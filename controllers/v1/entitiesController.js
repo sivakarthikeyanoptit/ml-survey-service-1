@@ -296,12 +296,12 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
- mappingUpload(req) {
+  mappingUpload(req) {
     return new Promise(async (resolve, reject) => {
 
-        try {
+      try {
 
-          let entityCSVData = await csv().fromString(req.files.entityMap.data.toString());
+        let entityCSVData = await csv().fromString(req.files.entityMap.data.toString());
 
         //   let solutionEntities = await database.models.solutions.findOne({
         //     programExternalId: req.query.programId,
@@ -312,7 +312,7 @@ module.exports = class Entities extends Abstract {
 
         //   if(!solutionEntities.entities.length > 0) 
         //     throw "Invalid Solution ID."
-            
+
         //   const solutionEntitiyMap = solutionEntities.entities.reduce(
         //     (ac, entityId) => ({
         //       ...ac,
@@ -321,33 +321,33 @@ module.exports = class Entities extends Abstract {
         //     {}
         //   );
 
-          const entityMapUploadedData = await Promise.all(
-            entityCSVData.map(async (singleRow) => {
-                
-              if(singleRow.parentEntiyId != "" && singleRow.childEntityId != "") {
-                await entitiesHelper.addSubEntityToParent(singleRow.parentEntiyId, singleRow.childEntityId);
-              }
-              return true
+        const entityMapUploadedData = await Promise.all(
+          entityCSVData.map(async (singleRow) => {
 
-            })
-          )
+            if (singleRow.parentEntiyId != "" && singleRow.childEntityId != "") {
+              await entitiesHelper.addSubEntityToParent(singleRow.parentEntiyId, singleRow.childEntityId);
+            }
+            return true
 
-          return resolve({
-            message: "Information updated successfully."
-          });
-
-        } catch (error) {
-
-          return reject({
-            status: error.status || 500,
-            message: error.message || "Oops! something went wrong.",
-            errorObject: error
           })
+        )
 
-        }
+        return resolve({
+          message: "Information updated successfully."
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
 
     })
-}
+  }
 
   /**
   * @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
@@ -385,4 +385,35 @@ module.exports = class Entities extends Abstract {
     })
   }
 
+  /**
+* @api {get} /assessment/api/v1/entities/getEntityDetails/:entityId Get Entity Details up to country level.
+* @apiVersion 0.0.1
+* @apiName Get Entity Details up to country level.
+* @apiGroup Entities
+* @apiUse successBody
+* @apiUse errorBody
+*/
+
+  getEntityDetails(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let entityDocument = await entitiesHelper.getEntityDetails(req.params._id)
+
+        return resolve(entityDocument);
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
 };
