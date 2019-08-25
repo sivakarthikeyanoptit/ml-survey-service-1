@@ -511,14 +511,16 @@ module.exports = class entitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let projection = ["metaInformation", "entityTypeId", "entityType"]
+                let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
 
                 let entityDocument = await this.entitiesDocument({ _id: entityId }, projection)
 
                 let relatedEntitiesQuery = {}
                 relatedEntitiesQuery["entityTypeId"] = {}
                 relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument[0].entityTypeId
-                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`] = entityDocument[0]._id
+                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`] = {}
+                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`]["$elemMatch"] = {}
+                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`]["$elemMatch"]["$eq"] = entityDocument[0]._id
 
                 let reatedEntitiesDocument = await this.entitiesDocument(relatedEntitiesQuery, projection)
 
