@@ -402,9 +402,9 @@ module.exports = class Entities extends Abstract {
 
         let result = {}
         let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityDocument = await entitiesHelper.entitiesDocument({ _id: req.params._id }, projection)
+        let entityDocument = await entitiesHelper.entities({ _id: req.params._id }, projection)
 
-        let relatedEntities = await entitiesHelper.relatedEntities(_.pick(entityDocument[0], ["entityTypeId", "_id", "entityType"]), projection)
+        let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
 
         _.merge(result, entityDocument[0])
         result["relatedEntities"] = relatedEntities

@@ -475,7 +475,7 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static entitiesDocument(findQuery = "all", fields = "all") {
+    static entities(findQuery = "all", fields = "all") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};
@@ -511,22 +511,30 @@ module.exports = class entitiesHelper {
         });
     }
 
-    static relatedEntities(entityDocument, projection = "all") {
+    static relatedEntities(entityId, entityTypeId, entityType, projection = "all") {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let relatedEntitiesQuery = {}
-                relatedEntitiesQuery["entityTypeId"] = {}
-                relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument.entityTypeId
-                relatedEntitiesQuery[`groups.${entityDocument.entityType}`] = entityDocument._id
 
-                let reatedEntitiesDocument = await this.entitiesDocument(relatedEntitiesQuery, projection)
+                if (entityTypeId && entityId && entityType) {
+                    relatedEntitiesQuery["entityTypeId"] = {}
+                    relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId
+                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
+                } else {
+                    throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
+                }
+
+                let reatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
 
                 return resolve(reatedEntitiesDocument)
 
 
             } catch (error) {
-                return reject(error);
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
             }
         })
     }
