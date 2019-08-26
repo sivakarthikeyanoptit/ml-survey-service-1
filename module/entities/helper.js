@@ -516,6 +516,7 @@ module.exports = class entitiesHelper {
                 let entityDocument = await this.entitiesDocument({ _id: entityId }, projection)
 
                 let relatedEntitiesQuery = {}
+
                 relatedEntitiesQuery["entityTypeId"] = {}
                 relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument[0].entityTypeId
                 relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`] = {}
@@ -525,8 +526,6 @@ module.exports = class entitiesHelper {
                 let reatedEntitiesDocument = await this.entitiesDocument(relatedEntitiesQuery, projection)
 
                 let responseObject = {}
-
-                responseObject["message"] = "Fetched Entities details"
 
                 Object.keys(entityDocument[0]).forEach(eachEntityDocument => {
                     responseObject[eachEntityDocument] = entityDocument[0][eachEntityDocument]

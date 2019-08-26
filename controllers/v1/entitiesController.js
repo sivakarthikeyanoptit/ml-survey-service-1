@@ -390,6 +390,7 @@ module.exports = class Entities extends Abstract {
 * @apiVersion 0.0.1
 * @apiName Get Entity Details up to country level.
 * @apiGroup Entities
+* @apiSampleRequest /assessment/api/v1/entities/getEntityDetails/5bfe53ea1d0c350d61b78d3d
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -401,7 +402,10 @@ module.exports = class Entities extends Abstract {
 
         let entityDocument = await entitiesHelper.getEntityDetails(req.params._id)
 
-        return resolve(entityDocument);
+        return resolve({
+          message: "Fetched Entities details",
+          result: entityDocument.result
+        });
 
       } catch (error) {
 
