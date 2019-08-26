@@ -475,4 +475,68 @@ module.exports = class entitiesHelper {
         })
     }
 
+    static entities(findQuery = "all", fields = "all") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let queryObject = {};
+
+                if (findQuery != "all") {
+                    queryObject = findQuery
+                }
+
+                let projectionObject = {};
+
+                if (fields != "all") {
+                    fields.forEach(element => {
+                        projectionObject[element] = 1;
+                    });
+                }
+
+                let entitiesDocuments = await database.models.entities
+                    .find(queryObject, projectionObject)
+                    .lean();
+
+                if (entitiesDocuments.length < 0) {
+                    throw { status: 400, message: "Entities not found" };
+                }
+
+                return resolve(entitiesDocuments);
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+    static relatedEntities(entityId, entityTypeId, entityType, projection = "all") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let relatedEntitiesQuery = {}
+
+                if (entityTypeId && entityId && entityType) {
+                    relatedEntitiesQuery["entityTypeId"] = {}
+                    relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId
+                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
+                } else {
+                    throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
+                }
+
+                let reatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
+
+                return resolve(reatedEntitiesDocument)
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
+            }
+        })
+    }
+
 };
