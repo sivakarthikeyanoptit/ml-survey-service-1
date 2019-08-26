@@ -496,13 +496,17 @@ module.exports = class entitiesHelper {
                     .find(queryObject, projectionObject)
                     .lean();
 
-                if (!entitiesDocuments.length < 0) {
+                if (entitiesDocuments.length < 0) {
                     throw { status: 400, message: "Entities not found" };
                 }
 
                 return resolve(entitiesDocuments);
             } catch (error) {
-                return reject(error);
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
             }
         });
     }
