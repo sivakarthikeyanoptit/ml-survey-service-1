@@ -386,25 +386,32 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/entities/getEntityDetails/:entityId Get Entity Details up to country level.
+* @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Entity Details up to country level.
 * @apiVersion 0.0.1
 * @apiName Get Entity Details up to country level.
 * @apiGroup Entities
-* @apiSampleRequest /assessment/api/v1/entities/getEntityDetails/5bfe53ea1d0c350d61b78d3d
+* @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d
 * @apiUse successBody
 * @apiUse errorBody
 */
 
-  getEntityDetails(req) {
+  relatedEntities(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        let entityDocument = await entitiesHelper.getEntityDetails(req.params._id)
+        let result = {}
+        let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+        let entityDocument = await entitiesHelper.entitiesDocument({ _id: req.params._id }, projection)
+
+        let relatedEntities = await entitiesHelper.relatedEntities(_.pick(entityDocument[0], ["entityTypeId", "_id", "entityType"]), projection)
+
+        _.merge(result, entityDocument[0])
+        result["relatedEntities"] = relatedEntities
 
         return resolve({
           message: "Fetched Entities details",
-          result: entityDocument.result
+          result: result
         });
 
       } catch (error) {

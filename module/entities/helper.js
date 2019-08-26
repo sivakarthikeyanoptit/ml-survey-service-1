@@ -511,39 +511,18 @@ module.exports = class entitiesHelper {
         });
     }
 
-    static getEntityDetails(entityId) {
+    static relatedEntities(entityDocument, projection = "all") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-
-                let entityDocument = await this.entitiesDocument({ _id: entityId }, projection)
-
                 let relatedEntitiesQuery = {}
-
                 relatedEntitiesQuery["entityTypeId"] = {}
-                relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument[0].entityTypeId
-                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`] = {}
-                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`]["$elemMatch"] = {}
-                relatedEntitiesQuery[`groups.${entityDocument[0].entityType}`]["$elemMatch"]["$eq"] = entityDocument[0]._id
+                relatedEntitiesQuery["entityTypeId"]["$ne"] = entityDocument.entityTypeId
+                relatedEntitiesQuery[`groups.${entityDocument.entityType}`] = entityDocument._id
 
                 let reatedEntitiesDocument = await this.entitiesDocument(relatedEntitiesQuery, projection)
 
-                let responseObject = {}
-
-                Object.keys(entityDocument[0]).forEach(eachEntityDocument => {
-                    responseObject[eachEntityDocument] = entityDocument[0][eachEntityDocument]
-                })
-
-                responseObject["relatedEntities"] = []
-
-                for (let pointerToRelatedEntities = 0; pointerToRelatedEntities < reatedEntitiesDocument.length; pointerToRelatedEntities++) {
-                    responseObject.relatedEntities.push(reatedEntitiesDocument[pointerToRelatedEntities])
-                }
-
-                return resolve({
-                    result: responseObject
-                })
+                return resolve(reatedEntitiesDocument)
 
 
             } catch (error) {

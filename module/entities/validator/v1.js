@@ -105,7 +105,7 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required entity id")
                 .isMongoId().withMessage("invalid entity id")
         },
-        getEntityDetails: function () {
+        relatedEntities: function () {
             req.checkParams('_id').exists().withMessage("required Entity id")
         }
 
