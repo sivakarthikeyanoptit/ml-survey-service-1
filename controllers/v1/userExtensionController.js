@@ -1,6 +1,7 @@
 const csv = require("csvtojson");
 const userExtensionHelper = require(ROOT_PATH + "/module/userExtension/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 
 module.exports = class UserExtension extends Abstract {
   constructor() {
@@ -28,9 +29,9 @@ module.exports = class UserExtension extends Abstract {
       try {
 
         let result = await userExtensionHelper.profileWithEntityDetails({
-          userId:(req.params._id && req.params._id !="") ? req.params._id :req.userDetails.userId,
-          status : "active",
-          isDeleted : false
+          userId: (req.params._id && req.params._id != "") ? req.params._id : req.userDetails.userId,
+          status: "active",
+          isDeleted: false
         });
 
         return resolve({
@@ -69,9 +70,9 @@ module.exports = class UserExtension extends Abstract {
 
         let userRolesCSVData = await csv().fromString(req.files.userRoles.data.toString());
 
-        if(!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
+        if (!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
 
-        let newUserRoleData = await userExtensionHelper.bulkCreateOrUpdate(userRolesCSVData,req.userDetails);
+        let newUserRoleData = await userExtensionHelper.bulkCreateOrUpdate(userRolesCSVData, req.userDetails);
 
         if (newUserRoleData.length > 0) {
 
@@ -96,6 +97,70 @@ module.exports = class UserExtension extends Abstract {
         } else {
           throw "Something went wrong!"
         }
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+
+  /**
+ * @api {post} /assessment/api/v1/userExtension/entities?userId=:userId&entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+ * @apiVersion 0.0.1
+ * @apiName User Extension Entity details
+ * @apiGroup User Roles
+ * @apiSampleRequest /assessment/api/v1/userExtension/entities?userId=e97b5582-471c-4649-8401-3cc4249359bb&entityType=school&limit=10&page=1
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+  entities(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        let userId = req.query.userId ? req.query.userId : req.userDetails.id
+        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
+
+        let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+        let entityType = req.query.entityType ? req.query.entityType : "school"
+
+        let entitiesDetails = await entitiesHelper.entities({
+          _id: { $in: userExtensionEntities },
+          entityType: entityType
+        }, ["_id"])
+
+        entitiesDetails = entitiesDetails.length > 0 ? entitiesDetails : []
+
+        let findQuery = {
+          _id: { $in: userExtensionEntities },
+          entityType: { $ne: entityType }
+        }
+
+        findQuery[`groups.${entityType}`] = { $exists: true }
+
+        let entitiesNotInUserExtension = await entitiesHelper.entities(findQuery, ["_id"])
+
+        let allEntities = entitiesNotInUserExtension.length > 0 ? _.concat(entitiesDetails, entitiesNotInUserExtension) : entitiesDetails
+
+        if (!allEntities.length > 0) {
+          throw { status: 400, message: "No entities were found for given userId" };
+        }
+
+        let result = await entitiesHelper.entities({
+          _id: { $in: allEntities }
+        }, projection, req.pageSize, (req.pageSize * (req.pageNo - 1)))
+
+        return resolve({
+          message: "User Extension entities fetched successfully",
+          result: result
+        })
 
       } catch (error) {
 
