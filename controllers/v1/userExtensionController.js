@@ -57,7 +57,7 @@ module.exports = class UserExtension extends Abstract {
   * @api {post} /assessment/api/v1/userExtension/bulkUpload Bulk Upload User Roles
   * @apiVersion 0.0.1
   * @apiName Bulk Upload User Roles
-  * @apiGroup User Roles
+  * @apiGroup User Extension
   * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
   * @apiSampleRequest /assessment/api/v1/userExtension/bulkUpload
   * @apiUse successBody
@@ -116,7 +116,7 @@ module.exports = class UserExtension extends Abstract {
  * @api {post} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
  * @apiVersion 0.0.1
  * @apiName User Extension Entity details
- * @apiGroup User Roles
+ * @apiGroup User Extension
  * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
  * @apiUse successBody
  * @apiUse errorBody
