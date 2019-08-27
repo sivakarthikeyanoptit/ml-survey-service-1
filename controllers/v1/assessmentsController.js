@@ -96,7 +96,8 @@ module.exports = class Assessments {
                         roles: 1,
                         evidenceMethods: 1,
                         sections: 1,
-                        entityTypeId: 1
+                        entityTypeId: 1,
+                        entityType: 1
                     }
                 ).lean();
 
