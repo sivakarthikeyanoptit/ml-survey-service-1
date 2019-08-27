@@ -475,7 +475,7 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static entities(findQuery = "all", fields = "all") {
+    static entities(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};
@@ -494,11 +494,9 @@ module.exports = class entitiesHelper {
 
                 let entitiesDocuments = await database.models.entities
                     .find(queryObject, projectionObject)
+                    .limit(limitingValue)
+                    .skip(skippingValue)
                     .lean();
-
-                if (entitiesDocuments.length < 0) {
-                    throw { status: 400, message: "Entities not found" };
-                }
 
                 return resolve(entitiesDocuments);
             } catch (error) {
@@ -525,9 +523,13 @@ module.exports = class entitiesHelper {
                     throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
                 }
 
-                let reatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
+                let relatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
 
-                return resolve(reatedEntitiesDocument)
+                if (relatedEntitiesDocument.length < 0) {
+                    throw { status: 400, message: "Entities not found" };
+                }
+
+                return resolve(relatedEntitiesDocument)
 
 
             } catch (error) {
