@@ -153,9 +153,11 @@ module.exports = class UserExtension extends Abstract {
           throw { status: 400, message: "No entities were found for given userId" };
         }
 
+        let skippingValue = req.pageSize * (req.pageNo - 1)
+
         let result = await entitiesHelper.entities({
           _id: { $in: allEntities }
-        }, projection, req.pageSize, (req.pageSize * (req.pageNo - 1)))
+        }, projection, req.pageSize, skippingValue)
 
         return resolve({
           message: "User Extension entities fetched successfully",
