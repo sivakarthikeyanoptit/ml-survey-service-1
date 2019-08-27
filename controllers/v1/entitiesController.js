@@ -118,30 +118,30 @@ module.exports = class Entities extends Abstract {
   * @apiUse errorBody
   */
 
-  list(req) {
-    return new Promise(async (resolve, reject) => {
+  drilldown(req) {
+      return new Promise(async (resolve, reject) => {
 
-      try {
+        try {
 
-        let result = await entitiesHelper.list(req.query.type, req.params._id);
+          let result = await entitiesHelper.list(req.query.type, req.params._id);
 
-        return resolve({
-          message: "Information fetched successfully.",
-          result: result
-        });
+          return resolve({
+            message: "Information fetched successfully.",
+            result: result
+          });
 
-      } catch (error) {
+        } catch (error) {
 
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
-          errorObject: error
-        })
+          return reject({
+            status: error.status || 500,
+            message: error.message || "Oops! something went wrong.",
+            errorObject: error
+          })
 
-      }
+        }
 
 
-    })
+      })
   }
 
   /**
