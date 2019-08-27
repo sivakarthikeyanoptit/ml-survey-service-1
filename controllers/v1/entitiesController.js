@@ -423,14 +423,14 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Related Entities
-* @apiVersion 0.0.1
-* @apiName Get Related Entities
-* @apiGroup Entities
-* @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Related Entities
+  * @apiVersion 0.0.1
+  * @apiName Get Related Entities
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   relatedEntities(req) {
     return new Promise(async (resolve, reject) => {

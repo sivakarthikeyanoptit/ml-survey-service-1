@@ -113,79 +113,80 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
- * @api {post} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
- * @apiVersion 0.0.1
- * @apiName User Extension Entity details
- * @apiGroup User Extension
- * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
- * @apiUse successBody
- * @apiUse errorBody
- */
-  entities(req) {
-    return new Promise(async (resolve, reject) => {
+   * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+   * @apiVersion 0.0.1
+   * @apiName User Extension Entity details
+   * @apiGroup User Extension
+   * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
 
-      try {
-        let allEntities = []
+    entities(req) {
+      return new Promise(async (resolve, reject) => {
 
-        let userId = req.params._id ? req.params._id : req.userDetails.id
-        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-        let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityType = req.query.entityType ? req.query.entityType : "school"
+        try {
+          let allEntities = []
 
-        let entitiesFound = await entitiesHelper.entities({
-          _id: { $in: userExtensionEntities },
-          entityType: entityType
-        }, ["_id"])
+          let userId = req.params._id ? req.params._id : req.userDetails.id
+          let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
+          let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+          let entityType = req.query.entityType ? req.query.entityType : "school"
+
+          let entitiesFound = await entitiesHelper.entities({
+            _id: { $in: userExtensionEntities },
+            entityType: entityType
+          }, ["_id"])
 
 
-        if (entitiesFound.length > 0) {
-          entitiesFound.forEach(eachEntityData => {
-            allEntities.push(eachEntityData._id)
+          if (entitiesFound.length > 0) {
+            entitiesFound.forEach(eachEntityData => {
+              allEntities.push(eachEntityData._id)
+            })
+          }
+
+          let findQuery = {
+            _id: { $in: userExtensionEntities },
+            entityType: { $ne: entityType }
+          }
+
+          findQuery[`groups.${entityType}`] = { $exists: true }
+
+          let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+
+          if (remainingEntities.length > 0) {
+            remainingEntities.forEach(eachEntityNotFound => {
+              allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+            })
+          }
+
+          if (!allEntities.length > 0) {
+            throw { status: 400, message: "No entities were found for given userId" };
+          }
+
+          let skippingValue = req.pageSize * (req.pageNo - 1)
+
+          let result = await entitiesHelper.entities({
+            _id: { $in: allEntities }
+          }, projection, req.pageSize, skippingValue)
+
+          return resolve({
+            message: "User Extension entities fetched successfully",
+            result: result
           })
-        }
 
-        let findQuery = {
-          _id: { $in: userExtensionEntities },
-          entityType: { $ne: entityType }
-        }
+        } catch (error) {
 
-        findQuery[`groups.${entityType}`] = { $exists: true }
-
-        let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
-
-        if (remainingEntities.length > 0) {
-          remainingEntities.forEach(eachEntityNotFound => {
-            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+          return reject({
+            status: error.status || 500,
+            message: error.message || "Oops! something went wrong.",
+            errorObject: error
           })
+
         }
 
-        if (!allEntities.length > 0) {
-          throw { status: 400, message: "No entities were found for given userId" };
-        }
 
-        let skippingValue = req.pageSize * (req.pageNo - 1)
-
-        let result = await entitiesHelper.entities({
-          _id: { $in: allEntities }
-        }, projection, req.pageSize, skippingValue)
-
-        return resolve({
-          message: "User Extension entities fetched successfully",
-          result: result
-        })
-
-      } catch (error) {
-
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
-          errorObject: error
-        })
-
-      }
-
-
-    })
-  }
+      })
+    }
 
 };
