@@ -113,11 +113,11 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
- * @api {post} /assessment/api/v1/userExtension/entities?userId=:userId&entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+ * @api {post} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
  * @apiVersion 0.0.1
  * @apiName User Extension Entity details
  * @apiGroup User Roles
- * @apiSampleRequest /assessment/api/v1/userExtension/entities?userId=e97b5582-471c-4649-8401-3cc4249359bb&entityType=school&limit=10&page=1
+ * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
  * @apiUse successBody
  * @apiUse errorBody
  */
@@ -125,7 +125,7 @@ module.exports = class UserExtension extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let userId = req.query.userId ? req.query.userId : req.userDetails.id
+        let userId = req.params.userId ? req.params.userId : req.userDetails.id
         let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
 
         let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
@@ -136,7 +136,11 @@ module.exports = class UserExtension extends Abstract {
           entityType: entityType
         }, ["_id"])
 
-        entitiesDetails = entitiesDetails.length > 0 ? entitiesDetails : []
+        let foundEntities = []
+
+        entitiesDetails.forEach(eachEntityData => {
+          foundEntities.push(eachEntityData._id)
+        })
 
         let findQuery = {
           _id: { $in: userExtensionEntities },
@@ -145,9 +149,16 @@ module.exports = class UserExtension extends Abstract {
 
         findQuery[`groups.${entityType}`] = { $exists: true }
 
-        let entitiesNotInUserExtension = await entitiesHelper.entities(findQuery, ["_id"])
+        let entitiesNotInUserExtension = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+        let remainingEntitiesData = []
 
-        let allEntities = entitiesNotInUserExtension.length > 0 ? _.concat(entitiesDetails, entitiesNotInUserExtension) : entitiesDetails
+        if (entitiesNotInUserExtension.length > 0) {
+          for (let pointer = 0; pointer < entitiesNotInUserExtension.length; pointer++) {
+            remainingEntitiesData = _.concat(remainingEntitiesData, entitiesNotInUserExtension[pointer].groups[entityType])
+          }
+        }
+
+        let allEntities = _.concat(foundEntities, remainingEntitiesData)
 
         if (!allEntities.length > 0) {
           throw { status: 400, message: "No entities were found for given userId" };
