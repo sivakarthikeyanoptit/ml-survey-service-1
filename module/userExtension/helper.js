@@ -67,11 +67,17 @@ module.exports = class userExtensionHelper {
                 let entityMap = {}
                 userExtensionData[0].entityDocuments.forEach(entity => {
                     entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.subEntityGroups = new Array
                     
                     Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
                         if(entity.groups[immediateChildrenEntityType]) {
+                            entity.metaInformation.entityType = immediateChildrenEntityType
                             entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
                         }
+                    })
+
+                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                        entity.metaInformation.subEntityGroups.push(subEntityType)
                     })
                     
                     entityMap[entity._id.toString()] = entity

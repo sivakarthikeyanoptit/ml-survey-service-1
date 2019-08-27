@@ -1,4 +1,4 @@
-const entityAssessorsHelper = require("../entityAssessors/helper")
+const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
 
 module.exports = class entitiesHelper {
 
@@ -58,11 +58,39 @@ module.exports = class entitiesHelper {
 
                 let entityIds = result.groups[entityType];
 
+                const entityTypesArray = await entityTypesHelper.list({}, {
+                    name: 1,
+                    immediateChildrenEntityType: 1
+                });
+
+                let enityTypeToImmediateChildrenEntityMap = {}
+
+                if(entityTypesArray.length > 0) {
+                    entityTypesArray.forEach(entityType => {
+                        enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : []
+                    })
+                }
+
                 let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
-                    metaInformation: 1
+                    metaInformation: 1,
+                    groups: 1,
+                    entityType: 1
                 }).lean();
 
                 result = entityData.map(entity => {
+                    entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.subEntityGroups = new Array
+                    
+                    Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                        if(entity.groups[immediateChildrenEntityType]) {
+                            entity.metaInformation.entityType = immediateChildrenEntityType
+                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
+                        }
+                    })
+
+                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                        entity.metaInformation.subEntityGroups.push(subEntityType)
+                    })
                     return {
                         entityId: entity._id,
                         ...entity.metaInformation

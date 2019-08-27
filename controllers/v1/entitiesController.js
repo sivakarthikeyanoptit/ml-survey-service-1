@@ -106,44 +106,6 @@ module.exports = class Entities extends Abstract {
     })
   }
 
-
-  /**
-  * @api {get} /assessment/api/v1/entities/drilldown/:entityId?type=:entityType Entity Drilldown list
-  * @apiVersion 0.0.1
-  * @apiName Entity Drilldown list
-  * @apiGroup Entities
-  * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/entities/drilldown/5bfe53ea1d0c350d61b78d0a?type=school
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
-
-  drilldown(req) {
-      return new Promise(async (resolve, reject) => {
-
-        try {
-
-          let result = await entitiesHelper.list(req.query.type, req.params._id);
-
-          return resolve({
-            message: "Information fetched successfully.",
-            result: result
-          });
-
-        } catch (error) {
-
-          return reject({
-            status: error.status || 500,
-            message: error.message || "Oops! something went wrong.",
-            errorObject: error
-          })
-
-        }
-
-
-      })
-  }
-
   /**
   * @api {get} /assessment/api/v1/entities/form?type=:entityType Entity form
   * @apiVersion 0.0.1
