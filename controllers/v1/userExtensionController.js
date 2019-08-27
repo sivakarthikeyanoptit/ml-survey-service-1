@@ -125,22 +125,24 @@ module.exports = class UserExtension extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let userId = req.params.userId ? req.params.userId : req.userDetails.id
-        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
+        let allEntities = []
 
+        let userId = req.params._id ? req.params._id : req.userDetails.id
+        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
         let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
         let entityType = req.query.entityType ? req.query.entityType : "school"
 
-        let entitiesDetails = await entitiesHelper.entities({
+        let entitiesFound = await entitiesHelper.entities({
           _id: { $in: userExtensionEntities },
           entityType: entityType
         }, ["_id"])
 
-        let foundEntities = []
 
-        entitiesDetails.forEach(eachEntityData => {
-          foundEntities.push(eachEntityData._id)
-        })
+        if (entitiesFound.length > 0) {
+          entitiesFound.forEach(eachEntityData => {
+            allEntities.push(eachEntityData._id)
+          })
+        }
 
         let findQuery = {
           _id: { $in: userExtensionEntities },
@@ -149,16 +151,13 @@ module.exports = class UserExtension extends Abstract {
 
         findQuery[`groups.${entityType}`] = { $exists: true }
 
-        let entitiesNotInUserExtension = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
-        let remainingEntitiesData = []
+        let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
 
-        if (entitiesNotInUserExtension.length > 0) {
-          for (let pointer = 0; pointer < entitiesNotInUserExtension.length; pointer++) {
-            remainingEntitiesData = _.concat(remainingEntitiesData, entitiesNotInUserExtension[pointer].groups[entityType])
-          }
+        if (remainingEntities.length > 0) {
+          remainingEntities.forEach(eachEntityNotFound => {
+            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+          })
         }
-
-        let allEntities = _.concat(foundEntities, remainingEntitiesData)
 
         if (!allEntities.length > 0) {
           throw { status: 400, message: "No entities were found for given userId" };
