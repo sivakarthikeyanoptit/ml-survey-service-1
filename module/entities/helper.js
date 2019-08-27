@@ -47,7 +47,7 @@ module.exports = class entitiesHelper {
 
     }
 
-    static list(entityType, entityId) {
+    static list(entityType, entityId, limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -75,7 +75,10 @@ module.exports = class entitiesHelper {
                     metaInformation: 1,
                     groups: 1,
                     entityType: 1
-                }).lean();
+                })
+                .limit(limitingValue)
+                .skip(skippingValue)
+                .lean();
 
                 result = entityData.map(entity => {
                     entity.metaInformation.childrenCount = 0

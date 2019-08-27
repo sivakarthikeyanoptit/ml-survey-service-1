@@ -85,7 +85,7 @@ module.exports = class Entities extends Abstract {
 
       try {
 
-        let result = await entitiesHelper.list(req.query.type, req.params._id);
+        let result = await entitiesHelper.list(req.query.type, req.params._id, req.pageSize,req.pageSize * (req.pageNo - 1));
 
         return resolve({
           message: "Information fetched successfully.",
