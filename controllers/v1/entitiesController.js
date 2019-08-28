@@ -404,6 +404,10 @@ module.exports = class Entities extends Abstract {
         let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
         let entityDocument = await entitiesHelper.entities({ _id: req.params._id }, projection)
 
+        if (entityDocument.length < 0) {
+          throw { status: 400, message: "No entities were found" };
+        }
+
         let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
 
         _.merge(result, entityDocument[0])

@@ -113,7 +113,7 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
- * @api {post} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+ * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
  * @apiVersion 0.0.1
  * @apiName User Extension Entity details
  * @apiGroup User Roles
@@ -171,7 +171,8 @@ module.exports = class UserExtension extends Abstract {
 
         return resolve({
           message: "User Extension entities fetched successfully",
-          result: result
+          result: result,
+          count: result.length
         })
 
       } catch (error) {
