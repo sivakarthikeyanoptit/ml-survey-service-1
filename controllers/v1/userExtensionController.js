@@ -122,71 +122,72 @@ module.exports = class UserExtension extends Abstract {
    * @apiUse errorBody
    */
 
-    entities(req) {
-      return new Promise(async (resolve, reject) => {
+  entities(req) {
+    return new Promise(async (resolve, reject) => {
 
-        try {
-          let allEntities = []
+      try {
+        let allEntities = []
 
-          let userId = req.params._id ? req.params._id : req.userDetails.id
-          let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-          let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-          let entityType = req.query.entityType ? req.query.entityType : "school"
+        let userId = req.params._id ? req.params._id : req.userDetails.id
+        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+        let entityType = req.query.entityType ? req.query.entityType : "school"
 
-          let entitiesFound = await entitiesHelper.entities({
-            _id: { $in: userExtensionEntities },
-            entityType: entityType
-          }, ["_id"])
+        let entitiesFound = await entitiesHelper.entities({
+          _id: { $in: userExtensionEntities },
+          entityType: entityType
+        }, ["_id"])
 
 
-          if (entitiesFound.length > 0) {
-            entitiesFound.forEach(eachEntityData => {
-              allEntities.push(eachEntityData._id)
-            })
-          }
-
-          let findQuery = {
-            _id: { $in: userExtensionEntities },
-            entityType: { $ne: entityType }
-          }
-
-          findQuery[`groups.${entityType}`] = { $exists: true }
-
-          let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
-
-          if (remainingEntities.length > 0) {
-            remainingEntities.forEach(eachEntityNotFound => {
-              allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
-            })
-          }
-
-          if (!allEntities.length > 0) {
-            throw { status: 400, message: "No entities were found for given userId" };
-          }
-
-          let skippingValue = req.pageSize * (req.pageNo - 1)
-
-          let result = await entitiesHelper.entities({
-            _id: { $in: allEntities }
-          }, projection, req.pageSize, skippingValue)
-
-          return resolve({
-            message: "User Extension entities fetched successfully",
-            result: result
+        if (entitiesFound.length > 0) {
+          entitiesFound.forEach(eachEntityData => {
+            allEntities.push(eachEntityData._id)
           })
-
-        } catch (error) {
-
-          return reject({
-            status: error.status || 500,
-            message: error.message || "Oops! something went wrong.",
-            errorObject: error
-          })
-
         }
 
+        let findQuery = {
+          _id: { $in: userExtensionEntities },
+          entityType: { $ne: entityType }
+        }
 
-      })
-    }
+        findQuery[`groups.${entityType}`] = { $exists: true }
+
+        let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+
+        if (remainingEntities.length > 0) {
+          remainingEntities.forEach(eachEntityNotFound => {
+            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+          })
+        }
+
+        if (!allEntities.length > 0) {
+          throw { status: 400, message: "No entities were found for given userId" };
+        }
+
+        let skippingValue = req.pageSize * (req.pageNo - 1)
+
+        let result = await entitiesHelper.entities({
+          _id: { $in: allEntities }
+        }, projection, req.pageSize, skippingValue)
+
+        return resolve({
+          message: "User Extension entities fetched successfully",
+          result: result,
+          count: allEntities.length
+        })
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
 
 };

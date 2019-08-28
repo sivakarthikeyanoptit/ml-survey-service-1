@@ -65,7 +65,7 @@ module.exports = class entitiesHelper {
 
                 let enityTypeToImmediateChildrenEntityMap = {}
 
-                if(entityTypesArray.length > 0) {
+                if (entityTypesArray.length > 0) {
                     entityTypesArray.forEach(entityType => {
                         enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : []
                     })
@@ -76,16 +76,16 @@ module.exports = class entitiesHelper {
                     groups: 1,
                     entityType: 1
                 })
-                .limit(limitingValue)
-                .skip(skippingValue)
-                .lean();
+                    .limit(limitingValue)
+                    .skip(skippingValue)
+                    .lean();
 
                 result = entityData.map(entity => {
                     entity.metaInformation.childrenCount = 0
                     entity.metaInformation.subEntityGroups = new Array
-                    
+
                     Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
-                        if(entity.groups[immediateChildrenEntityType]) {
+                        if (entity.groups[immediateChildrenEntityType]) {
                             entity.metaInformation.entityType = immediateChildrenEntityType
                             entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
                         }
@@ -100,7 +100,10 @@ module.exports = class entitiesHelper {
                     }
                 })
 
-                return resolve(result);
+                return resolve({
+                    entityData: result,
+                    count: entityIds.length
+                });
 
             } catch (error) {
                 return reject(error);
