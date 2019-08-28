@@ -1,4 +1,5 @@
 const userRolesHelper = require(ROOT_PATH + "/module/userRoles/helper");
+const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
 
 const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
@@ -7,6 +8,19 @@ module.exports = class userExtensionHelper {
     static profileWithEntityDetails(filterQueryObject) {
         return new Promise(async (resolve, reject) => {
             try {
+
+                const entityTypesArray = await entityTypesHelper.list({}, {
+                    name: 1,
+                    immediateChildrenEntityType: 1
+                });
+
+                let enityTypeToImmediateChildrenEntityMap = {}
+
+                if (entityTypesArray.length > 0) {
+                    entityTypesArray.forEach(entityType => {
+                        enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : []
+                    })
+                }
 
                 let queryObject = [
                     {
@@ -37,7 +51,9 @@ module.exports = class userExtensionHelper {
                             "roleDocuments.title": 1,
                             "entityDocuments._id": 1,
                             "entityDocuments.metaInformation.externalId": 1,
-                            "entityDocuments.metaInformation.name": 1
+                            "entityDocuments.metaInformation.name": 1,
+                            "entityDocuments.groups": 1,
+                            "entityDocuments.entityType": 1
                         }
                     }
                 ];
@@ -50,6 +66,20 @@ module.exports = class userExtensionHelper {
                 })
                 let entityMap = {}
                 userExtensionData[0].entityDocuments.forEach(entity => {
+                    entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.subEntityGroups = new Array
+
+                    Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                        if (entity.groups[immediateChildrenEntityType]) {
+                            entity.metaInformation.entityType = immediateChildrenEntityType
+                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
+                        }
+                    })
+
+                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                        entity.metaInformation.subEntityGroups.push(subEntityType)
+                    })
+
                     entityMap[entity._id.toString()] = entity
                 })
 
