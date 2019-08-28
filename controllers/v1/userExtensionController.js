@@ -57,7 +57,7 @@ module.exports = class UserExtension extends Abstract {
   * @api {post} /assessment/api/v1/userExtension/bulkUpload Bulk Upload User Roles
   * @apiVersion 0.0.1
   * @apiName Bulk Upload User Roles
-  * @apiGroup User Roles
+  * @apiGroup User Extension
   * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
   * @apiSampleRequest /assessment/api/v1/userExtension/bulkUpload
   * @apiUse successBody
@@ -113,14 +113,15 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
- * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
- * @apiVersion 0.0.1
- * @apiName User Extension Entity details
- * @apiGroup User Roles
- * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
- * @apiUse successBody
- * @apiUse errorBody
- */
+   * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+   * @apiVersion 0.0.1
+   * @apiName User Extension Entity details
+   * @apiGroup User Extension
+   * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
   entities(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -129,7 +130,7 @@ module.exports = class UserExtension extends Abstract {
 
         let userId = req.params._id ? req.params._id : req.userDetails.id
         let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-        let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
         let entityType = req.query.entityType ? req.query.entityType : "school"
 
         let entitiesFound = await entitiesHelper.entities({
@@ -172,7 +173,7 @@ module.exports = class UserExtension extends Abstract {
         return resolve({
           message: "User Extension entities fetched successfully",
           result: result,
-          count: result.length
+          count: allEntities.length
         })
 
       } catch (error) {

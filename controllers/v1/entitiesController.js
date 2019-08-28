@@ -85,11 +85,12 @@ module.exports = class Entities extends Abstract {
 
       try {
 
-        let result = await entitiesHelper.list(req.query.type, req.params._id);
+        let result = await entitiesHelper.list(req.query.type, req.params._id, req.pageSize, req.pageSize * (req.pageNo - 1));
 
         return resolve({
           message: "Information fetched successfully.",
-          result: result
+          result: result.entityData,
+          count: result.count
         });
 
       } catch (error) {
@@ -105,7 +106,6 @@ module.exports = class Entities extends Abstract {
 
     })
   }
-
 
   /**
   * @api {get} /assessment/api/v1/entities/form?type=:entityType Entity form
@@ -386,14 +386,14 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Entity Details up to country level.
-* @apiVersion 0.0.1
-* @apiName Get Entity Details up to country level.
-* @apiGroup Entities
-* @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Related Entities
+  * @apiVersion 0.0.1
+  * @apiName Get Related Entities
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   relatedEntities(req) {
     return new Promise(async (resolve, reject) => {
@@ -401,7 +401,7 @@ module.exports = class Entities extends Abstract {
       try {
 
         let result = {}
-        let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
         let entityDocument = await entitiesHelper.entities({ _id: req.params._id }, projection)
 
         if (entityDocument.length < 0) {
