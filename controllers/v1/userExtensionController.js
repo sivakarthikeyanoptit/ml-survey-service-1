@@ -130,7 +130,7 @@ module.exports = class UserExtension extends Abstract {
 
           let userId = req.params._id ? req.params._id : req.userDetails.id
           let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-          let projection = ["metaInformation.externalId", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
+          let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
           let entityType = req.query.entityType ? req.query.entityType : "school"
 
           let entitiesFound = await entitiesHelper.entities({
