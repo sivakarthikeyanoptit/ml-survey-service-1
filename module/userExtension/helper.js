@@ -13,25 +13,25 @@ module.exports = class userExtensionHelper {
                         $match: filterQueryObject
                     },
                     {
-                        $lookup : {
-                            "from" : "entities",
-                            "localField" : "roles.entities",
-                            "foreignField" : "_id",
-                            "as" : "entityDocuments"
+                        $lookup: {
+                            "from": "entities",
+                            "localField": "roles.entities",
+                            "foreignField": "_id",
+                            "as": "entityDocuments"
                         }
                     },
                     {
-                        $lookup : {
-                            "from" : "userRoles",
-                            "localField" : "roles.roleId",
-                            "foreignField" : "_id",
-                            "as" : "roleDocuments"
+                        $lookup: {
+                            "from": "userRoles",
+                            "localField": "roles.roleId",
+                            "foreignField": "_id",
+                            "as": "roleDocuments"
                         }
                     },
                     {
                         $project: {
-                            "externalId":1,
-                            "roles":1,
+                            "externalId": 1,
+                            "roles": 1,
                             "roleDocuments._id": 1,
                             "roleDocuments.code": 1,
                             "roleDocuments.title": 1,
@@ -41,7 +41,7 @@ module.exports = class userExtensionHelper {
                         }
                     }
                 ];
-  
+
                 let userExtensionData = await database.models.userExtension.aggregate(queryObject)
 
                 let roleMap = {}
@@ -56,14 +56,14 @@ module.exports = class userExtensionHelper {
                 for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
                     for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
                         userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
-                            _id : entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
+                            _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
                             ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
                         }
                     }
                     roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities
                 }
-                
-                return resolve(_.merge(_.omit(userExtensionData[0],["roles","entityDocuments","roleDocuments"]),{roles:Object.values(roleMap)}));
+
+                return resolve(_.merge(_.omit(userExtensionData[0], ["roles", "entityDocuments", "roleDocuments"]), { roles: Object.values(roleMap) }));
 
             } catch (error) {
                 return reject(error);
@@ -256,7 +256,7 @@ module.exports = class userExtensionHelper {
     static getUserEntities(userId = false) {
         return new Promise(async (resolve, reject) => {
             try {
-                if(!userId) throw "User ID is required."
+                if (!userId) throw "User ID is required."
 
                 let userExtensionDoument = await database.models.userExtension.findOne({
                     userId: userId
