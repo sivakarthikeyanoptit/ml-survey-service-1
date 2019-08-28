@@ -307,7 +307,7 @@ module.exports = class questionsHelper {
 
           existingQuestion["responseType"] = parsedQuestion["responseType"]
           existingQuestion["validation"] = {}
-          existingQuestion["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
+          existingQuestion["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]))
 
           if (parsedQuestion["responseType"] == "matrix") {
             existingQuestion["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
@@ -337,6 +337,8 @@ module.exports = class questionsHelper {
             existingQuestion["validation"]["max"] = parsedQuestion.validationMax
             existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : ""
           }
+
+          delete parsedQuestion["validation"]
 
         }
 
