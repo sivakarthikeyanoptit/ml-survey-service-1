@@ -400,6 +400,14 @@ module.exports = class entitiesHelper {
                         entityType: 1
                     }).lean()
 
+
+                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                    name: childEntity.entityType
+                }, {
+                        toBeMappedToParentEntities: 1
+                    }).lean()
+
+
                 if (childEntity.entityType) {
 
                     let parentEntityQueryObject = {
@@ -409,41 +417,24 @@ module.exports = class entitiesHelper {
                         parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
                     }
 
+                    let updateQuery = {}
+                    updateQuery["$addToSet"] = {}
+                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                    let projectedData = {
+                        _id: 1,
+                        "entityType": 1,
+                        "entityTypeId": 1,
+                    }
+
                     let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
-                        {
-                            $addToSet: {
-                                [`groups.${childEntity.entityType}`]: childEntity._id
-                            }
-                        }, {
-                            _id: 1,
-                            "entityType": 1,
-                            "entityTypeId": 1,
-                            "groups": 1
-                        }
+                        updateQuery,
+                        projectedData
                     );
 
-                    let relatedEntities = await this.relatedEntities(updatedParentEntity._id, updatedParentEntity.entityTypeId, updatedParentEntity.entityType, ["_id"])
-
-                    if (relatedEntities.length > 0) {
-                        let updateRelatedEntities = {}
-                        updateRelatedEntities["$addToSet"] = {}
-
-                        for (let key in updatedParentEntity.groups) {
-                            updateRelatedEntities["$addToSet"][`groups.${key}`] = {}
-                            updateRelatedEntities["$addToSet"][`groups.${key}`]["$each"] = updatedParentEntity.groups[key]
-                        }
-
-                        let allEntities = []
-
-                        relatedEntities.forEach(eachRelatedEntities => {
-                            allEntities.push(eachRelatedEntities._id)
-                        })
-
-                        await database.models.entities.updateMany(
-                            { _id: { $in: allEntities } },
-                            updateRelatedEntities
-                        );
+                    if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                        await this.mappedParentEntities(updatedParentEntity, updateQuery)
                     }
 
                 }
@@ -601,4 +592,33 @@ module.exports = class entitiesHelper {
         })
     }
 
+    static mappedParentEntities(parentEntity, updateQuery) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
+
+                if (relatedEntities.length > 0) {
+
+                    let allEntities = []
+
+                    relatedEntities.forEach(eachRelatedEntities => {
+                        allEntities.push(eachRelatedEntities._id)
+                    })
+
+                    await database.models.entities.updateMany(
+                        { _id: { $in: allEntities } },
+                        updateQuery
+                    );
+                }
+
+                return resolve()
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
+            }
+        })
+    }
 };
