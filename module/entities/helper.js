@@ -393,6 +393,7 @@ module.exports = class entitiesHelper {
     static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
             try {
+
                 let childEntity = await database.models.entities.findOne({
                     _id: ObjectId(childEntityId)
                 }, {
@@ -407,16 +408,43 @@ module.exports = class entitiesHelper {
                     if (parentEntityProgramId) {
                         parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
                     }
-                    await database.models.entities.findOneAndUpdate(
+
+                    let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
                         {
                             $addToSet: {
                                 [`groups.${childEntity.entityType}`]: childEntity._id
                             }
                         }, {
-                            _id: 1
+                            _id: 1,
+                            "entityType": 1,
+                            "entityTypeId": 1,
+                            "groups": 1
                         }
                     );
+
+                    let relatedEntities = await this.relatedEntities(updatedParentEntity._id, updatedParentEntity.entityTypeId, updatedParentEntity.entityType, ["_id"])
+
+                    if (relatedEntities.length > 0) {
+                        let updateRelatedEntities = {}
+                        updateRelatedEntities["$addToSet"] = {}
+
+                        for (let key in updatedParentEntity.groups) {
+                            updateRelatedEntities["$addToSet"][`groups.${key}`] = {}
+                            updateRelatedEntities["$addToSet"][`groups.${key}`]["$each"] = updatedParentEntity.groups[key]
+                        }
+
+                        let allEntities = []
+
+                        relatedEntities.forEach(eachRelatedEntities => {
+                            allEntities.push(eachRelatedEntities._id)
+                        })
+
+                        await database.models.entities.updateMany(
+                            { _id: { $in: allEntities } },
+                            updateRelatedEntities
+                        );
+                    }
 
                 }
 
@@ -426,6 +454,7 @@ module.exports = class entitiesHelper {
             }
         })
     }
+
 
     static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
@@ -558,10 +587,7 @@ module.exports = class entitiesHelper {
                 }
 
                 let relatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
-
-                if (relatedEntitiesDocument.length < 0) {
-                    throw { status: 400, message: "Entities not found" };
-                }
+                relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
 
                 return resolve(relatedEntitiesDocument)
 
