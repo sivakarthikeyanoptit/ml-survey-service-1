@@ -401,13 +401,6 @@ module.exports = class entitiesHelper {
                     }).lean()
 
 
-                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
-                    name: childEntity.entityType
-                }, {
-                        toBeMappedToParentEntities: 1
-                    }).lean()
-
-
                 if (childEntity.entityType) {
 
                     let parentEntityQueryObject = {
@@ -432,6 +425,13 @@ module.exports = class entitiesHelper {
                         updateQuery,
                         projectedData
                     );
+
+
+                    let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                        name: updatedParentEntity.entityType
+                    }, {
+                            toBeMappedToParentEntities: 1
+                        }).lean()
 
                     if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
                         await this.mappedParentEntities(updatedParentEntity, updateQuery)
