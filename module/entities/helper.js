@@ -550,9 +550,9 @@ module.exports = class entitiesHelper {
                 let relatedEntitiesQuery = {}
 
                 if (entityTypeId && entityId && entityType) {
+                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
                     relatedEntitiesQuery["entityTypeId"] = {}
                     relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId
-                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
                 } else {
                     throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
                 }
