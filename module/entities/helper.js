@@ -584,31 +584,34 @@ module.exports = class entitiesHelper {
     static mappedParentEntities(parentEntity, childEntity) {
         return new Promise(async (resolve, reject) => {
             try {
-
-                let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
-
                 let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
                     name: parentEntity.entityType
                 }, {
                         toBeMappedToParentEntities: 1
                     }).lean()
 
-                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities && relatedEntities.length > 0) {
 
-                    let updateQuery = {}
-                    updateQuery["$addToSet"] = {}
-                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
 
-                    let allEntities = []
+                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                    let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
 
-                    relatedEntities.forEach(eachRelatedEntities => {
-                        allEntities.push(eachRelatedEntities._id)
-                    })
+                    if (relatedEntities.length > 0) {
 
-                    await database.models.entities.updateMany(
-                        { _id: { $in: allEntities } },
-                        updateQuery
-                    );
+                        let updateQuery = {}
+                        updateQuery["$addToSet"] = {}
+                        updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                        let allEntities = []
+
+                        relatedEntities.forEach(eachRelatedEntities => {
+                            allEntities.push(eachRelatedEntities._id)
+                        })
+
+                        await database.models.entities.updateMany(
+                            { _id: { $in: allEntities } },
+                            updateQuery
+                        );
+                    }
                 }
 
                 return resolve()
