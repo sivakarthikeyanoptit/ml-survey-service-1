@@ -393,11 +393,13 @@ module.exports = class entitiesHelper {
     static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
             try {
+
                 let childEntity = await database.models.entities.findOne({
                     _id: ObjectId(childEntityId)
                 }, {
                         entityType: 1
                     }).lean()
+
 
                 if (childEntity.entityType) {
 
@@ -407,17 +409,24 @@ module.exports = class entitiesHelper {
                     if (parentEntityProgramId) {
                         parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
                     }
-                    await database.models.entities.findOneAndUpdate(
+
+                    let updateQuery = {}
+                    updateQuery["$addToSet"] = {}
+                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                    let projectedData = {
+                        _id: 1,
+                        "entityType": 1,
+                        "entityTypeId": 1,
+                    }
+
+                    let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
-                        {
-                            $addToSet: {
-                                [`groups.${childEntity.entityType}`]: childEntity._id
-                            }
-                        }, {
-                            _id: 1
-                        }
+                        updateQuery,
+                        projectedData
                     );
 
+                    await this.mappedParentEntities(updatedParentEntity, childEntity)
                 }
 
                 return resolve();
@@ -558,10 +567,7 @@ module.exports = class entitiesHelper {
                 }
 
                 let relatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
-
-                if (relatedEntitiesDocument.length < 0) {
-                    throw { status: 400, message: "Entities not found" };
-                }
+                relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
 
                 return resolve(relatedEntitiesDocument)
 
@@ -575,22 +581,65 @@ module.exports = class entitiesHelper {
         })
     }
 
+    static mappedParentEntities(parentEntity, childEntity) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                    name: parentEntity.entityType
+                }, {
+                        toBeMappedToParentEntities: 1
+                    }).lean()
+
+
+
+                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                    let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
+
+                    if (relatedEntities.length > 0) {
+
+                        let updateQuery = {}
+                        updateQuery["$addToSet"] = {}
+                        updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                        let allEntities = []
+
+                        relatedEntities.forEach(eachRelatedEntities => {
+                            allEntities.push(eachRelatedEntities._id)
+                        })
+
+                        await database.models.entities.updateMany(
+                            { _id: { $in: allEntities } },
+                            updateQuery
+                        );
+                    }
+                }
+
+                return resolve()
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
+            }
+        })
+    }
+
     static createGroupEntityTypeIndex(entityType) {
         return new Promise(async (resolve, reject) => {
             try {
-                
+
                 const entityIndexes = await database.models.entities.listIndexes()
 
-                if(_.findIndex(entityIndexes, { name: 'groups.'+entityType+"_1"  }) >= 0) {
+                if (_.findIndex(entityIndexes, { name: 'groups.' + entityType + "_1" }) >= 0) {
                     return resolve("Index successfully created.");
                 }
 
-                const newIndexCreation = await database.models.entities.db.collection('entities').createIndex( 
-                    { ["groups."+entityType]: 1},
-                    { partialFilterExpression: { ["groups."+entityType]: { $exists: true } }, background : 1 }
+                const newIndexCreation = await database.models.entities.db.collection('entities').createIndex(
+                    { ["groups." + entityType]: 1 },
+                    { partialFilterExpression: { ["groups." + entityType]: { $exists: true } }, background: 1 }
                 )
 
-                if(newIndexCreation == "groups."+entityType+"_1") {
+                if (newIndexCreation == "groups." + entityType + "_1") {
                     return resolve("Index successfully created.");
                 } else {
                     throw "Something went wrong! Couldn't create the index."
@@ -602,6 +651,5 @@ module.exports = class entitiesHelper {
         })
 
     }
-
 
 };

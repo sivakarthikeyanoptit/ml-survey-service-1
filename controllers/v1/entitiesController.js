@@ -410,6 +410,9 @@ module.exports = class Entities extends Abstract {
 
         let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
 
+        if (!relatedEntities.length > 0) {
+          throw { status: 400, message: "Entities not found" };
+        }
         _.merge(result, entityDocument[0])
         result["relatedEntities"] = relatedEntities
 
