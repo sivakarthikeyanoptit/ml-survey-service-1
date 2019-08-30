@@ -621,4 +621,33 @@ module.exports = class entitiesHelper {
             }
         })
     }
+
+    static createGroupEntityTypeIndex(entityType) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                const entityIndexes = await database.models.entities.listIndexes()
+
+                if (_.findIndex(entityIndexes, { name: 'groups.' + entityType + "_1" }) >= 0) {
+                    return resolve("Index successfully created.");
+                }
+
+                const newIndexCreation = await database.models.entities.db.collection('entities').createIndex(
+                    { ["groups." + entityType]: 1 },
+                    { partialFilterExpression: { ["groups." + entityType]: { $exists: true } }, background: 1 }
+                )
+
+                if (newIndexCreation == "groups." + entityType + "_1") {
+                    return resolve("Index successfully created.");
+                } else {
+                    throw "Something went wrong! Couldn't create the index."
+                }
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
+
 };
