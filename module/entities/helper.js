@@ -426,17 +426,7 @@ module.exports = class entitiesHelper {
                         projectedData
                     );
 
-
-                    let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
-                        name: updatedParentEntity.entityType
-                    }, {
-                            toBeMappedToParentEntities: 1
-                        }).lean()
-
-                    if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
-                        await this.mappedParentEntities(updatedParentEntity, updateQuery)
-                    }
-
+                    await this.mappedParentEntities(updatedParentEntity, childEntity)
                 }
 
                 return resolve();
@@ -445,7 +435,6 @@ module.exports = class entitiesHelper {
             }
         })
     }
-
 
     static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
@@ -592,13 +581,23 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static mappedParentEntities(parentEntity, updateQuery) {
+    static mappedParentEntities(parentEntity, childEntity) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
 
-                if (relatedEntities.length > 0) {
+                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                    name: parentEntity.entityType
+                }, {
+                        toBeMappedToParentEntities: 1
+                    }).lean()
+
+                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities && relatedEntities.length > 0) {
+
+                    let updateQuery = {}
+                    updateQuery["$addToSet"] = {}
+                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
 
                     let allEntities = []
 
