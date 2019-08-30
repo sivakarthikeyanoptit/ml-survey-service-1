@@ -4,9 +4,9 @@ module.exports = {
 
     let parentEntitiesMappingNotIncluded = ["parent", "teacher", "student", "schoolLeader", "smc"]
 
-    let entityTyoeDocuments = await db.collection('entityTypes').find({}).project({ name: 1 }).toArray();
+    let entityTypeDocuments = await db.collection('entityTypes').find({}).project({ name: 1 }).toArray();
 
-    await Promise.all(entityTyoeDocuments.map(async (entityType) => {
+    await Promise.all(entityTypeDocuments.map(async (entityType) => {
 
       let toBeMappedToParentEntities = true
 
