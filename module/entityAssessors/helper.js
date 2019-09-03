@@ -345,7 +345,7 @@ module.exports = class entityAssessorHelper {
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
-                    if(result[index][0]){
+                    if(result[index] && result[index][0]){
                         externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
                     }else{
                         externalIdToUserIdMap[loginId] = ""
