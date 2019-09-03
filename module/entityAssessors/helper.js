@@ -174,11 +174,11 @@ module.exports = class entityAssessorHelper {
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
-                    if (!assessor["Keycloak-userId"]) {
+                    if (!assessor["keycloak-userId"]) {
                         if (!userExternalIds.includes(assessor.externalId)) userExternalIds.push(assessor.externalId);
                     }
 
-                    if(!assessor["Keycloak-parentId"]){
+                    if(!assessor["keycloak-parentId"]){
                         if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
                     }
 
@@ -227,12 +227,30 @@ module.exports = class entityAssessorHelper {
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
-                    assessor["userId"] = !assessor["Keycloak-userId"] ? userIdByExternalId[assessor.externalId] : assessor["Keycloak-userId"];
+                    if(assessor["keycloak-userId"]){
+                        assessor["userId"]= assessor["keycloak-userId"]
+                    } else{
 
-                    if(!assessor["Keycloak-parentId"]){
-                        if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId]
-                    }else{
-                        assessor["parentId"] = assessor["Keycloak-parentId"]
+                        if(userIdByExternalId[assessor.externalId] === ""){
+                            throw { status: 400, message: "Keycloak id for user is not present"};
+                        }
+
+                        assessor["userId"] = userIdByExternalId[assessor.externalId]
+                    }
+                    
+
+                    if(!assessor["keycloak-parentId"]){
+                        if (assessor.parentId) {
+
+                            if(userIdByExternalId[assessor.parentId] === ""){
+                                throw { status: 400, message: "Keycloak id for parent is not present"};
+                            }
+
+                            assessor["parentId"] = userIdByExternalId[assessor.parentId]
+                        }
+
+                    } else{
+                        assessor["parentId"] = assessor["keycloak-parentId"]
                     }
 
                     let assessorEntityArray = new Array
@@ -327,7 +345,11 @@ module.exports = class entityAssessorHelper {
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
-                    externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    if(result[index][0]){
+                        externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    }else{
+                        externalIdToUserIdMap[loginId] = ""
+                    }
                 })
 
                 return resolve(externalIdToUserIdMap);
