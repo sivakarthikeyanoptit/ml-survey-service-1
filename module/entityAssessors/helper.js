@@ -239,7 +239,9 @@ module.exports = class entityAssessorHelper {
                     }
                     
 
-                    if(!assessor["keycloak-parentId"]){
+                    if(assessor["keycloak-parentId"]){
+                        assessor["parentId"] = assessor["keycloak-parentId"]
+                    }else{
                         if (assessor.parentId) {
 
                             if(userIdByExternalId[assessor.parentId] === ""){
@@ -248,10 +250,8 @@ module.exports = class entityAssessorHelper {
 
                             assessor["parentId"] = userIdByExternalId[assessor.parentId]
                         }
-
-                    } else{
-                        assessor["parentId"] = assessor["keycloak-parentId"]
                     }
+
 
                     let assessorEntityArray = new Array
 
