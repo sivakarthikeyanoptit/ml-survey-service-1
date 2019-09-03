@@ -1,4 +1,4 @@
-const entityAssessorsHelper = require("../entityAssessors/helper")
+const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
 
 module.exports = class entitiesHelper {
 
@@ -47,7 +47,7 @@ module.exports = class entitiesHelper {
 
     }
 
-    static list(entityType, entityId) {
+    static list(entityType, entityId, limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -58,18 +58,52 @@ module.exports = class entitiesHelper {
 
                 let entityIds = result.groups[entityType];
 
+                const entityTypesArray = await entityTypesHelper.list({}, {
+                    name: 1,
+                    immediateChildrenEntityType: 1
+                });
+
+                let enityTypeToImmediateChildrenEntityMap = {}
+
+                if (entityTypesArray.length > 0) {
+                    entityTypesArray.forEach(entityType => {
+                        enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : []
+                    })
+                }
+
                 let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
-                    metaInformation: 1
-                }).lean();
+                    metaInformation: 1,
+                    groups: 1,
+                    entityType: 1
+                })
+                    .limit(limitingValue)
+                    .skip(skippingValue)
+                    .lean();
 
                 result = entityData.map(entity => {
+                    entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.subEntityGroups = new Array
+
+                    Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                        if (entity.groups[immediateChildrenEntityType]) {
+                            entity.metaInformation.entityType = immediateChildrenEntityType
+                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
+                        }
+                    })
+
+                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                        entity.metaInformation.subEntityGroups.push(subEntityType)
+                    })
                     return {
                         entityId: entity._id,
                         ...entity.metaInformation
                     }
                 })
 
-                return resolve(result);
+                return resolve({
+                    entityData: result,
+                    count: entityIds.length
+                });
 
             } catch (error) {
                 return reject(error);
@@ -305,7 +339,7 @@ module.exports = class entitiesHelper {
                     entityCSVData.map(async singleEntity => {
 
                         singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
-                            if(singleEntity[arrayTypeField]) {
+                            if (singleEntity[arrayTypeField]) {
                                 singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
                             }
                         })
@@ -359,11 +393,13 @@ module.exports = class entitiesHelper {
     static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
             try {
+
                 let childEntity = await database.models.entities.findOne({
                     _id: ObjectId(childEntityId)
                 }, {
                         entityType: 1
                     }).lean()
+
 
                 if (childEntity.entityType) {
 
@@ -373,17 +409,24 @@ module.exports = class entitiesHelper {
                     if (parentEntityProgramId) {
                         parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
                     }
-                    await database.models.entities.findOneAndUpdate(
+
+                    let updateQuery = {}
+                    updateQuery["$addToSet"] = {}
+                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                    let projectedData = {
+                        _id: 1,
+                        "entityType": 1,
+                        "entityTypeId": 1,
+                    }
+
+                    let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
-                        {
-                            $addToSet: {
-                                [`groups.${childEntity.entityType}`]: childEntity._id
-                            }
-                        }, {
-                            _id: 1
-                        }
+                        updateQuery,
+                        projectedData
                     );
 
+                    await this.mappedParentEntities(updatedParentEntity, childEntity)
                 }
 
                 return resolve();
@@ -393,17 +436,23 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static search(entityTypeId, searchText, pageSize, pageNo) {
+    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
+                let queryObject = {}
+
+                queryObject["$match"] = {}
+                queryObject["$match"]["$or"] = [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }]
+                queryObject["$match"]["entityTypeId"] = entityTypeId
+
+                if (entityIds && entityIds.length > 0) {
+                    queryObject["$match"]["_id"] = {}
+                    queryObject["$match"]["_id"]["$in"] = entityIds
+                }
+
                 let entityDocuments = await database.models.entities.aggregate([
-                    {
-                        $match: {
-                            $or: [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }],
-                            "entityTypeId": entityTypeId
-                        }
-                    },
+                    queryObject,
                     {
                         $project: {
                             name: "$metaInformation.name",
@@ -437,6 +486,170 @@ module.exports = class entitiesHelper {
                 return reject(error);
             }
         })
+    }
+
+    static validateEntities(entityIds, entityTypeId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let ids = []
+
+                let entitiesDocuments = await database.models.entities.find(
+                    {
+                        _id: { $in: gen.utils.arrayIdsTobjectIds(entityIds) },
+                        entityTypeId: entityTypeId
+                    },
+                    {
+                        _id: 1
+                    }
+                ).lean();
+
+                if (entitiesDocuments.length > 0) {
+                    ids = entitiesDocuments.map(entityId => entityId._id)
+                }
+
+                return resolve({
+                    entityIds: ids
+                })
+
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static entities(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let queryObject = {};
+
+                if (findQuery != "all") {
+                    queryObject = findQuery
+                }
+
+                let projectionObject = {};
+
+                if (fields != "all") {
+                    fields.forEach(element => {
+                        projectionObject[element] = 1;
+                    });
+                }
+
+                let entitiesDocuments = await database.models.entities
+                    .find(queryObject, projectionObject)
+                    .limit(limitingValue)
+                    .skip(skippingValue)
+                    .lean();
+
+                return resolve(entitiesDocuments);
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+    static relatedEntities(entityId, entityTypeId, entityType, projection = "all") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let relatedEntitiesQuery = {}
+
+                if (entityTypeId && entityId && entityType) {
+                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
+                    relatedEntitiesQuery["entityTypeId"] = {}
+                    relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId
+                } else {
+                    throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
+                }
+
+                let relatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
+                relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
+
+                return resolve(relatedEntitiesDocument)
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
+            }
+        })
+    }
+
+    static mappedParentEntities(parentEntity, childEntity) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                    name: parentEntity.entityType
+                }, {
+                        toBeMappedToParentEntities: 1
+                    }).lean()
+
+
+
+                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                    let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
+
+                    if (relatedEntities.length > 0) {
+
+                        let updateQuery = {}
+                        updateQuery["$addToSet"] = {}
+                        updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                        let allEntities = []
+
+                        relatedEntities.forEach(eachRelatedEntities => {
+                            allEntities.push(eachRelatedEntities._id)
+                        })
+
+                        await database.models.entities.updateMany(
+                            { _id: { $in: allEntities } },
+                            updateQuery
+                        );
+                    }
+                }
+
+                return resolve()
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                });
+            }
+        })
+    }
+
+    static createGroupEntityTypeIndex(entityType) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                const entityIndexes = await database.models.entities.listIndexes()
+
+                if (_.findIndex(entityIndexes, { name: 'groups.' + entityType + "_1" }) >= 0) {
+                    return resolve("Index successfully created.");
+                }
+
+                const newIndexCreation = await database.models.entities.db.collection('entities').createIndex(
+                    { ["groups." + entityType]: 1 },
+                    { partialFilterExpression: { ["groups." + entityType]: { $exists: true } }, background: 1 }
+                )
+
+                if (newIndexCreation == "groups." + entityType + "_1") {
+                    return resolve("Index successfully created.");
+                } else {
+                    throw "Something went wrong! Couldn't create the index."
+                }
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
     }
 
 };
