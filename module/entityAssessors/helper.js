@@ -179,7 +179,7 @@ module.exports = class entityAssessorHelper {
                     }
 
                     if(!assessor["keycloak-parentId"]){
-                        if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
+                        if (assessor.parentId && assessor.parentId !== "" && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
                     }
 
                 });
@@ -227,7 +227,7 @@ module.exports = class entityAssessorHelper {
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
-                    if(assessor["keycloak-userId"]){
+                    if(assessor["keycloak-userId"] && assessor["keycloak-userId"] !== ""){
                         assessor["userId"]= assessor["keycloak-userId"]
                     } else{
 
@@ -239,10 +239,10 @@ module.exports = class entityAssessorHelper {
                     }
                     
 
-                    if(assessor["keycloak-parentId"]){
+                    if(assessor["keycloak-parentId"] && assessor["keycloak-parentId"] !== ""){
                         assessor["parentId"] = assessor["keycloak-parentId"]
                     }else{
-                        if (assessor.parentId) {
+                        if (assessor.parentId && assessor.parentId !== "") {
 
                             if(userIdByExternalId[assessor.parentId] === ""){
                                 throw { status: 400, message: "Keycloak id for parent is not present"};
