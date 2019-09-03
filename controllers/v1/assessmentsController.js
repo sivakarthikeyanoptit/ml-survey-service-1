@@ -107,7 +107,7 @@ module.exports = class Assessments {
                     return resolve({ status: 400, message: responseMessage })
                 }
 
-                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles)
+                let currentUserAssessmentRole = await assessmentsHelper.getUserRole([entityAssessorDocument.role])
                 let profileFieldAccessibility = (solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : {};
 
                 let entityProfileForm = await database.models.entityTypes.findOne(
