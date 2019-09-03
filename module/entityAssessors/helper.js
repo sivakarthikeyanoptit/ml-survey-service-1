@@ -81,7 +81,7 @@ module.exports = class entityAssessorHelper {
                 trackerObject.solutionId = entityAssessor.solutionId;
 
                 trackerObject.entityType = entityAssessor.entityType;
-                
+
                 trackerObject.entityTypeId = entityAssessor.entityTypeId;
 
                 trackerObject.dateOfOperation = new Date;
@@ -174,8 +174,13 @@ module.exports = class entityAssessorHelper {
 
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
-                    if(!userExternalIds.includes(assessor.externalId))userExternalIds.push(assessor.externalId);
-                    if (assessor.parentId && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
+                    if (!assessor["keycloak-userId"]) {
+                        if (!userExternalIds.includes(assessor.externalId)) userExternalIds.push(assessor.externalId);
+                    }
+
+                    if(!assessor["keycloak-parentId"]){
+                        if (assessor.parentId && assessor.parentId !== "" && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
+                    }
 
                 });
 
@@ -202,7 +207,11 @@ module.exports = class entityAssessorHelper {
 
                 let entityDataByExternalId = _.keyBy(entityFromDatabase, "externalId")
 
-                let userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
+                let userIdByExternalId
+
+                if (userExternalIds.length > 0) {
+                    userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
+                }
 
                 let programsData = programsFromDatabase.reduce(
                     (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
@@ -217,8 +226,33 @@ module.exports = class entityAssessorHelper {
                     }), {})
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
-                    assessor["userId"] = userIdByExternalId[assessor.externalId];
-                    if (assessor.parentId) assessor["parentId"] = userIdByExternalId[assessor.parentId];
+
+                    if(assessor["keycloak-userId"] && assessor["keycloak-userId"] !== ""){
+                        assessor["userId"]= assessor["keycloak-userId"]
+                    } else{
+
+                        if(userIdByExternalId[assessor.externalId] === ""){
+                            throw { status: 400, message: "Keycloak id for user is not present"};
+                        }
+
+                        assessor["userId"] = userIdByExternalId[assessor.externalId]
+                    }
+                    
+
+                    if(assessor["keycloak-parentId"] && assessor["keycloak-parentId"] !== ""){
+                        assessor["parentId"] = assessor["keycloak-parentId"]
+                    }else{
+                        if (assessor.parentId && assessor.parentId !== "") {
+
+                            if(userIdByExternalId[assessor.parentId] === ""){
+                                throw { status: 400, message: "Keycloak id for parent is not present"};
+                            }
+
+                            assessor["parentId"] = userIdByExternalId[assessor.parentId]
+                        }
+                    }
+
+
                     let assessorEntityArray = new Array
 
                     assessor.programId = programsData[assessor.programId];
@@ -311,7 +345,11 @@ module.exports = class entityAssessorHelper {
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
-                    externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    if(result[index] && result[index][0]){
+                        externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                    }else{
+                        externalIdToUserIdMap[loginId] = ""
+                    }
                 })
 
                 return resolve(externalIdToUserIdMap);
