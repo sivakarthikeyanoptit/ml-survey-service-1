@@ -95,6 +95,7 @@ module.exports = class entitiesHelper {
                         entity.metaInformation.subEntityGroups.push(subEntityType)
                     })
                     return {
+                        _id: entity._id,
                         entityId: entity._id,
                         ...entity.metaInformation
                     }
