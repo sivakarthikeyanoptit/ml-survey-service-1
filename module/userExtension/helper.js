@@ -53,7 +53,8 @@ module.exports = class userExtensionHelper {
                             "entityDocuments.metaInformation.externalId": 1,
                             "entityDocuments.metaInformation.name": 1,
                             "entityDocuments.groups": 1,
-                            "entityDocuments.entityType": 1
+                            "entityDocuments.entityType": 1,
+                            "entityDocuments.entityTypeId": 1
                         }
                     }
                 ];
@@ -67,11 +68,13 @@ module.exports = class userExtensionHelper {
                 let entityMap = {}
                 userExtensionData[0].entityDocuments.forEach(entity => {
                     entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.entityType = entity.entityType
+                    entity.metaInformation.entityTypeId = entity.entityTypeId
                     entity.metaInformation.subEntityGroups = new Array
 
                     Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
                         if (entity.groups[immediateChildrenEntityType]) {
-                            entity.metaInformation.entityType = immediateChildrenEntityType
+                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
                             entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
                         }
                     })
@@ -90,6 +93,7 @@ module.exports = class userExtensionHelper {
                             ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
                         }
                     }
+                    roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType =  (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : ""
                     roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities
                 }
 

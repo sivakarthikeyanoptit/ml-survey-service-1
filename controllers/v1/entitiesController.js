@@ -405,16 +405,13 @@ module.exports = class Entities extends Abstract {
         let entityDocument = await entitiesHelper.entities({ _id: req.params._id }, projection)
 
         if (entityDocument.length < 0) {
-          throw { status: 400, message: "No entities were found" };
+          throw { status: 404, message: "No entitiy found" };
         }
 
         let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
 
-        if (!relatedEntities.length > 0) {
-          throw { status: 400, message: "Entities not found" };
-        }
         _.merge(result, entityDocument[0])
-        result["relatedEntities"] = relatedEntities
+        result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : []
 
         return resolve({
           message: "Fetched Entities details",

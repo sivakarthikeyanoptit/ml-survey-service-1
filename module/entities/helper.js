@@ -74,7 +74,8 @@ module.exports = class entitiesHelper {
                 let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
                     metaInformation: 1,
                     groups: 1,
-                    entityType: 1
+                    entityType: 1,
+                    entityTypeId: 1
                 })
                     .limit(limitingValue)
                     .skip(skippingValue)
@@ -82,11 +83,13 @@ module.exports = class entitiesHelper {
 
                 result = entityData.map(entity => {
                     entity.metaInformation.childrenCount = 0
+                    entity.metaInformation.entityType = entity.entityType
+                    entity.metaInformation.entityTypeId = entity.entityTypeId
                     entity.metaInformation.subEntityGroups = new Array
 
                     Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
                         if (entity.groups[immediateChildrenEntityType]) {
-                            entity.metaInformation.entityType = immediateChildrenEntityType
+                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
                             entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
                         }
                     })
