@@ -83,7 +83,8 @@ module.exports = class observationsHelper {
                     {
                         entityId: document.entityId,
                         solutionId: document.solutionId,
-                        observationId: document.observationId
+                        observationId: document.observationId,
+                        submissionNumber: document.submissionNumber
                     }
                 ).lean();
 
@@ -107,6 +108,64 @@ module.exports = class observationsHelper {
 
         })
 
+    }
+
+    static bulkCreate(solution, entityDocument, userId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let status
+
+                let startDate = new Date()
+                let endDate = new Date()
+                endDate.setFullYear(endDate.getFullYear() + 1);
+
+                let observationDocument = await database.models.observations.findOne({
+                    solutionExternalId: solution.externalId,
+                    createdBy: userId
+                }, { _id: 1 }).lean()
+
+                if (observationDocument) {
+                    let updateObservationData = await database.models.observations.findOneAndUpdate({ _id: observationDocument._id }, {
+                        $addToSet: { entities: entityDocument._id }
+                    }).lean();
+                    updateObservationData ? status = `${updateObservationData._id.toString()} Updated Successfully` : status = `${updateObservationData._id.toString()} Could not be Updated`
+                } else {
+
+                    let observation = {}
+
+                    observation["status"] = "published"
+                    observation["deleted"] = "false"
+                    observation["solutionId"] = solution._id
+                    observation["solutionExternalId"] = solution.externalId
+                    observation["frameworkId"] = solution.frameworkId
+                    observation["frameworkExternalId"] = solution.frameworkExternalId
+                    observation["entityTypeId"] = entityDocument.entityTypeId
+                    observation["entityType"] = entityDocument.entityType
+                    observation["parentId"] = entityDocument.parentId ? entityDocument.parentId : ""
+                    observation["createdBy"] = userId
+                    observation["startDate"] = startDate
+                    observation["endDate"] = endDate
+                    observation["name"] = solution.name
+                    observation["description"] = solution.description
+                    observation["entities"] = []
+                    observation["entities"].push(entityDocument._id)
+
+                    let observationDocument = await database.models.observations.create(
+                        observation
+                    );
+                    observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`
+
+                }
+
+                return resolve({
+                    status: status
+                })
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
     }
 
 };

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Super Awesome</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
+
+    <style>
+        .card {
+
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            transition: 0.3s;
+            background-color: #c6cfc8;
+            width: 88%;
+            margin: 5% 2px 10px 5%;
+            border-radius: 25px;
+        }
+
+        time.icon {
+            font-size: 1em;
+            display: block;
+            position: relative;
+            width: 7em;
+            height: 7em;
+            background-color: #fff;
+            border-radius: 0.6em;
+            box-shadow: 0 1px 0 #bdbdbd, 0 2px 0 #fff, 0 3px 0 #bdbdbd, 0 4px 0 #fff, 0 5px 0 #bdbdbd, 0 0 0 1px #bdbdbd;
+            overflow: hidden;
+        }
+
+        time.icon span {
+            font-size: 2.8em;
+            letter-spacing: -0.05em;
+            padding-top: 0.8em;
+            color: #2f2f2f;
+        }
+
+        time.icon em {
+            position: absolute;
+            bottom: 0.3em;
+            color: #fd9f1b;
+        }
+
+        time.icon strong {
+            position: absolute;
+            top: 0;
+            padding: 0.4em 0;
+            color: #fff;
+            background-color: #fd9f1b;
+            border-bottom: 1px dashed #f37302;
+            box-shadow: 0 2px 0 #fd9f1b;
+        }
+
+        time.icon * {
+            display: block;
+            width: 100%;
+            font-size: 1em;
+            font-weight: bold;
+            font-style: normal;
+            text-align: center;
+        }
+
+
+        .card:hover {
+            box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        @media print {
+            .page-break-after {
+                page-break-after: always;
+            }
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+        }
+
+        #progressbar {
+            background-color: black;
+            border-radius: 13px;
+            padding: 3px;
+        }
+
+        #progressbar>div {
+            background-color: orange;
+            height: 20px;
+            border-radius: 10px;
+        }
+
+        .container {
+            padding: 2px 16px;
+        }
+
+
+
+        .textData {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .matrixData {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            font-size: 15px;
+            color: #454341;
+            font-weight: bold
+        }
+
+        .instanceChildren {
+            font-size: 15px;
+            color: #454341;
+            display: flex;
+            justify-content: center
+        }
+
+        .center {
+            display: flex;
+            justify-content: center
+        }
+
+        .row {
+            display: flex;
+        }
+
+        .spacing {
+            margin: 15px 5px 5px 5px
+        }
+
+        .textData {
+            margin: 15px 5px 5px 5px;
+            text-decoration: underline;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            margin-bottom: 5%
+        }
+
+        .textDecoration {
+            text-decoration: underline;
+            margin-left: 10px
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <%- include('header.ejs') %>
+    </header>
+    <div class="textData">
+        <img src="https://media.licdn.com/dms/image/C510BAQHez72DlGeU9Q/company-logo_200_200/0?e=2159024400&v=beta&t=UYqNLUeIoAojgS8wlzkVw0FUBjJGNAK3FS8ppDJTisI"
+            alt="shikshalokam!" />
+    </div>
+
+    <div class="textData">
+        <div>General Information</div>
+    </div>
+
+    <div class="card page-break-after">
+        <div class="container">
+            <% for(var j = 0 ; j < generalInfo.length ; j++){ %>
+
+            <div class="row">
+                <p>
+                    <b><%= generalInfo[j].keyword %>
+                    </b>
+                </p>
+                <p class="textDecoration"><%= generalInfo[j].name %> </p>
+
+            </div>
+
+
+            <% } %>
+        </div>
+    </div>
+
+    <div class="textData">
+        <div>Question and Submitted Answer</div>
+    </div>
+
+    <% for(let pointerToSubmittedData= 0 ; pointerToSubmittedData < submissionData.length ; pointerToSubmittedData++){ %>
+    <% if (submissionData[pointerToSubmittedData].responseType === "text") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('text', {allText: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+    <% if (submissionData[pointerToSubmittedData].responseType === "number") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('text', {allText: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+    <% if (submissionData[pointerToSubmittedData].responseType === "radio" ) { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('radio', {allRadioData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+
+    <% } %>
+    <% if (submissionData[pointerToSubmittedData].responseType === "multiselect") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('multiselect', {allMultiSelectData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+    <% if (submissionData[pointerToSubmittedData].responseType === "slider") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('slider', {allSliderData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+
+    <% if (submissionData[pointerToSubmittedData].responseType === "date") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('date', {allDateData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+
+    <% if (submissionData[pointerToSubmittedData].responseType === "NA") { %>
+    <div class="card no-break">
+        <div class="container">
+            <%- include('notApplicable', {notApplicableData: submissionData[pointerToSubmittedData]}); %>
+        </div>
+    </div>
+    <% } %>
+
+    <% if (submissionData[pointerToSubmittedData].responseType === "matrix") { %>
+    <%- include('matrix', {allmatrixData: submissionData[pointerToSubmittedData]}); %>
+    <% } %>
+    <% } %>
+
+    <footer>
+        <%- include('footer.ejs') %>
+    </footer>
+</body>
+
+</html>

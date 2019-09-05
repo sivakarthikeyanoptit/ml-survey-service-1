@@ -24,8 +24,17 @@ module.exports = class assessmentsHelper {
                 let generalQuestions = [];
                 let questionArray = {};
                 let submissionsObjects = {};
-                evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
-        
+
+                let checkEcmSequenceExists = evidences.every(ecm => {
+                    return ecm["sequenceNo"] != undefined
+                })
+
+                if (checkEcmSequenceExists) {
+                    evidences = _.sortBy(evidences, "sequenceNo")
+                } else {
+                    evidences.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
+                }
+
                 evidences.forEach(evidence => {
 
                     if (submissionDocEvidences[evidence.externalId]) {
@@ -41,7 +50,7 @@ module.exports = class assessmentsHelper {
                             });
                         }
                     }
-        
+
                     evidence.sections.forEach(section => {
                         section.questions.forEach((question, index, section) => {
                             question.evidenceMethod = evidence.externalId
@@ -55,7 +64,7 @@ module.exports = class assessmentsHelper {
                     });
 
                 });
-        
+
                 Object.entries(entityFilterQuestionArray).forEach(entityFilteredQuestion => {
                     entityFilteredQuestion[1].forEach((questionElm, questionIndexInSection) => {
                         if (questionElm._id.toString() === entityFilteredQuestion[0]) {
@@ -63,9 +72,9 @@ module.exports = class assessmentsHelper {
                         }
                     });
                 });
-        
+
                 Object.entries(questionArray).forEach(questionArrayElm => {
-                    
+
                     questionArrayElm[1]["payload"] = {
                         criteriaId: questionArrayElm[1]["criteriaId"],
                         responseType: questionArrayElm[1]["responseType"],
@@ -75,7 +84,7 @@ module.exports = class assessmentsHelper {
                     questionArrayElm[1]["startTime"] = ""
                     questionArrayElm[1]["endTime"] = ""
                     delete questionArrayElm[1]["criteriaId"]
-            
+
                     if (questionArrayElm[1].responseType === "matrix") {
                         let instanceQuestionArray = new Array()
                         questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
@@ -83,7 +92,7 @@ module.exports = class assessmentsHelper {
                                 let instanceQuestion = questionArray[instanceQuestionId.toString()];
                                 instanceQuestionArray.push(instanceQuestion);
                                 let sectionReferenceOfInstanceQuestion =
-                                sectionQuestionArray[instanceQuestionId.toString()];
+                                    sectionQuestionArray[instanceQuestionId.toString()];
                                 sectionReferenceOfInstanceQuestion.forEach((questionInSection, index) => {
                                     if (questionInSection._id.toString() === instanceQuestionId.toString()) {
                                         sectionReferenceOfInstanceQuestion.splice(index, 1);
@@ -94,35 +103,35 @@ module.exports = class assessmentsHelper {
 
                         questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray;
                     }
-            
+
                     if (questionArrayElm[1]["isAGeneralQuestion"] === true) {
                         questionArrayElm[1]["payload"].isAGeneralQuestion = true;
                         generalQuestions.push(questionArrayElm[1]);
                     }
 
                 });
-        
-                // Sort questions by sequence
+
                 if (questionSequenceByEcm) {
+
                     evidences.forEach(evidence => {
                         if (questionSequenceByEcm[evidence.externalId]) {
-                            
+
                             evidence.sections.forEach(section => {
-                
-                                if (questionSequenceByEcm[evidence.externalId][section.name] && questionSequenceByEcm[evidence.externalId][section.name].length > 0) {
-                                    let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.name]
+
+                                if (questionSequenceByEcm[evidence.externalId][section.code] && questionSequenceByEcm[evidence.externalId][section.code].length > 0) {
+                                    let questionSequenceByEcmSection = questionSequenceByEcm[evidence.externalId][section.code]
                                     let sectionQuestionByEcm = _.keyBy(section.questions, 'externalId');
                                     let sortedQuestionArray = new Array
-                    
+
                                     questionSequenceByEcmSection.forEach(questionId => {
                                         if (sectionQuestionByEcm[questionId]) {
-                                        sortedQuestionArray.push(sectionQuestionByEcm[questionId])
-                                        delete sectionQuestionByEcm[questionId]
+                                            sortedQuestionArray.push(sectionQuestionByEcm[questionId])
+                                            delete sectionQuestionByEcm[questionId]
                                         }
                                     })
-                    
+
                                     sortedQuestionArray = _.concat(sortedQuestionArray, Object.values(sectionQuestionByEcm));
-                    
+
                                     section.questions = sortedQuestionArray
                                 }
 
@@ -130,8 +139,8 @@ module.exports = class assessmentsHelper {
                         }
                     })
                 }
-        
-                  
+
+
                 return resolve({
                     evidences: evidences,
                     submissions: submissionsObjects,
