@@ -1046,7 +1046,7 @@ module.exports = class Observations extends Abstract {
                     if (entityObject[currentData.entityId.toString()] !== undefined) {
                         entityDocument = entityObject[currentData.entityId.toString()]
                     }
-                    if (entityDocument !== undefined && solution !== undefined && userId !== "invalid") {
+                    if (entityDocument !== undefined && solution !== undefined && userId !== "") {
                         observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
                         status = observationHelperData.status
                     } else {
