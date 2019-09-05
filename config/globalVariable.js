@@ -24,7 +24,7 @@ module.exports = function () {
   global._ = require("lodash");
   gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
   global.config = require(".");
-
+  
   global.ENABLE_CONSOLE_LOGGING = process.env.ENABLE_CONSOLE_LOGGING || "ON";
   global.ENABLE_BUNYAN_LOGGING = process.env.ENABLE_BUNYAN_LOGGING || "ON";
 
@@ -33,26 +33,18 @@ module.exports = function () {
 
   // boostrap all models
   global.models = requireAll({
-    dirname: ROOT_PATH + "/models",
+    dirname: ROOT_PATH+ "/models",
     filter: /(.+)\.js$/,
     resolve: function (Model) {
       return Model;
     }
   });
-
-  //load base v1 controllers
+ 
+  //load base controllers
   fs.readdirSync(ROOT_PATH + '/controllers/v1/').forEach(function (file) {
     if (file.match(/\.js$/) !== null) {
       var name = file.replace('Controller.js', '');
       global[name + 'BaseController'] = require(ROOT_PATH + '/controllers/v1/' + file);
-    }
-  });
-
-  //load base v2 controllers
-  fs.readdirSync(ROOT_PATH + '/controllers/v2/').forEach(function (file) {
-    if (file.match(/\.js$/) !== null) {
-      var name = file.replace('Controller.js', '');
-      global[name + 'BaseController'] = require(ROOT_PATH + '/controllers/v2/' + file);
     }
   });
 

@@ -1,33 +1,4 @@
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-
 module.exports = class observationsHelper {
-
-    static observationDocument(findQuery = "all", fields = "all") {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let queryObject = {};
-
-                if (findQuery != "all") {
-                    queryObject = _.merge(queryObject, findQuery)
-                }
-
-                let projectionObject = {};
-
-                if (fields != "all") {
-                    fields.forEach(element => {
-                        projectionObject[element] = 1;
-                    });
-                }
-
-                let observationDocuments = await database.models.observations
-                    .find(queryObject, projectionObject)
-                    .lean();
-                return resolve(observationDocuments);
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
 
     static create(solutionId, data, userDetails) {
         return new Promise(async (resolve, reject) => {
@@ -46,13 +17,6 @@ module.exports = class observationsHelper {
                     }).lean();
 
                 if (!solutionDocument) throw "No solution id found."
-
-                if (data.entities) {
-                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId)
-
-                    data.entities = entitiesToAdd.entityIds
-
-                }
 
                 let observationData = await database.models.observations.create(
                     _.merge(data, {
