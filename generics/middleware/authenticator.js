@@ -178,7 +178,6 @@ module.exports = async function (req, res, next) {
       req.headers["x-authenticated-userid"] = tokenCheckByPassAllowedUserDetails.userId;
       req.rspObj = rspObj;
       req.userDetails = tokenCheckByPassAllowedUserDetails;
-      req.userDetails.userToken = req.rspObj.userToken
       req.userDetails.allRoles = tokenCheckByPassAllowedUserDetails.roles;
 
       tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN BYPASS ALLOWED")
@@ -205,7 +204,6 @@ module.exports = async function (req, res, next) {
         .then(async userDetails => {
           if (userDetails.responseCode == "OK") {
             req.userDetails = userDetails.result.response;
-            req.userDetails.userToken = req.rspObj.userToken
             req.userDetails.allRoles = await getAllRoles(req.userDetails);
             next();
           } else {
