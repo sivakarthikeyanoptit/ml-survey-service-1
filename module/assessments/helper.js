@@ -156,4 +156,51 @@ module.exports = class assessmentsHelper {
 
     }
 
+    static parseQuestionsV2(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm = false) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm)
+                
+                parseQuestionV1.evidences.forEach(eachEvidence=>{
+                    let pageQuestionsObj = {}
+
+                    eachEvidence.sections.forEach(eachSection=>{
+                        eachSection.questions.forEach((eachQuestion,index,questionArray)=>{
+
+                            if(eachQuestion.page && eachQuestion.page !== ""){
+                                if(!pageQuestionsObj[eachQuestion.page]){
+                                    pageQuestionsObj[eachQuestion.page] = {}
+                                    pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
+                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
+                                } else{
+                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
+                                }
+
+                                questionArray.splice(index,1)
+                            }
+                        })
+
+                        if(!_.isEmpty(pageQuestionsObj)){
+                            eachSection.questions = _.concat( eachSection.questions,Object.values(pageQuestionsObj))
+                        }
+                    })
+                })
+
+                return resolve({
+                    evidences: parseQuestionV1.evidences,
+                    submissions: parseQuestionV1.submissionsObjects,
+                    generalQuestions: parseQuestionV1.generalQuestions
+                })
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+
+    }
+
 };
