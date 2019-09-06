@@ -14,7 +14,7 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
+    * @api {get} /assessment/api/v1/observations/solutions?search=:searchText&limit=1&page=1 Observation Solution
     * @apiVersion 0.0.1
     * @apiName Observation Solution
     * @apiGroup Observations
@@ -35,7 +35,11 @@ module.exports = class Observations extends Abstract {
                 let matchQuery = {}
 
                 matchQuery["$match"] = {}
-                matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+
+                if (req.params._id) {
+                    matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
+                }
+
                 matchQuery["$match"]["type"] = "observation"
                 matchQuery["$match"]["isReusable"] = true
                 matchQuery["$match"]["status"] = "active"
@@ -133,7 +137,8 @@ module.exports = class Observations extends Abstract {
      *          "description": String,
      *          "startDate": String,
      *          "endDate": String,
-     *          "status": String
+     *          "status": String,
+     *          "entities":["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      *      }
      * }
      * @apiUse successBody
@@ -329,28 +334,21 @@ module.exports = class Observations extends Abstract {
                     })
                 }
 
-                let entitiesDocuments = await database.models.entities.find(
-                    {
-                        _id: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) },
-                        entityTypeId: observationDocument.entityTypeId
-                    },
-                    {
-                        _id: 1
-                    }
-                );
+                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId)
 
-                let entityIds = entitiesDocuments.map(entityId => entityId._id);
+                if (entitiesToAdd.entityIds.length > 0) {
+                    await database.models.observations.updateOne(
+                        {
+                            _id: observationDocument._id
+                        },
+                        {
+                            $addToSet: { entities: entitiesToAdd.entityIds }
+                        }
+                    );
+                }
 
-                await database.models.observations.updateOne(
-                    {
-                        _id: observationDocument._id
-                    },
-                    {
-                        $addToSet: { entities: entityIds }
-                    }
-                );
 
-                if (entityIds.length != req.body.data.length) {
+                if (entitiesToAdd.entityIds.length != req.body.data.length) {
                     responseMessage = "Not all entities are updated."
                 }
 
@@ -1048,7 +1046,7 @@ module.exports = class Observations extends Abstract {
                     if (entityObject[currentData.entityId.toString()] !== undefined) {
                         entityDocument = entityObject[currentData.entityId.toString()]
                     }
-                    if (entityDocument !== undefined && solution !== undefined && userId !== "invalid") {
+                    if (entityDocument !== undefined && solution !== undefined && userId !== "") {
                         observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
                         status = observationHelperData.status
                     } else {
@@ -1069,4 +1067,58 @@ module.exports = class Observations extends Abstract {
         });
     }
 
+    /**
+        * @api {post} /assessment/api/v1/observations/update/:observationId update name and description of Observations
+        * @apiVersion 0.0.1
+        * @apiName update observations
+        * @apiGroup Observations
+        * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
+        * @apiUse successBody
+        * @apiUse errorBody
+        */
+
+    async update(req) {
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let updateQuery = {};
+                updateQuery["$set"] = {}
+
+                if (req.body.name) {
+                    updateQuery["$set"]["name"] = req.body.name
+                }
+
+                if (req.body.description) {
+                    updateQuery["$set"]["description"] = req.body.description
+                }
+
+                let observationDocument = await database.models.observations.findOneAndUpdate(
+                    {
+                        _id: req.params._id,
+                        createdBy: req.userDetails.userId
+                    },
+                    updateQuery
+                ).lean();
+
+                if (!observationDocument) {
+                    throw "Observation is not found"
+                }
+
+                return resolve({
+                    message: "Observation successfully updated.",
+                });
+
+            } catch (error) {
+
+                return reject({
+                    status: 500,
+                    message: error,
+                })
+
+            }
+
+
+        })
+    }
 }
