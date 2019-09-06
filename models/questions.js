@@ -40,6 +40,7 @@ module.exports = {
     autoCapture: String,
     rubricLevel: String,
     sectionHeader: String,
-    allowAudioRecording: Boolean
+    allowAudioRecording: Boolean,
+    page:String
   }
 };
