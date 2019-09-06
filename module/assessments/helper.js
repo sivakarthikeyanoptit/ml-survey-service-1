@@ -172,6 +172,7 @@ module.exports = class assessmentsHelper {
                                 if(!pageQuestionsObj[eachQuestion.page]){
                                     pageQuestionsObj[eachQuestion.page] = {}
                                     pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
+                                    pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
                                     pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
                                     pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
                                 } else{
