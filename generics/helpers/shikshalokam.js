@@ -31,7 +31,7 @@ var getUserInfo = function (token, userId) {
                   currentLoginTime: null,
                   dob: null,
                   education: new Array,
-                  email: jwtInfo.email,
+                  email: (jwtInfo.email && jwtInfo.email != "") ? jwtInfo.email : "",
                   emailVerified: false,
                   externalIds: new Array,
                   firstName: jwtInfo.name,
@@ -118,7 +118,7 @@ var getUserInfo = function (token, userId) {
                   updatedBy: null,
                   updatedDate: null,
                   userId: jwtInfo.sub,
-                  userName: jwtInfo.email.split("@").shift(),
+                  userName: (jwtInfo.email && jwtInfo.email != "") ? jwtInfo.email.split("@").shift() : "",
                   webPages: new Array,
               }
           }
