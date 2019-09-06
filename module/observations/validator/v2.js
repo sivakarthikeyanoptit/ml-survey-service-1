@@ -11,7 +11,11 @@ module.exports = (req) => {
                 existId = 'observationId'
             }
             req.checkQuery(existId).exists().withMessage("required solution or observation Id")
-        }
+        },
+        assessment: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+            req.checkQuery('entityId').exists().withMessage("required entity id")
+        },
 
     }
 
