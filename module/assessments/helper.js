@@ -163,9 +163,10 @@ module.exports = class assessmentsHelper {
                 let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm)
                 
                 parseQuestionV1.evidences.forEach(eachEvidence=>{
-                    let pageQuestionsObj = {}
 
                     eachEvidence.sections.forEach(eachSection=>{
+                        let pageQuestionsObj = {}
+
                         eachSection.questions.forEach((eachQuestion,index,questionArray)=>{
 
                             if(eachQuestion.page && eachQuestion.page !== ""){
