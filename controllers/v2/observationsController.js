@@ -89,7 +89,7 @@ module.exports = class Observations extends v1Observation {
 
        /**
      * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
-     * @apiVersion 0.0.1
+     * @apiVersion 0.0.2
      * @apiName Assessments
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
