@@ -45,7 +45,7 @@ module.exports = class Assessments {
                 }
 
                 let entityAssessorObject = {
-                    // userId: req.userDetails.userId,
+                    userId: req.userDetails.userId,
                     programId: req.params._id,
                     solutionId: req.query.solutionId,
                     entities: { $in: [ObjectId(req.query.entityId)] }
