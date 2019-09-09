@@ -7,14 +7,14 @@ module.exports = class Assessments {
     }
 
     /**
-    * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
+    * @api {get} /assessment/api/v2/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
     * @apiVersion 0.0.1
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
     * @apiParam {String} entityId Entity ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
+    * @apiSampleRequest /assessment/api/v2/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -304,7 +304,7 @@ module.exports = class Assessments {
                     assessment.parentInterviewResponses = submissionDoc.result.parentInterviewResponses;
                 }
 
-                const parsedAssessment = await assessmentsHelper.parseQuestions(
+                const parsedAssessment = await assessmentsHelper.parseQuestionsV2(
                     Object.values(evidenceMethodArray),
                     entityDocumentQuestionGroup,
                     submissionDoc.result.evidences,
