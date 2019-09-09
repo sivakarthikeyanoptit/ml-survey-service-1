@@ -3,6 +3,7 @@ const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
 const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController")
+const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
 
 module.exports = class Observations extends v1Observation {
 
