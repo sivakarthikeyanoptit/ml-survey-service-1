@@ -8,7 +8,7 @@ module.exports = class Assessments {
 
     /**
     * @api {get} /assessment/api/v2/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
-    * @apiVersion 0.0.1
+    * @apiVersion 0.0.2
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
@@ -27,7 +27,6 @@ module.exports = class Assessments {
                     message: "Assessment fetched successfully",
                     result: {}
                 };
-
 
                 let programQueryObject = {
                     _id: req.params._id,
