@@ -28,9 +28,6 @@ module.exports = class Assessments {
                     result: {}
                 };
 
-                let assessmentDetails = await assessmentsHelper.details(req)
-
-
                 let programQueryObject = {
                     _id: req.params._id,
                     status: "active",
