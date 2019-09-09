@@ -167,7 +167,8 @@ module.exports = class assessmentsHelper {
                     eachEvidence.sections.forEach(eachSection=>{
                         let pageQuestionsObj = {}
 
-                        eachSection.questions.forEach((eachQuestion,index,questionArray)=>{
+                        for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
+                            let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
 
                             if(eachQuestion.page && eachQuestion.page !== ""){
                                 if(!pageQuestionsObj[eachQuestion.page]){
@@ -180,9 +181,10 @@ module.exports = class assessmentsHelper {
                                     pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
                                 }
 
-                                questionArray.splice(index,1)
+                                eachSection.questions.splice(pointerToEachSectionQuestion,1)
                             }
-                        })
+
+                        }
 
                         if(!_.isEmpty(pageQuestionsObj)){
                             eachSection.questions = _.concat( eachSection.questions,Object.values(pageQuestionsObj))
