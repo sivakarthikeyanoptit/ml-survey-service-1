@@ -20,7 +20,6 @@ module.exports = class questionsHelper {
           "canBeNotApplicable": "false",
           "isCompleted": false,
           "value": ""
-
         }
 
         let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"]
@@ -559,6 +558,23 @@ module.exports = class questionsHelper {
 
     return fileTypes
 
+  }
+
+  static getDefaultQuestion(question){
+    let defaultQuestion = {}
+
+    Object.keys(question).forEach(eachQuestionKey=>{
+        if(typeof question[eachQuestionKey] === 'string' || eachQuestionKey ===  "updatedAt" || eachQuestionKey ===  "createdAt" || eachQuestionKey === "_id"){
+            defaultQuestion[eachQuestionKey] = ""
+        } else if(Array.isArray(question[eachQuestionKey])){
+            defaultQuestion[eachQuestionKey] = []
+        } else if(typeof question[eachQuestionKey] === 'boolean'){
+            defaultQuestion[eachQuestionKey] = false
+        } else if(typeof question[eachQuestionKey] === 'object'){
+            defaultQuestion[eachQuestionKey] = {}
+        } 
+    })
+    return defaultQuestion
   }
 
 };
