@@ -24,6 +24,7 @@ module.exports = class assessmentsHelper {
                 let generalQuestions = [];
                 let questionArray = {};
                 let submissionsObjects = {};
+                let pageQuestionsEnabled = false
 
                 let checkEcmSequenceExists = evidences.every(ecm => {
                     return ecm["sequenceNo"] != undefined
@@ -52,6 +53,13 @@ module.exports = class assessmentsHelper {
                     }
 
                     evidence.sections.forEach(section => {
+
+                        if(!pageQuestionsEnabled){
+                            pageQuestionsEnabled = section.questions.some(singleElement=>{
+                                return singleElement.page && singleElement.page !== ""
+                            })
+                        }
+
                         section.questions.forEach((question, index, section) => {
                             question.evidenceMethod = evidence.externalId
                             if (_.difference(question.questionGroup, questionGroup).length < question.questionGroup.length) {
@@ -140,11 +148,11 @@ module.exports = class assessmentsHelper {
                     })
                 }
 
-
                 return resolve({
                     evidences: evidences,
                     submissions: submissionsObjects,
-                    generalQuestions: generalQuestions
+                    generalQuestions: generalQuestions,
+                    pageQuestionsEnabled:pageQuestionsEnabled
                 })
 
 
@@ -162,43 +170,50 @@ module.exports = class assessmentsHelper {
 
                 let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm)
                 
-                parseQuestionV1.evidences.forEach(eachEvidence=>{
+                if(parseQuestionV1.pageQuestionsEnabled){
 
-                    eachEvidence.sections.forEach(eachSection=>{
-                        let pageQuestionsObj = {}
-                        let defaultQuestion
+                    let defaultQuestion
 
-                        if(eachSection.questions.length>0){
-                            defaultQuestion = questionHelper.getDefaultQuestion(eachSection.questions[0])
-                        }
-
-                        for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
-                            let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
-
-
-                            if(eachQuestion.page && eachQuestion.page !== ""){
-                                if(!pageQuestionsObj[eachQuestion.page]){
-                                    pageQuestionsObj[eachQuestion.page] = {}
-
-                                    _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
-                                    pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
-                                    pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
-                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
-                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
-                                } else{
-                                    pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
+                    if(parseQuestionV1.evidences.length>0 && parseQuestionV1.evidences[0].sections.length>0){
+                        defaultQuestion = questionHelper.getDefaultQuestion(parseQuestionV1.evidences[0].sections[0].questions[0])
+                    }
+    
+                    parseQuestionV1.evidences.forEach(eachEvidence=>{
+    
+                        eachEvidence.sections.forEach(eachSection=>{
+                            let pageQuestionsObj = {}
+    
+                            for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
+                                let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
+    
+                                if(eachQuestion.page && eachQuestion.page !== ""){
+                                    if(!pageQuestionsObj[eachQuestion.page]){
+                                        pageQuestionsObj[eachQuestion.page] = {}
+    
+                                        _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
+                                        pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
+                                        pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
+                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
+                                    } else{
+                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
+                                    }
+    
+                                    delete eachSection.questions[pointerToEachSectionQuestion]
                                 }
-
-                                delete eachSection.questions[pointerToEachSectionQuestion]
+    
                             }
+    
+                            if(!_.isEmpty(pageQuestionsObj)){
+                                let filteredQuestion = eachSection.questions.filter(eachQuestion=>{
+                                    return eachQuestion != null
+                                })
 
-                        }
-
-                        if(!_.isEmpty(pageQuestionsObj)){
-                            eachSection.questions = _.concat( eachSection.questions,Object.values(pageQuestionsObj))
-                        }
+                                eachSection.questions = _.concat(filteredQuestion,Object.values(pageQuestionsObj))
+                            }
+                        })
                     })
-                })
+                }
 
                 return resolve({
                     evidences: parseQuestionV1.evidences,
