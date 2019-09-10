@@ -560,21 +560,4 @@ module.exports = class questionsHelper {
 
   }
 
-  static getDefaultQuestion(question){
-    let defaultQuestion = {}
-
-    Object.keys(question).forEach(eachQuestionKey=>{
-        if(typeof question[eachQuestionKey] === 'string' || eachQuestionKey ===  "updatedAt" || eachQuestionKey ===  "createdAt" || eachQuestionKey === "_id"){
-            defaultQuestion[eachQuestionKey] = ""
-        } else if(Array.isArray(question[eachQuestionKey])){
-            defaultQuestion[eachQuestionKey] = []
-        } else if(typeof question[eachQuestionKey] === 'boolean'){
-            defaultQuestion[eachQuestionKey] = false
-        } else if(typeof question[eachQuestionKey] === 'object'){
-            defaultQuestion[eachQuestionKey] = {}
-        } 
-    })
-    return defaultQuestion
-  }
-
 };
