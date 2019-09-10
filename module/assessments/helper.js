@@ -182,7 +182,6 @@ module.exports = class assessmentsHelper {
                                 }
 
                                 delete eachSection.questions[pointerToEachSectionQuestion]
-                                // eachSection.questions.slice(pointerToEachSectionQuestion,1)
                             }
 
                         }
