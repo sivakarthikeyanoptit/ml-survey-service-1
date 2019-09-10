@@ -181,7 +181,7 @@ module.exports = class assessmentsHelper {
                                     pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
                                 }
 
-                                eachSection.questions.splice(pointerToEachSectionQuestion,1)
+                                delete eachSection.questions[pointerToEachSectionQuestion]
                             }
 
                         }
@@ -194,7 +194,7 @@ module.exports = class assessmentsHelper {
 
                 return resolve({
                     evidences: parseQuestionV1.evidences,
-                    submissions: parseQuestionV1.submissionsObjects,
+                    submissions: parseQuestionV1.submissions,
                     generalQuestions: parseQuestionV1.generalQuestions
                 })
 
