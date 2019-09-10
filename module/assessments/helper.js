@@ -1,4 +1,4 @@
-
+const questionHelper = require(ROOT_PATH + "/module/questions/helper");
 module.exports = class assessmentsHelper {
 
     static getUserRole(roles) {
@@ -166,13 +166,21 @@ module.exports = class assessmentsHelper {
 
                     eachEvidence.sections.forEach(eachSection=>{
                         let pageQuestionsObj = {}
+                        let defaultQuestion
+
+                        if(eachSection.questions.length>0){
+                            defaultQuestion = questionHelper.getDefaultQuestion(eachSection.questions[0])
+                        }
 
                         for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
                             let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
 
+
                             if(eachQuestion.page && eachQuestion.page !== ""){
                                 if(!pageQuestionsObj[eachQuestion.page]){
                                     pageQuestionsObj[eachQuestion.page] = {}
+
+                                    _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
                                     pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
                                     pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
                                     pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
@@ -206,5 +214,4 @@ module.exports = class assessmentsHelper {
         })
 
     }
-
-};
+}
