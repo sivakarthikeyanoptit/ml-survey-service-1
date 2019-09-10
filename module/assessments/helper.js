@@ -38,9 +38,6 @@ module.exports = class assessmentsHelper {
 
                 evidences.forEach(evidence => {
 
-                    pageQuestionsEnabled[evidence.code] = {}
-                    pageQuestionsEnabled[evidence.code]["isPage"] = false
-
                     if (submissionDocEvidences[evidence.externalId]) {
                         evidence.startTime = submissionDocEvidences[evidence.externalId].startTime;
                         evidence.endTime = submissionDocEvidences[evidence.externalId].endTime;
@@ -56,23 +53,17 @@ module.exports = class assessmentsHelper {
                     }
 
                     evidence.sections.forEach(section => {
-                        pageQuestionsEnabled[evidence.code][section.code] = {}
-                        pageQuestionsEnabled[evidence.code][section.code]["isPage"] = false
-
-                        let isPageEnabled = section.questions.some(singleElement=>{
-                                return singleElement.page && singleElement.page !== ""
-                        })
-                        
-                        if(isPageEnabled){
-                            pageQuestionsEnabled[evidence.code]["isPage"] = true
-                            pageQuestionsEnabled[evidence.code][section.code]["isPage"] = isPageEnabled
-                        }
                         
                         section.questions.forEach((question, index, section) => {
                             question.evidenceMethod = evidence.externalId
                             if (_.difference(question.questionGroup, questionGroup).length < question.questionGroup.length) {
                                 sectionQuestionArray[question._id] = section
                                 questionArray[question._id] = question
+                                if(question.page && question.page != "") {
+                                    pageQuestionsEnabled[evidence.externalId] = {
+                                        [section.code]: true
+                                    }
+                                }
                             } else {
                                 entityFilterQuestionArray[question._id] = section;
                             }
@@ -179,54 +170,68 @@ module.exports = class assessmentsHelper {
                 let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm)
 
 
-                    let defaultQuestion
-
-                    if(parseQuestionV1.evidences.length>0 && parseQuestionV1.evidences[0].sections.length>0){
-                        defaultQuestion = questionHelper.getDefaultQuestion(parseQuestionV1.evidences[0].sections[0].questions[0])
-                    }
+                    let defaultQuestion = {}
     
                     parseQuestionV1.evidences.forEach(eachEvidence=>{
 
-                        let evidenceCode = eachEvidence.code
-
-                        if(parseQuestionV1.pageQuestionsEnabled[evidenceCode].isPage){
+                        if(parseQuestionV1.pageQuestionsEnabled[eachEvidence.externalId]){
+                            
                             eachEvidence.sections.forEach(eachSection=>{
 
-                             if(parseQuestionV1.pageQuestionsEnabled[evidenceCode][eachSection.code].isPage){
-                                let pageQuestionsObj = {}
-        
-                                for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
-                                    let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
-        
-                                    if(eachQuestion.page && eachQuestion.page !== ""){
-                                        if(!pageQuestionsObj[eachQuestion.page]){
-                                            pageQuestionsObj[eachQuestion.page] = {}
-        
-                                            _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
-                                            pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
-                                            pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
-                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
-                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
-                                        } else{
+                                if(parseQuestionV1.pageQuestionsEnabled[eachEvidence.externalId][eachSection.code]){
+                                    let pageQuestionsObj = {}
+            
+                                    for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
+                                        
+                                        let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
+            
+                                        if(eachQuestion.page && eachQuestion.page !== ""){
+                                            if(!pageQuestionsObj[eachQuestion.page]) {
+
+                                                if(!(Object.keys(defaultQuestion).length > 0)) {
+                                                    Object.keys(eachQuestion).forEach(questionModelKey => {
+                                                        if(questionModelKey ===  "updatedAt" || questionModelKey ===  "createdAt" || questionModelKey === "_id"){
+                                                            defaultQuestion[questionModelKey] = ""
+                                                        } else if(Array.isArray(defaultQuestion[questionModelKey])){
+                                                            defaultQuestion[questionModelKey] = []
+                                                        } else if(typeof defaultQuestion[questionModelKey] === 'boolean'){
+                                                            defaultQuestion[questionModelKey] = false
+                                                        } else if(typeof defaultQuestion[questionModelKey] === 'object'){
+                                                            defaultQuestion[questionModelKey] = {}
+                                                        } else {
+                                                            defaultQuestion[questionModelKey] = ""
+                                                        }
+                                                    })
+                                                }
+                                                
+                                                pageQuestionsObj[eachQuestion.page] = defaultQuestion
+            
+                                                pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
+                                                pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
+                                                pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                            }
+
                                             pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
+            
+                                            delete eachSection.questions[pointerToEachSectionQuestion]
                                         }
-        
-                                        delete eachSection.questions[pointerToEachSectionQuestion]
+            
                                     }
+            
+                                    if(!_.isEmpty(pageQuestionsObj)){
+                                        
+                                        let filteredQuestion = eachSection.questions.filter(eachQuestion=>{
+                                            return eachQuestion != null
+                                        })
         
+                                        eachSection.questions = _.concat(filteredQuestion,Object.values(pageQuestionsObj))
+                                    }
+
                                 }
-        
-                                if(!_.isEmpty(pageQuestionsObj)){
-                                    
-                                    let filteredQuestion = eachSection.questions.filter(eachQuestion=>{
-                                        return eachQuestion != null
-                                    })
-    
-                                    eachSection.questions = _.concat(filteredQuestion,Object.values(pageQuestionsObj))
-                                }
-                             }
+
                             })
                         }
+
                     })
 
                 return resolve({
