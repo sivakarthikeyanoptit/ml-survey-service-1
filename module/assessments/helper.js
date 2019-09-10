@@ -24,7 +24,7 @@ module.exports = class assessmentsHelper {
                 let generalQuestions = [];
                 let questionArray = {};
                 let submissionsObjects = {};
-                let pageQuestionsEnabled = false
+                let pageQuestionsEnabled = {}
 
                 let checkEcmSequenceExists = evidences.every(ecm => {
                     return ecm["sequenceNo"] != undefined
@@ -37,6 +37,9 @@ module.exports = class assessmentsHelper {
                 }
 
                 evidences.forEach(evidence => {
+
+                    pageQuestionsEnabled[evidence.code] = {}
+                    pageQuestionsEnabled[evidence.code]["isPage"] = false
 
                     if (submissionDocEvidences[evidence.externalId]) {
                         evidence.startTime = submissionDocEvidences[evidence.externalId].startTime;
@@ -53,13 +56,18 @@ module.exports = class assessmentsHelper {
                     }
 
                     evidence.sections.forEach(section => {
+                        pageQuestionsEnabled[evidence.code][section.code] = {}
+                        pageQuestionsEnabled[evidence.code][section.code]["isPage"] = false
 
-                        if(!pageQuestionsEnabled){
-                            pageQuestionsEnabled = section.questions.some(singleElement=>{
+                        let isPageEnabled = section.questions.some(singleElement=>{
                                 return singleElement.page && singleElement.page !== ""
-                            })
+                        })
+                        
+                        if(isPageEnabled){
+                            pageQuestionsEnabled[evidence.code]["isPage"] = true
+                            pageQuestionsEnabled[evidence.code][section.code]["isPage"] = isPageEnabled
                         }
-
+                        
                         section.questions.forEach((question, index, section) => {
                             question.evidenceMethod = evidence.externalId
                             if (_.difference(question.questionGroup, questionGroup).length < question.questionGroup.length) {
@@ -169,8 +177,7 @@ module.exports = class assessmentsHelper {
             try {
 
                 let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm)
-                
-                if(parseQuestionV1.pageQuestionsEnabled){
+
 
                     let defaultQuestion
 
@@ -179,41 +186,48 @@ module.exports = class assessmentsHelper {
                     }
     
                     parseQuestionV1.evidences.forEach(eachEvidence=>{
-    
-                        eachEvidence.sections.forEach(eachSection=>{
-                            let pageQuestionsObj = {}
-    
-                            for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
-                                let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
-    
-                                if(eachQuestion.page && eachQuestion.page !== ""){
-                                    if(!pageQuestionsObj[eachQuestion.page]){
-                                        pageQuestionsObj[eachQuestion.page] = {}
-    
-                                        _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
-                                        pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
-                                        pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
-                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
-                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
-                                    } else{
-                                        pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
-                                    }
-    
-                                    delete eachSection.questions[pointerToEachSectionQuestion]
-                                }
-    
-                            }
-    
-                            if(!_.isEmpty(pageQuestionsObj)){
-                                let filteredQuestion = eachSection.questions.filter(eachQuestion=>{
-                                    return eachQuestion != null
-                                })
 
-                                eachSection.questions = _.concat(filteredQuestion,Object.values(pageQuestionsObj))
-                            }
-                        })
+                        let evidenceCode = eachEvidence.code
+
+                        if(parseQuestionV1.pageQuestionsEnabled[evidenceCode].isPage){
+                            eachEvidence.sections.forEach(eachSection=>{
+
+                             if(parseQuestionV1.pageQuestionsEnabled[evidenceCode][eachSection.code].isPage){
+                                let pageQuestionsObj = {}
+        
+                                for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
+                                    let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
+        
+                                    if(eachQuestion.page && eachQuestion.page !== ""){
+                                        if(!pageQuestionsObj[eachQuestion.page]){
+                                            pageQuestionsObj[eachQuestion.page] = {}
+        
+                                            _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
+                                            pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
+                                            pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
+                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion) 
+                                        } else{
+                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
+                                        }
+        
+                                        delete eachSection.questions[pointerToEachSectionQuestion]
+                                    }
+        
+                                }
+        
+                                if(!_.isEmpty(pageQuestionsObj)){
+                                    
+                                    let filteredQuestion = eachSection.questions.filter(eachQuestion=>{
+                                        return eachQuestion != null
+                                    })
+    
+                                    eachSection.questions = _.concat(filteredQuestion,Object.values(pageQuestionsObj))
+                                }
+                             }
+                            })
+                        }
                     })
-                }
 
                 return resolve({
                     evidences: parseQuestionV1.evidences,
