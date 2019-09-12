@@ -53,15 +53,17 @@ module.exports = class assessmentsHelper {
                     }
 
                     evidence.sections.forEach(section => {
+                       let sectionCode = section.code
                         
                         section.questions.forEach((question, index, section) => {
                             question.evidenceMethod = evidence.externalId
+
                             if (_.difference(question.questionGroup, questionGroup).length < question.questionGroup.length) {
                                 sectionQuestionArray[question._id] = section
                                 questionArray[question._id] = question
                                 if(question.page && question.page != "") {
                                     pageQuestionsEnabled[evidence.externalId] = {
-                                        [section.code]: true
+                                        [sectionCode]: true
                                     }
                                 }
                             } else {
@@ -181,7 +183,7 @@ module.exports = class assessmentsHelper {
                                 if(parseQuestionV1.pageQuestionsEnabled[eachEvidence.externalId][eachSection.code]){
                                     let pageQuestionsObj = {}
             
-                                    for(let pointerToEachSectionQuestion =0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
+                                    for(let pointerToEachSectionQuestion = 0;pointerToEachSectionQuestion<eachSection.questions.length;pointerToEachSectionQuestion++){
                                         
                                         let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
             
@@ -203,16 +205,17 @@ module.exports = class assessmentsHelper {
                                                         }
                                                     })
                                                 }
-                                                
-                                                pageQuestionsObj[eachQuestion.page] = defaultQuestion
+                                                pageQuestionsObj[eachQuestion.page]= {}
+                                                pageQuestionsObj[eachQuestion.page] = _.merge(pageQuestionsObj[eachQuestion.page],defaultQuestion)
             
                                                 pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
                                                 pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
                                                 pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                                pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
+                                            }else{
+                                                pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
                                             }
 
-                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"].push(eachQuestion)
-            
                                             delete eachSection.questions[pointerToEachSectionQuestion]
                                         }
             
