@@ -211,10 +211,9 @@ module.exports = class assessmentsHelper {
                                                 pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
                                                 pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
                                                 pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
-                                                pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
-                                            }else{
-                                                pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
                                             }
+
+                                            pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
 
                                             delete eachSection.questions[pointerToEachSectionQuestion]
                                         }
