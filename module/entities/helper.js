@@ -400,13 +400,19 @@ module.exports = class entitiesHelper {
                 let entityDocuments = await database.models.entities.aggregate([
                     {
                         $match: {
-                            $or: [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }],
-                            "entityTypeId": entityTypeId
+                            "entityTypeId": entityTypeId,
+                            $or: [
+                                { "metaInformation.name": new RegExp(searchText, 'i') },
+                                { "metaInformation.externalId": new RegExp("^"+searchText, 'm') },
+                                { "metaInformation.addressLine1": new RegExp(searchText, 'i') },
+                                { "metaInformation.addressLine2": new RegExp(searchText, 'i') }
+                            ]
                         }
                     },
                     {
                         $project: {
                             name: "$metaInformation.name",
+                            externalId: "$metaInformation.externalId",
                             addressLine1: "$metaInformation.addressLine1",
                             addressLine2: "$metaInformation.addressLine2"
                         }
