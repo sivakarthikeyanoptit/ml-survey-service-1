@@ -446,20 +446,27 @@ module.exports = class entitiesHelper {
 
                 let queryObject = {}
 
-                queryObject["$match"] = {}
-                queryObject["$match"]["$or"] = [{ "metaInformation.name": new RegExp(searchText, 'i') }, { "metaInformation.addressLine1": new RegExp(searchText, 'i') }, { "metaInformation.addressLine2": new RegExp(searchText, 'i') }]
-                queryObject["$match"]["entityTypeId"] = entityTypeId
-
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {}
                     queryObject["$match"]["_id"]["$in"] = entityIds
                 }
+                
+                queryObject["$match"] = {}
+                queryObject["$match"]["entityTypeId"] = entityTypeId
+
+                queryObject["$match"]["$or"] = [
+                    { "metaInformation.name": new RegExp(searchText, 'i') },
+                    { "metaInformation.externalId": new RegExp("^"+searchText, 'm') },
+                    { "metaInformation.addressLine1": new RegExp(searchText, 'i') },
+                    { "metaInformation.addressLine2": new RegExp(searchText, 'i') }
+                ]
 
                 let entityDocuments = await database.models.entities.aggregate([
                     queryObject,
                     {
                         $project: {
                             name: "$metaInformation.name",
+                            externalId: "$metaInformation.externalId",
                             addressLine1: "$metaInformation.addressLine1",
                             addressLine2: "$metaInformation.addressLine2"
                         }
