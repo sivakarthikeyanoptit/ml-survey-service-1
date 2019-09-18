@@ -67,9 +67,10 @@ module.exports = class assessmentsHelper {
 
                                     if (!pageQuestionsEnabled[evidence.externalId]) {
                                         pageQuestionsEnabled[evidence.externalId] = {}
-                                    } else {
-                                        pageQuestionsEnabled[evidence.externalId][sectionCode] = true
                                     }
+
+                                    pageQuestionsEnabled[evidence.externalId][sectionCode] = true
+
                                 }
                             } else {
                                 entityFilterQuestionArray[question._id] = section;
@@ -193,7 +194,10 @@ module.exports = class assessmentsHelper {
                                     let eachQuestion = eachSection.questions[pointerToEachSectionQuestion]
 
                                     if (eachQuestion.page && eachQuestion.page !== "") {
-                                        if (!pageQuestionsObj[eachQuestion.page]) {
+
+                                        let pageName = eachQuestion.page.toLowerCase()
+
+                                        if (!pageQuestionsObj[pageName]) {
 
                                             if (!(Object.keys(defaultQuestion).length > 0)) {
                                                 Object.keys(eachQuestion).forEach(questionModelKey => {
@@ -210,15 +214,15 @@ module.exports = class assessmentsHelper {
                                                     }
                                                 })
                                             }
-                                            pageQuestionsObj[eachQuestion.page] = {}
-                                            pageQuestionsObj[eachQuestion.page] = _.merge(pageQuestionsObj[eachQuestion.page], defaultQuestion)
+                                            pageQuestionsObj[pageName] = {}
+                                            pageQuestionsObj[pageName] = _.merge(pageQuestionsObj[pageName], defaultQuestion)
 
-                                            pageQuestionsObj[eachQuestion.page]["responseType"] = "pageQuestions"
-                                            pageQuestionsObj[eachQuestion.page]["page"] = eachQuestion.page
-                                            pageQuestionsObj[eachQuestion.page]["pageQuestions"] = []
+                                            pageQuestionsObj[pageName]["responseType"] = "pageQuestions"
+                                            pageQuestionsObj[pageName]["page"] = pageName
+                                            pageQuestionsObj[pageName]["pageQuestions"] = []
                                         }
 
-                                        pageQuestionsObj[eachQuestion.page].pageQuestions.push(eachQuestion)
+                                        pageQuestionsObj[pageName].pageQuestions.push(eachQuestion)
 
                                         delete eachSection.questions[pointerToEachSectionQuestion]
                                     }
