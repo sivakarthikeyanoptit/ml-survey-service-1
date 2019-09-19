@@ -120,7 +120,7 @@ module.exports = class questionsHelper {
           allValues["options"] = new Array
 
           // Adding data in options field
-          for (let pointerToResponseCount = 1; pointerToResponseCount < 10; pointerToResponseCount++) {
+          for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
             let optionValue = "R" + pointerToResponseCount
             let optionHint = "R" + pointerToResponseCount + "-hint"
 
@@ -375,7 +375,7 @@ module.exports = class questionsHelper {
 
         existingQuestion["options"] = new Array
 
-        for (let pointerToResponseCount = 1; pointerToResponseCount < 10; pointerToResponseCount++) {
+        for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
           let optionValue = "R" + pointerToResponseCount
           let optionHint = "R" + pointerToResponseCount + "-hint"
 
