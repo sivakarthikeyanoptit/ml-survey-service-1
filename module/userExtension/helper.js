@@ -152,6 +152,7 @@ module.exports = class userExtensionHelper {
                 let userRole
                 let existingEntity
                 let existingUserRole
+                const keycloakUserIdIsMandatoryInFile = (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false
 
                 for (let csvRowNumber = 0; csvRowNumber < userRolesCSVData.length; csvRowNumber++) {
 
@@ -184,13 +185,21 @@ module.exports = class userExtensionHelper {
                         if (userToKeycloakIdMap[userRole.user]) {
                             userKeycloakId = userToKeycloakIdMap[userRole.user]
                         } else {
-                            let keycloakUserId = await shikshalokamGenericHelper.getKeycloakUserIdByLoginId(userDetails.userToken, userRole.user)
-
-                            if (keycloakUserId && keycloakUserId.length > 0 && keycloakUserId[0].userLoginId) {
-                                userKeycloakId = keycloakUserId[0].userLoginId
-                                userToKeycloakIdMap[userRole.user] = keycloakUserId[0].userLoginId
+                            if(keycloakUserIdIsMandatoryInFile) {
+                                if(!userRole["keycloak-userId"] || userRole["keycloak-userId"] == "") {
+                                    throw "Keycloak user ID is mandatory."
+                                }
+                                userKeycloakId = userRole["keycloak-userId"]
+                                userToKeycloakIdMap[userRole.user] = userRole["keycloak-userId"]
                             } else {
-                                throw "User entity id."
+                                let keycloakUserId = await shikshalokamGenericHelper.getKeycloakUserIdByLoginId(userDetails.userToken, userRole.user)
+    
+                                if (keycloakUserId && keycloakUserId.length > 0 && keycloakUserId[0].userLoginId) {
+                                    userKeycloakId = keycloakUserId[0].userLoginId
+                                    userToKeycloakIdMap[userRole.user] = keycloakUserId[0].userLoginId
+                                } else {
+                                    throw "User entity id."
+                                }
                             }
                         }
 
