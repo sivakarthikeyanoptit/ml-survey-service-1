@@ -446,12 +446,13 @@ module.exports = class entitiesHelper {
 
                 let queryObject = {}
 
+                queryObject["$match"] = {}
+                
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {}
                     queryObject["$match"]["_id"]["$in"] = entityIds
                 }
                 
-                queryObject["$match"] = {}
                 queryObject["$match"]["entityTypeId"] = entityTypeId
 
                 queryObject["$match"]["$or"] = [
