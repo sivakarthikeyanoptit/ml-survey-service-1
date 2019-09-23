@@ -360,6 +360,8 @@ module.exports = class questionsHelper {
           existingQuestion.file["caption"] = parsedQuestion["caption"]
 
           parsedQuestion["file"] = existingQuestion.file
+        } else {
+          existingQuestion["file"] = parsedQuestion["file"] = {}
         }
 
         // if (parsedQuestion["showRemarks"] && (parsedQuestion["showRemarks"] == "true" || parsedQuestion["showRemarks"] == "TRUE")) {
