@@ -422,8 +422,11 @@ module.exports = class entitiesHelper {
                     if (!_.isEmpty(childEntity.groups)) {
                         Object.keys(childEntity.groups).forEach(eachChildEntity => {
 
-                            updateQuery["$addToSet"][`groups.${eachChildEntity}`] = {}
-                            updateQuery["$addToSet"][`groups.${eachChildEntity}`]["$each"] = childEntity.groups[eachChildEntity]
+                            if (childEntity.groups[eachChildEntity].length > 0) {
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`] = {}
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`]["$each"] = childEntity.groups[eachChildEntity]
+                            }
+
                         })
                     }
 
