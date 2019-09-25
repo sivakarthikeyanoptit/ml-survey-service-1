@@ -47,7 +47,7 @@ module.exports = class Observations extends v1Observation {
                 if (req.query.solutionId) {
                     let findQuery = []
                     findQuery.push(req.query.solutionId)
-                    projection.push("entityTypeId")
+                    projection.push("entityTypeId","entityType")
 
                     let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
                     result = _.merge(solutionDocument[0])
@@ -56,7 +56,7 @@ module.exports = class Observations extends v1Observation {
                 let userAllowedEntities = new Array
                 
                 try {
-                    userAllowedEntities = await userExtensionHelper.getUserEntities(userId)
+                    userAllowedEntities = await userExtensionHelper.getUserEntitiyUniverseByEntityType(userId,result.entityType)
                 } catch (error) {
                     userAllowedEntities = []
                 }
