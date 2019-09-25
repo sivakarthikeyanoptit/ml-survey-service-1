@@ -368,7 +368,7 @@ module.exports = class userExtensionHelper {
                     })
                 }
 
-                return resolve(entities)
+                return resolve(allEntities)
 
             } catch (error) {
                 return reject(error)
