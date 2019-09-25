@@ -1,6 +1,6 @@
 const userRolesHelper = require(ROOT_PATH + "/module/userRoles/helper");
 const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
-
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper");
 const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
 module.exports = class userExtensionHelper {
@@ -323,4 +323,56 @@ module.exports = class userExtensionHelper {
         })
     }
 
+    static getUserEntitiyUniverseByEntityType (userId = false, entityType = false) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!userId) throw "User ID is required."
+
+                if (!entityType) throw "User ID is required."
+
+                let allEntities = new Array
+
+                let userExtensionEntities = await this.getUserEntities(userId);
+
+                if(!userExtensionEntities.length > 0) {
+                    resolve(allEntities)
+                } else {
+                    allEntities = userExtensionEntities
+                }
+
+
+                let entitiesFound = await entitiesHelper.entities({
+                    _id: { $in: allEntities },
+                    entityType: entityType
+                }, ["_id"])
+
+
+                if (entitiesFound.length > 0) {
+                    entitiesFound.forEach(eachEntityData => {
+                        allEntities.push(eachEntityData._id)
+                    })
+                }
+
+                let findQuery = {
+                    _id: { $in: userExtensionEntities },
+                    entityType: { $ne: entityType }
+                }
+
+                findQuery[`groups.${entityType}`] = { $exists: true }
+
+                let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+
+                if (remainingEntities.length > 0) {
+                    remainingEntities.forEach(eachEntityNotFound => {
+                        allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+                    })
+                }
+
+                return resolve(allEntities)
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
+    }
 };
