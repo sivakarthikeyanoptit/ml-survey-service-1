@@ -39,7 +39,7 @@ module.exports = class Observations extends v1Observation {
                     findObject["_id"] = req.query.observationId
                     findObject["createdBy"] = userId
 
-                    projection.push("entityTypeId", "entities")
+                    projection.push("entityTypeId", "entities", "entityType")
 
                     let observationDocument = await observationsHelper.observationDocument(findObject, projection)
                     result = observationDocument[0]
@@ -48,20 +48,20 @@ module.exports = class Observations extends v1Observation {
                 if (req.query.solutionId) {
                     let findQuery = []
                     findQuery.push(req.query.solutionId)
-                    projection.push("entityTypeId","entityType")
+                    projection.push("entityTypeId", "entityType")
 
                     let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
                     result = _.merge(solutionDocument[0])
                 }
 
                 let userAllowedEntities = new Array
-                
+
                 try {
-                    userAllowedEntities = await userExtensionHelper.getUserEntitiyUniverseByEntityType(userId,result.entityType)
+                    userAllowedEntities = await userExtensionHelper.getUserEntitiyUniverseByEntityType(userId, result.entityType)
                 } catch (error) {
                     userAllowedEntities = []
                 }
-                
+
 
                 let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
 
