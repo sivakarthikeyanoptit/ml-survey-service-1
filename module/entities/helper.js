@@ -401,7 +401,8 @@ module.exports = class entitiesHelper {
                 let childEntity = await database.models.entities.findOne({
                     _id: ObjectId(childEntityId)
                 }, {
-                        entityType: 1
+                        entityType: 1,
+                        groups: 1
                     }).lean()
 
 
@@ -417,6 +418,17 @@ module.exports = class entitiesHelper {
                     let updateQuery = {}
                     updateQuery["$addToSet"] = {}
                     updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+
+                    if (!_.isEmpty(childEntity.groups)) {
+                        Object.keys(childEntity.groups).forEach(eachChildEntity => {
+
+                            if (childEntity.groups[eachChildEntity].length > 0) {
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`] = {}
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`]["$each"] = childEntity.groups[eachChildEntity]
+                            }
+
+                        })
+                    }
 
                     let projectedData = {
                         _id: 1,
@@ -447,21 +459,20 @@ module.exports = class entitiesHelper {
                 let queryObject = {}
 
                 queryObject["$match"] = {}
-                
+
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {}
                     queryObject["$match"]["_id"]["$in"] = entityIds
                 }
-                
+
                 queryObject["$match"]["entityTypeId"] = entityTypeId
 
                 queryObject["$match"]["$or"] = [
                     { "metaInformation.name": new RegExp(searchText, 'i') },
-                    { "metaInformation.externalId": new RegExp("^"+searchText, 'm') },
+                    { "metaInformation.externalId": new RegExp("^" + searchText, 'm') },
                     { "metaInformation.addressLine1": new RegExp(searchText, 'i') },
                     { "metaInformation.addressLine2": new RegExp(searchText, 'i') }
                 ]
-
 
                 let entityDocuments = await database.models.entities.aggregate([
                     queryObject,
@@ -597,6 +608,7 @@ module.exports = class entitiesHelper {
     static mappedParentEntities(parentEntity, childEntity) {
         return new Promise(async (resolve, reject) => {
             try {
+
                 let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
                     name: parentEntity.entityType
                 }, {
