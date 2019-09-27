@@ -60,48 +60,53 @@ module.exports = class userExtensionHelper {
                 ];
 
                 let userExtensionData = await database.models.userExtension.aggregate(queryObject)
-                let roleMap = {}
 
-                if (userExtensionData[0].roleDocuments.length > 0) {
+                if (userExtensionData[0]) {
 
-                    userExtensionData[0].roleDocuments.forEach(role => {
-                        roleMap[role._id.toString()] = role
-                    })
-                    let entityMap = {}
-                    userExtensionData[0].entityDocuments.forEach(entity => {
-                        entity.metaInformation.childrenCount = 0
-                        entity.metaInformation.entityType = entity.entityType
-                        entity.metaInformation.entityTypeId = entity.entityTypeId
-                        entity.metaInformation.subEntityGroups = new Array
+                    let roleMap = {}
 
-                        Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
-                            if (entity.groups[immediateChildrenEntityType]) {
-                                entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
-                                entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
-                            }
+                    if (userExtensionData[0].roleDocuments.length > 0) {
+
+                        userExtensionData[0].roleDocuments.forEach(role => {
+                            roleMap[role._id.toString()] = role
+                        })
+                        let entityMap = {}
+                        userExtensionData[0].entityDocuments.forEach(entity => {
+                            entity.metaInformation.childrenCount = 0
+                            entity.metaInformation.entityType = entity.entityType
+                            entity.metaInformation.entityTypeId = entity.entityTypeId
+                            entity.metaInformation.subEntityGroups = new Array
+
+                            Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                                if (entity.groups[immediateChildrenEntityType]) {
+                                    entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
+                                    entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
+                                }
+                            })
+
+                            entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                                entity.metaInformation.subEntityGroups.push(subEntityType)
+                            })
+
+                            entityMap[entity._id.toString()] = entity
                         })
 
-                        entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
-                            entity.metaInformation.subEntityGroups.push(subEntityType)
-                        })
-
-                        entityMap[entity._id.toString()] = entity
-                    })
-
-                    for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
-                        for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
-                            userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
-                                _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
-                                ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
+                        for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
+                            for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
+                                userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
+                                    _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
+                                    ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
+                                }
                             }
+                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : ""
+                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities
                         }
-                        roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : ""
-                        roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities
                     }
+
+                    return resolve(_.merge(_.omit(userExtensionData[0], ["roles", "entityDocuments", "roleDocuments"]), { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) }));
+                } else {
+                    return resolve({})
                 }
-
-                return resolve(_.merge(_.omit(userExtensionData[0], ["roles", "entityDocuments", "roleDocuments"]), { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) }));
-
             } catch (error) {
                 return reject(error);
             }
