@@ -13,7 +13,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/solutions/details/:solutionInternalId Framework & Rubric Details
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Framework & Rubric Details of a Solution
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -142,7 +142,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId&entityType:entityType Create solution from framework.
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Create solution from framework.
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -282,7 +282,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
     * @api {get} /assessment/api/v1/solutions/mapEntityToSolution/:solutionExternalId Map entity id to solution
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Map entity id to solution
     * @apiGroup Solutions
     * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -328,7 +328,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/solutions/uploadThemes/{solutionsExternalID} Upload Themes For Solutions
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Themes in Solutions
   * @apiGroup Solutions
   * @apiParam {File} themes Mandatory file upload with themes data.
@@ -388,7 +388,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName update Solutions
 * @apiGroup Solutions
 * @apiParam {File} Mandatory solution file of type json.

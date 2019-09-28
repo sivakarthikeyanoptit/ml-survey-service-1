@@ -17,7 +17,7 @@ module.exports = class Programs extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/programs/list List all the programs
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Fetch Program List
 * @apiGroup Program
 * @apiUse successBody
@@ -71,7 +71,7 @@ module.exports = class Programs extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/programs/entityList?solutionId=""&search="" Fetch Entity List
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Fetch Entity List 
 * @apiGroup Program
 * @apiParam {String} solutionId Solution ID.
@@ -137,7 +137,7 @@ module.exports = class Programs extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/programs/userEntityList?solutionId="" Fetch User Entity List
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Fetch User Entity List 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.
@@ -210,7 +210,7 @@ module.exports = class Programs extends Abstract {
             eachEntityDocument["isSingleEntityHighLevel"] = false
             eachEntityDocument["isSingleEntityDrillDown"] = false
           }
-          eachEntityDocument = _.merge(eachEntityDocument,{...eachEntityDocument.metaInformation})
+          eachEntityDocument = _.merge(eachEntityDocument, { ...eachEntityDocument.metaInformation })
           delete eachEntityDocument.metaInformation
         })
 
@@ -236,7 +236,7 @@ module.exports = class Programs extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/programs/userList/ Fetch User List
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Fetch User Entity List 
 * @apiGroup Program
 * @apiParam {String} ProgramId Program ID.
@@ -332,7 +332,7 @@ module.exports = class Programs extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/programs/entityBlocks?solutionId="" Fetch Zone
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Fetch Zone 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.
@@ -383,7 +383,7 @@ module.exports = class Programs extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/programs/blockEntity?solutionId=""&blockId="" Block Entity
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Block Entity 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.

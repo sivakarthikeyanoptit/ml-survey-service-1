@@ -1,5 +1,5 @@
 module.exports = class AppAccessToken extends Abstract {
-    
+
     /**
      * @apiDefine errorBody
      * @apiError {String} status 4XX,5XX
@@ -22,7 +22,7 @@ module.exports = class AppAccessToken extends Abstract {
 
     /**
     * @api {post} /assessment/api/v1/appAccessToken/verify App access token verify
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName App access token verify
     * @apiGroup appAccessToken
     * @apiParamExample {json} Request-Body:
@@ -39,7 +39,7 @@ module.exports = class AppAccessToken extends Abstract {
 
     verify(req) {
 
-        return new Promise( async (resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
 
             try {
 
@@ -54,22 +54,22 @@ module.exports = class AppAccessToken extends Abstract {
                 let result = {}
 
                 if (tokenData) {
-                    result = _.pick(tokenData,["action","entityId","evidenceCollectionMethod","successMessage","programId","solutionId"])
+                    result = _.pick(tokenData, ["action", "entityId", "evidenceCollectionMethod", "successMessage", "programId", "solutionId"])
                 } else {
                     throw "Bad Request"
                 }
 
                 await database.models.appAccessToken.findOneAndUpdate(
-                    {_id:tokenData._id},
+                    { _id: tokenData._id },
                     {
-                        isValid : false,
-                        verifiedAt : new Date
+                        isValid: false,
+                        verifiedAt: new Date
                     }
                 );
 
                 let responseMessage = "Token verified successfully."
 
-                let response = { message: responseMessage,result: result};
+                let response = { message: responseMessage, result: result };
 
                 return resolve(response);
 
@@ -88,7 +88,7 @@ module.exports = class AppAccessToken extends Abstract {
 
     /**
     * @api {post} /assessment/api/v1/appAccessToken/create App access token create
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName App access token create
     * @apiGroup appAccessToken
     * @apiParamExample {json} Request-Body:
@@ -114,27 +114,27 @@ module.exports = class AppAccessToken extends Abstract {
     * @apiUse errorBody
     */
 
-    create(req){
+    create(req) {
 
-        return new Promise(async (resolve,reject)=>{
+        return new Promise(async (resolve, reject) => {
 
             try {
 
                 let token = req.body;
 
-                let solutionDocument = await database.models.solutions.findOne({programExternalId:token.programId},{_id:1, entities : 1});
+                let solutionDocument = await database.models.solutions.findOne({ programExternalId: token.programId }, { _id: 1, entities: 1 });
 
                 let entity = await database.models.entities.findOne({
-                    _id : {
-                        $in : solutionDocument.entities
+                    _id: {
+                        $in: solutionDocument.entities
                     },
                     [token.entityField]: token.entityFieldValue
-                },{
-                    _id:1
-                });
+                }, {
+                        _id: 1
+                    });
 
                 token.entityId = entity._id;
-                
+
                 token.solutionExternalId = solutionDocument.externalId;
                 token.solutionId = solutionDocument._id;
                 token.programExternalId = solutionDocument.programExternalId;
@@ -146,19 +146,19 @@ module.exports = class AppAccessToken extends Abstract {
 
                 let responseMessage = "Token created successfully."
 
-                let response = { message: responseMessage,result: _.pick(tokenDocument,["passcode"])};
+                let response = { message: responseMessage, result: _.pick(tokenDocument, ["passcode"]) };
 
                 return resolve(response);
 
             }
-            catch(error){
+            catch (error) {
 
                 return reject({
-                    status:500,
+                    status: 500,
                     message: error,
                     errorObject: error
                 })
-                
+
             }
         })
     }

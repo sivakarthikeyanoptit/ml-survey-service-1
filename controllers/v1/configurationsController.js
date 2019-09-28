@@ -9,7 +9,7 @@ module.exports = class Configurations extends Abstract {
 
     /**
     * @api {get} /assessment/api/v1/configurations/navigation Navigation configurations
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Navigation configurations
     * @apiGroup Configurations
     * @apiSampleRequest /assessment/api/v1/configurations/navigation

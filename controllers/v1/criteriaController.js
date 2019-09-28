@@ -13,7 +13,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/criteria/insert Add Criteria
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Add Criteria
   * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
@@ -154,7 +154,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/criteria/getEvidence/ Get Criteria Evidences
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get Criteria Evidences
   * @apiGroup Criteria
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -210,7 +210,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/criteria/getCriteriasParentQuesAndInstParentQues/ Get Criterias Parent Ques And instanceParentQuestionId Ques
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get Criterias Parent Ques And Instance Parent Ques
   * @apiGroup Criteria
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -273,7 +273,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/criteria/addQuestion Add Criteria Question
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Add Criteria Question
   * @apiGroup Criteria
   * @apiParamExample {json} Request-Body:
@@ -348,7 +348,7 @@ module.exports = class Criteria extends Abstract {
         }
 
         let questionCollection = {}
-        let toFetchQuestionIds = new Array  
+        let toFetchQuestionIds = new Array
         toFetchQuestionIds.push(question.externalId)
         if (question.parentId != "") { toFetchQuestionIds.push(question.parentId) }
         if (question.instanceParentId != "") { toFetchQuestionIds.push(question.instanceParentId) }
@@ -734,7 +734,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/criteria/uploadRubricExpressions Upload Rubric Expressions
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Rubric Expressions
   * @apiGroup Criteria
   * @apiParam {File} criteria     Mandatory criteria file of type CSV.
@@ -787,10 +787,10 @@ module.exports = class Criteria extends Abstract {
             expressionVariableArray.push(tempExpressionVariableArray.shift())
             expressionVariableArray.push(tempExpressionVariableArray.join('='))
             let defaultVariableArray = expressionVariableArray[0].split("-")
-            if(defaultVariableArray.length>1){
-              if(!expressionVariables.default) expressionVariables.default = {};
+            if (defaultVariableArray.length > 1) {
+              if (!expressionVariables.default) expressionVariables.default = {};
               expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
-            }else{
+            } else {
               expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
             }
           })
@@ -862,10 +862,10 @@ module.exports = class Criteria extends Abstract {
           let criteriaObject = {}
           let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
-          criteriasIdArray.forEach(eachCriteriaId=>{
+          criteriasIdArray.forEach(eachCriteriaId => {
             criteriasId.push(eachCriteriaId.criteriaId)
-            criteriaObject[eachCriteriaId.criteriaId.toString()]={
-              weightage:eachCriteriaId.weightage
+            criteriaObject[eachCriteriaId.criteriaId.toString()] = {
+              weightage: eachCriteriaId.weightage
             }
           })
 
@@ -916,7 +916,7 @@ module.exports = class Criteria extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/criteria/upload Upload Criteria CSV
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Criteria CSV
   * @apiGroup Criteria
   * @apiParam {File} criteria     Mandatory criteria file of type CSV.
@@ -1057,10 +1057,10 @@ module.exports = class Criteria extends Abstract {
           csvData["Criteria Name"] = parsedCriteria.criteriaName
           csvData["Criteria External Id"] = parsedCriteria.criteriaID
 
-          if(criteriaDocuments._id){
-            csvData["Criteria Internal Id"] = criteriaDocuments._id            
+          if (criteriaDocuments._id) {
+            csvData["Criteria Internal Id"] = criteriaDocuments._id
           } else {
-            csvData["Criteria Internal Id"] = "Not inserted" 
+            csvData["Criteria Internal Id"] = "Not inserted"
           }
 
           input.push(csvData)
@@ -1078,7 +1078,7 @@ module.exports = class Criteria extends Abstract {
       }
     })
   }
- 
+
 };
 
 

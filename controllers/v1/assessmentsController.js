@@ -8,7 +8,7 @@ module.exports = class Assessments {
 
     /**
     * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.

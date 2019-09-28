@@ -10,7 +10,7 @@ module.exports = class Observations extends v1Observation {
 
     /**
      * @api {get} /assessment/api/v2/observations/searchEntities?solutionId=:solutionId&search=:searchText&limit=1&page=1 Search Entities based on observationId or solutionId
-     * @apiVersion 0.0.2
+     * @apiVersion 2.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -95,18 +95,18 @@ module.exports = class Observations extends v1Observation {
 
     }
 
-       /**
-     * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
-     * @apiVersion 0.0.2
-     * @apiName Assessments
-     * @apiGroup Observations
-     * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiParam {String} entityId Entity ID.
-     * @apiParam {Int} submissionNumber Submission Number.
-     * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
-     * @apiUse successBody
-     * @apiUse errorBody
-     */
+    /**
+  * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
+  * @apiVersion 2.0.0
+  * @apiName Assessments
+  * @apiGroup Observations
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} entityId Entity ID.
+  * @apiParam {Int} submissionNumber Submission Number.
+  * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
     async assessment(req) {
 
         return new Promise(async (resolve, reject) => {

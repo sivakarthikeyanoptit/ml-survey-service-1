@@ -13,7 +13,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/entities/add?type=:entityType&programId=:programInternalId&solutionId=:solutionInternalId&parentEntityId=:parentEntityInternalId Entity add
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Entity add
   * @apiGroup Entities
   * @apiParamExample {json} Request-Body:
@@ -71,7 +71,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Entity list
   * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -109,7 +109,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entities/form?type=:entityType Entity form
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Entity form
   * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -144,7 +144,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entities/fetch/:entityId?type=:entityType Entity profile
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Entity profile
   * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -180,7 +180,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/entities/update/:entityId?type=:entityType Update Entity Information
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Update Entity Information
   * @apiGroup Entities
   * @apiParamExample {json} Request-Body:
@@ -230,7 +230,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/entities/bulkCreate?type=:entityType Upload Entity Information CSV
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Entity Information CSV
   * @apiGroup Entities
   * @apiParam {String} type Entity Type.
@@ -287,7 +287,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/entities/mappingUpload?programId=:programExternalId&?solutionId=:solutionExternalId Upload Entity Mapping Information CSV
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Entity Information CSV
   * @apiGroup Entities
   * @apiParam {String} programId Program External ID.
@@ -351,7 +351,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/entities/uploadForPortal?type=:entityType&programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Entity Information CSV Using Portal
   * @apiGroup Entities
   * @apiParam {File} entities     Mandatory entities file of type CSV.
@@ -387,7 +387,7 @@ module.exports = class Entities extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entities/relatedEntities/:entityId Get Related Entities
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get Related Entities
   * @apiGroup Entities
   * @apiSampleRequest /assessment/api/v1/entities/relatedEntities/5bfe53ea1d0c350d61b78d3d

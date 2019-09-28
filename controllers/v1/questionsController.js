@@ -13,7 +13,7 @@ module.exports = class Questions extends Abstract {
 
   /**
    * @api {post} /assessment/api/v1/questions/setGeneralQuestions Upload General Questions
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Upload General Questions
    * @apiGroup Questions
    * @apiParam {File} questions     Mandatory questions file of type CSV.
@@ -75,7 +75,7 @@ module.exports = class Questions extends Abstract {
 
   /**
    * @api {post} /assessment/api/v1/questions/upload Upload Questions CSV
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Upload Questions CSV
    * @apiGroup Questions
    * @apiParam {File} questions     Mandatory questions file of type CSV.
@@ -307,7 +307,7 @@ module.exports = class Questions extends Abstract {
 
   /**
    * @api {post} /assessment/api/v1/questions/bulkUpdate Bulk update Questions CSV
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Bulk update Questions CSV
    * @apiGroup Questions
    * @apiParam {File} questions     Mandatory questions file of type CSV.

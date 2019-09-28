@@ -14,7 +14,7 @@ module.exports = class UserExtension extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/userExtension/getProfile/{{userId}} Get user profile
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get user profile
   * @apiGroup User Extension
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -55,7 +55,7 @@ module.exports = class UserExtension extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/userExtension/bulkUpload Bulk Upload User Roles
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Bulk Upload User Roles
   * @apiGroup User Extension
   * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
@@ -114,7 +114,7 @@ module.exports = class UserExtension extends Abstract {
 
   /**
    * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName User Extension Entity details
    * @apiGroup User Extension
    * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1

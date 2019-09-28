@@ -14,7 +14,7 @@ module.exports = class EntityAssessors extends Abstract {
 
   /**
  * @api {get} /assessment/api/v1/entityAssessors/entities?type="assessment"&subType="institutional"&programId=""&solutionId="" Entity assessor list
- * @apiVersion 0.0.1
+ * @apiVersion 1.0.0
  * @apiName Entity assessor list
  * @apiGroup Entity Assessor
  * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -62,8 +62,8 @@ module.exports = class EntityAssessors extends Abstract {
           }
         ];
 
-        if(req.query.programId) assessorEntitiesQueryObject[0]["$match"]["programId"] = ObjectId(req.query.programId);
-        if(req.query.solutionId) assessorEntitiesQueryObject[0]["$match"]["solutionId"] = ObjectId(req.query.solutionId);
+        if (req.query.programId) assessorEntitiesQueryObject[0]["$match"]["programId"] = ObjectId(req.query.programId);
+        if (req.query.solutionId) assessorEntitiesQueryObject[0]["$match"]["solutionId"] = ObjectId(req.query.solutionId);
 
         const assessorsDocument = await database.models.entityAssessors.aggregate(assessorEntitiesQueryObject)
 
@@ -121,7 +121,7 @@ module.exports = class EntityAssessors extends Abstract {
                 entityId: {
                   $in: assessor.entities
                 },
-                solutionId:assessor.solutionId
+                solutionId: assessor.solutionId
               },
               {
                 "entityId": 1,
@@ -131,12 +131,14 @@ module.exports = class EntityAssessors extends Abstract {
             )
 
             entityPAISubmissionStatus = submissions.reduce(
-              (ac, entitySubmission) => ({ ...ac, 
+              (ac, entitySubmission) => ({
+                ...ac,
                 [entitySubmission.entityId.toString()]: {
-                  PAIStatus:(entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false,
-                  submissionId:entitySubmission._id,
+                  PAIStatus: (entitySubmission.entityId && entitySubmission.entityId.evidences && entitySubmission.entityId.evidences.PAI && entitySubmission.entityId.evidences.PAI.isSubmitted === true) ? entity.entityId.evidences.PAI.isSubmitted : false,
+                  submissionId: entitySubmission._id,
                   submissionStatus: (entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"
-                } }), {})
+                }
+              }), {})
 
             let programDocument = program
             programDocument.solutions = new Array
@@ -178,7 +180,7 @@ module.exports = class EntityAssessors extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/entityAssessors/upload Upload Entity Information CSV
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Upload Entity Assessor Information CSV
 * @apiGroup Entity Assessor
 * @apiParamExample {json} Request-Body:
@@ -215,7 +217,7 @@ module.exports = class EntityAssessors extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/entityAssessors/uploadForPortal?programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Upload Entity Assessor Information CSV Using Portal
 * @apiGroup Entity Assessor
 * @apiParamExample {json} Request-Body:

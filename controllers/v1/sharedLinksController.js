@@ -11,7 +11,7 @@ module.exports = class SharedLink extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/sharedLinks/generate Create a shared link
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Create shared link
   * @apiGroup SharedLinks
   * @apiUse successBody
@@ -85,7 +85,7 @@ module.exports = class SharedLink extends Abstract {
 
   /**
     * @api {get} /assessment/api/v1/sharedLinks/verify Create a shared link
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Verify shared link
     * @apiGroup SharedLinks
     * @apiUse successBody

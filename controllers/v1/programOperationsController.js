@@ -4,10 +4,10 @@ const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
 const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
 const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
 module.exports = class ProgramOperations {
-    
+
     /**
     * @api {get} /assessment/api/v1/programOperations/listByUser Fetch Program List By User
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Program List By User
     * @apiGroup programOperations
     * @apiUse successBody
@@ -83,7 +83,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId Fetch Reports Filter
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Filters(Drop down contents) for Reports
     * @apiGroup programOperations
     * @apiUse successBody
@@ -95,7 +95,7 @@ module.exports = class ProgramOperations {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let solutionDocument = await database.models.solutions.findOne({_id:ObjectId(req.params._id)},{entities:1}).lean();
+                let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(req.params._id) }, { entities: 1 }).lean();
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({ "name": "school" }, { types: 1 }).lean();
 
@@ -142,7 +142,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId Fetch User Profile
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName User profile
     * @apiGroup programOperations
     * @apiUse successBody
@@ -208,7 +208,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01 Fetch Entity Summary
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Entity Summary
     * @apiGroup programOperations
     * @apiUse successBody
@@ -284,7 +284,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Assessor Report
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Assessor Report
     * @apiGroup programOperations
     * @apiUse successBody
@@ -405,7 +405,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Entity Report
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Entity Report
     * @apiGroup programOperations
     * @apiUse successBody
@@ -514,7 +514,7 @@ module.exports = class ProgramOperations {
 
     /**
     * @api {get} /assessment/api/v1/programOperations/searchEntity/:solutionId?id=entityId Search Entity By Id
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Fetch Filters(Autocomplete contents) for Reports
     * @apiGroup programOperations
     * @apiUse successBody

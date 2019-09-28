@@ -13,7 +13,7 @@ module.exports = class EntityTypes extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entityTypes/canBeObserved Entity Type list
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Entity Type Observable list
   * @apiGroup Entity Types
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -27,7 +27,7 @@ module.exports = class EntityTypes extends Abstract {
 
       try {
 
-        let result = await entitiyTypesHelper.list({isObservable:true},{name :1});
+        let result = await entitiyTypesHelper.list({ isObservable: true }, { name: 1 });
 
         return resolve({
           message: "Entity type fetched successfully.",
@@ -51,7 +51,7 @@ module.exports = class EntityTypes extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/entityTypes/createGroupEntityTypeIndex Create groups.entityType index
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Create groups.entityType index
   * @apiGroup Entity Types
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -65,11 +65,11 @@ module.exports = class EntityTypes extends Abstract {
 
       try {
 
-        const result = await entitiyTypesHelper.list({},{name :1});
-        
+        const result = await entitiyTypesHelper.list({}, { name: 1 });
+
         let indexResult = await Promise.all(result.map(async entityType => {
           const indexCreation = await entitiesHelper.createGroupEntityTypeIndex(entityType.name)
-          return "Index successfully created for entity type - "+entityType.name
+          return "Index successfully created for entity type - " + entityType.name
         }))
 
         if (
