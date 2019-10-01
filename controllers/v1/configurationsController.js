@@ -15,6 +15,28 @@ module.exports = class Configurations extends Abstract {
     * @apiSampleRequest /assessment/api/v1/configurations/navigation
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "tabActions": [
+    * {
+        "name": "Configuration",
+        "id": "configuration",
+        "accessibility": true,
+        "tabActions": [
+            {
+            "name": "Criteria",
+            "id": "criteria",
+            "accessibility": true,
+            "tabActions": []
+            },
+            {
+            "name": "Question",
+            "id": "question",
+            "accessibility": false,
+            "tabActions": []
+            }
+        ]
+    * }
+    ]
     */
     async navigation(req) {
         return new Promise(async (resolve, reject) => {

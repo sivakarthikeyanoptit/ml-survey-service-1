@@ -20,6 +20,17 @@ module.exports = class EntityTypes extends Abstract {
   * @apiSampleRequest /assessment/api/v1/entityTypes/canBeObserved
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * "result": [
+    {
+      "_id": "5ce23d633c330302e720e661",
+      "name": "teacher"
+    },
+    {
+      "_id": "5ce23d633c330302e720e663",
+      "name": "schoolLeader"
+    }
+    ]
   */
 
   canBeObserved() {

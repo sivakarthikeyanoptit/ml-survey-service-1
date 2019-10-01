@@ -214,6 +214,11 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiName check submissions status 
   * @apiGroup ObservationSubmissions
   * @apiParam {String} evidenceId Evidence ID.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/isAllowed/5d2c1c57037306041ef0c7ea?evidenceId=SO
+  * @apiParamExample {json} Response:
+  * "result": {
+      "allowed": true
+    }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -269,7 +274,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/observationSubmissions/delete:observationSubmissionId Delete observation submission. 
+  * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete observation submission. 
   * @apiVersion 1.0.0
   * @apiName Delete observation submission. 
   * @apiGroup ObservationSubmissions
@@ -395,9 +400,6 @@ module.exports = class ObservationSubmissions extends Abstract {
 
     })
   }
-
-
-
 
 };
 

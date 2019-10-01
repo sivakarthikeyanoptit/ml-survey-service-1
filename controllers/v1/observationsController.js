@@ -12,9 +12,8 @@ module.exports = class Observations extends Abstract {
         super(observationsSchema);
     }
 
-
     /**
-    * @api {get} /assessment/api/v1/observations/solutions?search=:searchText&limit=1&page=1 Observation Solution
+    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
     * @apiVersion 1.0.0
     * @apiName Observation Solution
     * @apiGroup Observations
@@ -22,6 +21,27 @@ module.exports = class Observations extends Abstract {
     * @apiSampleRequest /assessment/api/v1/observations/solutions/5cd955487e100b4dded3ebb3?search=Framework&pageSize=10&pageNo=1
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "data": [
+                {
+                    "_id": "5c6bd309af0065f0e0d4223b",
+                    "externalId": "TAF-2019",
+                    "name": "Teacher Assessment Framework",
+                    "description": "Teacher Assessment Framework",
+                    "keywords": [
+                        "Framework",
+                        "Priyanka",
+                        "Assessment"
+                    ],
+                    "entityTypeId": "5ce23d633c330302e720e661",
+                    "programId": "5c6bd365af0065f0e0d42280"
+                }
+            ],
+            "count": 1
+        }
+    ]
     */
 
     async solutions(req) {
@@ -74,7 +94,6 @@ module.exports = class Observations extends Abstract {
 
     }
 
-
     /**
     * @api {get} /assessment/api/v1/observations/metaForm/:solutionId Observation Creation Meta Form
     * @apiVersion 1.0.0
@@ -84,6 +103,20 @@ module.exports = class Observations extends Abstract {
     * @apiSampleRequest /assessment/api/v1/observations/metaForm
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "field": "name",
+            "label": "Title",
+            "value": "",
+            "visible": true,
+            "editable": true,
+            "validation": {
+                "required": true
+            },
+            "input": "text"
+        }
+    ]
     */
 
     async metaForm(req) {
@@ -428,6 +461,23 @@ module.exports = class Observations extends Abstract {
      * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
      * @apiUse successBody
      * @apiUse errorBody
+     * @apiParamExample {json} Response:
+     * {
+        "message": "Entities fetched successfully",
+        "status": 200,
+        "result": [
+            {
+                "data": [
+                    {
+                        "_id": "5c5b1581e7e84d1d1be9175f",
+                        "name": "Vijaya krishna.T",
+                        "selected": false
+                    }
+                ],
+                "count": 435
+            }
+        ]
+    }
      */
 
 
@@ -823,7 +873,7 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/importFromFramework/?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
+     * @api {get} /assessment/api/v1/observations/importFromFramework?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
      * @apiVersion 1.0.0
      * @apiName Create observation solution from framework.
      * @apiGroup Observations

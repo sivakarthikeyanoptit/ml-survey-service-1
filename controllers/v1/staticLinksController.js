@@ -18,6 +18,21 @@ module.exports = class StaticLinks extends Abstract {
   * @apiGroup Static Links
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/staticLinks/list
+  * @apiParamExample {json} Response:
+  * "result": [
+      {
+       "_id": "5d259439a9bc1209d0184390",
+       "value": "privacyPolicy",
+       "link": "https://shikshalokam.org/wp-content/uploads/2019/01/data_privacy_policy.html",
+       "title": "Privacy Policy"
+      },
+      {
+       "_id": "5d259439a9bc1209d0184391",
+       "value": "termsOfUse",
+       "link": "https://shikshalokam.org/wp-content/uploads/2019/05/Final-ShikshaLokam-Terms-of-Use-MCM-08052019-Clean-copy-1.html",
+       "title": "Terms of Use"
+      }
+    ]
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -63,11 +78,12 @@ module.exports = class StaticLinks extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Upload Static Links Information CSV
   * @apiGroup Static Links
-  * @apiParam {File} staticLinks     Mandatory static links file of type CSV.
+  * @apiParam {File} staticLinks Mandatory static links file of type CSV.
   * @apiSampleRequest /assessment/api/v1/staticLinks/bulkCreate
   * @apiUse successBody
   * @apiUse errorBody
   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -175,7 +191,5 @@ module.exports = class StaticLinks extends Abstract {
 
     })
   }
-
-
 
 };

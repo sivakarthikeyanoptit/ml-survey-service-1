@@ -12,7 +12,7 @@ module.exports = class Import {
     * @apiVersion 1.0.0
     * @apiName Upload Program Document JSON
     * @apiGroup Import
-    * @apiParam {File} program     Mandatory program file of type JSON.
+    * @apiParam {File} program Mandatory program file of type JSON.
     * @apiUse successBody
     * @apiUse errorBody
     */

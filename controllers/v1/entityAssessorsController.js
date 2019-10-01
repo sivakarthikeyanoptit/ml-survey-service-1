@@ -10,17 +10,48 @@ module.exports = class EntityAssessors extends Abstract {
     return "entityAssessors";
   }
 
-
-
   /**
  * @api {get} /assessment/api/v1/entityAssessors/entities?type="assessment"&subType="institutional"&programId=""&solutionId="" Entity assessor list
  * @apiVersion 1.0.0
  * @apiName Entity assessor list
  * @apiGroup Entity Assessor
  * @apiHeader {String} X-authenticated-user-token Authenticity token
- * @apiSampleRequest /assessment/api/v1/entityAssessors/entities
+ * @apiSampleRequest /assessment/api/v1/entityAssessors/entities?type=assessment&subType=institutional&programId=5cfa4ebcfc7cae61da9add8b&solutionId=5cfdf0e5e8dc32060234571c
  * @apiUse successBody
  * @apiUse errorBody
+ * @apiParamExample {json} Response:
+ * "result": [
+     {
+      "_id": "5cfa4ebcfc7cae61da9add8b",
+      "externalId": "PGM-SMC",
+      "name": "SMC Program Index 2018-19",
+      "description": "SMC Program Index 2018-19",
+      "startDate": "2018-05-20T05:39:26.970Z",
+      "endDate": "2020-05-20T05:39:26.970Z",
+      "solutions": [
+      {
+        "_id": "5cfdf0e5e8dc32060234571c",
+        "type": "assessment",
+        "subType": "institutional",
+        "externalId": "SOLUTION-SMC",
+        "name": "SMC Assessment Framework 2019",
+        "description": "SMC Assessment Framework 2019",
+        "entities": [
+          {
+            "_id": "5cfe1f29f5fcff1170088cf3",
+            "isParentInterviewCompleted": false,
+            "submissionId": "5d7b3870491ec9303b93d098",
+            "submissionStatus": "started",
+            "externalId": "SMC01",
+            "name": "SMC of School 1",
+            "city": "Bengaluru",
+            "state": "Delhi"
+          }
+        ]
+      }
+    ]
+  }
+]
  */
 
   async entities(req) {
@@ -177,14 +208,13 @@ module.exports = class EntityAssessors extends Abstract {
 
   }
 
-
   /**
 * @api {post} /assessment/api/v1/entityAssessors/upload Upload Entity Information CSV
 * @apiVersion 1.0.0
 * @apiName Upload Entity Assessor Information CSV
 * @apiGroup Entity Assessor
-* @apiParamExample {json} Request-Body:
-* 	Upload CSV
+* @apiParam {File} assessors Mandatory assessors file of type CSV.
+* @apiSampleRequest /assessment/api/v1/entityAssessors/upload
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -214,17 +244,17 @@ module.exports = class EntityAssessors extends Abstract {
 
   }
 
-
   /**
 * @api {post} /assessment/api/v1/entityAssessors/uploadForPortal?programId=:programExternalId&solutionId=:solutionExternalId Upload Entity Information CSV Using Portal
 * @apiVersion 1.0.0
 * @apiName Upload Entity Assessor Information CSV Using Portal
 * @apiGroup Entity Assessor
-* @apiParamExample {json} Request-Body:
-* 	Upload CSV
+* @apiParam {File} assessors Mandatory assessors file of type CSV.
+* @apiSampleRequest /assessment/api/v1/entityAssessors/uploadForPortal?programId=PROGID01&solutionId=EF-DCPCR-2018-001
 * @apiUse successBody
 * @apiUse errorBody
 */
+
   async uploadForPortal(req) {
 
     return new Promise(async (resolve, reject) => {

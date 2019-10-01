@@ -16,7 +16,7 @@ module.exports = class Questions extends Abstract {
    * @apiVersion 1.0.0
    * @apiName Upload General Questions
    * @apiGroup Questions
-   * @apiParam {File} questions     Mandatory questions file of type CSV.
+   * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
    * @apiUse errorBody
    */
@@ -74,15 +74,16 @@ module.exports = class Questions extends Abstract {
   }
 
   /**
-   * @api {post} /assessment/api/v1/questions/upload Upload Questions CSV
+   * @api {post} /assessment/api/v1/questions/bulkCreate bulkCreate Questions CSV
    * @apiVersion 1.0.0
-   * @apiName Upload Questions CSV
+   * @apiName bulkCreate Questions
    * @apiGroup Questions
-   * @apiParam {File} questions     Mandatory questions file of type CSV.
+   * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
    * @apiUse errorBody
    */
-  upload(req) {
+
+  bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.questions) {
@@ -310,7 +311,7 @@ module.exports = class Questions extends Abstract {
    * @apiVersion 1.0.0
    * @apiName Bulk update Questions CSV
    * @apiGroup Questions
-   * @apiParam {File} questions     Mandatory questions file of type CSV.
+   * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
    * @apiUse errorBody
    */
@@ -621,6 +622,5 @@ module.exports = class Questions extends Abstract {
       }
     });
   }
-
 
 };

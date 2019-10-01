@@ -956,12 +956,13 @@ module.exports = class Submission extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/submissions/rate/:entityExternalId Rate an Entity
+  * @api {get} /assessment/api/v1/submissions/rate/:entityExternalId?programId=:programExternalId&solutionId=:solutionExternalId Rate an Entity
   * @apiVersion 1.0.0
   * @apiName Rate an Entity
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} solutionId Solution External ID.
+  * @apiSampleRequest /assessment/api/v1/submissions/rate/1002036?programId=PROGID01&solutionId=EF-DCPCR-2018-001
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -1021,13 +1022,14 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/multiRate Multi Rate
+  * @api {get} /assessment/api/v1/submissions/multiRate?entityId=:entityId1,:entityId2&programId=:programExternalId&solutionId=:solutionExternalId Multi Rate
   * @apiVersion 1.0.0
   * @apiName Multi Rate
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} solutionId Solution External ID.
   * @apiParam {String} entityId Entity ID.
+  * @apiSampleRequest /assessment/api/v1/submissions/multiRate?entityId=1556397,1310274&programId=PROGID01&solutionId=EF-DCPCR-2018-001
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -1166,13 +1168,18 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/isAllowed/:submissionId Fetch submissions
+  * @api {get} /assessment/api/v1/submissions/isAllowed/:submissionId?evidenceId=:ecm Fetch submissions
   * @apiVersion 1.0.0
   * @apiName Fetch submissions
   * @apiGroup Submissions
   * @apiParam {String} evidenceId Evidence ID.
+  * @apiSampleRequest /assessment/api/v1/submissions/isAllowed/5d31651fdc83304d4cfdac0c?evidenceId=BL
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * "result": {
+    "allowed": true
+   }
   */
 
   async isAllowed(req) {
@@ -1465,6 +1472,7 @@ module.exports = class Submission extends Abstract {
 	 *       "q3" : ""     
 	 *    }
    *  }
+   * @apiSampleRequest /assessment/api/v1/submissions/feedback/5d31651fdc83304d4cfdac0c
    * @apiUse successBody
    * @apiUse errorBody
    */
@@ -1523,7 +1531,7 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/status/ Fetch submission status
+  * @api {get} /assessment/api/v1/submissions/status/:submissionId Fetch submission status
   * @apiVersion 1.0.0
   * @apiName Fetch submission status
   * @apiGroup Submissions
@@ -1561,13 +1569,14 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-   * @api {get} {{url}}/assessment/api/v1/submissions/mergeEcmSubmissionToAnswer Merging answer in Submissions 
+   * @api {get} {{url}}/assessment/api/v1/submissions/mergeEcmSubmissionToAnswer?solutionId=:solutionExternalId&entityId=:entityExternalId&ecm=:ecm Merging answer in Submissions 
    * @apiVersion 1.0.0
    * @apiName Merge Answers in submissions 
    * @apiGroup Submissions
    * @apiParam {String} solutionId Solution external Id.
    * @apiParam {String} entityId Entity external Id.
    * @apiParam {String} ecm Evidence collection method.
+   * @apiSampleRequest /assessment/api/v1/submissions/mergeEcmSubmissionToAnswer?solutionId=EF-DCPCR-2018-001&entityId=1959076&ecm=BL
    * @apiUse successBody
    * @apiUse errorBody
    */
@@ -1580,7 +1589,7 @@ module.exports = class Submission extends Abstract {
       try {
 
         if (!req.query.solutionId) {
-          throw "Entity id is required"
+          throw "solution id is required"
         }
 
         if (!req.query.entityId) {
@@ -1729,11 +1738,11 @@ module.exports = class Submission extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/submissions/modifyByCsvUpload/ Update submission answers.
+  * @api {post} /assessment/api/v1/submissions/modifyByCsvUpload/ Update submission answers.
   * @apiVersion 1.0.0
   * @apiName Update submission answers.
   * @apiGroup Submissions
-  * @apiParam {File} questions     Mandatory questions file of type CSV.
+  * @apiParam {File} questions Mandatory questions file of type CSV.
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -1875,16 +1884,18 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/resetEcm/:programExternalId Reset Submission ECM
+  * @api {get} /assessment/api/v1/submissions/resetEcm/:programExternalId?entityId=:entityExternalId&ecm=BL Reset Submission ECM
   * @apiVersion 1.0.0
   * @apiName Reset ECM of Submission.
   * @apiGroup Submissions
   * @apiParam {String} evidenceId Evidence ID.
   * @apiParam {String} entityId Entity ID.
   * @apiParam {String} ecmToBeReset ECM Code.
+  * @apiSampleRequest /assessment/api/v1/submissions/resetEcm/PROGID01?entityId=1556397&ecm=LW
   * @apiUse successBody
   * @apiUse errorBody
   */
+
   async resetEcm(req) {
     return new Promise(async (resolve, reject) => {
       try {

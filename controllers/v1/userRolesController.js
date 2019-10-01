@@ -20,6 +20,20 @@ module.exports = class UserRoles extends Abstract {
   * @apiSampleRequest /assessment/api/v1/userRoles/list
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  *  "result": [
+        {
+          "_id": "5d5e47051f5a363a0a187029",
+          "code": "HM",
+          "entityTypes": [
+            {
+             "entityTypeId": "5ce23d633c330302e720e65f",
+             "entityType": "school"
+             }
+          ],
+          "title": "Headmaster"
+        }
+      ]
   */
 
   list(req) {
@@ -60,11 +74,12 @@ module.exports = class UserRoles extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Bulk Create User Roles
   * @apiGroup User Roles
-  * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
+  * @apiParam {File} userRoles Mandatory user roles file of type CSV.
   * @apiSampleRequest /assessment/api/v1/userRoles/bulkCreate
   * @apiUse successBody
   * @apiUse errorBody
   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -119,7 +134,7 @@ module.exports = class UserRoles extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Bulk Update User Roles
   * @apiGroup User Roles
-  * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
+  * @apiParam {File} userRoles Mandatory user roles file of type CSV.
   * @apiSampleRequest /assessment/api/v1/userRoles/bulkUpdate
   * @apiUse successBody
   * @apiUse errorBody
@@ -172,7 +187,5 @@ module.exports = class UserRoles extends Abstract {
 
     })
   }
-
-
 
 };

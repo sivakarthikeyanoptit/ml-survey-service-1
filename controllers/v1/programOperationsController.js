@@ -12,6 +12,23 @@ module.exports = class ProgramOperations {
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+           "_id": "5b98d7b6d4f87f317ff615ee",
+           "name": "DCPCR School Development Index 2018-19",
+           "description": "DCPCR School Development Index 2018-19",
+           "externalId": "PROGID01",
+           "assessments": [
+              {
+                 "_id": "5b98fa069f664f7e1ae7498c",
+                 "externalId": "EF-DCPCR-2018-001",
+                 "name": "DCPCR Assessment Framework 2018",
+                 "description": "DCPCR Assessment Framework 2018"
+              }
+            ]
+        }
+    ]
     */
 
     async listByUser(req) {
@@ -88,6 +105,22 @@ module.exports = class ProgramOperations {
     * @apiGroup programOperations
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "field": "fromDate",
+            "label": "start date",
+            "value": "",
+            "visible": true,
+            "editable": true,
+            "input": "date",
+            "validation": {
+                "required": true
+            },
+            "min": "1970-01-01T00:00:00.000Z",
+            "max": "2019-10-01T05:48:46.008Z"
+        }
+    ]
     */
 
     async reportFilters(req) {
@@ -145,6 +178,33 @@ module.exports = class ProgramOperations {
     * @apiVersion 1.0.0
     * @apiName User profile
     * @apiGroup programOperations
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "label": "dateOfReportGeneration",
+            "value": "01-10-2019"
+        },
+        {
+            "label": "nameOfTheManager",
+            "value": "Sandeep"
+        },
+        {
+            "label": "role",
+            "value": "Assessors"
+        },
+        {
+            "label": "nameOfTheProgram",
+            "value": "DCPCR School Development Index 2018-19"
+        },
+        {
+            "label": "userName",
+            "value": "a1"
+        },
+        {
+            "label": "email",
+            "value": "a1@shikshalokamdev.dev"
+        }
+    ]
     * @apiUse successBody
     * @apiUse errorBody
     */

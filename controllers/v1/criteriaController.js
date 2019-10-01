@@ -919,10 +919,11 @@ module.exports = class Criteria extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Upload Criteria CSV
   * @apiGroup Criteria
-  * @apiParam {File} criteria     Mandatory criteria file of type CSV.
+  * @apiParam {File} criteria Mandatory criteria file of type CSV.
   * @apiUse successBody
   * @apiUse errorBody
   */
+
   async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
