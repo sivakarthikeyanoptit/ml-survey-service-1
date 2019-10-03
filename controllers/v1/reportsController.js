@@ -9,7 +9,7 @@ const imageBaseUrl =
 
 module.exports = class Reports {
 
-  constructor() {}
+  constructor() { }
 
   static get name() {
     return "submissions";
@@ -17,7 +17,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/status/:solutionExternalId Fetch submission reports for entity
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch submission reports for entity
    * @apiGroup Report
    * @apiUse successBody
@@ -41,7 +41,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -141,9 +141,9 @@ module.exports = class Reports {
                     });
                     _.merge(result, {
                       [evidenceMethod.externalId +
-                      "-duplication"]: evidenceMethod.hasConflicts
-                        ? evidenceMethod.hasConflicts
-                        : false
+                        "-duplication"]: evidenceMethod.hasConflicts
+                          ? evidenceMethod.hasConflicts
+                          : false
                     });
                   }
                 );
@@ -167,7 +167,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/assessorEntities/:solutionExternalId Fetch assessors reports for entities
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch assessors reports for entities
    * @apiGroup Report
    * @apiUse successBody
@@ -192,7 +192,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -286,7 +286,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/entityAssessors/:solutionExternalId Fetch entity wise assessor reports
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch entity wise assessor reports
    * @apiGroup Report
    * @apiUse successBody
@@ -311,7 +311,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -407,7 +407,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/solutionEntityStatus/:solutionExternalId Fetch entity status based on solution Id
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch entity status based on solution Id
    * @apiGroup Report
    * @apiUse successBody
@@ -479,7 +479,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -532,8 +532,8 @@ module.exports = class Reports {
                   solutionsEntityStatusObject[
                     "Completed Date"
                   ] = entitySubmission[entity._id.toString()].completedDate
-                    ? entitySubmission[entity._id.toString()].completedDate
-                    : "-";
+                      ? entitySubmission[entity._id.toString()].completedDate
+                      : "-";
                   solutionsEntityStatusObject["Submission Count"] =
                     entitySubmission[entity._id.toString()].status == "started"
                       ? 0
@@ -562,7 +562,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/solutionsSubmissionStatus/:solutionExternalId?evidenceId=LW Fetch solution submission status
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch solution submission status
    * @apiGroup Report
    * @apiParam {String} evidenceId Evidence ID.
@@ -624,7 +624,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -703,10 +703,10 @@ module.exports = class Reports {
                     evidenceSubmission.submittedBy.toString()
                   ]
                     ? assessors[evidenceSubmission.submittedBy.toString()]
-                        .externalId
+                      .externalId
                     : evidenceSubmission.submittedByName
-                    ? evidenceSubmission.submittedByName.replace(" null", "")
-                    : null;
+                      ? evidenceSubmission.submittedByName.replace(" null", "")
+                      : null;
 
                   if (evidenceSubmission.isValid === true) {
                     Object.values(evidenceSubmission.answers).forEach(
@@ -718,11 +718,11 @@ module.exports = class Reports {
                               submission.entityInformation.externalId,
                             Question: questionIdObject[singleAnswer.qid]
                               ? questionIdObject[singleAnswer.qid]
-                                  .questionName[0]
+                                .questionName[0]
                               : "",
                             "Question Id": questionIdObject[singleAnswer.qid]
                               ? questionIdObject[singleAnswer.qid]
-                                  .questionExternalId
+                                .questionExternalId
                               : "",
                             Answer: singleAnswer.notApplicable
                               ? "Not Applicable"
@@ -738,8 +738,8 @@ module.exports = class Reports {
                             Files: "",
                             "Submission Date": evidenceSubmission.submissionDate
                               ? reportsHelper.gmtToIst(
-                                  evidenceSubmission.submissionDate
-                                )
+                                evidenceSubmission.submissionDate
+                              )
                               : "-"
                           };
 
@@ -777,12 +777,12 @@ module.exports = class Reports {
                                 singleAnswer.responseType == "multiselect"
                               ) {
                                 questionIdObject[singleAnswer.qid] && questionIdObject[singleAnswer.qid]
-                                .questionOptions && questionIdObject[
-                                  singleAnswer.qid
-                                ].questionOptions.forEach(option => {
-                                  multiSelectResponse[option.value] =
-                                    option.label;
-                                });
+                                  .questionOptions && questionIdObject[
+                                    singleAnswer.qid
+                                  ].questionOptions.forEach(option => {
+                                    multiSelectResponse[option.value] =
+                                      option.label;
+                                  });
 
                                 if (
                                   typeof singleAnswer.value == "object" ||
@@ -825,20 +825,20 @@ module.exports = class Reports {
                                           eachInstanceChildQuestion.qid
                                         ]
                                           ? questionIdObject[
-                                              eachInstanceChildQuestion.qid
-                                            ].questionName[0]
+                                            eachInstanceChildQuestion.qid
+                                          ].questionName[0]
                                           : "",
                                         "Question Id": questionIdObject[
                                           eachInstanceChildQuestion.qid
                                         ]
                                           ? questionIdObject[
-                                              eachInstanceChildQuestion.qid
-                                            ].questionExternalId
+                                            eachInstanceChildQuestion.qid
+                                          ].questionExternalId
                                           : "",
                                         "Submission Date": evidenceSubmission.submissionDate
                                           ? reportsHelper.gmtToIst(
-                                              evidenceSubmission.submissionDate
-                                            )
+                                            evidenceSubmission.submissionDate
+                                          )
                                           : "-",
                                         Answer: "",
                                         "Assessor Id": asssessorId,
@@ -847,13 +847,13 @@ module.exports = class Reports {
                                           "",
                                         "Start Time": eachInstanceChildQuestion.startTime
                                           ? reportsHelper.gmtToIst(
-                                              eachInstanceChildQuestion.startTime
-                                            )
+                                            eachInstanceChildQuestion.startTime
+                                          )
                                           : "-",
                                         "End Time": eachInstanceChildQuestion.endTime
                                           ? reportsHelper.gmtToIst(
-                                              eachInstanceChildQuestion.endTime
-                                            )
+                                            eachInstanceChildQuestion.endTime
+                                          )
                                           : "-",
                                         Files: ""
                                       };
@@ -908,7 +908,7 @@ module.exports = class Reports {
                                         });
                                         eachInstanceChildRecord.Answer =
                                           radioResponse[
-                                            eachInstanceChildQuestion.value
+                                          eachInstanceChildQuestion.value
                                           ];
                                       } else if (
                                         eachInstanceChildQuestion.responseType ==
@@ -927,9 +927,9 @@ module.exports = class Reports {
 
                                         if (
                                           typeof eachInstanceChildQuestion.value ==
-                                            "object" ||
+                                          "object" ||
                                           typeof eachInstanceChildQuestion.value ==
-                                            "array"
+                                          "array"
                                         ) {
                                           if (eachInstanceChildQuestion.value) {
                                             eachInstanceChildQuestion.value.forEach(
@@ -980,7 +980,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/generateCriteriaByEntityId/:solutionExternalId Fetch criterias based on schoolId
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch criteria based on entityId
    * @apiParam {String} entityId Comma separated entity ID.
    * @apiGroup Report
@@ -1059,7 +1059,7 @@ module.exports = class Reports {
           "SS/I/c2"
         ];
 
-        let getCriteriaPath = function(themes, parentData = []) {
+        let getCriteriaPath = function (themes, parentData = []) {
           themes.forEach(theme => {
             if (theme.children) {
               let hierarchyTrackToUpdate = [...parentData];
@@ -1089,7 +1089,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -1146,7 +1146,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/generateSubmissionReportsByEntityId/:solutionExternalId Fetch Entity submission status
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch Entity submission status
    * @apiParam {String} entityId Comma separated entity ID.
    * @apiGroup Report
@@ -1192,7 +1192,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -1318,16 +1318,16 @@ module.exports = class Reports {
                             .externalId,
                         "Criteria Name":
                           criteriaQuestionDetailsObject[singleAnswer.qid] ==
-                          undefined
+                            undefined
                             ? "Question Deleted Post Submission"
                             : criteriaQuestionDetailsObject[singleAnswer.qid]
-                                .criteriaName,
+                              .criteriaName,
                         QuestionId: questionOptionObject[singleAnswer.qid]
                           ? questionOptionObject[singleAnswer.qid].externalId
                           : "",
                         Question: questionOptionObject[singleAnswer.qid]
                           ? questionOptionObject[singleAnswer.qid]
-                              .questionName[0]
+                            .questionName[0]
                           : "",
                         Answer: singleAnswer.notApplicable
                           ? "Not Applicable"
@@ -1341,12 +1341,12 @@ module.exports = class Reports {
                           questionOptionObject[singleAnswer.qid] == undefined
                             ? "No Options"
                             : questionOptionObject[singleAnswer.qid]
-                                .questionOptionValueString,
+                              .questionOptionValueString,
                         Options:
                           questionOptionObject[singleAnswer.qid] == undefined
                             ? "No Options"
                             : questionOptionObject[singleAnswer.qid]
-                                .questionOptionString,
+                              .questionOptionString,
                         Score: criteriaScoreObject[singleAnswer.criteriaId]
                           ? criteriaScoreObject[singleAnswer.criteriaId].score
                           : "",
@@ -1445,7 +1445,7 @@ module.exports = class Reports {
                               ).forEach(eachInstanceChildQuestion => {
                                 if (
                                   criteriaScoreObject[
-                                    eachInstanceChildQuestion.criteriaId
+                                  eachInstanceChildQuestion.criteriaId
                                   ] &&
                                   !criteriasThatIsNotIncluded.includes(
                                     criteriaScoreObject[
@@ -1465,21 +1465,21 @@ module.exports = class Reports {
                                       ] == undefined
                                         ? "Question Deleted Post Submission"
                                         : criteriaQuestionDetailsObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].criteriaName,
+                                          eachInstanceChildQuestion.qid
+                                        ].criteriaName,
                                     QuestionId: questionOptionObject[
                                       eachInstanceChildQuestion.qid
                                     ]
                                       ? questionOptionObject[
-                                          eachInstanceChildQuestion.qid
-                                        ].externalId
+                                        eachInstanceChildQuestion.qid
+                                      ].externalId
                                       : "",
                                     Question: questionOptionObject[
                                       eachInstanceChildQuestion.qid
                                     ]
                                       ? questionOptionObject[
-                                          eachInstanceChildQuestion.qid
-                                        ].questionName[0]
+                                        eachInstanceChildQuestion.qid
+                                      ].questionName[0]
                                       : "",
                                     Answer: eachInstanceChildQuestion.value,
                                     "Answer Option Value":
@@ -1497,22 +1497,22 @@ module.exports = class Reports {
                                       ] == undefined
                                         ? "No Options"
                                         : questionOptionObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].questionOptionValueString,
+                                          eachInstanceChildQuestion.qid
+                                        ].questionOptionValueString,
                                     Options:
                                       questionOptionObject[
                                         eachInstanceChildQuestion.qid
                                       ] == undefined
                                         ? "No Options"
                                         : questionOptionObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].questionOptionString,
+                                          eachInstanceChildQuestion.qid
+                                        ].questionOptionString,
                                     Score: criteriaScoreObject[
                                       eachInstanceChildQuestion.criteriaId
                                     ]
                                       ? criteriaScoreObject[
-                                          eachInstanceChildQuestion.criteriaId
-                                        ].score
+                                        eachInstanceChildQuestion.criteriaId
+                                      ].score
                                       : "",
                                     Remarks:
                                       eachInstanceChildQuestion.remarks || "",
@@ -1522,7 +1522,7 @@ module.exports = class Reports {
                                   if (
                                     eachInstanceChildQuestion.fileName &&
                                     eachInstanceChildQuestion.fileName.length >
-                                      0
+                                    0
                                   ) {
                                     eachInstanceChildQuestion.fileName.forEach(
                                       file => {
@@ -1560,10 +1560,10 @@ module.exports = class Reports {
                                     ] = radioResponse[
                                       eachInstanceChildQuestion.value
                                     ]
-                                      ? radioResponse[
-                                          eachInstanceChildQuestion.value
+                                        ? radioResponse[
+                                        eachInstanceChildQuestion.value
                                         ]
-                                      : "NA";
+                                        : "NA";
                                     eachInstanceChildRecord[
                                       "Answer Option Value"
                                     ] = eachInstanceChildQuestion.value;
@@ -1618,7 +1618,7 @@ module.exports = class Reports {
                       criteriaScoreObject[singleAnswer.criteriaId] &&
                       criteriasThatIsNotIncluded.includes(
                         criteriaScoreObject[singleAnswer.criteriaId].externalId)
-                        && !singleAnswer.notApplicable && singleAnswer.responseType == "matrix"   
+                      && !singleAnswer.notApplicable && singleAnswer.responseType == "matrix"
                     ) {
                       let singleAnswerRecord = {
                         "Entity Id": singleEntitySubmission.entityExternalId,
@@ -1627,16 +1627,16 @@ module.exports = class Reports {
                             .externalId,
                         "Criteria Name":
                           criteriaQuestionDetailsObject[singleAnswer.qid] ==
-                          undefined
+                            undefined
                             ? "Question Deleted Post Submission"
                             : criteriaQuestionDetailsObject[singleAnswer.qid]
-                                .criteriaName,
+                              .criteriaName,
                         QuestionId: questionOptionObject[singleAnswer.qid]
                           ? questionOptionObject[singleAnswer.qid].externalId
                           : "",
                         Question: questionOptionObject[singleAnswer.qid]
                           ? questionOptionObject[singleAnswer.qid]
-                              .questionName[0]
+                            .questionName[0]
                           : "",
                         Answer: singleAnswer.notApplicable
                           ? "Not Applicable"
@@ -1650,12 +1650,12 @@ module.exports = class Reports {
                           questionOptionObject[singleAnswer.qid] == undefined
                             ? "No Options"
                             : questionOptionObject[singleAnswer.qid]
-                                .questionOptionValueString,
+                              .questionOptionValueString,
                         Options:
                           questionOptionObject[singleAnswer.qid] == undefined
                             ? "No Options"
                             : questionOptionObject[singleAnswer.qid]
-                                .questionOptionString,
+                              .questionOptionString,
                         Score: criteriaScoreObject[singleAnswer.criteriaId]
                           ? criteriaScoreObject[singleAnswer.criteriaId].score
                           : "",
@@ -1678,188 +1678,188 @@ module.exports = class Reports {
                       }
 
                       let entityId =
-                            singleEntitySubmission.entityExternalId;
-                          singleAnswerRecord["Answer"] = "Instance Question";
+                        singleEntitySubmission.entityExternalId;
+                      singleAnswerRecord["Answer"] = "Instance Question";
 
-                          input.push(singleAnswerRecord);
+                      input.push(singleAnswerRecord);
 
-                          if (singleAnswer.value || singleAnswer.value == 0) {
-                            for (
-                              let instance = 0;
-                              instance < singleAnswer.value.length;
-                              instance++
+                      if (singleAnswer.value || singleAnswer.value == 0) {
+                        for (
+                          let instance = 0;
+                          instance < singleAnswer.value.length;
+                          instance++
+                        ) {
+                          Object.values(
+                            singleAnswer.value[instance]
+                          ).forEach(eachInstanceChildQuestion => {
+                            if (
+                              criteriaScoreObject[
+                              eachInstanceChildQuestion.criteriaId
+                              ] &&
+                              !criteriasThatIsNotIncluded.includes(
+                                criteriaScoreObject[
+                                  eachInstanceChildQuestion.criteriaId
+                                ].externalId
+                              )
                             ) {
-                              Object.values(
-                                singleAnswer.value[instance]
-                              ).forEach(eachInstanceChildQuestion => {
-                                if (
+                              let eachInstanceChildRecord = {
+                                "Entity Id": entityId,
+                                "Criteria Id":
                                   criteriaScoreObject[
                                     eachInstanceChildQuestion.criteriaId
-                                  ] &&
-                                  !criteriasThatIsNotIncluded.includes(
-                                    criteriaScoreObject[
-                                      eachInstanceChildQuestion.criteriaId
-                                    ].externalId
-                                  )
+                                  ].externalId,
+                                "Criteria Name":
+                                  criteriaQuestionDetailsObject[
+                                    eachInstanceChildQuestion.qid
+                                  ] == undefined
+                                    ? "Question Deleted Post Submission"
+                                    : criteriaQuestionDetailsObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].criteriaName,
+                                QuestionId: questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ]
+                                  ? questionOptionObject[
+                                    eachInstanceChildQuestion.qid
+                                  ].externalId
+                                  : "",
+                                Question: questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ]
+                                  ? questionOptionObject[
+                                    eachInstanceChildQuestion.qid
+                                  ].questionName[0]
+                                  : "",
+                                Answer: eachInstanceChildQuestion.value,
+                                "Answer Option Value":
+                                  questionOptionObject[
+                                    eachInstanceChildQuestion.qid
+                                  ] == undefined
+                                    ? "NA"
+                                    : "",
+                                "Question Rubric Level":
+                                  eachInstanceChildQuestion.rubricLevel ||
+                                  "",
+                                "Option Values":
+                                  questionOptionObject[
+                                    eachInstanceChildQuestion.qid
+                                  ] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptionValueString,
+                                Options:
+                                  questionOptionObject[
+                                    eachInstanceChildQuestion.qid
+                                  ] == undefined
+                                    ? "No Options"
+                                    : questionOptionObject[
+                                      eachInstanceChildQuestion.qid
+                                    ].questionOptionString,
+                                Score: criteriaScoreObject[
+                                  eachInstanceChildQuestion.criteriaId
+                                ]
+                                  ? criteriaScoreObject[
+                                    eachInstanceChildQuestion.criteriaId
+                                  ].score
+                                  : "",
+                                Remarks:
+                                  eachInstanceChildQuestion.remarks || "",
+                                Files: ""
+                              };
+
+                              if (
+                                eachInstanceChildQuestion.fileName &&
+                                eachInstanceChildQuestion.fileName.length >
+                                0
+                              ) {
+                                eachInstanceChildQuestion.fileName.forEach(
+                                  file => {
+                                    eachInstanceChildRecord["Files"] +=
+                                      imageBaseUrl + file + ",";
+                                  }
+                                );
+                                eachInstanceChildRecord[
+                                  "Files"
+                                ] = eachInstanceChildRecord[
+                                  "Files"
+                                ].replace(/,\s*$/, "");
+                              }
+
+                              let radioResponse = {};
+                              let multiSelectResponse = {};
+                              let multiSelectResponseArray = [];
+
+                              if (
+                                eachInstanceChildQuestion.responseType ==
+                                "radio"
+                              ) {
+                                questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ] && questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ].questionOptions && questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ].questionOptions.forEach(option => {
+                                  radioResponse[option.value] =
+                                    option.label;
+                                });
+                                eachInstanceChildRecord[
+                                  "Answer"
+                                ] = radioResponse[
+                                  eachInstanceChildQuestion.value
+                                ]
+                                    ? radioResponse[
+                                    eachInstanceChildQuestion.value
+                                    ]
+                                    : "NA";
+                                eachInstanceChildRecord[
+                                  "Answer Option Value"
+                                ] = eachInstanceChildQuestion.value;
+                              } else if (
+                                eachInstanceChildQuestion.responseType ==
+                                "multiselect"
+                              ) {
+                                questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ] && questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ].questionOptions && questionOptionObject[
+                                  eachInstanceChildQuestion.qid
+                                ].questionOptions.forEach(option => {
+                                  multiSelectResponse[option.value] =
+                                    option.label;
+                                });
+
+                                if (
+                                  eachInstanceChildQuestion.value != "" &&
+                                  eachInstanceChildQuestion.value != "NA"
                                 ) {
-                                  let eachInstanceChildRecord = {
-                                    "Entity Id": entityId,
-                                    "Criteria Id":
-                                      criteriaScoreObject[
-                                        eachInstanceChildQuestion.criteriaId
-                                      ].externalId,
-                                    "Criteria Name":
-                                      criteriaQuestionDetailsObject[
-                                        eachInstanceChildQuestion.qid
-                                      ] == undefined
-                                        ? "Question Deleted Post Submission"
-                                        : criteriaQuestionDetailsObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].criteriaName,
-                                    QuestionId: questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ]
-                                      ? questionOptionObject[
-                                          eachInstanceChildQuestion.qid
-                                        ].externalId
-                                      : "",
-                                    Question: questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ]
-                                      ? questionOptionObject[
-                                          eachInstanceChildQuestion.qid
-                                        ].questionName[0]
-                                      : "",
-                                    Answer: eachInstanceChildQuestion.value,
-                                    "Answer Option Value":
-                                      questionOptionObject[
-                                        eachInstanceChildQuestion.qid
-                                      ] == undefined
-                                        ? "NA"
-                                        : "",
-                                    "Question Rubric Level":
-                                      eachInstanceChildQuestion.rubricLevel ||
-                                      "",
-                                    "Option Values":
-                                      questionOptionObject[
-                                        eachInstanceChildQuestion.qid
-                                      ] == undefined
-                                        ? "No Options"
-                                        : questionOptionObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].questionOptionValueString,
-                                    Options:
-                                      questionOptionObject[
-                                        eachInstanceChildQuestion.qid
-                                      ] == undefined
-                                        ? "No Options"
-                                        : questionOptionObject[
-                                            eachInstanceChildQuestion.qid
-                                          ].questionOptionString,
-                                    Score: criteriaScoreObject[
-                                      eachInstanceChildQuestion.criteriaId
-                                    ]
-                                      ? criteriaScoreObject[
-                                          eachInstanceChildQuestion.criteriaId
-                                        ].score
-                                      : "",
-                                    Remarks:
-                                      eachInstanceChildQuestion.remarks || "",
-                                    Files: ""
-                                  };
-
-                                  if (
-                                    eachInstanceChildQuestion.fileName &&
-                                    eachInstanceChildQuestion.fileName.length >
-                                      0
-                                  ) {
-                                    eachInstanceChildQuestion.fileName.forEach(
-                                      file => {
-                                        eachInstanceChildRecord["Files"] +=
-                                          imageBaseUrl + file + ",";
-                                      }
-                                    );
-                                    eachInstanceChildRecord[
-                                      "Files"
-                                    ] = eachInstanceChildRecord[
-                                      "Files"
-                                    ].replace(/,\s*$/, "");
-                                  }
-
-                                  let radioResponse = {};
-                                  let multiSelectResponse = {};
-                                  let multiSelectResponseArray = [];
-
-                                  if (
-                                    eachInstanceChildQuestion.responseType ==
-                                    "radio"
-                                  ) {
-                                    questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ] && questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ].questionOptions && questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ].questionOptions.forEach(option => {
-                                      radioResponse[option.value] =
-                                        option.label;
-                                    });
-                                    eachInstanceChildRecord[
-                                      "Answer"
-                                    ] = radioResponse[
-                                      eachInstanceChildQuestion.value
-                                    ]
-                                      ? radioResponse[
-                                          eachInstanceChildQuestion.value
-                                        ]
-                                      : "NA";
-                                    eachInstanceChildRecord[
-                                      "Answer Option Value"
-                                    ] = eachInstanceChildQuestion.value;
-                                  } else if (
-                                    eachInstanceChildQuestion.responseType ==
-                                    "multiselect"
-                                  ) {
-                                    questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ] && questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ].questionOptions && questionOptionObject[
-                                      eachInstanceChildQuestion.qid
-                                    ].questionOptions.forEach(option => {
-                                      multiSelectResponse[option.value] =
-                                        option.label;
-                                    });
-
-                                    if (
-                                      eachInstanceChildQuestion.value != "" &&
-                                      eachInstanceChildQuestion.value != "NA"
-                                    ) {
-                                      eachInstanceChildQuestion.value.forEach(
-                                        value => {
-                                          multiSelectResponseArray.push(
-                                            multiSelectResponse[value]
-                                          );
-                                        }
+                                  eachInstanceChildQuestion.value.forEach(
+                                    value => {
+                                      multiSelectResponseArray.push(
+                                        multiSelectResponse[value]
                                       );
-                                      eachInstanceChildRecord[
-                                        "Answer"
-                                      ] = multiSelectResponseArray.toString();
-                                      eachInstanceChildRecord[
-                                        "Answer Option Value"
-                                      ] = eachInstanceChildQuestion.value.toString();
-                                    } else {
-                                      eachInstanceChildRecord["Answer"] =
-                                        "No value given";
                                     }
-                                  }
-
-                                  input.push(eachInstanceChildRecord);
+                                  );
+                                  eachInstanceChildRecord[
+                                    "Answer"
+                                  ] = multiSelectResponseArray.toString();
+                                  eachInstanceChildRecord[
+                                    "Answer Option Value"
+                                  ] = eachInstanceChildQuestion.value.toString();
+                                } else {
+                                  eachInstanceChildRecord["Answer"] =
+                                    "No value given";
                                 }
-                              });
+                              }
+
+                              input.push(eachInstanceChildRecord);
                             }
-                          }
-                          
+                          });
+                        }
+                      }
+
                     }
 
                   }
@@ -1873,7 +1873,7 @@ module.exports = class Reports {
                 ) {
                   let currentEcm =
                     singleEntitySubmission.evidencesStatus[
-                      pointerToEvidencesStatus
+                    pointerToEvidencesStatus
                     ];
 
                   let singleEcmValue = {
@@ -1906,7 +1906,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/registryDetails/:solutionExternalId fetch registry details
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch Registry details
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -1952,17 +1952,17 @@ module.exports = class Reports {
           let fileName = `${req.query.type} registry`;
           req.query.fromDate != ""
             ? (fileName +=
-                " from " + moment(req.query.fromDate).format("YYYY-MM-DD"))
+              " from " + moment(req.query.fromDate).format("YYYY-MM-DD"))
             : "";
           req.query.toDate != ""
             ? (fileName +=
-                " to " + moment(req.query.toDate).format("YYYY-MM-DD"))
+              " to " + moment(req.query.toDate).format("YYYY-MM-DD"))
             : "";
 
           let fileStream = new FileStream(fileName);
           let input = fileStream.initStream();
 
-          (async function() {
+          (async function () {
             await fileStream.getProcessorPromise();
             return resolve({
               isResponseAStream: true,
@@ -1981,7 +1981,7 @@ module.exports = class Reports {
               _id: {
                 $in:
                   entitiesDocument[pointerToRegistryDocument].groups[
-                    req.query.type
+                  req.query.type
                   ]
               },
               entityType: req.query.type,
@@ -2028,13 +2028,13 @@ module.exports = class Reports {
                   ].metaInformation.name;
                 singleRegistry.createdAt
                   ? (allregistryObject["Created At"] = reportsHelper.gmtToIst(
-                      singleRegistry.createdAt
-                    ))
+                    singleRegistry.createdAt
+                  ))
                   : (allregistryObject["Created At"] = "");
                 singleRegistry.updatedAt
                   ? (allregistryObject["Updated At"] = reportsHelper.gmtToIst(
-                      singleRegistry.updatedAt
-                    ))
+                    singleRegistry.updatedAt
+                  ))
                   : (allregistryObject["Updated At"] = "");
                 input.push(allregistryObject);
               })
@@ -2057,7 +2057,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/entityProfileInformation/:solutionExternalId Fetch Entity Profile Information
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch Entity Profile Information
    * @apiGroup Report
    * @apiUse successBody
@@ -2095,7 +2095,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -2156,8 +2156,8 @@ module.exports = class Reports {
                       entityProfileObject[
                         gen.utils.camelCaseToTitleCase(eachSchoolField)
                       ] = entityProfile[eachSchoolField]
-                        ? entityProfile[eachSchoolField]
-                        : "";
+                          ? entityProfile[eachSchoolField]
+                          : "";
                     });
                     input.push(entityProfileObject);
                   }
@@ -2179,7 +2179,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/generateEcmReportByDate/:solutionExternalId Generate all ecm report by date
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate all ecm report by date
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -2267,7 +2267,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -2336,20 +2336,20 @@ module.exports = class Reports {
                           evidenceSubmission.submittedBy.toString()
                         ]
                           ? assessors[evidenceSubmission.submittedBy.toString()]
-                              .externalId
+                            .externalId
                           : evidenceSubmission.submittedByName
-                          ? evidenceSubmission.submittedByName.replace(
+                            ? evidenceSubmission.submittedByName.replace(
                               " null",
                               ""
                             )
-                          : null;
+                            : null;
 
                         if (
                           evidenceSubmission.isValid === true &&
                           (evidenceSubmission.submissionDate >=
                             req.query.fromDate &&
                             evidenceSubmission.submissionDate <
-                              req.query.toDate)
+                            req.query.toDate)
                         ) {
                           Object.values(evidenceSubmission.answers).forEach(
                             singleAnswer => {
@@ -2360,13 +2360,13 @@ module.exports = class Reports {
                                   submission.entityInformation.externalId,
                                 Question: questionIdObject[singleAnswer.qid]
                                   ? questionIdObject[singleAnswer.qid]
-                                      .questionName[0]
+                                    .questionName[0]
                                   : "",
                                 "Question Id": questionIdObject[
                                   singleAnswer.qid
                                 ]
                                   ? questionIdObject[singleAnswer.qid]
-                                      .questionExternalId
+                                    .questionExternalId
                                   : "",
                                 Answer: singleAnswer.notApplicable
                                   ? "Not Applicable"
@@ -2375,8 +2375,8 @@ module.exports = class Reports {
                                 Remarks: singleAnswer.remarks || "",
                                 "Start Time": singleAnswer.startTime
                                   ? reportsHelper.gmtToIst(
-                                      singleAnswer.startTime
-                                    )
+                                    singleAnswer.startTime
+                                  )
                                   : "-",
                                 "End Time": singleAnswer.endTime
                                   ? reportsHelper.gmtToIst(singleAnswer.endTime)
@@ -2426,11 +2426,11 @@ module.exports = class Reports {
                                     questionIdObject[singleAnswer.qid] &&
                                       questionIdObject[singleAnswer.qid]
                                         .questionOptions && questionIdObject[
-                                      singleAnswer.qid
-                                    ].questionOptions.forEach(option => {
-                                      multiSelectResponse[option.value] =
-                                        option.label;
-                                    });
+                                          singleAnswer.qid
+                                        ].questionOptions.forEach(option => {
+                                          multiSelectResponse[option.value] =
+                                            option.label;
+                                        });
 
                                     if (
                                       typeof singleAnswer.value == "object" ||
@@ -2477,20 +2477,20 @@ module.exports = class Reports {
                                               eachInstanceChildQuestion.qid
                                             ]
                                               ? questionIdObject[
-                                                  eachInstanceChildQuestion.qid
-                                                ].questionName[0]
+                                                eachInstanceChildQuestion.qid
+                                              ].questionName[0]
                                               : "",
                                             "Question Id": questionIdObject[
                                               eachInstanceChildQuestion.qid
                                             ]
                                               ? questionIdObject[
-                                                  eachInstanceChildQuestion.qid
-                                                ].questionExternalId
+                                                eachInstanceChildQuestion.qid
+                                              ].questionExternalId
                                               : "",
                                             "Submission Date": evidenceSubmission.submissionDate
                                               ? reportsHelper.gmtToIst(
-                                                  evidenceSubmission.submissionDate
-                                                )
+                                                evidenceSubmission.submissionDate
+                                              )
                                               : "-",
                                             Answer: "",
                                             "Assessor Id": asssessorId,
@@ -2499,13 +2499,13 @@ module.exports = class Reports {
                                               "",
                                             "Start Time": eachInstanceChildQuestion.startTime
                                               ? reportsHelper.gmtToIst(
-                                                  eachInstanceChildQuestion.startTime
-                                                )
+                                                eachInstanceChildQuestion.startTime
+                                              )
                                               : "-",
                                             "End Time": eachInstanceChildQuestion.endTime
                                               ? reportsHelper.gmtToIst(
-                                                  eachInstanceChildQuestion.endTime
-                                                )
+                                                eachInstanceChildQuestion.endTime
+                                              )
                                               : "-",
                                             Files: "",
                                             ECM: evidenceSubmission.externalId
@@ -2565,7 +2565,7 @@ module.exports = class Reports {
                                               );
                                             eachInstanceChildRecord.Answer =
                                               radioResponse[
-                                                eachInstanceChildQuestion.value
+                                              eachInstanceChildQuestion.value
                                               ];
                                           } else if (
                                             eachInstanceChildQuestion.responseType ==
@@ -2577,20 +2577,20 @@ module.exports = class Reports {
                                               questionIdObject[
                                                 eachInstanceChildQuestion.qid
                                               ].questionOptions && questionIdObject[
-                                              eachInstanceChildQuestion.qid
-                                            ].questionOptions.forEach(
-                                              option => {
-                                                multiSelectResponse[
-                                                  option.value
-                                                ] = option.label;
-                                              }
-                                            );
+                                                eachInstanceChildQuestion.qid
+                                              ].questionOptions.forEach(
+                                                option => {
+                                                  multiSelectResponse[
+                                                    option.value
+                                                  ] = option.label;
+                                                }
+                                              );
 
                                             if (
                                               typeof eachInstanceChildQuestion.value ==
-                                                "object" ||
+                                              "object" ||
                                               typeof eachInstanceChildQuestion.value ==
-                                                "array"
+                                              "array"
                                             ) {
                                               if (
                                                 eachInstanceChildQuestion.value
@@ -2655,7 +2655,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/submissionFeedback/:solutionExternalId Generate feedback for the submissions
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate feedback for the submissions
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -2686,7 +2686,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -2765,7 +2765,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/ecmSubmissionByDate/:solutionExternalId Generate ECM submissions By date
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate ECM submissions By date
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -2780,7 +2780,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -2878,7 +2878,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/completedParentInterviewsByDate/:solutionExternalId Generate all parent report by date
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate all parent interview completed report by date
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -2913,17 +2913,17 @@ module.exports = class Reports {
         let fileName = `ParentInterview-Completed`;
         req.query.fromDate
           ? (fileName +=
-              "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
+            "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
           : "";
         req.query.toDate
           ? (fileName +=
-              "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
+            "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
           : moment().format("DD-MM-YYYY");
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -3007,9 +3007,9 @@ module.exports = class Reports {
                     if (
                       eachParentInterviewResponse.status === "completed" &&
                       eachParentInterviewResponse.completedAt >=
-                        req.query.fromDate &&
+                      req.query.fromDate &&
                       eachParentInterviewResponse.completedAt <=
-                        req.query.toDate
+                      req.query.toDate
                     ) {
                       result["Date"] = moment(
                         eachParentInterviewResponse.completedAt
@@ -3047,7 +3047,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/parentInterviewCallDidNotPickupReportByDate/:solutionExternalId Generate report whose parent did not pick up the call
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate report of all the call responses recorded for parents by date
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -3095,17 +3095,17 @@ module.exports = class Reports {
         let fileName = `ParentInterview-CallNotPickedupReport`;
         req.query.fromDate
           ? (fileName +=
-              "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
+            "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
           : "";
         req.query.toDate
           ? (fileName +=
-              "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
+            "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
           : moment().format("DD-MM-YYYY");
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -3186,7 +3186,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/parentInterviewCallResponseByDate/:solutionExternalId Generate report for the parent whose callResponse is present.
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Generate report for the parent whose callResponse is present.
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
@@ -3234,17 +3234,17 @@ module.exports = class Reports {
         let fileName = `ParentInterview-CallResponsesReport`;
         req.query.fromDate
           ? (fileName +=
-              "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
+            "fromDate_" + moment(req.query.fromDate).format("DD-MM-YYYY"))
           : "";
         req.query.toDate
           ? (fileName +=
-              "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
+            "toDate_" + moment(req.query.toDate).format("DD-MM-YYYY"))
           : moment().format("DD-MM-YYYY");
 
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -3281,9 +3281,9 @@ module.exports = class Reports {
             parentRegistryIdsArray.map(async eachParentRegistry => {
               if (
                 eachParentRegistry.metaInformation.callResponseUpdatedTime >=
-                  req.query.fromDate &&
+                req.query.fromDate &&
                 eachParentRegistry.metaInformation.callResponseUpdatedTime <=
-                  req.query.toDate &&
+                req.query.toDate &&
                 eachParentRegistry.metaInformation.callResponse
               ) {
                 arrayOfDate.push({
@@ -3335,7 +3335,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/entityList/:solutionExternalId Fetch Entity list based on solutionId
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch Entity list based on solutionId
    * @apiGroup Report
    * @apiUse successBody
@@ -3372,7 +3372,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -3447,7 +3447,7 @@ module.exports = class Reports {
 
   /**
    * @api {get} /assessment/api/v1/reports/frameworkDetails/:solutionExternalId Fetch Framework details based on framework external id
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Fetch Frameworks details
    * @apiGroup Report
    * @apiUse successBody
@@ -3461,7 +3461,7 @@ module.exports = class Reports {
         let fileStream = new FileStream(fileName);
         let input = fileStream.initStream();
 
-        (async function() {
+        (async function () {
           await fileStream.getProcessorPromise();
           return resolve({
             isResponseAStream: true,
@@ -3488,7 +3488,7 @@ module.exports = class Reports {
 
         let criteriaObject = _.keyBy(allCriteriaDocument, "_id");
 
-        let getFrameworkDetails = function(themes, parentData = {}) {
+        let getFrameworkDetails = function (themes, parentData = {}) {
           themes.forEach(theme => {
             if (theme.children) {
               let hierarchyTrackToUpdate = { ...parentData };

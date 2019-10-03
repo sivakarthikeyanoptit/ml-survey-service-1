@@ -8,7 +8,7 @@ module.exports = class Assessments {
 
     /**
     * @api {get} /assessment/api/v2/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
-    * @apiVersion 0.0.2
+    * @apiVersion 2.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
@@ -17,7 +17,107 @@ module.exports = class Assessments {
     * @apiSampleRequest /assessment/api/v2/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
     * @apiUse successBody
     * @apiUse errorBody
-    */
+    * @apiParamExample {json} Response:
+       "evidences": [
+         {
+           "code": "AC3",
+            "sections": [
+            {
+              "code": "RFE",
+               "questions": [
+                    {
+                         "_id": "",
+                         "question": "",
+                         "options": "",
+                         "children": "",
+                         "questionGroup": "",
+                         "fileName": "",
+                         "instanceQuestions": "",
+                         "deleted": "",
+                         "tip": "",
+                         "externalId": "",
+                         "visibleIf": "",
+                         "file": "",
+                         "responseType": "pageQuestions",
+                         "validation": "",
+                         "showRemarks": "",
+                         "isCompleted": "",
+                         "remarks": "",
+                         "value": "",
+                         "page": "p1",
+                         "canBeNotApplicable": "",
+                         "usedForScoring": "",
+                         "modeOfCollection": "",
+                         "questionType": "",
+                         "accessibility": "",
+                         "updatedAt": "",
+                         "createdAt": "",
+                         "__v": "",
+                         "evidenceMethod": "",
+                         "payload": "",
+                         "startTime": "",
+                         "endTime": "",
+                         "pageQuestions": [
+                             {
+                                 "_id": "5be6d08c9a14ba4b5038dd7e",
+                                 "question": [
+                                     "Does the school have a full time Principal? ",
+                                     ""
+                                    ],
+                                    "options": [
+                                        {
+                                            "value": "R1",
+                                            "label": "Yes"
+                                        },
+                                        {
+                                            "value": "R2",
+                                            "label": "No"
+                                        }
+                                    ],
+                                    "children": [],
+                                    "questionGroup": [
+                                        "A1"
+                                    ],
+                                    "fileName": [],
+                                    "instanceQuestions": [],
+                                    "deleted": false,
+                                    "tip": "",
+                                    "externalId": "IPr/TL/01",
+                                    "visibleIf": "",
+                                    "file": "",
+                                    "responseType": "radio",
+                                    "validation": {
+                                        "required": true
+                                    },
+                                    "showRemarks": false,
+                                    "isCompleted": false,
+                                    "remarks": "",
+                                    "value": "",
+                                    "page": "p1",
+                                    "canBeNotApplicable": "false",
+                                    "usedForScoring": "",
+                                    "modeOfCollection": "onfield",
+                                    "questionType": "auto",
+                                    "accessibility": "global",
+                                    "updatedAt": "2018-11-10T12:35:24.955Z",
+                                    "createdAt": "2018-11-10T12:35:24.955Z",
+                                    "__v": 0,
+                                    "evidenceMethod": "PI",
+                                    "payload": {
+                                        "criteriaId": "5be177855e852b0e920ad136",
+                                        "responseType": "radio",
+                                        "evidenceMethod": "PI",
+                                        "rubricLevel": ""
+                                    },
+                                    "startTime": "",
+                                    "endTime": ""
+                                }
+                            ],
+        "name": "Reading Fluency - English"
+    }
+]
+}]
+*/
     async details(req) {
         return new Promise(async (resolve, reject) => {
             try {

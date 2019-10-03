@@ -14,13 +14,39 @@ module.exports = class UserExtension extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/userExtension/getProfile/{{userId}} Get user profile
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get user profile
   * @apiGroup User Extension
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/userExtension/getProfile/e97b5582-471c-4649-8401-3cc4249359bb
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+  *  "_id": "5d5e4758f89df53a1d26b454",
+     "externalId": "a1",
+     "roles": [
+        {
+         "_id": "5d5e47051f5a363a0a187029",
+         "code": "HM",
+         "title": "Headmaster",
+         "immediateSubEntityType": "school",
+         "entities": [
+          {
+            "_id": "5bfe53ea1d0c350d61b78d0f",
+            "externalId": "1208138",
+            "name": "Shri Shiv Middle School, Shiv Kutti, Teliwara, Delhi",
+            "childrenCount": 0,
+             "entityType": "school",
+             "entityTypeId": "5ce23d633c330302e720e65f",
+             "subEntityGroups": [
+              "parent"
+              ]
+            }
+          ]
+       }
+     ]
+  * }
   */
 
   getProfile(req) {
@@ -55,14 +81,15 @@ module.exports = class UserExtension extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/userExtension/bulkUpload Bulk Upload User Roles
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Bulk Upload User Roles
   * @apiGroup User Extension
-  * @apiParam {File} userRoles     Mandatory user roles file of type CSV.
+  * @apiParam {File} userRoles Mandatory user roles file of type CSV.
   * @apiSampleRequest /assessment/api/v1/userExtension/bulkUpload
   * @apiUse successBody
   * @apiUse errorBody
   */
+
   bulkUpload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -114,12 +141,30 @@ module.exports = class UserExtension extends Abstract {
 
   /**
    * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName User Extension Entity details
    * @apiGroup User Extension
    * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
    * @apiUse successBody
    * @apiUse errorBody
+   * @apiParamExample {json} Response:
+   * "result": [
+   * {
+     "_id": "5bfe53ea1d0c350d61b78d0f",
+     "entityTypeId": "5ce23d633c330302e720e65f",
+     "entityType": "school",
+     "metaInformation": {
+     "externalId": "1208138",
+     "addressLine1": "Shiv Kutti, Teliwara",
+     "addressLine2": "",
+     "administration": "Aided",
+     "city": "Urban",
+     "country": "India",
+     "name": "Shri Shiv Middle School, Shiv Kutti, Teliwara, Delhi"
+      }
+     }
+    ],
+    "count": 1
    */
 
   entities(req) {
