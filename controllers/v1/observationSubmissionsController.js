@@ -16,7 +16,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 * @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} create observation submission
 * @apiVersion 1.0.0
 * @apiName create observation submission
-* @apiGroup ObservationSubmissions
+* @apiGroup Observation Submissions
 * @apiParamExample {json} Request-Body:
 * {
 * 	"evidence": {
@@ -212,7 +212,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" check submissions status 
   * @apiVersion 1.0.0
   * @apiName check submissions status 
-  * @apiGroup ObservationSubmissions
+  * @apiGroup Observation Submissions
   * @apiParam {String} evidenceId Evidence ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/isAllowed/5d2c1c57037306041ef0c7ea?evidenceId=SO
   * @apiParamExample {json} Response:
@@ -277,7 +277,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete observation submission. 
   * @apiVersion 1.0.0
   * @apiName Delete observation submission. 
-  * @apiGroup ObservationSubmissions
+  * @apiGroup Observation Submissions
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -322,7 +322,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 * @api {get} /assessment/api/v1/observationSubmissions/generateHtml/:observationSubmissionId  observation submissions pdf 
 * @apiVersion 1.0.0
 * @apiName Generate Observation Submissions PDF 
-* @apiGroup ObservationSubmissions
+* @apiGroup Observation Submissions
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -347,7 +347,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @api {get} /assessment/api/v1/observationSubmissions/pdfFileUrl/:observationSubmissionId Get observation submission PDF URL
   * @apiVersion 1.0.0
   * @apiName Get observation submission PDF URL
-  * @apiGroup ObservationSubmissions
+  * @apiGroup Observation Submissions
   * @apiUse successBody
   * @apiUse errorBody
   */

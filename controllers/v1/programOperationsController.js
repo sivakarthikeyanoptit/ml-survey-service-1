@@ -9,7 +9,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/listByUser Fetch Program List By User
     * @apiVersion 1.0.0
     * @apiName Fetch Program List By User
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -102,7 +102,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/reportFilters/:solutionId Fetch Reports Filter
     * @apiVersion 1.0.0
     * @apiName Fetch Filters(Drop down contents) for Reports
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -177,7 +177,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/userProfile/:solutionId Fetch User Profile
     * @apiVersion 1.0.0
     * @apiName User profile
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiParamExample {json} Response:
     * "result": [
         {
@@ -270,7 +270,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/entitySummary/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01 Fetch Entity Summary
     * @apiVersion 1.0.0
     * @apiName Fetch Entity Summary
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -346,7 +346,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/assessorReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Assessor Report
     * @apiVersion 1.0.0
     * @apiName Fetch Assessor Report
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -467,7 +467,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/entityReport/:solutionId?administration=:administrationType&schoolTypes=:schoolTypes&area=:area&schoolName=:schoolName&fromDate=2019-01-01&csv=false Fetch Entity Report
     * @apiVersion 1.0.0
     * @apiName Fetch Entity Report
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -576,7 +576,7 @@ module.exports = class ProgramOperations {
     * @api {get} /assessment/api/v1/programOperations/searchEntity/:solutionId?id=entityId Search Entity By Id
     * @apiVersion 1.0.0
     * @apiName Fetch Filters(Autocomplete contents) for Reports
-    * @apiGroup programOperations
+    * @apiGroup Program Operations
     * @apiUse successBody
     * @apiUse errorBody
     */

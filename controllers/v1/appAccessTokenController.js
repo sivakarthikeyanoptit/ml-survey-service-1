@@ -21,10 +21,10 @@ module.exports = class AppAccessToken extends Abstract {
     }
 
     /**
-    * @api {post} /assessment/api/v1/appAccessToken/verify App access token verify
+    * @api {post} /assessment/api/v1/appAccessToken/verify verify
     * @apiVersion 1.0.0
-    * @apiName App access token verify
-    * @apiGroup appAccessToken
+    * @apiName verify
+    * @apiGroup App Access Token
     * @apiParamExample {json} Request-Body:
     * 
     *   {
@@ -87,10 +87,10 @@ module.exports = class AppAccessToken extends Abstract {
     }
 
     /**
-    * @api {post} /assessment/api/v1/appAccessToken/create App access token create
+    * @api {post} /assessment/api/v1/appAccessToken/create create
     * @apiVersion 1.0.0
-    * @apiName App access token create
-    * @apiGroup appAccessToken
+    * @apiName create
+    * @apiGroup App Access Token
     * @apiParamExample {json} Request-Body:
     * 
     *   { 
