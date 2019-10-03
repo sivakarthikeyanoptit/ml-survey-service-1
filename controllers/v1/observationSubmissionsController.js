@@ -14,7 +14,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} create observation submission
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName create observation submission
 * @apiGroup ObservationSubmissions
 * @apiParamExample {json} Request-Body:
@@ -210,10 +210,15 @@ module.exports = class ObservationSubmissions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" check submissions status 
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName check submissions status 
   * @apiGroup ObservationSubmissions
   * @apiParam {String} evidenceId Evidence ID.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/isAllowed/5d2c1c57037306041ef0c7ea?evidenceId=SO
+  * @apiParamExample {json} Response:
+  * "result": {
+      "allowed": true
+    }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -269,8 +274,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/observationSubmissions/delete:observationSubmissionId Delete observation submission. 
-  * @apiVersion 0.0.1
+  * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete observation submission. 
+  * @apiVersion 1.0.0
   * @apiName Delete observation submission. 
   * @apiGroup ObservationSubmissions
   * @apiUse successBody
@@ -285,11 +290,11 @@ module.exports = class ObservationSubmissions extends Abstract {
         let message = "Observation submission deleted successfully";
 
         let submissionDocument = await database.models.observationSubmissions.deleteOne(
-          { 
+          {
             "_id": req.params._id,
             status: "started",
             createdBy: req.userDetails.userId
-         }
+          }
         );
 
         if (!submissionDocument.n) {
@@ -315,7 +320,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/observationSubmissions/generateHtml/:observationSubmissionId  observation submissions pdf 
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Generate Observation Submissions PDF 
 * @apiGroup ObservationSubmissions
 * @apiUse successBody
@@ -340,7 +345,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/pdfFileUrl/:observationSubmissionId Get observation submission PDF URL
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Get observation submission PDF URL
   * @apiGroup ObservationSubmissions
   * @apiUse successBody
@@ -374,7 +379,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         if (!submissionDocument || !submissionDocument._id) {
           message = "PDF not available."
         } else {
-          result.url = "https://storage.googleapis.com/sl-" +(process.env.NODE_ENV == "production" ? "prod" : "dev") +"-storage/"+ submissionDocument.pdfFileUrl
+          result.url = "https://storage.googleapis.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/" + submissionDocument.pdfFileUrl
         }
 
         let response = {
@@ -395,9 +400,6 @@ module.exports = class ObservationSubmissions extends Abstract {
 
     })
   }
-
-
-
 
 };
 

@@ -12,16 +12,36 @@ module.exports = class Observations extends Abstract {
         super(observationsSchema);
     }
 
-
     /**
-    * @api {get} /assessment/api/v1/observations/solutions?search=:searchText&limit=1&page=1 Observation Solution
-    * @apiVersion 0.0.1
+    * @api {get} /assessment/api/v1/observations/solutions/:entityTypeId?search=:searchText&limit=1&page=1 Observation Solution
+    * @apiVersion 1.0.0
     * @apiName Observation Solution
     * @apiGroup Observations
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/observations/solutions/5cd955487e100b4dded3ebb3?search=Framework&pageSize=10&pageNo=1
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "data": [
+                {
+                    "_id": "5c6bd309af0065f0e0d4223b",
+                    "externalId": "TAF-2019",
+                    "name": "Teacher Assessment Framework",
+                    "description": "Teacher Assessment Framework",
+                    "keywords": [
+                        "Framework",
+                        "Priyanka",
+                        "Assessment"
+                    ],
+                    "entityTypeId": "5ce23d633c330302e720e661",
+                    "programId": "5c6bd365af0065f0e0d42280"
+                }
+            ],
+            "count": 1
+        }
+    ]
     */
 
     async solutions(req) {
@@ -74,16 +94,29 @@ module.exports = class Observations extends Abstract {
 
     }
 
-
     /**
     * @api {get} /assessment/api/v1/observations/metaForm/:solutionId Observation Creation Meta Form
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Observation Creation Meta Form
     * @apiGroup Observations
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/observations/metaForm
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "field": "name",
+            "label": "Title",
+            "value": "",
+            "visible": true,
+            "editable": true,
+            "validation": {
+                "required": true
+            },
+            "input": "text"
+        }
+    ]
     */
 
     async metaForm(req) {
@@ -127,7 +160,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {post} /assessment/api/v1/observations/create?solutionId=:solutionInternalId Create Observation
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Create Observation
      * @apiGroup Observations
      * @apiParamExample {json} Request-Body:
@@ -174,7 +207,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {get} /assessment/api/v1/observations/list Observations list
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Observations list
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -296,7 +329,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Map entities to observations
      * @apiGroup Observations
     * @apiParamExample {json} Request-Body:
@@ -371,7 +404,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {post} /assessment/api/v1/observations/removeEntityFromObservation/:observationId Un Map entities to observations
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Un Map entities to observations
      * @apiGroup Observations
     * @apiParamExample {json} Request-Body:
@@ -421,13 +454,30 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
      * @apiUse successBody
      * @apiUse errorBody
+     * @apiParamExample {json} Response:
+     * {
+        "message": "Entities fetched successfully",
+        "status": 200,
+        "result": [
+            {
+                "data": [
+                    {
+                        "_id": "5c5b1581e7e84d1d1be9175f",
+                        "name": "Vijaya krishna.T",
+                        "selected": false
+                    }
+                ],
+                "count": 435
+            }
+        ]
+    }
      */
 
 
@@ -490,7 +540,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {get} /assessment/api/v1/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName Assessments
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -777,7 +827,7 @@ module.exports = class Observations extends Abstract {
 
     /**
    * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
-   * @apiVersion 0.0.1
+   * @apiVersion 1.0.0
    * @apiName Mark As Completed
    * @apiGroup Observations
    * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -823,8 +873,8 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/importFromFramework/?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
-     * @apiVersion 0.0.1
+     * @api {get} /assessment/api/v1/observations/importFromFramework?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
+     * @apiVersion 1.0.0
      * @apiName Create observation solution from framework.
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -942,7 +992,7 @@ module.exports = class Observations extends Abstract {
 
     /**
      * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
-     * @apiVersion 0.0.1
+     * @apiVersion 1.0.0
      * @apiName bulkCreate observations CSV
      * @apiGroup Observations
      * @apiParam {File} observation  Mandatory observation file of type CSV.
@@ -1069,7 +1119,7 @@ module.exports = class Observations extends Abstract {
 
     /**
         * @api {post} /assessment/api/v1/observations/update/:observationId update name and description of Observations
-        * @apiVersion 0.0.1
+        * @apiVersion 1.0.0
         * @apiName update observations
         * @apiGroup Observations
         * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3

@@ -13,7 +13,7 @@ module.exports = class Insights extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/insights/generateFromSubmissionId/:submissionId Generates insights from submission
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Generates insights from submission
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/generateFromSubmissionId/5c5147ae95743c5718445eff
@@ -45,7 +45,7 @@ module.exports = class Insights extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/insights/singleEntityDrillDownReport/:programId?solutionId=""&entity="" Single entity drill down report
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Single entity drill down report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityDrillDownReport/5c5147ae95743c5718445eff
@@ -362,7 +362,7 @@ module.exports = class Insights extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/insights/singleEntityHighLevelReport/:programId?solutionId=""&entity="" Single entity high level report
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Single entity high level report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/singleEntityHighLevelReport/PROGID01?entity=5c5147ae95743c5718445eff
@@ -681,7 +681,7 @@ module.exports = class Insights extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/insights/multiEntityHighLevelReport/:programId?solutionId=""&entity=""&blockName="" Multi entity high level report
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Multi entity high level report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityHighLevelReport/5c5147ae95743c5718445eff
@@ -841,7 +841,7 @@ module.exports = class Insights extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/insights/multiEntityDrillDownReport/:programId?solutionId=""&entity=""&blockName="" Multi entity drill down report
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Multi entity drill down report
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/insights/multiEntityDrillDownReport/5c5147ae95743c5718445eff

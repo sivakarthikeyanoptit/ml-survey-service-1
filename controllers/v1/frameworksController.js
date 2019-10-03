@@ -14,7 +14,7 @@ module.exports = class Frameworks extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/frameworks/uploadThemes/{frameworkExternalID} Upload Themes For Frameworks
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Themes For Frameworks
   * @apiGroup Frameworks
   * @apiParam {File} themes Mandatory file upload with themes data.
@@ -74,7 +74,7 @@ module.exports = class Frameworks extends Abstract {
 
   /**
  * @api {post} /assessment/api/v1/frameworks/create create Frameworks
- * @apiVersion 0.0.1
+ * @apiVersion 1.0.0
  * @apiName create Frameworks
  * @apiGroup Frameworks
  * @apiParam {File} Mandatory framework file of type json.
@@ -156,7 +156,7 @@ module.exports = class Frameworks extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/frameworks/update?frameworkExternalId={frameworkExternalId} Update Frameworks
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName update Frameworks
 * @apiGroup Frameworks
 * @apiParam {File} Mandatory framework file of type json.

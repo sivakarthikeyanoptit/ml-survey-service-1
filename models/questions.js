@@ -16,9 +16,7 @@ module.exports = {
     remarks: "String",
     visibleIf: Object,
     createdBy: "String",
-    // createdDate: { type: Date, default: Date.now },
     updatedBy: "String",
-    // updatedDate: { type: Date, default: Date.now },
     options: Array,
     children: Array,
     questionGroup: Array,
@@ -41,6 +39,7 @@ module.exports = {
     rubricLevel: String,
     sectionHeader: String,
     allowAudioRecording: Boolean,
-    page:String
+    page: String,
+    questionNumber: String
   }
 };
