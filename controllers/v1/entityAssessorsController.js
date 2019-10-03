@@ -11,7 +11,7 @@ module.exports = class EntityAssessors extends Abstract {
   }
 
   /**
- * @api {get} /assessment/api/v1/entityAssessors/entities?type="assessment"&subType="institutional"&programId=""&solutionId="" Entity assessor list
+ * @api {get} /assessment/api/v1/entityAssessors/entities?type=:solutionType&subType=:solutionSubType&programId=:programInternalId&solutionId=:solutionInternalId Entity assessor list
  * @apiVersion 1.0.0
  * @apiName Entity assessor list
  * @apiGroup Entity Assessor
