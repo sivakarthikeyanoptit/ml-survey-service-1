@@ -16,6 +16,13 @@ let db_connect = function(configData) {
   global.Abstract = require("../generics/abstract");
 };
 
+
+let kafka_connect = function(configData) {
+  global.kafkaClient = require("./kafkaConfig")(
+    configData.Kafka_Config
+  );
+};
+
 const configuration = {
   root: require("path").normalize(__dirname + "/.."),
   app: {
@@ -47,11 +54,16 @@ const configuration = {
       }
     }
   },
-  version: "0.0.1",
+  Kafka_Config: {
+    host: process.env.KAFKA_URL || "10.160.0.8:2181",
+  },
+  version: "1.0.0",
   URLPrefix: "/api/v1",
   webUrl: "https://dev.shikshalokam.org"
 };
 
 db_connect(configuration);
+
+kafka_connect(configuration);
 
 module.exports = configuration;
