@@ -10,8 +10,6 @@ const pushObservationSubmissionToKafka = function (message) {
             messages: JSON.stringify(message)
           }])
 
-          console.log(kafkaPushStatus)
-
           return resolve(kafkaPushStatus)
 
       } catch (error) {
@@ -37,7 +35,6 @@ const pushMessageToKafka = function(payload) {
 
   }).then(result => {
 
-    console.log(result)
     if(result[payload[0].topic][0] >0) {
       return {
         status : "success",
@@ -46,7 +43,6 @@ const pushMessageToKafka = function(payload) {
     }
 
   }).catch((err) => {
-    console.log(err)
     return {
       status : "failed",
       message: err
