@@ -6,6 +6,31 @@ const observationSubmissionKafkaTopic = (process.env.OBSERVATION_SUBMISSION_TOPI
 const pushObservationSubmissionToKafka = function (message) {
   if (kafkaCommunicationsOnOff === "ON") {
 
+    // console.log(message)
+
+    let payloads = [
+      {
+        topic: observationSubmissionKafkaTopic,
+        messages: JSON.stringify(message)
+      }
+    ];
+
+
+    let push_status = kafkaClient.kafkaProducer.send(payloads, (err, data) => {
+      console.log(data)
+      if (err) {
+        console.log('[kafka-producer -> '+observationSubmissionKafkaTopic+']: broker update failed');
+      } else {
+        console.log('[kafka-producer -> '+observationSubmissionKafkaTopic+']: broker update success');
+      }
+    });
+
+    console.log(push_status)
+
+    return resolve({
+      "message":"Message pushed to Kafka"
+    });
+
     const reqObj = new Request()
     let attachmentData = new Array
     let fieldsData = new Array

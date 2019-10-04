@@ -401,5 +401,30 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/pushToKafka/:observationSubmissionId Push observation submission to Kafka
+  * @apiVersion 1.0.0
+  * @apiName Push observation submission to Kafka
+  * @apiGroup Observation Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async pushToKafka(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushToKafka(req.params._id)
+        return resolve(pushObservationSubmissionToKafka);
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error
+        });
+      }
+    })
+  }
+
 };
 
