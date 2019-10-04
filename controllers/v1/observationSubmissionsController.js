@@ -191,6 +191,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         if (response.result.status && response.result.status === "completed") {
           await observationSubmissionsHelper.generateHtml(req.params._id)
+          await observationSubmissionsHelper.pushToKafka(req.params._id)
         }
 
         return resolve(response);
@@ -415,7 +416,14 @@ module.exports = class ObservationSubmissions extends Abstract {
       try {
 
         let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushToKafka(req.params._id)
-        return resolve(pushObservationSubmissionToKafka);
+
+        if(pushObservationSubmissionToKafka.status != "success") {
+          throw pushObservationSubmissionToKafka.message
+        }
+
+        return resolve({
+          message: pushObservationSubmissionToKafka.message
+        });
 
       } catch (error) {
         return reject({

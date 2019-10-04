@@ -391,6 +391,16 @@ module.exports = class observationSubmissionsHelper {
 
                 const kafkaMessage = await kafkaClient.pushObservationSubmissionToKafka(observationSubmissionsDocument)
 
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            observationSubmissionId:observationSubmissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                }
+
                 return resolve(kafkaMessage)
 
             } catch (error) {
