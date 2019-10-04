@@ -36,9 +36,14 @@ const pushMessageToKafka = function(payload) {
     })
 
   }).then(result => {
-    
+
     console.log(result)
-    return result
+    if(result[payload[0].topic][0] >0) {
+      return {
+        status : "success",
+        message: "Kafka push to topic "+ payload[0].topic +" successful with number - "+result[payload[0].topic][0]
+      }
+    }
 
   }).catch((err) => {
     console.log(err)
