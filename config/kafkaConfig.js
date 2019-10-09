@@ -5,7 +5,9 @@ var connect = function(config) {
 
     Producer = kafka.Producer
     KeyedMessage = kafka.KeyedMessage
-    client = new kafka.KafkaClient(config.host)
+    client = new kafka.KafkaClient({
+      kafkaHost:config.host
+    })
 
     client.on('error', function(error) {
       console.error.bind(console, "kafka connection error!")
