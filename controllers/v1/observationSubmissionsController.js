@@ -191,6 +191,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         if (response.result.status && response.result.status === "completed") {
           await observationSubmissionsHelper.generateHtml(req.params._id)
+          await observationSubmissionsHelper.pushToKafka(req.params._id)
         }
 
         return resolve(response);
@@ -398,6 +399,38 @@ module.exports = class ObservationSubmissions extends Abstract {
         });
       }
 
+    })
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/pushToKafka/:observationSubmissionId Push observation submission to Kafka
+  * @apiVersion 1.0.0
+  * @apiName Push observation submission to Kafka
+  * @apiGroup Observation Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async pushToKafka(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushToKafka(req.params._id)
+
+        if(pushObservationSubmissionToKafka.status != "success") {
+          throw pushObservationSubmissionToKafka.message
+        }
+
+        return resolve({
+          message: pushObservationSubmissionToKafka.message
+        });
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error
+        });
+      }
     })
   }
 
