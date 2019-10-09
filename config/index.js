@@ -55,7 +55,7 @@ const configuration = {
     }
   },
   Kafka_Config: {
-    host: process.env.KAFKA_URL || "10.160.0.8:2181",
+    host: process.env.KAFKA_URL || "10.160.0.8:9092",
   },
   version: "1.0.0",
   URLPrefix: "/api/v1",
