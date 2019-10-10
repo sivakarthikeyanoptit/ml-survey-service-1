@@ -13,13 +13,33 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/solutions/details/:solutionInternalId Framework & Rubric Details
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Framework & Rubric Details of a Solution
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/solutions/details/5b98fa069f664f7e1ae7498c
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+  * "result":{
+  * "heading":"Solution Framework + rubric for - DCPCR Assessment Framework 2018",
+  * "sections": [
+  * {
+  *  "table": true,
+  * "data": [
+  * {
+  * "criteriaName": "Availability of School Leadership",
+  * "L1": "School does not have a principal or vice-principal; there is  a teacher in-charge of the post",
+  * "L2": "The school principal is not available only vice principal is available or vice principal has assumed charge as principal.  Most teachers are involved in administrative work along with principal / vice principal",
+  * "L3": "The school has full time principal but no vice principal and some teachers are involved in administrative work along with principal / vice principal.",
+  * "L4": "School has a full-time principal and vice principal as per norms (if applicable) or in case where vice principal is not mandated, Only principal and vice principal are involved in administrative work."
+  * }
+  * ]
+  * }
+  * ]
+  * }
+  * }
   */
 
   async details(req) {
@@ -142,7 +162,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId&entityType:entityType Create solution from framework.
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Create solution from framework.
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -152,6 +172,7 @@ module.exports = class Solutions extends Abstract {
   * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC&entityType=school
   * @apiUse successBody
   * @apiUse errorBody
+  * 
   */
 
   async importFromFramework(req) {
@@ -282,7 +303,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
     * @api {get} /assessment/api/v1/solutions/mapEntityToSolution/:solutionExternalId Map entity id to solution
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Map entity id to solution
     * @apiGroup Solutions
     * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -328,7 +349,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
   * @api {post} /assessment/api/v1/solutions/uploadThemes/{solutionsExternalID} Upload Themes For Solutions
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Upload Themes in Solutions
   * @apiGroup Solutions
   * @apiParam {File} themes Mandatory file upload with themes data.
@@ -388,7 +409,7 @@ module.exports = class Solutions extends Abstract {
 
   /**
 * @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName update Solutions
 * @apiGroup Solutions
 * @apiParam {File} Mandatory solution file of type json.

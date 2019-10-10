@@ -8,16 +8,83 @@ module.exports = class Assessments {
 
     /**
     * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
-    * @apiVersion 0.0.1
+    * @apiVersion 1.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
     * @apiParam {String} entityId Entity ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/assessments/details/:programID
+    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
     * @apiUse successBody
     * @apiUse errorBody
+    * @apiParamExample {json} Response:
+       {
+         "code": "AC5",
+            "sections": [
+            {
+                "code": "DF",
+                "questions": [
+                    {
+                    "_id": "5be8ec282d325f5b71da4e0d",
+                    "question": [
+                        "Student Name",
+                        ""
+                    ],
+                    "options": [],
+                    "children": [],
+                    "questionGroup": [
+                     "A1"
+                    ],
+                    "fileName": [],
+                    "instanceQuestions": [],
+                    "deleted": false,
+                    "tip": "",
+                    "externalId": "AS/TL/05a",
+                    "visibleIf": "",
+                    "file": "",
+                    "responseType": "text",
+                    "validation": {
+                     "required": true
+                    },
+                    "showRemarks": false,
+                    "isCompleted": false,
+                    "remarks": "",
+                    "value": "",
+                    "canBeNotApplicable": "false",
+                    "usedForScoring": "",
+                    "modeOfCollection": "onfield",
+                    "questionType": "auto",
+                    "accessibility": "local",
+                    "updatedAt": "2018-11-12T02:57:44.843Z",
+                    "createdAt": "2018-11-12T02:57:44.843Z",
+                    "__v": 0,
+                    "evidenceMethod": "AC5",
+                    "payload": {
+                        "criteriaId": "5be8e3b42d325f5b71da4e00",
+                        "responseType": "text",
+                        "evidenceMethod": "AC5",
+                        "rubricLevel": ""
+                    },
+                    "startTime": "",
+                    "endTime": ""
+                    }
+                    ],
+                    "externalId": "AC5",
+                    "tip": "Some tip at evidence level.",
+                    "name": "Assessment- Class 5",
+                    "description": "Some description about evidence",
+                    "modeOfCollection": "onfield",
+                    "canBeNotApplicable": true,
+                    "notApplicable": false,
+                    "canBeNotAllowed": true,
+                    "remarks": "",
+                    "startTime": "",
+                    "endTime": "",
+                    "isSubmitted": false,
+                    "submissions": []
+                }
     */
+
     async details(req) {
         return new Promise(async (resolve, reject) => {
             try {

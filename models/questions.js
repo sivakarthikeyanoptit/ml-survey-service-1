@@ -16,9 +16,7 @@ module.exports = {
     remarks: "String",
     visibleIf: Object,
     createdBy: "String",
-    // createdDate: { type: Date, default: Date.now },
     updatedBy: "String",
-    // updatedDate: { type: Date, default: Date.now },
     options: Array,
     children: Array,
     questionGroup: Array,
@@ -40,6 +38,8 @@ module.exports = {
     autoCapture: String,
     rubricLevel: String,
     sectionHeader: String,
-    allowAudioRecording: Boolean
+    allowAudioRecording: Boolean,
+    page: String,
+    questionNumber: String
   }
 };
