@@ -1,5 +1,6 @@
 let request = require('request');
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const moment = require("moment-timezone");
 const ejs = require('ejs');
 const fs = require('fs');
@@ -375,6 +376,38 @@ module.exports = class observationSubmissionsHelper {
 
     }
 
+    static pushToKafka(observationSubmissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observationSubmissionsDocument = await database.models.observationSubmissions.findOne({
+                    _id: observationSubmissionId,
+                    status: "completed"
+                }).lean()
+
+                if (!observationSubmissionsDocument) {
+                    throw "No submission found or submission status is not completed"
+                }
+
+                const kafkaMessage = await kafkaClient.pushObservationSubmissionToKafka(observationSubmissionsDocument)
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            observationSubmissionId:observationSubmissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                }
+
+                return resolve(kafkaMessage)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
 };
 
 

@@ -20,7 +20,6 @@ module.exports = class questionsHelper {
           "canBeNotApplicable": "false",
           "isCompleted": false,
           "value": ""
-
         }
 
         let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"]

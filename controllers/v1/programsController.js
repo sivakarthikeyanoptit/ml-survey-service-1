@@ -17,9 +17,26 @@ module.exports = class Programs extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/programs/list List all the programs
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Fetch Program List
 * @apiGroup Program
+* @apiParamExample {json} Response:
+  "result": [
+    {
+      "_id": "5b98d7b6d4f87f317ff615ee",
+      "externalId": "PROGID01",
+      "name": "DCPCR School Development Index 2018-19",
+      "description": "DCPCR School Development Index 2018-19",
+      "assessments": [
+        {
+          "_id": "5b98fa069f664f7e1ae7498c",
+          "externalId": "EF-DCPCR-2018-001",
+          "name": "DCPCR Assessment Framework 2018",
+          "description": "DCPCR Assessment Framework 2018"
+        }
+      ]
+    }
+  ]
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -71,12 +88,26 @@ module.exports = class Programs extends Abstract {
 
   /**
 * @api {get} /assessment/api/v1/programs/entityList?solutionId=""&search="" Fetch Entity List
-* @apiVersion 0.0.1
+* @apiVersion 1.0.0
 * @apiName Fetch Entity List 
 * @apiGroup Program
 * @apiParam {String} solutionId Solution ID.
 * @apiParam {String} Page Page.
 * @apiParam {String} Limit Limit.
+* @apiSampleRequest /assessment/api/v1/programs/entityList?solutionId=5c5693fd28466d82967b9429&search=
+* @apiParamExample {json} Response:
+  "result": {
+      "totalCount": 54,
+      "entityInformation": [
+        {
+          "externalId": "EXC1001",
+          "addressLine1": "Chaitanya Nagar, Gajuwaka, Visakhapatnam, Andhra Pradesh",
+          "name": "Chalapathi School",
+          "administration": "",
+          "status": ""
+        }
+      ]
+    }  
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -134,15 +165,30 @@ module.exports = class Programs extends Abstract {
     })
   }
 
-
   /**
   * @api {get} /assessment/api/v1/programs/userEntityList?solutionId="" Fetch User Entity List
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Fetch User Entity List 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
+  * @apiSampleRequest /assessment/api/v1/programs/userEntityList?solutionId=5b98fa069f664f7e1ae7498c
+  * @apiParamExample {json} Response:
+  * "result": {
+        "entities": [
+          {
+           "_id": "5bfe53ea1d0c350d61b78d3d",
+           "isSingleEntityHighLevel": true,
+           "isSingleEntityDrillDown": true,
+           "externalId": "1412153",
+           "addressLine1": "Karam Vihar Hari Enclave Sultan Puri",
+           "addressLine2": "",
+           "city": "Urban",
+           "name": "Nav Jyoti Public School, Karam Vihar Hari Enclave Sultan Puri Delhi"
+          }
+        ]
+      }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -210,7 +256,7 @@ module.exports = class Programs extends Abstract {
             eachEntityDocument["isSingleEntityHighLevel"] = false
             eachEntityDocument["isSingleEntityDrillDown"] = false
           }
-          eachEntityDocument = _.merge(eachEntityDocument,{...eachEntityDocument.metaInformation})
+          eachEntityDocument = _.merge(eachEntityDocument, { ...eachEntityDocument.metaInformation })
           delete eachEntityDocument.metaInformation
         })
 
@@ -235,13 +281,36 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-* @api {get} /assessment/api/v1/programs/userList/ Fetch User List
-* @apiVersion 0.0.1
+* @api {get} /assessment/api/v1/programs/userList?solutionId=:solutionInternalId&search=:searchText&page=:page&limit=:limit Fetch User List
+* @apiVersion 1.0.0
 * @apiName Fetch User Entity List 
 * @apiGroup Program
 * @apiParam {String} ProgramId Program ID.
 * @apiParam {String} Page Page.
 * @apiParam {String} Limit Limit.
+* @apiSampleRequest /assessment/api/v1/programs/userList?solutionId=5b98fa069f664f7e1ae7498c&search=&page=1&limit=1
+* @apiParamExample {json} Response:
+  "result": {
+    "totalCount": 3055,
+    "assessorInformation": [
+    {
+      "_id": "5bfe69021d0c350d61b78e68",
+      "userId": "32172a5c-8bfe-4520-9089-355de77aac71",
+      "__v": 0,
+      "createdAt": "2019-01-01T00:00:00.000Z",
+      "createdBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
+      "externalId": "SPM001",
+      "parentId": "",
+      "programId": "5c9d0937a43629432ce631db",
+      "role": "PROGRAM_MANAGER",
+      "updatedAt": "2019-01-01T00:00:00.000Z",
+      "updatedBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
+      "solutionId": null,
+      "entityTypeId": "5ce23d633c330302e720e65f",
+      "entityType": "school"
+     }
+      ]
+    }
 * @apiUse successBody
 * @apiUse errorBody
 */
@@ -332,12 +401,26 @@ module.exports = class Programs extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/programs/entityBlocks?solutionId="" Fetch Zone
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Fetch Zone 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
+  * @apiSampleRequest /assessment/api/v1/programs/entityBlocks?solutionId=5b98fa069f664f7e1ae7498c
+  * @apiParamExample {json} Response:
+  * "result": {
+      "zones": [
+        {
+         "id": "7",
+         "label": "Zone - 7"
+        },
+        {
+          "id": "8",
+          "label": "Zone - 8"
+        }
+      ]
+    }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -383,12 +466,28 @@ module.exports = class Programs extends Abstract {
 
   /**
   * @api {get} /assessment/api/v1/programs/blockEntity?solutionId=""&blockId="" Block Entity
-  * @apiVersion 0.0.1
+  * @apiVersion 1.0.0
   * @apiName Block Entity 
   * @apiGroup Program
   * @apiParam {String} SolutionId Solution ID.
   * @apiParam {String} Page Page.
   * @apiParam {String} Limit Limit.
+  * @apiSampleRequest /assessment/api/v1/programs/blockEntity?solutionId=5b98fa069f664f7e1ae7498c&blockId=1
+  * @apiParamExample {json} Response:
+  * "result": {
+      "entities": [
+        {
+          "_id": "5bfe53ea1d0c350d61b78e4a",
+          "name": "Govt. Girls Sr. Sec. School, Nicholson Road, Delhi",
+          "externalId": "1207043",
+          "addressLine1": "Nicholson Road",
+          "addressLine2": "",
+          "city": "Urban",
+          "isSingleEntityHighLevel": true,
+          "isSingleEntityDrillDown": true
+        }
+      ]
+    }
   * @apiUse successBody
   * @apiUse errorBody
   */
