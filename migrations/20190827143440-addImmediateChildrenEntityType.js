@@ -5,16 +5,16 @@ module.exports = {
     let entityTypeDocuments = await db.collection('entityTypes').find({}).project({ name: 1 }).toArray();
 
     let childrenEntityTypes = {
-      "cluster":["school"],
-      "block":["cluster"],
-      "district":["block"],
-      "state":["district"],
-      "country":["state"]
+      "cluster":"school",
+      "block":"cluster",
+      "district":"block",
+      "state":"district",
+      "country":"state"
     }
 
     await Promise.all(entityTypeDocuments.map(async entityType => {
       if (childrenEntityTypes[entityType.name]) {
-        await db.collection('entityTypes').updateOne({ _id: entityType._id }, { $set: { immediateChildrenEntityType: childrenEntityTypes[entityType.name] } });
+        await db.collection('entityTypes').updateOne({ _id: entityType._id }, { $addToSet: { immediateChildrenEntityType: childrenEntityTypes[entityType.name] } });
       }
     }));
 
