@@ -2184,7 +2184,7 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiParam {String} fromDate From Date
    * @apiParam {String} toDate To Date
-   * @apiParam {entityExternalId} entityExternalId Comma separated external entity Ids
+   * @apiParam {String} entityId Comma separated external entity Ids
    * @apiUse successBody
    * @apiUse errorBody
    */
