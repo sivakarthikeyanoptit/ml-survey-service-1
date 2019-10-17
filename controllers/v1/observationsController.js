@@ -228,6 +228,7 @@ module.exports = class Observations extends Abstract {
                     {
                         $match: {
                             createdBy: req.userDetails.userId,
+                            status: {$ne:"inactive"}
                         }
                     },
                     {
@@ -352,7 +353,8 @@ module.exports = class Observations extends Abstract {
                 let observationDocument = await database.models.observations.findOne(
                     {
                         _id: req.params._id,
-                        createdBy: req.userDetails.userId
+                        createdBy: req.userDetails.userId,
+                        status: {$ne:"inactive"}
                     },
                     {
                         entityTypeId: 1,
@@ -496,7 +498,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-
+                        status: {$ne:"inactive"}
                     },
                     {
                         entityTypeId: 1,
@@ -561,7 +563,7 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, entities: ObjectId(req.query.entityId) }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: {$ne:"inactive"},entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
@@ -1146,7 +1148,8 @@ module.exports = class Observations extends Abstract {
                 let observationDocument = await database.models.observations.findOneAndUpdate(
                     {
                         _id: req.params._id,
-                        createdBy: req.userDetails.userId
+                        createdBy: req.userDetails.userId,
+                        status: {$ne:"inactive"}
                     },
                     updateQuery
                 ).lean();
@@ -1171,4 +1174,51 @@ module.exports = class Observations extends Abstract {
 
         })
     }
+
+    /**
+   * @api {get} /assessment/api/v1/observations/delete/:observationId Delete an Observation
+   * @apiVersion 1.0.0
+   * @apiName Delete an Observation
+   * @apiGroup Observations
+   * @apiHeader {String} X-authenticated-user-token Authenticity token
+   * @apiSampleRequest /assessment/api/v1/observations/delete/:observationId
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+
+    async delete(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(req.params._id),
+                        createdBy: req.userDetails.id
+                    },
+                    {
+                        $set: {
+                            status: "inactive"
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: "Observation deleted successfully."
+                })
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || error,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
 }
