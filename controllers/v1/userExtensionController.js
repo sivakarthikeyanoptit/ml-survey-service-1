@@ -211,22 +211,31 @@ module.exports = class UserExtension extends Abstract {
 
         let skippingValue = req.pageSize * (req.pageNo - 1)
 
-
         let queryObject = {}
 
-        queryObject["$match"] = {}
-
-        queryObject["$match"]["_id"] = {}
-        queryObject["$match"]["_id"]["$in"] = allEntities
-
         if(req.searchText && req.searchText != "") {
-          queryObject["$match"]["$or"] = [
-              { "metaInformation.name": new RegExp(req.searchText, 'i') },
-              { "metaInformation.externalId": new RegExp("^" + req.searchText, 'm') },
-              { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') },
-              { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }
-          ]
-        }
+          queryObject = {
+              $and: [
+                  {
+                      _id: { 
+                          $in: allEntities
+                      }
+                  },
+                  { 
+                      $or: [
+                          { "metaInformation.name": new RegExp(req.searchText, 'i') },
+                          { "metaInformation.externalId": new RegExp("^" + req.searchText, 'm') },
+                          { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') },
+                          { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }
+                      ]
+                  } 
+              ]
+          }
+      } else {
+          queryObject = {
+              _id: { $in: allEntities }
+          }
+      }
 
         let result = await entitiesHelper.entities(queryObject, projection, req.pageSize, skippingValue)
 
