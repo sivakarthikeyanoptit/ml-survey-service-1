@@ -221,10 +221,10 @@ module.exports = class UserExtension extends Abstract {
 
         if(req.searchText && req.searchText != "") {
           queryObject["$match"]["$or"] = [
-              { "metaInformation.name": new RegExp(searchText, 'i') },
-              { "metaInformation.externalId": new RegExp("^" + searchText, 'm') },
-              { "metaInformation.addressLine1": new RegExp(searchText, 'i') },
-              { "metaInformation.addressLine2": new RegExp(searchText, 'i') }
+              { "metaInformation.name": new RegExp(req.searchText, 'i') },
+              { "metaInformation.externalId": new RegExp("^" + req.searchText, 'm') },
+              { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') },
+              { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }
           ]
         }
 
