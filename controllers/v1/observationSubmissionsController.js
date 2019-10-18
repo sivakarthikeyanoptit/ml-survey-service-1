@@ -190,8 +190,8 @@ module.exports = class ObservationSubmissions extends Abstract {
         let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
 
         if (response.result.status && response.result.status === "completed") {
-          await observationSubmissionsHelper.generateHtml(req.params._id)
           await observationSubmissionsHelper.pushToKafka(req.params._id)
+          await observationSubmissionsHelper.generateHtml(req.params._id)
         }
 
         return resolve(response);
