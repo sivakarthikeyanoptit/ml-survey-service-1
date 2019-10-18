@@ -119,11 +119,11 @@ module.exports = class observationSubmissionsHelper {
                     let multiSelectResponse = {}
                     multiSelectResponse["options"] = new Array
 
-                    questionData[answer.qid].questionOptions.forEach(eachDataOption => {
+                    questionData[answer.qid] !== undefined && questionData[answer.qid].questionOptions.forEach(eachDataOption => {
                         let multiSelectItems = {}
 
-                        let answerValueIndex = answer.value.findIndex(item => item === eachDataOption.value)
-
+                        let answerValueIndex = (Array.isArray(answer.value)) ? answer.value.findIndex(item => item === eachDataOption.value) : -1
+                        
                         multiSelectItems["label"] = eachDataOption.label
 
                         if (answerValueIndex < 0) {
