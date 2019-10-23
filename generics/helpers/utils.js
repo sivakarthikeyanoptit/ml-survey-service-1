@@ -148,6 +148,15 @@ function valueParser(dataToBeParsed) {
   Object.keys(dataToBeParsed).forEach(eachDataToBeParsed => {
     parsedData[eachDataToBeParsed] = dataToBeParsed[eachDataToBeParsed].trim()
   })
+
+  if(parsedData._arrayFields && parsedData._arrayFields.split(",").length > 0) {
+    parsedData._arrayFields.split(",").forEach(arrayTypeField => {
+      if (parsedData[arrayTypeField]) {
+        parsedData[arrayTypeField] = parsedData[arrayTypeField].split(",")
+      }
+    })
+  }
+
   return parsedData
 }
 

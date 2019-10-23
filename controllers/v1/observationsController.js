@@ -604,7 +604,8 @@ module.exports = class Observations extends Abstract {
                         evidenceMethods: 1,
                         sections: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        captureGpsLocationAtQuestionLevel : 1
                     }
                 ).lean();
 
@@ -663,7 +664,8 @@ module.exports = class Observations extends Abstract {
                     "externalId",
                     "name",
                     "description",
-                    "registry"
+                    "registry",
+                    "captureGpsLocationAtQuestionLevel"
                 ]);
 
                 let submissionDocument = {

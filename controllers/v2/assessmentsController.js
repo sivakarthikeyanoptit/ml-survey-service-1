@@ -196,7 +196,8 @@ module.exports = class Assessments {
                         evidenceMethods: 1,
                         sections: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        captureGpsLocationAtQuestionLevel : 1
                     }
                 ).lean();
 
@@ -264,7 +265,8 @@ module.exports = class Assessments {
                     "externalId",
                     "name",
                     "description",
-                    "registry"
+                    "registry",
+                    "captureGpsLocationAtQuestionLevel"
                 ]);
 
                 let submissionDocument = {
