@@ -98,6 +98,7 @@ module.exports = class assessmentsHelper {
                     }
                     questionArrayElm[1]["startTime"] = ""
                     questionArrayElm[1]["endTime"] = ""
+                    questionArrayElm[1]["gpsLocation"] = ""
                     delete questionArrayElm[1]["criteriaId"]
 
                     if (questionArrayElm[1].responseType === "matrix") {

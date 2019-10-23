@@ -40,6 +40,7 @@ module.exports = {
     isReusable: Boolean,
     roles: Object,
     observationMetaFormKey: String,
-    updatedBy: String
+    updatedBy: String,
+    captureGpsLocationAtQuestionLevel:{ type : Boolean, default: false }
   }
 };
