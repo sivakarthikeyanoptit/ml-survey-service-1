@@ -140,11 +140,11 @@ module.exports = class UserExtension extends Abstract {
   }
 
   /**
-   * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page User Extension Entity details
+   * @api {get} /assessment/api/v1/userExtension/entities/:userId?entityType=:entityType&limit=:limit&page=:page&search=:searchText User Extension Entity details
    * @apiVersion 1.0.0
    * @apiName User Extension Entity details
    * @apiGroup User Extension
-   * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1
+   * @apiSampleRequest /assessment/api/v1/userExtension/entities/e97b5582-471c-4649-8401-3cc4249359bb?entityType=school&limit=10&page=1&search=school
    * @apiUse successBody
    * @apiUse errorBody
    * @apiParamExample {json} Response:
@@ -211,9 +211,33 @@ module.exports = class UserExtension extends Abstract {
 
         let skippingValue = req.pageSize * (req.pageNo - 1)
 
-        let result = await entitiesHelper.entities({
-          _id: { $in: allEntities }
-        }, projection, req.pageSize, skippingValue)
+        let queryObject = {}
+
+        if(req.searchText && req.searchText != "") {
+          queryObject = {
+              $and: [
+                  {
+                      _id: { 
+                          $in: allEntities
+                      }
+                  },
+                  { 
+                      $or: [
+                          { "metaInformation.name": new RegExp(req.searchText, 'i') },
+                          { "metaInformation.externalId": new RegExp("^" + req.searchText, 'm') },
+                          { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') },
+                          { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }
+                      ]
+                  } 
+              ]
+          }
+      } else {
+          queryObject = {
+              _id: { $in: allEntities }
+          }
+      }
+
+        let result = await entitiesHelper.entities(queryObject, projection, req.pageSize, skippingValue)
 
         return resolve({
           message: "User Extension entities fetched successfully",
