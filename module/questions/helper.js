@@ -65,7 +65,7 @@ module.exports = class questionsHelper {
           // Generate Validation
           if (parsedQuestion["responseType"] !== "") {
             allValues["validation"] = {}
-            allValues["validation"]["required"] = gen.utils.lowerCase(parsedQuestion["validation"])
+            allValues["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]))
 
             if (parsedQuestion["responseType"] == "matrix") {
               allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
@@ -102,7 +102,7 @@ module.exports = class questionsHelper {
 
           if (parsedQuestion["file"] != "NA") {
 
-            allValues.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
+            allValues.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]))
             allValues.file["type"] = new Array
             let allowedFileUploads = this.allowedFileUploads()
             parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
@@ -346,7 +346,7 @@ module.exports = class questionsHelper {
 
         if (parsedQuestion["file"] != "NA") {
 
-          existingQuestion.file["required"] = gen.utils.lowerCase(parsedQuestion["fileIsRequired"])
+          existingQuestion.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]))
           existingQuestion.file["type"] = new Array
           let allowedFileUploads = this.allowedFileUploads()
           parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
