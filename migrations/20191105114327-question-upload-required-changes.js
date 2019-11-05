@@ -1,6 +1,6 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Set captureGpsLocationAtQuestionLevel false for all solutions."
+    global.migrationMsg = "Modified question validation field"
 
     await db.collection('questions').updateMany({
       "validation.required": "true"
