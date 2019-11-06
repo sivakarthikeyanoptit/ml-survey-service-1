@@ -1,6 +1,8 @@
 const csv = require("csvtojson");
 const moment = require("moment");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
 module.exports = class entityAssessorHelper {
 
@@ -186,11 +188,11 @@ module.exports = class entityAssessorHelper {
 
                 let programsFromDatabase = await database.models.programs.find({
                     externalId: { $in: programIds }
-                }, { externalId: 1 }).lean();
+                }, { externalId: 1, name :1 }).lean();
 
                 let solutionsFromDatabase = await database.models.solutions.find({
                     externalId: { $in: solutionIds }
-                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1 }).lean();
+                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1, name :1  }).lean();
 
                 let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
 
@@ -200,7 +202,8 @@ module.exports = class entityAssessorHelper {
                     },
                     {
                         $project: {
-                            externalId: "$metaInformation.externalId"
+                            externalId: "$metaInformation.externalId",
+                            name : "$metaInformation.name"
                         }
                     }
                 ])
@@ -214,7 +217,11 @@ module.exports = class entityAssessorHelper {
                 }
 
                 let programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
+                    (ac, program) => ({ ...ac, [program.externalId]: {
+                        programId : program._id,
+                        name: program.name
+                    }
+                }), {})
 
                 let solutionData = solutionsFromDatabase.reduce(
                     (ac, solution) => ({
@@ -222,8 +229,9 @@ module.exports = class entityAssessorHelper {
                             solutionId: solution._id,
                             entityType: solution.entityType,
                             entityTypeId: solution.entityTypeId,
+                            name: solution.name,
                         }
-                    }), {})
+                }), {})
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
@@ -254,17 +262,29 @@ module.exports = class entityAssessorHelper {
 
 
                     let assessorEntityArray = new Array
+                    let assessorPushNotificationArray = new Array
 
-                    assessor.programId = programsData[assessor.programId];
+                    assessor.programName = programsData[assessor.programId].name;
+                    assessor.programId = programsData[assessor.programId].programId;
                     assessor.createdBy = assessor.updatedBy = userId;
                     assessor.entityType = solutionData[assessor.solutionId].entityType;
                     assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
+                    assessor.solutionName = solutionData[assessor.solutionId].name;
                     assessor.solutionId = solutionData[assessor.solutionId].solutionId;
 
                     assessor.entities.split(",").forEach(assessorEntity => {
                         assessorEntity = entityDataByExternalId[assessorEntity.trim()];
-                        if (assessorEntity) {
-                            if (assessorEntity._id) assessorEntityArray.push(assessorEntity._id)
+                        if (assessorEntity && assessorEntity._id) {
+                            assessorEntityArray.push(assessorEntity._id)
+                            assessorPushNotificationArray.push({
+                                entityId : assessorEntity._id,
+                                entityType : assessor.entityType,
+                                entityName : assessorEntity.name,
+                                programId: assessor.programId,
+                                programName: assessor.programName,
+                                solutionId: assessor.solutionId,
+                                solutionName: assessor.solutionName
+                            })
                         }
                     })
 
@@ -277,12 +297,16 @@ module.exports = class entityAssessorHelper {
                     })
 
                     let updateObject;
+                    let sendPushNotificationToAssessor = false
+
                     if (assessor.entityOperation == "OVERRIDE") {
                         updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } }
+                        sendPushNotificationToAssessor = true
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
                         updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutEntity };
+                        sendPushNotificationToAssessor = true
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
@@ -309,6 +333,10 @@ module.exports = class entityAssessorHelper {
                     }
 
                     await this.uploadEntityAssessorTracker(entityAssessorDocument);
+
+                    if(sendPushNotificationToAssessor && assessorPushNotificationArray.length > 0) {
+                        await this.sendUserNotifications(assessor.userId, assessorPushNotificationArray);
+                    }
 
                 })).catch(error => {
                     return reject({
@@ -362,6 +390,62 @@ module.exports = class entityAssessorHelper {
 
         })
 
+    }
+
+    static sendUserNotifications(userId = "", entities = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw "Invalid user id."
+                }
+
+                const kafakResponses = await Promise.all(entities.map(async entity => {
+                      
+                    const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                        user_id : userId,
+                        internal : false,
+                        text : `New ${entity.entityType} - ${entity.entityName} added for you in program ${entity.programName}`,
+                        type : "information",
+                        action : "mapping",
+                        payload : {
+                            type : "assessment",
+                            solution_id : entity.solutionId,
+                            program_id : entity.programId,
+                            entity_id : entity.entityId
+                        }
+                    })
+                    
+                    if(kafkaMessage.status != "success") {
+                        let errorObject = {
+                            formData: {
+                                userId: userId,
+                                message: `Failed to push entity notification for entity ${entity.entityName} in program ${entity.programName} and solution ${entity.solutionName}`
+                            }
+                        }
+                        slackClient.kafkaErrorAlert(errorObject)
+                        return;
+                    }
+
+                    console.log(kafkaMessage)
+
+                    return kafkaMessage
+
+                }));
+          
+                if (kafakResponses.findIndex(response => response === undefined || response === null) >= 0) {
+                    throw "Something went wrong, not all records were inserted/updated.";
+                }
+
+                return resolve({
+                    success: true,
+                    message: "All notifications pushed to Kafka."
+                })
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 };
