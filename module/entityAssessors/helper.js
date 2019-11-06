@@ -192,7 +192,7 @@ module.exports = class entityAssessorHelper {
 
                 let solutionsFromDatabase = await database.models.solutions.find({
                     externalId: { $in: solutionIds }
-                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1, name :1  }).lean();
+                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1, name :1, type:1, subType :1 }).lean();
 
                 let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
 
@@ -230,6 +230,8 @@ module.exports = class entityAssessorHelper {
                             entityType: solution.entityType,
                             entityTypeId: solution.entityTypeId,
                             name: solution.name,
+                            type: solution.type,
+                            subType: solution.subType,
                         }
                 }), {})
 
@@ -270,6 +272,8 @@ module.exports = class entityAssessorHelper {
                     assessor.entityType = solutionData[assessor.solutionId].entityType;
                     assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
                     assessor.solutionName = solutionData[assessor.solutionId].name;
+                    assessor.solutionType = solutionData[assessor.solutionId].type;
+                    assessor.solutionSubType = solutionData[assessor.solutionId].subType;
                     assessor.solutionId = solutionData[assessor.solutionId].solutionId;
 
                     assessor.entities.split(",").forEach(assessorEntity => {
@@ -283,6 +287,8 @@ module.exports = class entityAssessorHelper {
                                 programId: assessor.programId,
                                 programName: assessor.programName,
                                 solutionId: assessor.solutionId,
+                                solutionType : assessor.solutionType,
+                                solutionSubType : assessor.solutionSubType,
                                 solutionName: assessor.solutionName
                             })
                         }
@@ -409,7 +415,7 @@ module.exports = class entityAssessorHelper {
                         type : "information",
                         action : "mapping",
                         payload : {
-                            type : "assessment",
+                            type : entity.solutionSubType,
                             solution_id : entity.solutionId,
                             program_id : entity.programId,
                             entity_id : entity.entityId
