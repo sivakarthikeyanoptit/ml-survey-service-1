@@ -228,7 +228,7 @@ module.exports = class Observations extends Abstract {
                     {
                         $match: {
                             createdBy: req.userDetails.userId,
-                            status: {$ne:"inactive"}
+                            status: { $ne: "inactive" }
                         }
                     },
                     {
@@ -354,7 +354,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     {
                         entityTypeId: 1,
@@ -498,7 +498,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     {
                         entityTypeId: 1,
@@ -563,7 +563,7 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: {$ne:"inactive"},entities: ObjectId(req.query.entityId) }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: { $ne: "inactive" }, entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
@@ -607,7 +607,7 @@ module.exports = class Observations extends Abstract {
                         sections: 1,
                         entityTypeId: 1,
                         entityType: 1,
-                        captureGpsLocationAtQuestionLevel : 1
+                        captureGpsLocationAtQuestionLevel: 1
                     }
                 ).lean();
 
@@ -1031,14 +1031,18 @@ module.exports = class Observations extends Abstract {
                 let entityIds = []
 
                 observationData.forEach(eachObservationData => {
-                    if (!users.includes(eachObservationData.user)) {
+                    if (!eachObservationData["keycloak-userId"] && eachObservationData.user && !users.includes(eachObservationData.user)) {
                         users.push(eachObservationData.user)
                     }
                     solutionExternalIds.push(eachObservationData.solutionExternalId)
                     entityIds.push(ObjectId(eachObservationData.entityId))
                 })
 
-                let userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                let userIdByExternalId
+
+                if (users.length > 0) {
+                    userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                }
 
                 let entityDocument = await database.models.entities.find({
                     _id: {
@@ -1091,7 +1095,18 @@ module.exports = class Observations extends Abstract {
                         csvResult[eachObservationData] = currentData[eachObservationData]
                     })
 
-                    let userId = userIdByExternalId[currentData.user]
+                    let userId;
+
+                    if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
+                        userId = currentData["keycloak-userId"]
+                    } else {
+
+                        if (userIdByExternalId[currentData.user] === "") {
+                            throw { status: 400, message: "Keycloak id for user is not present" };
+                        }
+
+                        userId = userIdByExternalId[currentData.user]
+                    }
 
                     if (solutionObject[currentData.solutionExternalId] !== undefined) {
                         solution = solutionObject[currentData.solutionExternalId]
@@ -1113,8 +1128,8 @@ module.exports = class Observations extends Abstract {
                 input.push(null);
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || 500,
+                    message: error.message || "Oops Something Went Wrong!",
                     errorObject: error
                 });
             }
@@ -1151,7 +1166,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     updateQuery
                 ).lean();
