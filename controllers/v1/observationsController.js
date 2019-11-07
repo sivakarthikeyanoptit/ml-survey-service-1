@@ -1071,7 +1071,9 @@ module.exports = class Observations extends Abstract {
                         frameworkExternalId: 1,
                         frameworkId: 1,
                         name: 1,
-                        description: 1
+                        description: 1,
+                        type : 1,
+                        subType: 1
                     }).lean()
 
                 let solutionObject = {}

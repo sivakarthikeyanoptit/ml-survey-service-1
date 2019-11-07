@@ -1,8 +1,8 @@
 const csv = require("csvtojson");
 const moment = require("moment");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
-let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
-let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
+const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
 module.exports = class entityAssessorHelper {
 
@@ -403,7 +403,7 @@ module.exports = class entityAssessorHelper {
             try {
 
                 if (userId == "") {
-                    throw "Invalid user id."
+                    throw new Error("Invalid user id.")
                 }
 
                 const kafakResponses = await Promise.all(entities.map(async entity => {
@@ -433,14 +433,12 @@ module.exports = class entityAssessorHelper {
                         return;
                     }
 
-                    console.log(kafkaMessage)
-
                     return kafkaMessage
 
                 }));
           
                 if (kafakResponses.findIndex(response => response === undefined || response === null) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated.";
+                    throw new Error("Something went wrong, not all notifications were pushed.");
                 }
 
                 return resolve({
