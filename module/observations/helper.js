@@ -1,4 +1,6 @@
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
 module.exports = class observationsHelper {
 
@@ -191,7 +193,14 @@ module.exports = class observationsHelper {
                         observation
                     );
                     observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`
-
+                    
+                    if(observationDocument._id) {
+                        await this.sendUserNotifications(userId, {
+                            solutionSubType : solution.subType,
+                            solutionId: solution._id.toString(),
+                            observationId: observationDocument._id.toString()
+                        });
+                    }
                 }
 
                 return resolve({
@@ -200,6 +209,50 @@ module.exports = class observationsHelper {
 
             } catch (error) {
                 return reject(error)
+            }
+        })
+    }
+
+
+    static sendUserNotifications(userId = "", observationData = {}) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error("Invalid user id.")
+                }
+
+                const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                    user_id : userId,
+                    internal : false,
+                    text : `New solution available now (Observation form)`,
+                    type : "information",
+                    action : "mapping",
+                    payload : {
+                        type : observationData.solutionSubType,
+                        solution_id : observationData.solutionId,
+                        observation_id : observationData.observationId
+                    }
+                })
+                
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            userId: userId,
+                            message: `Failed to push entity notification for observation ${observationData._id.toString()} in the solution ${observationData.solutionName}`
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                    throw new Error(`Failed to push entity notification for observation ${observationData._id.toString()} in the solution ${observationData.solutionName}`);
+                }
+
+                return resolve({
+                    success: true,
+                    message: "Notification successfully pushed to Kafka."
+                })
+
+            } catch (error) {
+                return reject(error);
             }
         })
     }
