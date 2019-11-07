@@ -197,7 +197,7 @@ module.exports = class observationsHelper {
                     
                     if(observationDocument._id) {
                         await this.sendUserNotifications(userId, {
-                            solutionSubType : solution.subType,
+                            solutionType : solution.type,
                             solutionId: solution._id.toString(),
                             observationId: observationDocument._id.toString()
                         });
@@ -230,7 +230,7 @@ module.exports = class observationsHelper {
                     type : "information",
                     action : "mapping",
                     payload : {
-                        type : observationData.solutionSubType,
+                        type : observationData.solutionType,
                         solution_id : observationData.solutionId,
                         observation_id : observationData.observationId
                     }
