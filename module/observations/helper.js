@@ -161,7 +161,7 @@ module.exports = class observationsHelper {
                 let observationDocument = await database.models.observations.findOne({
                     solutionExternalId: solution.externalId,
                     createdBy: userId,
-                    status: "active"
+                    status: "published"
                 }, { _id: 1 }).lean()
 
                 if (observationDocument) {
