@@ -300,79 +300,60 @@ module.exports = class EntityAssessors extends Abstract {
 
         let entityAssessorsDocument = await database.models.entityAssessors.find({
           role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-        }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean();
+        }, { _id: 1 }).lean();
 
         if (!entityAssessorsDocument.length > 0) {
           throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
         }
 
-        let entityAssessors = {};
-        let programIds = [];
-        let solutionIds = [];
-        let entityIds = [];
-        let entityAssessorsIds = [];
+        let assessors = _.chunk(entityAssessorsDocument, 500)
 
-        entityAssessorsDocument.forEach(eachEntityAssessor => {
+        let allEntityAssessors
 
-          if (eachEntityAssessor.userId) {
+        let pendingEntityAssessorsData = [];
 
+        for (let pointerToAssessors = 0; pointerToAssessors < assessors.length; pointerToAssessors++) {
 
-            if (!entityAssessorsIds.includes(eachEntityAssessor.userId)) {
-              entityAssessorsIds.push(eachEntityAssessor.userId)
-            }
-          }
-
-          if (!programIds.includes(eachEntityAssessor.programId.toString())) {
-            programIds.push(eachEntityAssessor.programId.toString());
-          }
-
-          if (eachEntityAssessor.solutionId !== null && !solutionIds.includes(eachEntityAssessor.solutionId.toString())) {
-            solutionIds.push(eachEntityAssessor.solutionId.toString());
-          }
-
-          entityIds = _.merge(entityIds, eachEntityAssessor.entities);
-        })
-
-        let queryObj = {
-          solutionId: { $in: solutionIds },
-          status: { $ne: "completed" },
-          programId: { $in: programIds },
-          entityId: { $in: entityIds }
-        }
-
-        let projection = { createdAt: 1, entityExternalId: 1, programExternalId: 1, "assessors.userId": 1, solutionId: 1 }
-
-        let assessmentSubmissions = await database.models.submissions.find(queryObj, projection).lean()
-
-        if (!assessmentSubmissions.length > 0) {
-          throw { "message": "No Pending Assessments" }
-        }
-
-        for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < assessmentSubmissions.length; pointerToAssessmentSubmission++) {
-
-          assessmentSubmissions[pointerToAssessmentSubmission].assessors.forEach(eachAssessor => {
-
-            if (entityAssessorsIds.includes(eachAssessor.userId)) {
-              if (!entityAssessors[eachAssessor.userId]) {
-                entityAssessors[eachAssessor.userId] = {};
-                entityAssessors[eachAssessor.userId]["pendingNotification"] = [];
-              }
-
-              assessmentSubmissions[pointerToAssessmentSubmission].payload = {}
-              assessmentSubmissions[pointerToAssessmentSubmission].payload["solution_id"] = assessmentSubmissions[pointerToAssessmentSubmission].solutionId
-              assessmentSubmissions[pointerToAssessmentSubmission].payload.type = "assessment"
-
-              entityAssessors[eachAssessor.userId]["userId"] = eachAssessor.userId
-              entityAssessors[eachAssessor.userId]["pendingNotification"].push(_.omit(assessmentSubmissions[pointerToAssessmentSubmission], "assessors"))
-            }
+          let entityAssessorsIds = assessors[pointerToAssessors].map(eachAssessor => {
+            return eachAssessor._id
           })
 
+          allEntityAssessors = await database.models.entityAssessors.find({
+            _id: { $in: entityAssessorsIds }
+          }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean()
+
+          await Promise.all(allEntityAssessors.map(async eachAssessor => {
+
+            let queryObj = {
+              solutionId: eachAssessor.solutionId,
+              status: { $ne: "completed" },
+              programId: eachAssessor.programId,
+              entityId: { $in: eachAssessor.entities }
+            }
+
+            let assessmentSubmissions = await database.models.submissions.find(queryObj, {
+              _id: 1, solutionId: 1
+            }).lean()
+
+            let userId = eachAssessor.userId
+
+            if (assessmentSubmissions.length > 0) {
+              pendingEntityAssessorsData = _.merge(pendingEntityAssessorsData, assessmentSubmissions.map(eachAssessment => {
+                eachAssessment["userId"] = userId
+                eachAssessment["submissionId"] = eachAssessment._id
+                eachAssessment["solutionId"] = eachAssessment.solutionId
+                return eachAssessment
+              }))
+            }
+
+          })
+          )
         }
 
 
         return resolve({
           message: "Pending Assessments",
-          result: Object.values(entityAssessors)
+          result: pendingEntityAssessorsData
         });
 
       } catch (error) {
