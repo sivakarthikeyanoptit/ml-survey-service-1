@@ -298,111 +298,83 @@ module.exports = class EntityAssessors extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let entityAssessorsDocument = await database.models.entityAssessors.findOne({
-          userId: req.params._id,
-          externalId: req.query.assessorExternalId,
+        let entityAssessorsDocument = await database.models.entityAssessors.find({
           role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-        }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1 }).lean();
+        }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean();
 
-        if (!entityAssessorsDocument) {
-          throw { message: "You are not a LEAD_ASSESSOR or ASSESSOR" }
+        if (!entityAssessorsDocument.length > 0) {
+          throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
         }
+
+        let entityAssessors = {};
+        let programIds = [];
+        let solutionIds = [];
+        let entityIds = [];
+        let entityAssessorsIds = [];
+
+        entityAssessorsDocument.forEach(eachEntityAssessor => {
+
+          if (eachEntityAssessor.userId) {
+
+
+            if (!entityAssessorsIds.includes(eachEntityAssessor.userId)) {
+              entityAssessorsIds.push(eachEntityAssessor.userId)
+            }
+          }
+
+          if (!programIds.includes(eachEntityAssessor.programId.toString())) {
+            programIds.push(eachEntityAssessor.programId.toString());
+          }
+
+          if (eachEntityAssessor.solutionId !== null && !solutionIds.includes(eachEntityAssessor.solutionId.toString())) {
+            solutionIds.push(eachEntityAssessor.solutionId.toString());
+          }
+
+          entityIds = _.merge(entityIds, eachEntityAssessor.entities);
+        })
 
         let queryObj = {
-          entityTypeId: entityAssessorsDocument.entityTypeId,
-          solutionId: entityAssessorsDocument.solutionId,
+          solutionId: { $in: solutionIds },
           status: { $ne: "completed" },
-          programId: entityAssessorsDocument.programId,
-          entityId: { $in: entityAssessorsDocument.entities }
+          programId: { $in: programIds },
+          entityId: { $in: entityIds }
         }
 
-        let projection = { createdAt: 1, entityExternalId: 1, programExternalId: 1 }
+        let projection = { createdAt: 1, entityExternalId: 1, programExternalId: 1, "assessors.userId": 1, solutionId: 1 }
 
         let assessmentSubmissions = await database.models.submissions.find(queryObj, projection).lean()
 
-        let response = [];
+        if (!assessmentSubmissions.length > 0) {
+          throw { "message": "No Pending Assessments" }
+        }
 
-        if (assessmentSubmissions.length > 0) {
-          assessmentSubmissions.map(eachAssessment => {
-            eachAssessment["type"] = "assessment"
-            eachAssessment["status"] = "Pending"
-            return eachAssessment
+        for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < assessmentSubmissions.length; pointerToAssessmentSubmission++) {
+
+          assessmentSubmissions[pointerToAssessmentSubmission].assessors.forEach(eachAssessor => {
+
+            if (entityAssessorsIds.includes(eachAssessor.userId)) {
+              if (!entityAssessors[eachAssessor.userId]) {
+                entityAssessors[eachAssessor.userId] = {};
+                entityAssessors[eachAssessor.userId]["pendingNotification"] = [];
+              }
+
+              assessmentSubmissions[pointerToAssessmentSubmission].payload = {}
+              assessmentSubmissions[pointerToAssessmentSubmission].payload["solution_id"] = assessmentSubmissions[pointerToAssessmentSubmission].solutionId
+              assessmentSubmissions[pointerToAssessmentSubmission].payload.type = "assessment"
+
+              entityAssessors[eachAssessor.userId]["userId"] = eachAssessor.userId
+              entityAssessors[eachAssessor.userId]["pendingNotification"].push(_.omit(assessmentSubmissions[pointerToAssessmentSubmission], "assessors"))
+            }
           })
 
-          response = _.merge(response, assessmentSubmissions)
         }
+
 
         return resolve({
           message: "Pending Assessments",
-          result: response
+          result: Object.values(entityAssessors)
         });
 
-      } catch (error) {
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
-
-  /**
-* @api {get} /assessment/api/v1/entityAssessors/pendingObservations/{{userId}}?assessorExternalId=:assessorExternalId Pending Observations
-* @apiVersion 1.0.0
-* @apiName Pending Observations
-* @apiGroup Entity Assessor
-* @apiParam {String} assessorExternalId required Assessor External Id.
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/entityAssessors/pendingObservations/e97b5582-471c-4649-8401-3cc4249359bb?assessorExternalId=a1
-* @apiUse successBody
-* @apiUse errorBody
-* @apiParamExample {json} Response:
-*/
-
-  async pendingObservations(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let entityAssessorsDocument = await database.models.entityAssessors.findOne({
-          userId: req.params._id,
-          externalId: req.query.assessorExternalId,
-          role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] }
-        }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1 }).lean();
-
-        if (!entityAssessorsDocument) {
-          throw { message: "You are not a LEAD_ASSESSOR or ASSESSOR" }
-        }
-
-        let queryObj = {
-          entityTypeId: entityAssessorsDocument.entityTypeId,
-          solutionId: entityAssessorsDocument.solutionId,
-          status: { $ne: "completed" },
-          programId: entityAssessorsDocument.programId,
-          entityId: { $in: entityAssessorsDocument.entities }
-        }
-
-        let projection = { createdAt: 1, entityExternalId: 1, programExternalId: 1 }
-
-        let observationSubmissions = await database.models.observationSubmissions.find(queryObj, projection)
-
-        let response = [];
-
-        if (observationSubmissions.length > 0) {
-
-          observationSubmissions.map(eachObservationSubmissions => {
-            eachObservationSubmissions["type"] = "observation"
-            eachObservationSubmissions["status"] = "Pending"
-            return eachObservationSubmissions
-          })
-
-          response = _.merge(response, observationSubmissions)
-        }
-
-        return resolve({
-          message: "Pending Observations",
-          result: response
-        });
       } catch (error) {
         return reject({
           status: error.status || 500,
