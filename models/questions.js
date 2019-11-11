@@ -40,6 +40,7 @@ module.exports = {
     sectionHeader: String,
     allowAudioRecording: Boolean,
     page: String,
-    questionNumber: String
+    questionNumber: String,
+    weightage: Number
   }
 };

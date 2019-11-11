@@ -122,6 +122,7 @@ module.exports = class questionsHelper {
           for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
             let optionValue = "R" + pointerToResponseCount
             let optionHint = "R" + pointerToResponseCount + "-hint"
+            let optionScore = "R" + pointerToResponseCount + "-score"
 
             if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
               let eachOption = {
@@ -131,6 +132,11 @@ module.exports = class questionsHelper {
               if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
                 eachOption.hint = parsedQuestion[optionHint]
               }
+
+              if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+                eachOption.score = Math.round(parsedQuestion[optionScore])
+              }
+
               allValues.options.push(eachOption)
             }
           }
@@ -379,6 +385,7 @@ module.exports = class questionsHelper {
         for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
           let optionValue = "R" + pointerToResponseCount
           let optionHint = "R" + pointerToResponseCount + "-hint"
+          let optionScore = "R" + pointerToResponseCount + "-score"
 
           if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
             let eachOption = {
@@ -387,6 +394,9 @@ module.exports = class questionsHelper {
             }
             if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
               eachOption.hint = parsedQuestion[optionHint]
+            }
+            if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+              eachOption.score = Math.round(parsedQuestion[optionScore])
             }
             existingQuestion.options.push(eachOption)
           }
