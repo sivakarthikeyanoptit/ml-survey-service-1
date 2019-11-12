@@ -276,6 +276,94 @@ module.exports = class solutionsHelper {
     });
   }
 
+
+  static setThemeRubricExpressions(currentSolutionThemeStructure, themeRubricExpressionData, solutionLevelKeys) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        themeRubricExpressionData = themeRubricExpressionData.map(function(themeRow) {
+          themeRow = gen.utils.valueParser(themeRow)
+          themeRow.status = "Failed to find a matching theme or sub-theme with the same external id and name.";
+          return themeRow;
+        })
+
+        const getThemeExpressions = function (externalId, name) {
+          return _.find(themeRubricExpressionData, { 'externalId': externalId, 'name': name })
+        }
+
+
+        const updateThemeRubricExpressionData = function (themeRow) {
+          
+          const themeIndex = themeRubricExpressionData.findIndex(row => row.externalId === themeRow.externalId && row.name === themeRow.name)
+
+          if(themeIndex >= 0) {
+            themeRubricExpressionData[themeIndex] = themeRow
+          }
+
+        }
+
+        const parseAllThemes = function (themes) {
+
+          themes.forEach(theme => {
+
+            const checkIfThemeIsToBeUpdated = getThemeExpressions(theme.externalId, theme.name)
+            
+            if(checkIfThemeIsToBeUpdated) {
+              
+              theme.rubric = {
+                expressionVariables : {
+                  SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
+                },
+                levels : {}
+              }
+              solutionLevelKeys.forEach(level => {
+                theme.rubric.levels[level] = `(${checkIfThemeIsToBeUpdated[level]})`
+              })
+              
+              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? checkIfThemeIsToBeUpdated.weightage : 0
+
+              checkIfThemeIsToBeUpdated.status = "Success"
+
+              updateThemeRubricExpressionData(checkIfThemeIsToBeUpdated)
+            } 
+            // else if(!theme.criteria) {
+            //   let someRandomValue = themeRubricExpressionData[Math.floor(Math.random()*themeRubricExpressionData.length)];
+
+            //   theme.rubric = {
+            //     expressionVariables : {
+            //       SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
+            //     },
+            //     levels : {}
+            //   }
+            //   solutionLevelKeys.forEach(level => {
+            //     theme.rubric.levels[level] = `(${someRandomValue[level]})`
+            //   })
+              
+            //   theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? someRandomValue.weightage : 0
+
+            // }
+
+            if(theme.children && theme.children.length >0) {
+              parseAllThemes(theme.children)
+            }
+
+          })
+
+        }
+        
+        parseAllThemes(currentSolutionThemeStructure)
+
+        return resolve({
+          themes: currentSolutionThemeStructure,
+          csvData : themeRubricExpressionData
+        });
+
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
   static search(filteredData, pageSize, pageNo) {
     return new Promise(async (resolve, reject) => {
       try {

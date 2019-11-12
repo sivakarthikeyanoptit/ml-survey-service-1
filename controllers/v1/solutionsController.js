@@ -408,16 +408,16 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
-* @apiVersion 1.0.0
-* @apiName update Solutions
-* @apiGroup Solutions
-* @apiParam {File} Mandatory solution file of type json.
-* @apiSampleRequest /assessment/api/v1/solutions/update
-* @apiHeader {String} X-authenticated-user-token Authenticity token  
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
+  * @apiVersion 1.0.0
+  * @apiName update Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} Mandatory solution file of type json.
+  * @apiSampleRequest /assessment/api/v1/solutions/update
+  * @apiHeader {String} X-authenticated-user-token Authenticity token  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async update(req) {
     return new Promise(async (resolve, reject) => {
@@ -467,6 +467,91 @@ module.exports = class Solutions extends Abstract {
           errorObject: error
         })
       }
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/solutions/uploadThemesRubricExpressions/{{solutionsExternalID}} Upload Rubric For Themes Of Solutions
+  * @apiVersion 1.0.0
+  * @apiName Upload Rubric For Themes Of Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/uploadThemes/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadThemesRubricExpressions(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: req.params._id,
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let themeData = await csv().fromString(req.files.themes.data.toString());
+
+        if(!themeData.length>0) {
+          throw new Error("Bad data.")
+        }
+
+        let solutionLevelKeys = new Array
+
+        Object.keys(solutionDocument.levelToScoreMapping).forEach(level => {
+          solutionLevelKeys.push(level)
+        })
+
+        const themesWithRubricDetails = await solutionsHelper.setThemeRubricExpressions(solutionDocument.themes, themeData, solutionLevelKeys)
+
+        if(themesWithRubricDetails.themes) {
+          await database.models.solutions.findOneAndUpdate(
+            { _id: solutionDocument._id },
+            {
+                themes : themesWithRubricDetails.themes
+            }
+          );
+        }
+
+        const fileName = `Solution-Rubric-Upload-Result`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        if(!themesWithRubricDetails.csvData) {
+          throw new Error("Something went wrong! No CSV Data found.")
+        }
+
+        for (let pointerToThemeRow = 0; pointerToThemeRow < themesWithRubricDetails.csvData.length; pointerToThemeRow++) {
+          input.push(themesWithRubricDetails.csvData[pointerToThemeRow])
+        }
+
+        input.push(null)
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
     })
   }
 
