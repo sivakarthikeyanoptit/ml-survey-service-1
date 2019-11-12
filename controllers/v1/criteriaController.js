@@ -741,178 +741,178 @@ module.exports = class Criteria extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
-  async uploadRubricExpressions(req) {
+  // async uploadRubricExpressions(req) {
 
-    return new Promise(async (resolve, reject) => {
+  //   return new Promise(async (resolve, reject) => {
 
-      try {
+  //     try {
 
-        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
+  //       let criteriaData = await csv().fromString(req.files.criteria.data.toString());
 
-        let programQueryList = {}
-        let programId = ""
-        criteriaData.forEach(criteria => {
-          programId = criteria.programId
-          programQueryList[criteria.programId] = criteria.programId
-        });
+  //       let programQueryList = {}
+  //       let programId = ""
+  //       criteriaData.forEach(criteria => {
+  //         programId = criteria.programId
+  //         programQueryList[criteria.programId] = criteria.programId
+  //       });
 
-        let programsFromDatabase = await database.models.programs.find(
-          { externalId: { $in: Object.values(programQueryList) } },
-          { name: 1, components: 1, externalId: 1 }
-        );
+  //       let programsFromDatabase = await database.models.programs.find(
+  //         { externalId: { $in: Object.values(programQueryList) } },
+  //         { name: 1, components: 1, externalId: 1 }
+  //       );
 
-        const programsData = programsFromDatabase.reduce(
-          (ac, program) => ({ ...ac, [program.externalId]: program }), {})
+  //       const programsData = programsFromDatabase.reduce(
+  //         (ac, program) => ({ ...ac, [program.externalId]: program }), {})
 
-        criteriaData = await Promise.all(criteriaData.map(async (criteria) => {
+  //       criteriaData = await Promise.all(criteriaData.map(async (criteria) => {
 
-          let criteriaQueryObject = {
-            externalId: criteria.externalId
-          }
+  //         let criteriaQueryObject = {
+  //           externalId: criteria.externalId
+  //         }
 
-          const existingCriteria = await database.models.criteria.findOne(
-            criteriaQueryObject,
-            { name: 1, description: 1, criteriaType: 1, rubric: 1 }
-          )
+  //         const existingCriteria = await database.models.criteria.findOne(
+  //           criteriaQueryObject,
+  //           { name: 1, description: 1, criteriaType: 1, rubric: 1 }
+  //         )
 
-          if (!existingCriteria) {
-            return
-          }
+  //         if (!existingCriteria) {
+  //           return
+  //         }
 
-          let expressionVariables = {}
-          let expressionVariablesArray = criteria.expressionVariables.split("###")
-          expressionVariablesArray.forEach(expressionVariable => {
-            let tempExpressionVariableArray = expressionVariable.split("=")
-            let expressionVariableArray = new Array
-            expressionVariableArray.push(tempExpressionVariableArray.shift())
-            expressionVariableArray.push(tempExpressionVariableArray.join('='))
-            let defaultVariableArray = expressionVariableArray[0].split("-")
-            if (defaultVariableArray.length > 1) {
-              if (!expressionVariables.default) expressionVariables.default = {};
-              expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
-            } else {
-              expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
-            }
-          })
-          let rubric = {
-            name: existingCriteria.name,
-            description: existingCriteria.description,
-            type: existingCriteria.criteriaType,
-            expressionVariables: expressionVariables,
-            levels: {}
-          }
+  //         let expressionVariables = {}
+  //         let expressionVariablesArray = criteria.expressionVariables.split("###")
+  //         expressionVariablesArray.forEach(expressionVariable => {
+  //           let tempExpressionVariableArray = expressionVariable.split("=")
+  //           let expressionVariableArray = new Array
+  //           expressionVariableArray.push(tempExpressionVariableArray.shift())
+  //           expressionVariableArray.push(tempExpressionVariableArray.join('='))
+  //           let defaultVariableArray = expressionVariableArray[0].split("-")
+  //           if (defaultVariableArray.length > 1) {
+  //             if (!expressionVariables.default) expressionVariables.default = {};
+  //             expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
+  //           } else {
+  //             expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+  //           }
+  //         })
+  //         let rubric = {
+  //           name: existingCriteria.name,
+  //           description: existingCriteria.description,
+  //           type: existingCriteria.criteriaType,
+  //           expressionVariables: expressionVariables,
+  //           levels: {}
+  //         }
 
-          let existingCriteriaRubricLevels
+  //         let existingCriteriaRubricLevels
 
-          if (Array.isArray(existingCriteria.rubric.levels)) {
-            existingCriteriaRubricLevels = existingCriteria.rubric.levels
-          } else {
-            existingCriteriaRubricLevels = Object.values(existingCriteria.rubric.levels)
-          }
+  //         if (Array.isArray(existingCriteria.rubric.levels)) {
+  //           existingCriteriaRubricLevels = existingCriteria.rubric.levels
+  //         } else {
+  //           existingCriteriaRubricLevels = Object.values(existingCriteria.rubric.levels)
+  //         }
 
-          existingCriteriaRubricLevels.forEach(levelObject => {
-            rubric.levels[levelObject.level] = {
-              level: levelObject.level,
-              label: levelObject.label,
-              description: levelObject.description,
-              expression: criteria[levelObject.level]
-            }
-          })
+  //         existingCriteriaRubricLevels.forEach(levelObject => {
+  //           rubric.levels[levelObject.level] = {
+  //             level: levelObject.level,
+  //             label: levelObject.label,
+  //             description: levelObject.description,
+  //             expression: criteria[levelObject.level]
+  //           }
+  //         })
 
-          let updateObject = {}
+  //         let updateObject = {}
 
-          let queryOptions = {
-            queryOptions: true
-          }
+  //         let queryOptions = {
+  //           queryOptions: true
+  //         }
 
-          updateObject.$set = {
-            rubric: rubric
-          }
+  //         updateObject.$set = {
+  //           rubric: rubric
+  //         }
 
-          criteria = await database.models.criteria.findOneAndUpdate(
-            criteriaQueryObject,
-            updateObject,
-            queryOptions
-          );
+  //         criteria = await database.models.criteria.findOneAndUpdate(
+  //           criteriaQueryObject,
+  //           updateObject,
+  //           queryOptions
+  //         );
 
-          return criteria
-
-
-        }));
+  //         return criteria
 
 
-        if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
-          throw "Something went wrong, not all records were inserted/updated."
-        }
+  //       }));
 
-        let submissionDocumentCriterias = [];
 
-        for (
-          let counter = 0;
-          counter < programsData[programId].components.length;
-          counter++
-        ) {
+  //       if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
+  //         throw "Something went wrong, not all records were inserted/updated."
+  //       }
 
-          let solutionDocument = await database.models.solutions.findOne(
-            { _id: programsData[programId].components[counter] },
-            { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
-          );
+  //       let submissionDocumentCriterias = [];
 
-          let criteriasId = new Array
-          let criteriaObject = {}
-          let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
+  //       for (
+  //         let counter = 0;
+  //         counter < programsData[programId].components.length;
+  //         counter++
+  //       ) {
 
-          criteriasIdArray.forEach(eachCriteriaId => {
-            criteriasId.push(eachCriteriaId.criteriaId)
-            criteriaObject[eachCriteriaId.criteriaId.toString()] = {
-              weightage: eachCriteriaId.weightage
-            }
-          })
+  //         let solutionDocument = await database.models.solutions.findOne(
+  //           { _id: programsData[programId].components[counter] },
+  //           { themes: 1, name: 1, description: 1, externalId: 1, questionSequenceByEcm: 1 }
+  //         );
 
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasId } })
+  //         let criteriasId = new Array
+  //         let criteriaObject = {}
+  //         let criteriasIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
-          criteriaQuestionDocument.forEach(criteria => {
-            criteria.weightage = criteriaObject[criteria._id.toString()].weightage
-            submissionDocumentCriterias.push(
-              _.omit(criteria._doc, [
-                "resourceType",
-                "language",
-                "keywords",
-                "concepts",
-                "createdFor",
-                "evidences"
-              ])
-            );
-          });
-        }
+  //         criteriasIdArray.forEach(eachCriteriaId => {
+  //           criteriasId.push(eachCriteriaId.criteriaId)
+  //           criteriaObject[eachCriteriaId.criteriaId.toString()] = {
+  //             weightage: eachCriteriaId.weightage
+  //           }
+  //         })
 
-        let updatedCriteriasObject = {}
+  //         let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: criteriasId } })
 
-        updatedCriteriasObject.$set = {
-          criteria: submissionDocumentCriterias
-        }
+  //         criteriaQuestionDocument.forEach(criteria => {
+  //           criteria.weightage = criteriaObject[criteria._id.toString()].weightage
+  //           submissionDocumentCriterias.push(
+  //             _.omit(criteria._doc, [
+  //               "resourceType",
+  //               "language",
+  //               "keywords",
+  //               "concepts",
+  //               "createdFor",
+  //               "evidences"
+  //             ])
+  //           );
+  //         });
+  //       }
 
-        let updateSubmissions = await database.models.submissions.updateMany(
-          { programId: programsData[programId]._id },
-          updatedCriteriasObject
-        );
+  //       let updatedCriteriasObject = {}
 
-        let responseMessage = "Criteria rubric updated successfully."
+  //       updatedCriteriasObject.$set = {
+  //         criteria: submissionDocumentCriterias
+  //       }
 
-        let response = { message: responseMessage };
+  //       let updateSubmissions = await database.models.submissions.updateMany(
+  //         { programId: programsData[programId]._id },
+  //         updatedCriteriasObject
+  //       );
 
-        return resolve(response);
+  //       let responseMessage = "Criteria rubric updated successfully."
 
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: error,
-          errorObject: error
-        });
-      }
+  //       let response = { message: responseMessage };
 
-    })
-  }
+  //       return resolve(response);
+
+  //     } catch (error) {
+  //       return reject({
+  //         status: 500,
+  //         message: error,
+  //         errorObject: error
+  //       });
+  //     }
+
+  //   })
+  // }
 
   /**
   * @api {post} /assessment/api/v1/criteria/upload Upload Criteria CSV

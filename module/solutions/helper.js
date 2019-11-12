@@ -364,6 +364,66 @@ module.exports = class solutionsHelper {
     });
   }
 
+  static updateCriteriaWeightageInThemes(currentSolutionThemeStructure, criteriaWeightageArray) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        criteriaWeightageArray = criteriaWeightageArray.map(function(criteria) {
+          criteria.criteriaId = criteria.criteriaId.toString();
+          return criteria;
+        })
+
+        const cirteriaWeightToUpdateCount = criteriaWeightageArray.length
+
+        let criteriaWeightageUpdatedCount = 0
+
+        const getCriteriaWeightElement = function (criteriaId) {
+          return _.find(criteriaWeightageArray, { 'criteriaId': criteriaId.toString()})
+        }
+
+        const parseAllThemes = function (themes) {
+
+          themes.forEach(theme => {
+
+            if(theme.criteria && theme.criteria.length > 0) {
+              for (let pointerToCriteriaArray = 0; pointerToCriteriaArray < theme.criteria.length; pointerToCriteriaArray ++) {
+                let eachCriteria = theme.criteria[pointerToCriteriaArray];
+                const checkIfCriteriaIsToBeUpdated = getCriteriaWeightElement(eachCriteria.criteriaId)
+                if(checkIfCriteriaIsToBeUpdated) {
+                  theme.criteria[pointerToCriteriaArray] = {
+                    criteriaId : ObjectId(checkIfCriteriaIsToBeUpdated.criteriaId),
+                    weightage : parseInt(checkIfCriteriaIsToBeUpdated.weightage)
+                  }
+                  criteriaWeightageUpdatedCount += 1
+                }
+              }
+            }
+
+            if(theme.children && theme.children.length > 0) {
+              parseAllThemes(theme.children)
+            }
+
+          })
+
+        }
+        
+        parseAllThemes(currentSolutionThemeStructure)
+
+        if(criteriaWeightageUpdatedCount == cirteriaWeightToUpdateCount) {
+          return resolve({
+            themes: currentSolutionThemeStructure,
+            success : true
+          });
+        } else {
+          throw new Error("Something went wrong! Not all criteira weightage were updated.")
+        }
+
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
   static search(filteredData, pageSize, pageNo) {
     return new Promise(async (resolve, reject) => {
       try {
