@@ -518,7 +518,8 @@ module.exports = class Solutions extends Abstract {
           await database.models.solutions.findOneAndUpdate(
             { _id: solutionDocument._id },
             {
-                themes : themesWithRubricDetails.themes
+                themes : themesWithRubricDetails.themes,
+                flattenedThemes : themesWithRubricDetails.flattenedThemes
             }
           );
         }

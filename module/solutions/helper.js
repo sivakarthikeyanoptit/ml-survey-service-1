@@ -276,7 +276,6 @@ module.exports = class solutionsHelper {
     });
   }
 
-
   static setThemeRubricExpressions(currentSolutionThemeStructure, themeRubricExpressionData, solutionLevelKeys) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -353,9 +352,12 @@ module.exports = class solutionsHelper {
         
         parseAllThemes(currentSolutionThemeStructure)
 
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+
         return resolve({
           themes: currentSolutionThemeStructure,
-          csvData : themeRubricExpressionData
+          csvData : themeRubricExpressionData,
+          flattenedThemes : flatThemes
         });
 
       } catch (error) {
@@ -422,6 +424,69 @@ module.exports = class solutionsHelper {
         return reject(error);
       }
     });
+  }
+
+  static generateFlatThemeRubricStructure(solutionThemeStructure) {
+
+
+    let flattenThemes =  function (themes,hierarchyLevel = 0,hierarchyTrack = [],flatThemes = []) {
+                  
+      themes.forEach(theme => {
+        
+        if (theme.children) {
+
+          theme.hierarchyLevel = hierarchyLevel
+          theme.hierarchyTrack = hierarchyTrack
+
+          let hierarchyTrackToUpdate = [...hierarchyTrack]
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+          flattenThemes(theme.children,hierarchyLevel+1,hierarchyTrackToUpdate,flatThemes)
+          
+          if(!theme.criteria) theme.criteria = new Array
+
+          theme.children.forEach(childTheme => {
+            if(childTheme.criteria) {
+              childTheme.criteria.forEach(criteria => {
+                theme.criteria.push(criteria)
+              })
+            }
+          })
+
+          flatThemes.push(_.omit(theme,["children"]))
+
+        } else {
+
+          theme.hierarchyLevel = hierarchyLevel
+          theme.hierarchyTrack = hierarchyTrack
+
+          let hierarchyTrackToUpdate = [...hierarchyTrack]
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+          let themeCriteriaArray = new Array
+
+          theme.criteria.forEach(criteria => {
+            themeCriteriaArray.push({
+                criteriaId : criteria.criteriaId,
+                weightage : criteria.weightage
+            })
+          })
+
+          theme.criteria = themeCriteriaArray
+
+          flatThemes.push(theme)
+
+        }
+
+      })
+
+      return flatThemes
+    }
+
+    let flatThemeStructure = flattenThemes(solutionThemeStructure)
+    
+    return flatThemeStructure
+
   }
 
   static search(filteredData, pageSize, pageNo) {

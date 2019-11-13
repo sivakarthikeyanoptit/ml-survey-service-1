@@ -41,6 +41,6 @@ module.exports = {
     allowAudioRecording: Boolean,
     page: String,
     questionNumber: String,
-    weightage: Number
+    weightage: { type : Number, default: 0 }
   }
 };

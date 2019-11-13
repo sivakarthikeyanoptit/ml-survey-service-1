@@ -1,6 +1,9 @@
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
+const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
+const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
+
 
 module.exports = class Submission extends Abstract {
 
@@ -991,6 +994,18 @@ module.exports = class Submission extends Abstract {
           throw "Entity Id is not found"
         }
 
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
         let queryObject = {
           "entityExternalId": entityId,
           "programExternalId": programId,
@@ -1004,6 +1019,68 @@ module.exports = class Submission extends Abstract {
 
         if (!submissionDocument._id) {
           throw "Couldn't find the submission document"
+        }
+
+
+        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+
+          let allCriteriaInSolution = new Array
+          let allQuestionIdInSolution = new Array
+          let solutionQuestions = new Array
+
+          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+          if(allCriteriaInSolution.length > 0) {
+            
+            submissionDocument.themes = solutionDocument.flattenedThemes
+
+            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+              _id : {
+                $in : allCriteriaInSolution
+              }
+            }, [
+              "evidences"
+            ])
+
+            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+          }
+
+          if(allQuestionIdInSolution.length > 0) {
+
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id : {
+                $in : allQuestionIdInSolution
+              },
+              responseType : {
+                $in : [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
+              }
+            }, [
+              "weightage",
+              "options",
+              "responseType"
+            ])
+
+          }
+
+          if(solutionQuestions.length > 0) {
+            submissionDocument.questionDocuments = {}
+            solutionQuestions.forEach(question => {
+              submissionDocument.questionDocuments[question._id.toString()] = {
+                _id : question._id,
+                weightage : question.weightage
+              }
+              if(question.options && question.options.length > 0) {
+                question.options.forEach(option => {
+                  (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                })
+              }
+            })
+          }
+
         }
 
         let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")

@@ -572,4 +572,30 @@ module.exports = class questionsHelper {
 
   }
 
+  static questionDocument(questionFilter = "all", fieldsArray = "all") {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let queryObject = (questionFilter != "all") ? questionFilter : {};
+
+
+        let projectionObject = {}
+
+        if (fieldsArray != "all") {
+          fieldsArray.forEach(field => {
+            projectionObject[field] = 1;
+          });
+        }
+
+        let questionDocuments = await database.models.questions.find(queryObject, projectionObject).lean();
+        
+        return resolve(questionDocuments);
+        
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+
 };

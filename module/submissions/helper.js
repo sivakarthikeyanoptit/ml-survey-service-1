@@ -469,6 +469,57 @@ module.exports = class submissionsHelper {
                                             return result
                                         }
 
+
+                                        if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")) >= 0) {
+                                            
+                                            result = 0
+
+                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")))
+                                            let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                                            if (criteriaIdIndex < 0) {
+                                                return "NA"
+                                            }
+
+                                            let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+
+                                            submissionAnswers.push(...allCriteriaQuestions)
+
+                                            let scoreOfAllQuestionInCriteria = {}
+                                            let totalWeightOfQuestionInCriteria = 0
+                                            allCriteriaQuestions.forEach(question => {
+                                                if(question.value && question.value != "" && !question.notApplicable) {
+                                                    questionOptionsSelected = question.value.split(",")
+                                                    if(questionOptionsSelected.length > 0) {
+                                                        let selectedOptionScoreFound = false
+                                                        questionOptionsSelected.forEach(optionValue => {
+                                                            if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
+                                                                if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
+                                                                    scoreOfAllQuestionInCriteria[question.qid.toString()].score += eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
+                                                                } else {
+                                                                    scoreOfAllQuestionInCriteria[question.qid.toString()] = {
+                                                                        score : eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`],
+                                                                        weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1
+                                                                    }
+                                                                }
+                                                                selectedOptionScoreFound = true
+                                                            }
+                                                        })
+                                                        if(selectedOptionScoreFound) {
+                                                            totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1
+                                                        }
+                                                    }
+                                                }
+                                            })
+
+                                            if(totalWeightOfQuestionInCriteria > 0 && Object.keys(scoreOfAllQuestionInCriteria).length > 0) {
+                                                Object.keys(scoreOfAllQuestionInCriteria).forEach(question => {
+                                                    result += (question.score*question.weightage)/totalWeightOfQuestionInCriteria
+                                                })
+                                            }
+
+                                            return result
+                                        }
+
                                         if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria")) >= 0) {
                                             result = 0
 
@@ -741,6 +792,7 @@ module.exports = class submissionsHelper {
                             );
 
                         }
+
                         let message = "Crtieria rating completed successfully"
 
                         if (sourceApiHelp == "singleRateApi") {

@@ -15,6 +15,7 @@ module.exports = {
     scoringSystem: String,
     levelToScoreMapping: Object,
     themes: Array,
+    flattenedThemes : Array,
     questionSequenceByEcm: Object,
     entityTypeId: "ObjectId",
     entityType: String,
