@@ -293,77 +293,19 @@ module.exports = class EntityAssessors extends Abstract {
 * @apiParamExample {json} Response:
 */
 
+
   async pendingAssessments() {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let entityAssessorsDocument = await database.models.entityAssessors.find({
-          role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-        }, { _id: 1 }).lean();
-
-        if (!entityAssessorsDocument.length > 0) {
-          throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
+        let pendingAssessmentObj = {
+          pending: true,
+          message: "Pending Assessments"
         }
 
-        let assessors = _.chunk(entityAssessorsDocument, 500)
+        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(pendingAssessmentObj)
 
-        let allEntityAssessors
-
-        let pendingEntityAssessorsData = [];
-        let entityAssessorsIds;
-        let userCount = 0;
-
-        for (let pointerToAssessors = 0; pointerToAssessors < assessors.length; pointerToAssessors++) {
-
-          entityAssessorsIds = assessors[pointerToAssessors].map(eachAssessor => {
-            return eachAssessor._id
-          })
-
-          allEntityAssessors = await database.models.entityAssessors.find({
-            _id: { $in: entityAssessorsIds }
-          }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean()
-
-          await Promise.all(allEntityAssessors.map(async eachAssessor => {
-
-            let queryObj = {
-              solutionId: eachAssessor.solutionId,
-              status: { $ne: "completed" },
-              programId: eachAssessor.programId,
-              entityId: { $in: eachAssessor.entities },
-              entityTypeId: eachAssessor.entityTypeId
-            }
-
-            let assessmentSubmissions = await database.models.submissions.find(queryObj, {
-              _id: 1, solutionId: 1, createdAt: 1, entityId: 1, programId: 1
-            }).lean()
-
-            let userId = eachAssessor.userId
-
-            if (assessmentSubmissions.length > 0) {
-
-              for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < assessmentSubmissions.length; pointerToAssessmentSubmission++) {
-
-                let result = {
-                  _id: assessmentSubmissions[pointerToAssessmentSubmission]._id,
-                  userId: userId,
-                  solutionId: assessmentSubmissions[pointerToAssessmentSubmission].solutionId,
-                  createdAt: assessmentSubmissions[pointerToAssessmentSubmission].createdAt,
-                  entityId: assessmentSubmissions[pointerToAssessmentSubmission].entityId,
-                  programId: assessmentSubmissions[pointerToAssessmentSubmission].programId
-                }
-
-                pendingEntityAssessorsData.push(result)
-              }
-            }
-
-          })
-          )
-        }
-
-        return resolve({
-          message: "Pending Assessments",
-          result: pendingEntityAssessorsData
-        });
+        return resolve(pendingAssessmentDocument);
 
       } catch (error) {
         return reject({
@@ -375,108 +317,6 @@ module.exports = class EntityAssessors extends Abstract {
     });
   }
 
-
-  /**
-* @api {get} /assessment/api/v1/entityAssessors/pendingObservations Pending Assessments
-* @apiVersion 1.0.0
-* @apiName Pending Assessments
-* @apiGroup Entity Assessor
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/entityAssessors/pendingObservations
-* @apiUse successBody
-* @apiUse errorBody
-* @apiParamExample {json} Response:
-*/
-
-  async pendingObservations() {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let entityTypeDocument = await database.models.entityTypes.find({
-          isObservable: true
-        }, { _id: 1 }).lean()
-
-        let allEntityTypeIds = entityTypeDocument.map(entity => {
-          return entity._id
-        })
-
-        let entityAssessorsDocument = await database.models.entityAssessors.find({
-          role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-          entityTypeId: { $in: allEntityTypeIds }
-        }, { _id: 1 }).lean();
-
-        if (!entityAssessorsDocument.length > 0) {
-          throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
-        }
-
-        let assessors = _.chunk(entityAssessorsDocument, 500)
-
-        let allEntityAssessors
-
-        let pendingObservationsData = [];
-        let entityAssessorsIds;
-        let userCount = 0;
-
-        for (let pointerToAssessors = 0; pointerToAssessors < assessors.length; pointerToAssessors++) {
-
-          entityAssessorsIds = assessors[pointerToAssessors].map(eachAssessor => {
-            return eachAssessor._id
-          })
-
-          allEntityAssessors = await database.models.entityAssessors.find({
-            _id: { $in: entityAssessorsIds }
-          }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean()
-
-          await Promise.all(allEntityAssessors.map(async eachAssessor => {
-
-            let queryObj = {
-              solutionId: eachAssessor.solutionId,
-              status: { $ne: "completed" },
-              entityId: { $in: eachAssessor.entities },
-              entityTypeId: eachAssessor.entityTypeId
-            }
-
-            let observationSubmissionsData = await database.models.observationSubmissions.find(queryObj, {
-              _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1
-            }).lean()
-
-            let userId = eachAssessor.userId
-
-            if (observationSubmissionsData.length > 0) {
-
-              for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < observationSubmissionsData.length; pointerToAssessmentSubmission++) {
-
-                let result = {
-                  _id: observationSubmissionsData[pointerToAssessmentSubmission]._id,
-                  userId: userId,
-                  solutionId: observationSubmissionsData[pointerToAssessmentSubmission].solutionId,
-                  createdAt: observationSubmissionsData[pointerToAssessmentSubmission].createdAt,
-                  entityId: observationSubmissionsData[pointerToAssessmentSubmission].entityId,
-                  observationId: observationSubmissionsData[pointerToAssessmentSubmission].observationId
-                }
-
-                pendingObservationsData.push(result)
-              }
-            }
-
-          })
-          )
-        }
-
-        return resolve({
-          message: "Pending Observations",
-          result: pendingObservationsData
-        });
-
-      } catch (error) {
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
 
   /**
 * @api {get} /assessment/api/v1/entityAssessors/completedAssessments Completed Assessments
@@ -494,72 +334,14 @@ module.exports = class EntityAssessors extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let entityAssessorsDocument = await database.models.entityAssessors.find({
-          role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-        }, { _id: 1 }).lean();
-
-        if (!entityAssessorsDocument.length > 0) {
-          throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
+        let completedAssessmentObj = {
+          completed: true,
+          message: "Completed Assessments"
         }
 
-        let assessorsData = _.chunk(entityAssessorsDocument, 500)
+        let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(completedAssessmentObj)
 
-        let allEntityAssessors
-
-        let completedAssessments = [];
-        let entityAssessorsIds;
-
-        for (let pointerToAssessors = 0; pointerToAssessors < assessorsData.length; pointerToAssessors++) {
-
-          entityAssessorsIds = assessorsData[pointerToAssessors].map(eachAssessor => {
-            return eachAssessor._id
-          })
-
-          allEntityAssessors = await database.models.entityAssessors.find({
-            _id: { $in: entityAssessorsIds }
-          }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean()
-
-          await Promise.all(allEntityAssessors.map(async eachAssessor => {
-
-            let queryObj = {
-              solutionId: eachAssessor.solutionId,
-              status: "completed",
-              programId: eachAssessor.programId,
-              entityId: { $in: eachAssessor.entities },
-              entityTypeId: eachAssessor.entityTypeId
-            }
-
-            let assessmentSubmissions = await database.models.submissions.find(queryObj, {
-              _id: 1, solutionId: 1, createdAt: 1, entityId: 1, programId: 1
-            }).lean()
-
-            let userId = eachAssessor.userId
-
-            if (assessmentSubmissions.length > 0) {
-
-              for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < assessmentSubmissions.length; pointerToAssessmentSubmission++) {
-
-                let result = {
-                  _id: assessmentSubmissions[pointerToAssessmentSubmission]._id,
-                  userId: userId,
-                  solutionId: assessmentSubmissions[pointerToAssessmentSubmission].solutionId,
-                  createdAt: assessmentSubmissions[pointerToAssessmentSubmission].createdAt,
-                  entityId: assessmentSubmissions[pointerToAssessmentSubmission].entityId,
-                  programId: assessmentSubmissions[pointerToAssessmentSubmission].programId
-                }
-
-                completedAssessments.push(result)
-              }
-            }
-
-          })
-          )
-        }
-
-        return resolve({
-          message: "Completed Assessments",
-          result: completedAssessments
-        });
+        return resolve(completedAssessmentDocument);
 
       } catch (error) {
         return reject({
@@ -571,105 +353,5 @@ module.exports = class EntityAssessors extends Abstract {
     });
   }
 
-  /**
-* @api {get} /assessment/api/v1/entityAssessors/completedObservations Completed Observations
-* @apiVersion 1.0.0
-* @apiName Completed Observations
-* @apiGroup Entity Assessor
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/entityAssessors/completedObservations
-* @apiUse successBody
-* @apiUse errorBody
-* @apiParamExample {json} Response:
-*/
-
-  async completedObservations() {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let entityTypeDocument = await database.models.entityTypes.find({
-          isObservable: true
-        }, { _id: 1 }).lean()
-
-        let allEntityTypeIds = entityTypeDocument.map(entity => {
-          return entity._id
-        })
-
-        let entityAssessorsDocument = await database.models.entityAssessors.find({
-          role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
-          entityTypeId: { $in: allEntityTypeIds }
-        }, { _id: 1 }).lean();
-
-        if (!entityAssessorsDocument.length > 0) {
-          throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
-        }
-
-        let assessors = _.chunk(entityAssessorsDocument, 500)
-
-        let allEntityAssessors
-
-        let completedObservationsData = [];
-        let entityAssessorsIds;
-
-        for (let pointerToAssessors = 0; pointerToAssessors < assessors.length; pointerToAssessors++) {
-
-          entityAssessorsIds = assessors[pointerToAssessors].map(eachAssessor => {
-            return eachAssessor._id
-          })
-
-          allEntityAssessors = await database.models.entityAssessors.find({
-            _id: { $in: entityAssessorsIds }
-          }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1 }).lean()
-
-          await Promise.all(allEntityAssessors.map(async eachAssessor => {
-
-            let queryObj = {
-              solutionId: eachAssessor.solutionId,
-              status: "completed",
-              entityId: { $in: eachAssessor.entities },
-              entityTypeId: eachAssessor.entityTypeId
-            }
-
-            let observationSubmissionsData = await database.models.observationSubmissions.find(queryObj, {
-              _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1
-            }).lean()
-
-            let userId = eachAssessor.userId
-
-            if (observationSubmissionsData.length > 0) {
-
-              for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < observationSubmissionsData.length; pointerToAssessmentSubmission++) {
-
-                let result = {
-                  _id: observationSubmissionsData[pointerToAssessmentSubmission]._id,
-                  userId: userId,
-                  solutionId: observationSubmissionsData[pointerToAssessmentSubmission].solutionId,
-                  createdAt: observationSubmissionsData[pointerToAssessmentSubmission].createdAt,
-                  entityId: observationSubmissionsData[pointerToAssessmentSubmission].entityId,
-                  observationId: observationSubmissionsData[pointerToAssessmentSubmission].observationId
-                }
-
-                completedObservationsData.push(result)
-              }
-            }
-
-          })
-          )
-        }
-
-        return resolve({
-          message: "Completed Observations",
-          result: completedObservationsData
-        });
-
-      } catch (error) {
-        return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
-          errorObject: error
-        });
-      }
-    });
-  }
 
 };

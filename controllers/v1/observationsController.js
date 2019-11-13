@@ -1072,7 +1072,7 @@ module.exports = class Observations extends Abstract {
                         frameworkId: 1,
                         name: 1,
                         description: 1,
-                        type : 1,
+                        type: 1,
                         subType: 1
                     }).lean()
 
@@ -1238,6 +1238,77 @@ module.exports = class Observations extends Abstract {
 
         });
 
+    }
+
+
+    /**
+  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Assessments
+  * @apiVersion 1.0.0
+  * @apiName Pending Assessments
+  * @apiGroup Entity Assessor
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  */
+
+    async pendingObservations() {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let pendingObj = {
+                    pending: true,
+                    message: "Pending Observations"
+                }
+
+                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(pendingObj)
+
+                return resolve(pendingObservationDocuments)
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+    /**
+* @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
+* @apiVersion 1.0.0
+* @apiName Completed Observations
+* @apiGroup Entity Assessor
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/observations/completedObservations
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+*/
+
+    async completedObservations() {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let completedObj = {
+                    completed: true,
+                    message: "Completed Observations"
+                }
+
+                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(completedObj)
+
+                return resolve(completedObservationDocuments)
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
     }
 
 }

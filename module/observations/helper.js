@@ -194,10 +194,10 @@ module.exports = class observationsHelper {
                         observation
                     );
                     observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`
-                    
-                    if(observationDocument._id) {
+
+                    if (observationDocument._id) {
                         await this.sendUserNotifications(userId, {
-                            solutionType : solution.type,
+                            solutionType: solution.type,
                             solutionId: solution._id.toString(),
                             observationId: observationDocument._id.toString()
                         });
@@ -214,7 +214,6 @@ module.exports = class observationsHelper {
         })
     }
 
-
     static sendUserNotifications(userId = "", observationData = {}) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -224,19 +223,19 @@ module.exports = class observationsHelper {
                 }
 
                 const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
-                    user_id : userId,
-                    internal : false,
-                    text : `New solution available now (Observation form)`,
-                    type : "information",
-                    action : "mapping",
-                    payload : {
-                        type : observationData.solutionType,
-                        solution_id : observationData.solutionId,
-                        observation_id : observationData.observationId
+                    user_id: userId,
+                    internal: false,
+                    text: `New solution available now (Observation form)`,
+                    type: "information",
+                    action: "mapping",
+                    payload: {
+                        type: observationData.solutionType,
+                        solution_id: observationData.solutionId,
+                        observation_id: observationData.observationId
                     }
                 })
-                
-                if(kafkaMessage.status != "success") {
+
+                if (kafkaMessage.status != "success") {
                     let errorObject = {
                         formData: {
                             userId: userId,
@@ -253,6 +252,75 @@ module.exports = class observationsHelper {
                 })
 
             } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static pendingOrCompletedObservations(data) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let findQuery = {};
+
+                if (data.pending) {
+                    findQuery["status"] = { $ne: "completed" }
+                }
+
+                if (data.completed) {
+                    findQuery["status"] = "completed"
+                }
+
+                let observationDocuments = await database.models.observationSubmissions.find(findQuery, {
+                    _id: 1
+                }).lean()
+
+                if (!observationDocuments.length > 0) {
+                    throw "No Pending or Completed Observations found"
+                }
+
+                let lengthOfObservationSubmissionsChunk = 500;
+
+                let chunkOfObservationSubmissions = _.chunk(observationDocuments, lengthOfObservationSubmissionsChunk);
+
+                let observationData = [];
+                let observationSubmissionsIds;
+                let observationSubmissionsDocument;
+
+                for (let pointerToObservationSubmission = 0; pointerToObservationSubmission < chunkOfObservationSubmissions.length; pointerToObservationSubmission++) {
+
+                    observationSubmissionsIds = chunkOfObservationSubmissions[pointerToObservationSubmission].map(eachObservationSubmission => {
+                        return eachObservationSubmission._id
+                    })
+
+                    observationSubmissionsDocument = await database.models.observationSubmissions.find({
+                        _id: { $in: observationSubmissionsIds }
+                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1 }).lean()
+
+                    await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
+
+                        let result = {
+                            _id: eachObservationData._id,
+                            userId: eachObservationData.createdBy,
+                            solutionId: eachObservationData.solutionId,
+                            createdAt: eachObservationData.createdAt,
+                            entityId: eachObservationData.entityId,
+                            observationId: eachObservationData.observationId
+                        }
+
+                        observationData.push(result)
+
+                    })
+                    )
+                }
+
+                return resolve({
+                    message: data.message,
+                    result: observationData
+                });
+
+            }
+            catch (error) {
                 return reject(error);
             }
         })
