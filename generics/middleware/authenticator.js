@@ -67,7 +67,7 @@ module.exports = async function (req, res, next) {
     req.headers["internal-access-token"] = req.query["internal-access-token"]
   }
 
-  if (req.path.includes("/pendingAssessments") || req.path.includes("/pendingObservations")) {
+  if (req.path.includes("/pendingAssessments") || req.path.includes("/pendingObservations") || req.path.includes("/completedAssessments") || req.path.includes("completedObservations")) {
     req.headers["internal-access-token"] = process.env.INTERNAL_ACCESS_TOKEN
   }
 
@@ -121,7 +121,7 @@ module.exports = async function (req, res, next) {
     return res.status(401).send(respUtil(rspObj));
   }
 
-  if ((req.path.includes("reports") || req.path.includes("gotenberg") || req.path.includes("pendingAssessments") || req.path.includes("/pendingObservations/") || req.path.includes("solutionDetails") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
+  if ((req.path.includes("reports") || req.path.includes("gotenberg") || req.path.includes("pendingAssessments") || req.path.includes("completedAssessments") || req.path.includes("pendingObservations") || req.path.includes("completedObservations") || req.path.includes("solutionDetails") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
     req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
     next();
     return
