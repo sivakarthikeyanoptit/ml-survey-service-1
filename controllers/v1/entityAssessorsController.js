@@ -291,6 +291,20 @@ module.exports = class EntityAssessors extends Abstract {
 * @apiUse successBody
 * @apiUse errorBody
 * @apiParamExample {json} Response:
+{
+    "message": "Pending Assessments",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5dca4478284feccded8f35c6",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5b98fa069f664f7e1ae7498c",
+            "createdAt": "2019-01-01T00:00:00.000Z",
+            "entityId": "5c0bbab881bdbe330655d83c",
+            "programId": "5b98d7b6d4f87f317ff615ee"
+        }
+      ]
+  }
 */
 
 
@@ -330,6 +344,20 @@ module.exports = class EntityAssessors extends Abstract {
 * @apiUse successBody
 * @apiUse errorBody
 * @apiParamExample {json} Response:
+{
+    "message": "Completed Assessments",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5dca4478284feccded8f35c6",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5b98fa069f664f7e1ae7498c",
+            "createdAt": "2019-01-01T00:00:00.000Z",
+            "entityId": "5c0bbab881bdbe330655d83c",
+            "programId": "5b98d7b6d4f87f317ff615ee"
+        }
+      ]
+}
 */
 
   async completedAssessments() {
