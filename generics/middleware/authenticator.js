@@ -67,10 +67,6 @@ module.exports = async function (req, res, next) {
     req.headers["internal-access-token"] = req.query["internal-access-token"]
   }
 
-  if (req.path.includes("/pendingAssessments") || req.path.includes("/pendingObservations") || req.path.includes("/completedAssessments") || req.path.includes("completedObservations")) {
-    req.headers["internal-access-token"] = process.env.INTERNAL_ACCESS_TOKEN
-  }
-
   if (req.headers && req.headers.linkid) {
 
     let isShareable = await database.models.sharedLink.findOne({ linkId: req.headers.linkid, isActive: true });
