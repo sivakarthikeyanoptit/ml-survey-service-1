@@ -257,17 +257,17 @@ module.exports = class observationsHelper {
         })
     }
 
-    static pendingOrCompletedObservations(data) {
+    static pendingOrCompletedObservations(observationStatus) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let findQuery = {};
 
-                if (data.pending) {
+                if (observationStatus.pending) {
                     findQuery["status"] = { $ne: "completed" }
                 }
 
-                if (data.completed) {
+                if (observationStatus.completed) {
                     findQuery["status"] = "completed"
                 }
 
@@ -312,10 +312,7 @@ module.exports = class observationsHelper {
                     )
                 }
 
-                return resolve({
-                    message: data.message,
-                    result: observationData
-                });
+                return resolve(observationData);
 
             }
             catch (error) {

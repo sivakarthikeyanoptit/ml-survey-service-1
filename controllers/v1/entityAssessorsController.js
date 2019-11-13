@@ -298,14 +298,16 @@ module.exports = class EntityAssessors extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let pendingAssessmentObj = {
+        let status = {
           pending: true,
-          message: "Pending Assessments"
         }
 
-        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(pendingAssessmentObj)
+        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
 
-        return resolve(pendingAssessmentDocument);
+        return resolve({
+          message: "Pending Assessments",
+          result: pendingAssessmentDocument
+        });
 
       } catch (error) {
         return reject({
@@ -334,14 +336,16 @@ module.exports = class EntityAssessors extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let completedAssessmentObj = {
-          completed: true,
-          message: "Completed Assessments"
+        let status = {
+          completed: true
         }
 
-        let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(completedAssessmentObj)
+        let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
 
-        return resolve(completedAssessmentDocument);
+        return resolve({
+          message: "Completed Assessments",
+          result: completedAssessmentDocument
+        });
 
       } catch (error) {
         return reject({

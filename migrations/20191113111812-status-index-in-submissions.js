@@ -1,6 +1,6 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Include collectionName and what does it update"
+    global.migrationMsg = "Created Index for submissions and observationSubmissions."
     await db.collection('submissions').createIndex({ status: 1 })
     await db.collection('observationSubmissions').createIndex({ status: 1 })
   },

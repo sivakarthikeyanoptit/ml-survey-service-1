@@ -1257,14 +1257,17 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let pendingObj = {
-                    pending: true,
-                    message: "Pending Observations"
+                let status = {
+                    pending: true
                 }
 
-                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(pendingObj)
+                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
 
-                return resolve(pendingObservationDocuments)
+                return resolve({
+                    message: "Pending Observations",
+                    result: pendingObservationDocuments
+                })
+
 
             } catch (error) {
                 return reject({
@@ -1292,14 +1295,16 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let completedObj = {
-                    completed: true,
-                    message: "Completed Observations"
+                let status = {
+                    completed: true
                 }
 
-                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(completedObj)
+                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
 
-                return resolve(completedObservationDocuments)
+                return resolve({
+                    message: "Completed Observations",
+                    result: completedObservationDocuments
+                })
 
             } catch (error) {
                 return reject({

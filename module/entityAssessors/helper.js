@@ -453,7 +453,7 @@ module.exports = class entityAssessorHelper {
         })
     }
 
-    static pendingOrCompletedAssessment(assessmentData) {
+    static pendingOrCompletedAssessment(assessmentStatus) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -473,16 +473,16 @@ module.exports = class entityAssessorHelper {
 
                 let entityAssessorsData = [];
                 let entityAssessorsIds;
-                let assessmentStatus;
+                let status;
 
-                if (assessmentData.pending) {
-                    assessmentStatus = {
+                if (assessmentStatus.pending) {
+                    status = {
                         $ne: "completed"
                     }
                 }
 
-                if (assessmentData.completed) {
-                    assessmentStatus = "completed"
+                if (assessmentStatus.completed) {
+                    status = "completed"
                 }
 
                 for (let pointerToAssessors = 0; pointerToAssessors < chunkOfEntityAssessors.length; pointerToAssessors++) {
@@ -500,7 +500,7 @@ module.exports = class entityAssessorHelper {
                         let queryObj = {
                             programId: eachAssessor.programId,
                             solutionId: eachAssessor.solutionId,
-                            status: assessmentStatus,
+                            status: status,
                             entityTypeId: eachAssessor.entityTypeId,
                             entityId: { $in: eachAssessor.entities }
                         }
@@ -535,10 +535,7 @@ module.exports = class entityAssessorHelper {
                     )
                 }
 
-                return resolve({
-                    message: assessmentData.message,
-                    result: entityAssessorsData
-                })
+                return resolve(entityAssessorsData)
 
             } catch (error) {
                 return reject(error);
