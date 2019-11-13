@@ -281,4 +281,81 @@ module.exports = class EntityAssessors extends Abstract {
     })
   }
 
+  /**
+* @api {get} /assessment/api/v1/entityAssessors/pendingAssessments Pending Assessments
+* @apiVersion 1.0.0
+* @apiName Pending Assessments
+* @apiGroup Entity Assessor
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/entityAssessors/pendingAssessments
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+*/
+
+
+  async pendingAssessments() {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let status = {
+          pending: true,
+        }
+
+        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
+
+        return resolve({
+          message: "Pending Assessments",
+          result: pendingAssessmentDocument
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+
+  /**
+* @api {get} /assessment/api/v1/entityAssessors/completedAssessments Completed Assessments
+* @apiVersion 1.0.0
+* @apiName Completed Assessments
+* @apiGroup Entity Assessor
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/entityAssessors/completedAssessments
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+*/
+
+  async completedAssessments() {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let status = {
+          completed: true
+        }
+
+        let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
+
+        return resolve({
+          message: "Completed Assessments",
+          result: completedAssessmentDocument
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! Something went wrong!",
+          errorObject: error
+        });
+      }
+    });
+  }
+
+
 };
