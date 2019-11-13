@@ -1251,6 +1251,20 @@ module.exports = class Observations extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
+  * {
+    "message": "Pending Observations",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d31a14dbff58d3d65ede344",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5c6bd309af0065f0e0d4223b",
+            "createdAt": "2019-07-19T10:54:05.638Z",
+            "entityId": "5cebbefe5943912f56cf8e16",
+            "observationId": "5d1070326f6ed50bc34aec2c"
+        }
+        ]
+    }
   */
 
     async pendingObservations() {
@@ -1289,6 +1303,20 @@ module.exports = class Observations extends Abstract {
 * @apiUse successBody
 * @apiUse errorBody
 * @apiParamExample {json} Response:
+{
+    "message": "Completed Observations",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d2702e60110594953c1614a",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5c6bd309af0065f0e0d4223b",
+            "createdAt": "2019-06-27T08:55:16.718Z",
+            "entityId": "5cebbefe5943912f56cf8e16",
+            "observationId": "5d1483c9869c433b0440c5dd"
+        }
+    ]
+}
 */
 
     async completedObservations() {
