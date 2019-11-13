@@ -299,16 +299,14 @@ module.exports = class observationsHelper {
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
 
-                        let result = {
+                        observationData.push({
                             _id: eachObservationData._id,
                             userId: eachObservationData.createdBy,
                             solutionId: eachObservationData.solutionId,
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId
-                        }
-
-                        observationData.push(result)
+                        })
 
                     })
                     )

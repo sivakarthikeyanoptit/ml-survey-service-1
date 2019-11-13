@@ -501,8 +501,8 @@ module.exports = class entityAssessorHelper {
                             programId: eachAssessor.programId,
                             solutionId: eachAssessor.solutionId,
                             status: assessmentStatus,
-                            entityId: { $in: eachAssessor.entities },
-                            entityTypeId: eachAssessor.entityTypeId
+                            entityTypeId: eachAssessor.entityTypeId,
+                            entityId: { $in: eachAssessor.entities }
                         }
 
                         let assessmentSubmissionsDoc = await database.models.submissions.find(queryObj, {
@@ -516,19 +516,19 @@ module.exports = class entityAssessorHelper {
                             let solutionId = eachAssessor.solutionId;
                             let programId = eachAssessor.programId
 
-                            for (let pointerToAssessmentSubmission = 0; pointerToAssessmentSubmission < assessmentSubmissionsDoc.length; pointerToAssessmentSubmission++) {
+                            assessmentSubmissionsDoc.forEach(eachAssessmentSubmissions => {
 
-                                let result = {
-                                    _id: assessmentSubmissionsDoc[pointerToAssessmentSubmission]._id,
+                                entityAssessorsData.push({
+                                    _id: eachAssessmentSubmissions._id,
                                     userId: userId,
                                     solutionId: solutionId,
-                                    createdAt: assessmentSubmissionsDoc[pointerToAssessmentSubmission].createdAt,
-                                    entityId: assessmentSubmissionsDoc[pointerToAssessmentSubmission].entityId,
+                                    createdAt: eachAssessmentSubmissions.createdAt,
+                                    entityId: eachAssessmentSubmissions.entityId,
                                     programId: programId
-                                }
+                                })
 
-                                entityAssessorsData.push(result)
-                            }
+                            })
+
                         }
 
                     })
