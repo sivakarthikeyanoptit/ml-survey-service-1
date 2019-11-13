@@ -1242,10 +1242,10 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Assessments
+  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
   * @apiVersion 1.0.0
-  * @apiName Pending Assessments
-  * @apiGroup Entity Assessor
+  * @apiName Pending Observations
+  * @apiGroup Observations
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
   * @apiUse successBody
@@ -1280,7 +1280,7 @@ module.exports = class Observations extends Abstract {
 * @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
 * @apiVersion 1.0.0
 * @apiName Completed Observations
-* @apiGroup Entity Assessor
+* @apiGroup Observations
 * @apiHeader {String} X-authenticated-user-token Authenticity token
 * @apiSampleRequest /assessment/api/v1/observations/completedObservations
 * @apiUse successBody
