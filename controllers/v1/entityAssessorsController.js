@@ -360,8 +360,6 @@ module.exports = class EntityAssessors extends Abstract {
           )
         }
 
-        console.log(pendingEntityAssessorsData.length)
-
         return resolve({
           message: "Pending Assessments",
           result: pendingEntityAssessorsData
@@ -464,8 +462,6 @@ module.exports = class EntityAssessors extends Abstract {
           })
           )
         }
-
-        console.log(pendingObservationsData.length)
 
         return resolve({
           message: "Pending Observations",
