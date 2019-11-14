@@ -506,7 +506,7 @@ module.exports = class entityAssessorHelper {
                         }
 
                         let assessmentSubmissionsDoc = await database.models.submissions.find(queryObj, {
-                            _id: 1, createdAt: 1, entityId: 1,
+                            _id: 1, createdAt: 1, entityId: 1, "entityInformation.name": 1
                         }).lean()
 
 
@@ -524,7 +524,8 @@ module.exports = class entityAssessorHelper {
                                     solutionId: solutionId,
                                     createdAt: eachAssessmentSubmissions.createdAt,
                                     entityId: eachAssessmentSubmissions.entityId,
-                                    programId: programId
+                                    programId: programId,
+                                    entityName: eachAssessmentSubmissions.entityInformation.name
                                 })
 
                             })
