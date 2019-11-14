@@ -429,6 +429,8 @@ module.exports = class submissionsHelper {
 
                     result.runUpdateQuery = true
 
+                    let answersToUpdate = {}
+
                     let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
 
                     if (allSubmittedEvidence) {
@@ -482,23 +484,23 @@ module.exports = class submissionsHelper {
 
                                             let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
 
-                                            submissionAnswers.push(...allCriteriaQuestions)
 
                                             let scoreOfAllQuestionInCriteria = {}
                                             let totalWeightOfQuestionInCriteria = 0
-                                            allCriteriaQuestions.forEach(question => {
-                                                if(question.value && question.value != "" && !question.notApplicable) {
-                                                    questionOptionsSelected = question.value.split(",")
+                                            allCriteriaQuestions.forEach((question,questionIndexInArray) => {
+                                                if(question.value && (question.value != "" || Array.isArray(question.value)) && !question.notApplicable) {
+                                                    let questionOptionsSelected = (Array.isArray(question.value)) ? question.value : [question.value]
                                                     if(questionOptionsSelected.length > 0) {
                                                         let selectedOptionScoreFound = false
                                                         questionOptionsSelected.forEach(optionValue => {
-                                                            if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
+                                                            if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()] && eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
                                                                 if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
                                                                     scoreOfAllQuestionInCriteria[question.qid.toString()].score += eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
                                                                 } else {
                                                                     scoreOfAllQuestionInCriteria[question.qid.toString()] = {
                                                                         score : eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`],
-                                                                        weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1
+                                                                        weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
+                                                                        questionIndexInArray : questionIndexInArray
                                                                     }
                                                                 }
                                                                 selectedOptionScoreFound = true
@@ -507,15 +509,31 @@ module.exports = class submissionsHelper {
                                                         if(selectedOptionScoreFound) {
                                                             totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1
                                                         }
+                                                        if(selectedOptionScoreFound) {
+                                                            question.optionScores = eachSubmissionDocument.questionDocuments[question.qid.toString()]
+                                                            question.optionScores.scoreAchieved = (scoreOfAllQuestionInCriteria[question.qid.toString()].score) ? scoreOfAllQuestionInCriteria[question.qid.toString()].score : ""
+                                                        }
                                                     }
                                                 }
                                             })
 
                                             if(totalWeightOfQuestionInCriteria > 0 && Object.keys(scoreOfAllQuestionInCriteria).length > 0) {
-                                                Object.keys(scoreOfAllQuestionInCriteria).forEach(question => {
-                                                    result += (question.score*question.weightage)/totalWeightOfQuestionInCriteria
+                                                Object.keys(scoreOfAllQuestionInCriteria).forEach(questionId => {
+                                                    const questionPointsBasedScore = (scoreOfAllQuestionInCriteria[questionId].score*scoreOfAllQuestionInCriteria[questionId].weightage)/totalWeightOfQuestionInCriteria
+
+                                                    result += questionPointsBasedScore
+                                                    if(answersToUpdate[questionId]) {
+                                                        answersToUpdate[questionId].pointsBasedScore = questionPointsBasedScore
+                                                    } else {
+                                                        answersToUpdate[questionId] = {
+                                                            pointsBasedScore : questionPointsBasedScore
+                                                        }
+                                                    }
+                                                    allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScore = questionPointsBasedScore
                                                 })
                                             }
+
+                                            submissionAnswers.push(...allCriteriaQuestions)
 
                                             return result
                                         }
@@ -732,16 +750,15 @@ module.exports = class submissionsHelper {
 
                                     let score = "NA"
                                     if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                                        if (expressionResult.L4 && expressionResult.L4.result) {
-                                            score = "L4"
-                                        } else if (expressionResult.L3 && expressionResult.L3.result) {
-                                            score = "L3"
-                                        } else if (expressionResult.L2 && expressionResult.L2.result) {
-                                            score = "L2"
-                                        } else if (expressionResult.L1 && expressionResult.L1.result) {
-                                            score = "L1"
-                                        } else {
-                                            score = "No Level Matched"
+                                        score = "No Level Matched"
+                                        if(expressionResult && Object.keys(expressionResult).length > 0) {
+                                            const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort())
+                                            for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
+                                                const levelKey = levelArrayFromHighToLow[levelIndex];
+                                                if(expressionResult[levelKey] && expressionResult[levelKey].result) {
+                                                    score = levelKey
+                                                }
+                                            }
                                         }
                                     }
 
@@ -760,6 +777,14 @@ module.exports = class submissionsHelper {
                                         result[criteria.externalId].score = score
                                         criteria.score = score
                                     }
+
+                                    if(eachSubmissionDocument.scoringSystem == "pointsBasedScoring") {
+                                        criteria.pointsBasedScore = 0
+                                        submissionAnswers.forEach(answer => {
+                                            if(answer.pointsBasedScore) criteria.pointsBasedScore += answer.pointsBasedScore
+                                        })
+                                    }
+                                    
 
                                     result[criteria.externalId].expressionResult = expressionResult
                                     result[criteria.externalId].submissionAnswers = submissionAnswers
@@ -782,6 +807,18 @@ module.exports = class submissionsHelper {
                             updateObject.$set = {
                                 criteria: criteriaData,
                                 ratingCompletedAt: new Date()
+                            }
+
+                            if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
+                                Object.keys(answersToUpdate).forEach(questionId => {
+                                    if(Object.keys(answersToUpdate[questionId]).length > 0) {
+                                        Object.keys(answersToUpdate[questionId]).forEach(answerField => {
+                                            if(answerField != "value" || answerField != "payload") {
+                                                updateObject.$set[`answers.${questionId}.${answerField}`] = answersToUpdate[questionId][answerField]
+                                            }
+                                        })
+                                    }
+                                })
                             }
 
                             let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(

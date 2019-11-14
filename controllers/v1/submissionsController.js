@@ -1024,6 +1024,8 @@ module.exports = class Submission extends Abstract {
 
         if(solutionDocument.scoringSystem == "pointsBasedScoring") {
 
+          submissionDocument.scoringSystem = "pointsBasedScoring"
+
           let allCriteriaInSolution = new Array
           let allQuestionIdInSolution = new Array
           let solutionQuestions = new Array

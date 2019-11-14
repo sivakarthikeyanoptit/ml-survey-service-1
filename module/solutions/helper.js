@@ -319,7 +319,7 @@ module.exports = class solutionsHelper {
                 theme.rubric.levels[level] = `(${checkIfThemeIsToBeUpdated[level]})`
               })
               
-              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? checkIfThemeIsToBeUpdated.weightage : 0
+              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? Number(Number.parseFloat(checkIfThemeIsToBeUpdated.weightage).toFixed(2)) : 0
 
               checkIfThemeIsToBeUpdated.status = "Success"
 
@@ -338,7 +338,7 @@ module.exports = class solutionsHelper {
             //     theme.rubric.levels[level] = `(${someRandomValue[level]})`
             //   })
               
-            //   theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? someRandomValue.weightage : 0
+            //   theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? Number(Number.parseFloat(someRandomValue.weightage).toFixed(2)) : 0
 
             // }
 
@@ -394,7 +394,7 @@ module.exports = class solutionsHelper {
                 if(checkIfCriteriaIsToBeUpdated) {
                   theme.criteria[pointerToCriteriaArray] = {
                     criteriaId : ObjectId(checkIfCriteriaIsToBeUpdated.criteriaId),
-                    weightage : parseInt(checkIfCriteriaIsToBeUpdated.weightage)
+                    weightage : Number(Number.parseFloat(checkIfCriteriaIsToBeUpdated.weightage).toFixed(2))
                   }
                   criteriaWeightageUpdatedCount += 1
                 }
@@ -411,9 +411,12 @@ module.exports = class solutionsHelper {
         
         parseAllThemes(currentSolutionThemeStructure)
 
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+
         if(criteriaWeightageUpdatedCount == cirteriaWeightToUpdateCount) {
           return resolve({
             themes: currentSolutionThemeStructure,
+            flattenedThemes : flatThemes,
             success : true
           });
         } else {
@@ -482,8 +485,8 @@ module.exports = class solutionsHelper {
 
       return flatThemes
     }
-
-    let flatThemeStructure = flattenThemes(solutionThemeStructure)
+    
+    let flatThemeStructure = flattenThemes(_.cloneDeep(solutionThemeStructure))
     
     return flatThemeStructure
 
