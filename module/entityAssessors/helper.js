@@ -1,6 +1,8 @@
 const csv = require("csvtojson");
 const moment = require("moment");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
 module.exports = class entityAssessorHelper {
 
@@ -178,7 +180,7 @@ module.exports = class entityAssessorHelper {
                         if (!userExternalIds.includes(assessor.externalId)) userExternalIds.push(assessor.externalId);
                     }
 
-                    if(!assessor["keycloak-parentId"]){
+                    if (!assessor["keycloak-parentId"]) {
                         if (assessor.parentId && assessor.parentId !== "" && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
                     }
 
@@ -186,11 +188,11 @@ module.exports = class entityAssessorHelper {
 
                 let programsFromDatabase = await database.models.programs.find({
                     externalId: { $in: programIds }
-                }, { externalId: 1 }).lean();
+                }, { externalId: 1, name: 1 }).lean();
 
                 let solutionsFromDatabase = await database.models.solutions.find({
                     externalId: { $in: solutionIds }
-                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1 }).lean();
+                }, { externalId: 1, entityType: 1, entityTypeId: 1, entities: 1, name: 1, type: 1, subType: 1 }).lean();
 
                 let entitiesBySolution = _.flattenDeep(solutionsFromDatabase.map(solution => solution.entities));
 
@@ -200,7 +202,8 @@ module.exports = class entityAssessorHelper {
                     },
                     {
                         $project: {
-                            externalId: "$metaInformation.externalId"
+                            externalId: "$metaInformation.externalId",
+                            name: "$metaInformation.name"
                         }
                     }
                 ])
@@ -214,7 +217,12 @@ module.exports = class entityAssessorHelper {
                 }
 
                 let programsData = programsFromDatabase.reduce(
-                    (ac, program) => ({ ...ac, [program.externalId]: program._id }), {})
+                    (ac, program) => ({
+                        ...ac, [program.externalId]: {
+                            programId: program._id,
+                            name: program.name
+                        }
+                    }), {})
 
                 let solutionData = solutionsFromDatabase.reduce(
                     (ac, solution) => ({
@@ -222,30 +230,33 @@ module.exports = class entityAssessorHelper {
                             solutionId: solution._id,
                             entityType: solution.entityType,
                             entityTypeId: solution.entityTypeId,
+                            name: solution.name,
+                            type: solution.type,
+                            subType: solution.subType,
                         }
                     }), {})
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
-                    if(assessor["keycloak-userId"] && assessor["keycloak-userId"] !== ""){
-                        assessor["userId"]= assessor["keycloak-userId"]
-                    } else{
+                    if (assessor["keycloak-userId"] && assessor["keycloak-userId"] !== "") {
+                        assessor["userId"] = assessor["keycloak-userId"]
+                    } else {
 
-                        if(userIdByExternalId[assessor.externalId] === ""){
-                            throw { status: 400, message: "Keycloak id for user is not present"};
+                        if (userIdByExternalId[assessor.externalId] === "") {
+                            throw { status: 400, message: "Keycloak id for user is not present" };
                         }
 
                         assessor["userId"] = userIdByExternalId[assessor.externalId]
                     }
-                    
 
-                    if(assessor["keycloak-parentId"] && assessor["keycloak-parentId"] !== ""){
+
+                    if (assessor["keycloak-parentId"] && assessor["keycloak-parentId"] !== "") {
                         assessor["parentId"] = assessor["keycloak-parentId"]
-                    }else{
+                    } else {
                         if (assessor.parentId && assessor.parentId !== "") {
 
-                            if(userIdByExternalId[assessor.parentId] === ""){
-                                throw { status: 400, message: "Keycloak id for parent is not present"};
+                            if (userIdByExternalId[assessor.parentId] === "") {
+                                throw { status: 400, message: "Keycloak id for parent is not present" };
                             }
 
                             assessor["parentId"] = userIdByExternalId[assessor.parentId]
@@ -254,17 +265,33 @@ module.exports = class entityAssessorHelper {
 
 
                     let assessorEntityArray = new Array
+                    let assessorPushNotificationArray = new Array
 
-                    assessor.programId = programsData[assessor.programId];
+                    assessor.programName = programsData[assessor.programId].name;
+                    assessor.programId = programsData[assessor.programId].programId;
                     assessor.createdBy = assessor.updatedBy = userId;
                     assessor.entityType = solutionData[assessor.solutionId].entityType;
                     assessor.entityTypeId = solutionData[assessor.solutionId].entityTypeId;
+                    assessor.solutionName = solutionData[assessor.solutionId].name;
+                    assessor.solutionType = solutionData[assessor.solutionId].type;
+                    assessor.solutionSubType = solutionData[assessor.solutionId].subType;
                     assessor.solutionId = solutionData[assessor.solutionId].solutionId;
 
                     assessor.entities.split(",").forEach(assessorEntity => {
                         assessorEntity = entityDataByExternalId[assessorEntity.trim()];
-                        if (assessorEntity) {
-                            if (assessorEntity._id) assessorEntityArray.push(assessorEntity._id)
+                        if (assessorEntity && assessorEntity._id) {
+                            assessorEntityArray.push(assessorEntity._id)
+                            assessorPushNotificationArray.push({
+                                entityId: assessorEntity._id,
+                                entityType: assessor.entityType,
+                                entityName: assessorEntity.name,
+                                programId: assessor.programId,
+                                programName: assessor.programName,
+                                solutionId: assessor.solutionId,
+                                solutionType: assessor.solutionType,
+                                solutionSubType: assessor.solutionSubType,
+                                solutionName: assessor.solutionName
+                            })
                         }
                     })
 
@@ -277,12 +304,16 @@ module.exports = class entityAssessorHelper {
                     })
 
                     let updateObject;
+                    let sendPushNotificationToAssessor = false
+
                     if (assessor.entityOperation == "OVERRIDE") {
                         updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } }
+                        sendPushNotificationToAssessor = true
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
                         updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutEntity };
+                        sendPushNotificationToAssessor = true
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
@@ -309,6 +340,10 @@ module.exports = class entityAssessorHelper {
                     }
 
                     await this.uploadEntityAssessorTracker(entityAssessorDocument);
+
+                    if (sendPushNotificationToAssessor && assessorPushNotificationArray.length > 0) {
+                        await this.sendUserNotifications(assessor.userId, assessorPushNotificationArray);
+                    }
 
                 })).catch(error => {
                     return reject({
@@ -345,9 +380,9 @@ module.exports = class entityAssessorHelper {
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
-                    if(result[index] && result[index][0]){
+                    if (result[index] && result[index][0]) {
                         externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
-                    }else{
+                    } else {
                         externalIdToUserIdMap[loginId] = ""
                     }
                 })
@@ -362,6 +397,153 @@ module.exports = class entityAssessorHelper {
 
         })
 
+    }
+
+    static sendUserNotifications(userId = "", entities = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error("Invalid user id.")
+                }
+
+                const kafakResponses = await Promise.all(entities.map(async entity => {
+
+                    const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                        user_id: userId,
+                        internal: false,
+                        text: `New ${entity.entityType} - ${entity.entityName} added for you in program ${entity.programName}`,
+                        type: "information",
+                        action: "mapping",
+                        payload: {
+                            type: entity.solutionSubType,
+                            solution_id: entity.solutionId,
+                            program_id: entity.programId,
+                            entity_id: entity.entityId
+                        },
+                        title: "New Assessment",
+                        created_at: new Date()
+                    })
+
+                    if (kafkaMessage.status != "success") {
+                        let errorObject = {
+                            formData: {
+                                userId: userId,
+                                message: `Failed to push entity notification for entity ${entity.entityName} in program ${entity.programName} and solution ${entity.solutionName}`
+                            }
+                        }
+                        slackClient.kafkaErrorAlert(errorObject)
+                        return;
+                    }
+
+                    return kafkaMessage
+
+                }));
+
+                if (kafakResponses.findIndex(response => response === undefined || response === null) >= 0) {
+                    throw new Error("Something went wrong, not all notifications were pushed.");
+                }
+
+                return resolve({
+                    success: true,
+                    message: "All notifications pushed to Kafka."
+                })
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static pendingOrCompletedAssessment(assessmentStatus) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let entityAssessorsDocument = await database.models.entityAssessors.find({
+                    role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
+                }, { _id: 1 }).lean();
+
+                if (!entityAssessorsDocument.length > 0) {
+                    throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
+                }
+
+                let entityAssessorChunkLength = 500;
+
+                let chunkOfEntityAssessors = _.chunk(entityAssessorsDocument, entityAssessorChunkLength)
+
+                let entityAssessorsDocuments;
+
+                let entityAssessorsData = [];
+                let entityAssessorsIds;
+                let status;
+
+                if (assessmentStatus.pending) {
+                    status = {
+                        $ne: "completed"
+                    }
+                }
+
+                if (assessmentStatus.completed) {
+                    status = "completed"
+                }
+
+                for (let pointerToAssessors = 0; pointerToAssessors < chunkOfEntityAssessors.length; pointerToAssessors++) {
+
+                    entityAssessorsIds = chunkOfEntityAssessors[pointerToAssessors].map(eachAssessor => {
+                        return eachAssessor._id
+                    })
+
+                    entityAssessorsDocuments = await database.models.entityAssessors.find({
+                        _id: { $in: entityAssessorsIds }
+                    }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1, entityTypeId: 1 }).lean()
+
+                    await Promise.all(entityAssessorsDocuments.map(async eachAssessor => {
+
+                        let queryObj = {
+                            programId: eachAssessor.programId,
+                            solutionId: eachAssessor.solutionId,
+                            status: status,
+                            entityTypeId: eachAssessor.entityTypeId,
+                            entityId: { $in: eachAssessor.entities }
+                        }
+
+                        let assessmentSubmissionsDoc = await database.models.submissions.find(queryObj, {
+                            _id: 1, createdAt: 1, entityId: 1, "entityInformation.name": 1
+                        }).lean()
+
+
+                        if (assessmentSubmissionsDoc.length > 0) {
+
+                            let userId = eachAssessor.userId
+                            let solutionId = eachAssessor.solutionId;
+                            let programId = eachAssessor.programId
+
+                            assessmentSubmissionsDoc.forEach(eachAssessmentSubmissions => {
+
+                                entityAssessorsData.push({
+                                    _id: eachAssessmentSubmissions._id,
+                                    userId: userId,
+                                    solutionId: solutionId,
+                                    createdAt: eachAssessmentSubmissions.createdAt,
+                                    entityId: eachAssessmentSubmissions.entityId,
+                                    programId: programId,
+                                    entityName: eachAssessmentSubmissions.entityInformation.name
+                                })
+
+                            })
+
+                        }
+
+                    })
+                    )
+                }
+
+                return resolve(entityAssessorsData)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 };

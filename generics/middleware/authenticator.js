@@ -106,6 +106,8 @@ module.exports = async function (req, res, next) {
     delete req.headers[e];
   });
 
+  let paths = ["reports", "gotenberg", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails"]
+
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
@@ -116,12 +118,15 @@ module.exports = async function (req, res, next) {
     rspObj.responseCode = responseCode.unauthorized;
     return res.status(401).send(respUtil(rspObj));
   }
-  
-  if ((req.path.includes("reports") || req.path.includes("gotenberg") || req.path.includes("solutionDetails") || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
-    req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
-    next();
-    return
+
+  for (let pointerToByPassPath = 0; pointerToByPassPath < paths.length; pointerToByPassPath++) {
+    if ((req.path.includes(paths[pointerToByPassPath]) || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
+      req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));
+      next();
+      return
+    }
   }
+
 
   let tokenCheckByPassAllowedForURL = false
   let tokenCheckByPassAllowedForUser = false

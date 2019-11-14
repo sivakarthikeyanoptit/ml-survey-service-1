@@ -1,4 +1,6 @@
 const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
 module.exports = class observationsHelper {
 
@@ -158,7 +160,8 @@ module.exports = class observationsHelper {
 
                 let observationDocument = await database.models.observations.findOne({
                     solutionExternalId: solution.externalId,
-                    createdBy: userId
+                    createdBy: userId,
+                    status: "published"
                 }, { _id: 1 }).lean()
 
                 if (observationDocument) {
@@ -192,6 +195,13 @@ module.exports = class observationsHelper {
                     );
                     observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`
 
+                    if (observationDocument._id) {
+                        await this.sendUserNotifications(userId, {
+                            solutionType: solution.type,
+                            solutionId: solution._id.toString(),
+                            observationId: observationDocument._id.toString()
+                        });
+                    }
                 }
 
                 return resolve({
@@ -200,6 +210,116 @@ module.exports = class observationsHelper {
 
             } catch (error) {
                 return reject(error)
+            }
+        })
+    }
+
+    static sendUserNotifications(userId = "", observationData = {}) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error("Invalid user id.")
+                }
+
+                const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                    user_id: userId,
+                    internal: false,
+                    text: `New observation available now (Observation form)`,
+                    type: "information",
+                    action: "mapping",
+                    payload: {
+                        type: observationData.solutionType,
+                        solution_id: observationData.solutionId,
+                        observation_id: observationData.observationId
+                    },
+                    title: "New Observation",
+                    created_at: new Date()
+                })
+
+                if (kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            userId: userId,
+                            message: `Failed to push entity notification for observation ${observationData._id.toString()} in the solution ${observationData.solutionName}`
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                    throw new Error(`Failed to push entity notification for observation ${observationData._id.toString()} in the solution ${observationData.solutionName}`);
+                }
+
+                return resolve({
+                    success: true,
+                    message: "Notification successfully pushed to Kafka."
+                })
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static pendingOrCompletedObservations(observationStatus) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let findQuery = {};
+
+                if (observationStatus.pending) {
+                    findQuery["status"] = { $ne: "completed" }
+                }
+
+                if (observationStatus.completed) {
+                    findQuery["status"] = "completed"
+                }
+
+                let observationDocuments = await database.models.observationSubmissions.find(findQuery, {
+                    _id: 1
+                }).lean()
+
+                if (!observationDocuments.length > 0) {
+                    throw "No Pending or Completed Observations found"
+                }
+
+                let lengthOfObservationSubmissionsChunk = 500;
+
+                let chunkOfObservationSubmissions = _.chunk(observationDocuments, lengthOfObservationSubmissionsChunk);
+
+                let observationData = [];
+                let observationSubmissionsIds;
+                let observationSubmissionsDocument;
+
+                for (let pointerToObservationSubmission = 0; pointerToObservationSubmission < chunkOfObservationSubmissions.length; pointerToObservationSubmission++) {
+
+                    observationSubmissionsIds = chunkOfObservationSubmissions[pointerToObservationSubmission].map(eachObservationSubmission => {
+                        return eachObservationSubmission._id
+                    })
+
+                    observationSubmissionsDocument = await database.models.observationSubmissions.find({
+                        _id: { $in: observationSubmissionsIds }
+                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1 }).lean()
+
+                    await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
+
+                        observationData.push({
+                            _id: eachObservationData._id,
+                            userId: eachObservationData.createdBy,
+                            solutionId: eachObservationData.solutionId,
+                            createdAt: eachObservationData.createdAt,
+                            entityId: eachObservationData.entityId,
+                            observationId: eachObservationData.observationId,
+                            entityName: eachObservationData.entityInformation.name
+                        })
+
+                    })
+                    )
+                }
+
+                return resolve(observationData);
+
+            }
+            catch (error) {
+                return reject(error);
             }
         })
     }
