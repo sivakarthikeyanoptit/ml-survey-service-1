@@ -421,7 +421,7 @@ module.exports = class entityAssessorHelper {
                             program_id: entity.programId,
                             entity_id: entity.entityId
                         },
-                        title: "Pending",
+                        title: "New Assessment",
                         created_at: new Date()
                     })
 

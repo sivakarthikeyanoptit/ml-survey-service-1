@@ -233,7 +233,7 @@ module.exports = class observationsHelper {
                         solution_id: observationData.solutionId,
                         observation_id: observationData.observationId
                     },
-                    title: "Pending",
+                    title: "New Observation",
                     created_at: new Date()
                 })
 
