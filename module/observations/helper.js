@@ -295,7 +295,7 @@ module.exports = class observationsHelper {
 
                     observationSubmissionsDocument = await database.models.observationSubmissions.find({
                         _id: { $in: observationSubmissionsIds }
-                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1 }).lean()
+                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1 }).lean()
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
 
@@ -305,7 +305,8 @@ module.exports = class observationsHelper {
                             solutionId: eachObservationData.solutionId,
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
-                            observationId: eachObservationData.observationId
+                            observationId: eachObservationData.observationId,
+                            entityName:eachObservationData.entityInformation.name
                         })
 
                     })
