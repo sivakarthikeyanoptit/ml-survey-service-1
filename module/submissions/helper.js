@@ -435,13 +435,16 @@ module.exports = class submissionsHelper {
 
                     if (allSubmittedEvidence) {
 
+                        result.criteria = {}
+                        result.themes = {}
+
                         let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
 
                             if (criteria.weightage > 0) {
 
-                                result[criteria.externalId] = {}
-                                result[criteria.externalId].criteriaName = criteria.name
-                                result[criteria.externalId].criteriaExternalId = criteria.externalId
+                                result.criteria[criteria.externalId] = {}
+                                result.criteria[criteria.externalId].criteriaName = criteria.name
+                                result.criteria[criteria.externalId].criteriaExternalId = criteria.externalId
 
                                 let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
                                     return eachRubricLevels.expression != ""
@@ -762,19 +765,19 @@ module.exports = class submissionsHelper {
                                         }
                                     }
 
-                                    result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
-                                    result[criteria.externalId].expressionVariables = expressionVariables
+                                    result.criteria[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
+                                    result.criteria[criteria.externalId].expressionVariables = expressionVariables
 
                                     if (score == "NA") {
-                                        result[criteria.externalId].valuesNotFound = true
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].valuesNotFound = true
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     } else if (score == "No Level Matched") {
-                                        result[criteria.externalId].noExpressionMatched = true
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].noExpressionMatched = true
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     } else {
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     }
 
@@ -786,8 +789,8 @@ module.exports = class submissionsHelper {
                                     }
                                     
 
-                                    result[criteria.externalId].expressionResult = expressionResult
-                                    result[criteria.externalId].submissionAnswers = submissionAnswers
+                                    result.criteria[criteria.externalId].expressionResult = expressionResult
+                                    result.criteria[criteria.externalId].submissionAnswers = submissionAnswers
                                 }
 
                                 return criteria
@@ -800,6 +803,20 @@ module.exports = class submissionsHelper {
                             result.runUpdateQuery = false
                         }
 
+                        let themes = {}
+
+                        if(result.runUpdateQuery && eachSubmissionDocument.scoringSystem == "pointsBasedScoring" && eachSubmissionDocument.themes && eachSubmissionDocument.themes.length > 0) {
+                                
+                            themes = await this.calulateThemeScores(eachSubmissionDocument.themes, criteriaData)
+                            
+                            if(!themes.success) {
+                                result.runUpdateQuery = false
+                            }
+                            
+                            result.themes = themes.themeResult
+
+                        }
+
                         if (result.runUpdateQuery) {
 
                             let updateObject = {}
@@ -807,6 +824,10 @@ module.exports = class submissionsHelper {
                             updateObject.$set = {
                                 criteria: criteriaData,
                                 ratingCompletedAt: new Date()
+                            }
+
+                            if(themes.success) {
+                                updateObject.$set.themes = themes.themeData
                             }
 
                             if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
@@ -843,6 +864,7 @@ module.exports = class submissionsHelper {
                             entityId: eachSubmissionDocument.entityExternalId,
                             message: message
                         })
+
                     } else {
 
                         if (sourceApiHelp == "singleRateApi") {
@@ -873,5 +895,251 @@ module.exports = class submissionsHelper {
 
     }
 
+
+    static calulateThemeScores(themesWithRubric, criteriaDataArray) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+                let themeScores = new Array
+                let themeByHierarchyLevel = {}
+                let maxThemeDepth = 0
+                let themeScoreCalculationCompleted = true
+                let themeResult = {}
+                let criteriaMap = {}
+
+                for (let pointerToThemeArray = 0; pointerToThemeArray < themesWithRubric.length; pointerToThemeArray++) {
+                    const theme = themesWithRubric[pointerToThemeArray];
+                    if(theme.hierarchyLevel && theme.hierarchyLevel > maxThemeDepth) {
+                        maxThemeDepth = theme.hierarchyLevel
+                    }
+                    (themeByHierarchyLevel[theme.hierarchyLevel]) ? themeByHierarchyLevel[theme.hierarchyLevel].push(theme):  themeByHierarchyLevel[theme.hierarchyLevel] = [theme]
+                }
+
+                criteriaDataArray.forEach(criteria => {
+                    criteriaMap[criteria._id.toString()] = criteria
+                })
+
+                if(Object.keys(themeByHierarchyLevel).length > 0) {
+                    while (maxThemeDepth >= 0) {
+                        
+                        if(themeByHierarchyLevel[maxThemeDepth]) {
+
+                            let themeData = await Promise.all(themeByHierarchyLevel[maxThemeDepth].map(async (theme) => {
+
+                                themeResult[theme.externalId] = {}
+                                themeResult[theme.externalId].themeName = theme.name
+                                themeResult[theme.externalId].themeExternalId = theme.externalId
+
+                                if (theme.weightage > 0) {
+    
+                                    let allThemeLevelExpressions = Object.values(theme.rubric.levels).every(eachRubricLevels => {
+                                        return eachRubricLevels.expression != ""
+                                    })
+    
+                                    if (theme.rubric.expressionVariables && allThemeLevelExpressions) {
+    
+                                        let children = new Array
+    
+                                        const subThemeValueExtractor = function (subTheme) {
+                                            
+                                            let result = "NA";
+                                            
+                                            const subThemeArray = subTheme.split('.')
+                                            
+                                            if (subThemeArray.findIndex(theme => _.includes(theme, "sumOfPointsOfAllChildren")) >= 0) {
+                                                
+                                                result = 0
+    
+                                                let themeExternalIdIndex = subThemeArray.findIndex(theme => !(_.includes(theme, "sumOfPointsOfAllChildren")))
+                                                if (themeExternalIdIndex < 0) {
+                                                    return "NA"
+                                                }
+
+                                                let scoreOfAllSubthemeInTheme = {}
+                                                let totalWeightOfSubthemeInTheme = 0
+
+                                                if(theme.immediateChildren) {
+                                                    theme.immediateChildren.forEach(subTheme => {
+                                                        if(subTheme.weightage > 0) {
+                                                            scoreOfAllSubthemeInTheme[subTheme.externalId] = {
+                                                                subThemeExternalId :subTheme.externalId,
+                                                                weightage : subTheme.weightage,
+                                                                scoreAchieved : subTheme.pointsBasedScore
+                                                            }
+                                                            totalWeightOfSubthemeInTheme += subTheme.weightage
+                                                        }
+                                                    })
+                                                }
+
+                                                theme.criteriaLevelCount = {}
+
+                                                theme.criteria.forEach(themeCriteria => {
+                                                    if(themeCriteria.weightage > 0) {
+                                                        (theme.criteriaLevelCount[themeCriteria.score]) ? theme.criteriaLevelCount[themeCriteria.score] += 1 : theme.criteriaLevelCount[themeCriteria.score] = 1
+
+                                                        if(!theme.immediateChildren && criteriaMap[themeCriteria.criteriaId.toString()]) {
+                                                            scoreOfAllSubthemeInTheme[themeCriteria.criteriaId.toString()] = {
+                                                                criteriaId :themeCriteria.criteriaId,
+                                                                weightage : themeCriteria.weightage,
+                                                                scoreAchieved : criteriaMap[themeCriteria.criteriaId.toString()].pointsBasedScore
+                                                            }
+                                                            totalWeightOfSubthemeInTheme += themeCriteria.weightage
+                                                        }
+
+                                                    }
+                                                })
+
+                                                theme.pointsBasedScore = 0
+
+                                                Object.keys(scoreOfAllSubthemeInTheme).length > 0 && Object.keys(scoreOfAllSubthemeInTheme).forEach(subThemeKey => {
+                                                    theme.pointsBasedScore += (scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScore = (scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                })
+    
+                                                children.push(Object.values(scoreOfAllSubthemeInTheme))
+                                                
+                                                result = theme.pointsBasedScore
+                                            }
+
+                                            return result;
+                                        }
+    
+                                        let expressionVariables = {};
+                                        let expressionResult = {};
+                                        let allValuesAvailable = true;
+    
+                                        Object.keys(theme.rubric.expressionVariables).forEach(variable => {
+                                            if (variable != "default") {
+                                                expressionVariables[variable] = subThemeValueExtractor(theme.rubric.expressionVariables[variable]);
+                                                expressionVariables[variable] = (expressionVariables[variable] === "NA" && theme.rubric.expressionVariables.default && theme.rubric.expressionVariables.default[variable]) ? theme.rubric.expressionVariables.default[variable] : expressionVariables[variable]
+                                                if (expressionVariables[variable] === "NA") {
+                                                    allValuesAvailable = false;
+                                                }
+                                            }
+                                        })
+    
+                                        let errorWhileParsingThemeExpression = false
+                                        let errorExpression = {}
+    
+                                        if (allValuesAvailable) {
+    
+                                            Object.keys(theme.rubric.levels).forEach(level => {
+    
+                                                if (theme.rubric.levels[level].expression != "") {
+    
+                                                    try {
+    
+                                                        expressionResult[level] = {
+                                                            expressionParsed: theme.rubric.levels[level].expression,
+                                                            result: mathJs.eval(theme.rubric.levels[level].expression, expressionVariables)
+                                                        }
+    
+                                                    } catch (error) {
+                                                        console.log("---------------Some exception caught begins---------------")
+                                                        console.log(error)
+                                                        console.log(theme.name)
+                                                        console.log(theme.rubric.levels[level].expression)
+                                                        console.log(expressionVariables)
+                                                        console.log(theme.rubric.expressionVariables)
+                                                        console.log("---------------Some exception caught ends---------------")
+    
+                                                        expressionResult[level] = {
+                                                            expressionParsed: theme.rubric.levels[level].expression
+                                                        }
+    
+                                                        let errorObject = {
+                                                            errorName: error.message,
+                                                            themeName: theme.name,
+                                                            expression: theme.rubric.levels[level].expression,
+                                                            expressionVariables: JSON.stringify(expressionVariables),
+                                                            errorLevels: theme.rubric.levels[level].level,
+                                                            expressionVariablesDefined: JSON.stringify(theme.rubric.expressionVariables)
+                                                        }
+    
+                                                        slackClient.rubricErrorLogs(errorObject)
+    
+                                                        errorWhileParsingThemeExpression = true
+    
+                                                    }
+    
+                                                } else {
+    
+                                                    expressionResult[level] = {
+                                                        expressionParsed: theme.rubric.levels[level].expression,
+                                                        result: false
+                                                    }
+                                                }
+    
+                                            })
+    
+                                        }
+    
+                                        let score = "NA"
+                                        if (allValuesAvailable && !errorWhileParsingThemeExpression) {
+                                            score = "No Level Matched"
+                                            if(expressionResult && Object.keys(expressionResult).length > 0) {
+                                                const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort())
+                                                for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
+                                                    const levelKey = levelArrayFromHighToLow[levelIndex];
+                                                    if(expressionResult[levelKey] && expressionResult[levelKey].result) {
+                                                        score = levelKey
+                                                    }
+                                                }
+                                            }
+                                        }
+    
+                                        themeResult[theme.externalId].expressionVariablesDefined = theme.rubric.expressionVariables
+                                        themeResult[theme.externalId].expressionVariables = expressionVariables
+    
+                                        if (score == "NA") {
+                                            themeResult[theme.externalId].valuesNotFound = true
+                                            themeResult[theme.externalId].score = score
+                                            theme.score = score
+                                        } else if (score == "No Level Matched") {
+                                            themeResult[theme.externalId].noExpressionMatched = true
+                                            themeResult[theme.externalId].score = score
+                                            theme.score = score
+                                        } else {
+                                            themeResult[theme.externalId].score = score
+                                            theme.score = score
+                                        }
+    
+                                        themeResult[theme.externalId].expressionResult = expressionResult
+                                        themeResult[theme.externalId].children = children
+                                    }
+    
+                                    return theme
+    
+                                }
+    
+                            }));
+
+                            if (themeData.findIndex(theme => theme === undefined) >= 0) {
+                                maxThemeDepth = -1
+                                themeScoreCalculationCompleted = false
+                                break;
+                            }
+
+                            themeScores.concat(themeData)
+                        }
+
+                        maxThemeDepth -= 1
+                    }
+                }
+
+                return resolve({
+                    success : themeScoreCalculationCompleted,
+                    themeData : themeScores,
+                    themeResult : themeResult
+                });
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+    }
 
 };

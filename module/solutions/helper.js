@@ -316,7 +316,7 @@ module.exports = class solutionsHelper {
                 levels : {}
               }
               solutionLevelKeys.forEach(level => {
-                theme.rubric.levels[level] = `(${checkIfThemeIsToBeUpdated[level]})`
+                theme.rubric.levels[level] = {expression : `(${checkIfThemeIsToBeUpdated[level]})`}
               })
               
               theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? Number(Number.parseFloat(checkIfThemeIsToBeUpdated.weightage).toFixed(2)) : 0
@@ -325,22 +325,22 @@ module.exports = class solutionsHelper {
 
               updateThemeRubricExpressionData(checkIfThemeIsToBeUpdated)
             } 
-            // else if(!theme.criteria) {
-            //   let someRandomValue = themeRubricExpressionData[Math.floor(Math.random()*themeRubricExpressionData.length)];
+            else if(!theme.criteria) {
+              let someRandomValue = themeRubricExpressionData[Math.floor(Math.random()*themeRubricExpressionData.length)];
 
-            //   theme.rubric = {
-            //     expressionVariables : {
-            //       SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
-            //     },
-            //     levels : {}
-            //   }
-            //   solutionLevelKeys.forEach(level => {
-            //     theme.rubric.levels[level] = `(${someRandomValue[level]})`
-            //   })
+              theme.rubric = {
+                expressionVariables : {
+                  SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
+                },
+                levels : {}
+              }
+              solutionLevelKeys.forEach(level => {
+                theme.rubric.levels[level] = {expression: `(${someRandomValue[level]})`}
+              })
               
-            //   theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? Number(Number.parseFloat(someRandomValue.weightage).toFixed(2)) : 0
+              theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? Number(Number.parseFloat(someRandomValue.weightage).toFixed(2)) : 0
 
-            // }
+            }
 
             if(theme.children && theme.children.length >0) {
               parseAllThemes(theme.children)
@@ -447,6 +447,7 @@ module.exports = class solutionsHelper {
           flattenThemes(theme.children,hierarchyLevel+1,hierarchyTrackToUpdate,flatThemes)
           
           if(!theme.criteria) theme.criteria = new Array
+          if(!theme.immediateChildren) theme.immediateChildren = new Array
 
           theme.children.forEach(childTheme => {
             if(childTheme.criteria) {
@@ -454,6 +455,7 @@ module.exports = class solutionsHelper {
                 theme.criteria.push(criteria)
               })
             }
+            theme.immediateChildren.push(_.omit(childTheme,["children","rubric","criteria","hierarchyLevel","hierarchyTrack"]))
           })
 
           flatThemes.push(_.omit(theme,["children"]))
