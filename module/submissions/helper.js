@@ -961,11 +961,12 @@ module.exports = class submissionsHelper {
 
                                                 if(theme.immediateChildren) {
                                                     theme.immediateChildren.forEach(subTheme => {
+                                                        const subThemeScore =  _.find(themeScores, { 'externalId': subTheme.externalId})
                                                         if(subTheme.weightage > 0) {
                                                             scoreOfAllSubthemeInTheme[subTheme.externalId] = {
                                                                 subThemeExternalId :subTheme.externalId,
                                                                 weightage : subTheme.weightage,
-                                                                scoreAchieved : subTheme.pointsBasedScore
+                                                                scoreAchieved : subThemeScore.pointsBasedScore
                                                             }
                                                             totalWeightOfSubthemeInTheme += subTheme.weightage
                                                         }
@@ -976,7 +977,9 @@ module.exports = class submissionsHelper {
 
                                                 theme.criteria.forEach(themeCriteria => {
                                                     if(themeCriteria.weightage > 0) {
-                                                        (theme.criteriaLevelCount[themeCriteria.score]) ? theme.criteriaLevelCount[themeCriteria.score] += 1 : theme.criteriaLevelCount[themeCriteria.score] = 1
+                                                        if(criteriaMap[themeCriteria.criteriaId.toString()]) {
+                                                            (theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score]) ? theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] += 1 : theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] = 1
+                                                        }
 
                                                         if(!theme.immediateChildren && criteriaMap[themeCriteria.criteriaId.toString()]) {
                                                             scoreOfAllSubthemeInTheme[themeCriteria.criteriaId.toString()] = {
@@ -1023,7 +1026,7 @@ module.exports = class submissionsHelper {
                                         let errorExpression = {}
     
                                         if (allValuesAvailable) {
-    
+                                            
                                             Object.keys(theme.rubric.levels).forEach(level => {
     
                                                 if (theme.rubric.levels[level].expression != "") {
@@ -1121,7 +1124,7 @@ module.exports = class submissionsHelper {
                                 break;
                             }
 
-                            themeScores.concat(themeData)
+                            themeScores = themeScores.concat(themeData)
                         }
 
                         maxThemeDepth -= 1

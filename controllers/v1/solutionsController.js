@@ -727,19 +727,27 @@ module.exports = class Solutions extends Abstract {
           // ]
 
           criteriaQuestionDocument.forEach(criteria => {
-            // if(criteria.rubric.expressionVariables && !criteria.rubric.expressionVariables.SCORE) {
+            // if((criteria.rubric.expressionVariables && !criteria.rubric.expressionVariables.SCORE) || (!criteria.rubric.expressionVariables)) {
             //   criteria.rubric.expressionVariables = {
             //     SCORE : `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
             //   }
             //   criteria._doc.rubric.expressionVariables.SCORE = `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
             //   let randomValue = Math.floor(Math.random()*L1Array.length)
+            //   if(!criteria.rubric.levels.L1) criteria.rubric.levels = {L1 : {}}
             //   criteria.rubric.levels.L1.expression = L1Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L1) criteria._doc.rubric.levels = {L1 : {}}
             //   criteria._doc.rubric.levels.L1.expression = L1Array[randomValue];
+            //   if(!criteria.rubric.levels.L2) criteria.rubric.levels.L2 = {}
             //   criteria.rubric.levels.L2.expression = L2Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L2) criteria._doc.rubric.levels.L2 = {}
             //   criteria._doc.rubric.levels.L2.expression = L2Array[randomValue];
+            //   if(!criteria.rubric.levels.L3) criteria.rubric.levels.L3 = {}
             //   criteria.rubric.levels.L3.expression = L3Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L3) criteria._doc.rubric.levels.L3 = {}
             //   criteria._doc.rubric.levels.L3.expression = L3Array[randomValue];
+            //   if(!criteria.rubric.levels.L4) criteria.rubric.levels.L4 = {}
             //   criteria.rubric.levels.L4.expression = L4Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L4) criteria._doc.rubric.levels.L4 = {}
             //   criteria._doc.rubric.levels.L4.expression = L4Array[randomValue];
             // }
             criteria.weightage = allCriteriaIdWithWeightageInSolution[criteria._id.toString()].weightage
