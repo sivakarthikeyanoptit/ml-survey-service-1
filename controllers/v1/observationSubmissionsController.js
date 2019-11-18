@@ -1,5 +1,6 @@
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
-
+const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
+const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
 
 module.exports = class ObservationSubmissions extends Abstract {
@@ -436,7 +437,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/observationSubmissions/rate/:entityExternalId?solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate an Entity Observation
+  * @api {get} /assessment/api/v1/observationSubmissions/rate/:entityExternalId?solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate a Single Entity of Observation
   * @apiVersion 1.0.0
   * @apiName Rate a Single Entity of Observation
   * @apiGroup Observation Submissions
@@ -456,12 +457,13 @@ module.exports = class ObservationSubmissions extends Abstract {
         req.body = req.body || {};
         let message = "Crtieria rating completed successfully"
 
-        let programId = req.query.programId
+        let createdBy = req.query.createdBy
         let solutionId = req.query.solutionId
         let entityId = req.params._id
+        let submissionNumber = (req.query.submissionNumber) ? parseInt(req.query.submissionNumber) : 1
 
-        if (!programId) {
-          throw "Program Id is not found"
+        if (!createdBy) {
+          throw "Created by is not found"
         }
 
         if (!solutionId) {
@@ -475,7 +477,9 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let solutionDocument = await database.models.solutions.findOne({
           externalId: solutionId,
-        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+          type : "observation",
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1}).lean()
 
         if (!solutionDocument) {
           return resolve({
@@ -485,83 +489,81 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
 
         let queryObject = {
+          "createdBy": createdBy,
           "entityExternalId": entityId,
-          "programExternalId": programId,
-          "solutionExternalId": solutionId
+          "solutionExternalId": solutionId,
+          "submissionNumber" : (submissionNumber) ? submissionNumber : 1
         }
 
-        let submissionDocument = await database.models.submissions.findOne(
+        let submissionDocument = await database.models.observationSubmissions.findOne(
           queryObject,
-          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "programExternalId": 1 }
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1 }
         ).lean();
 
         if (!submissionDocument._id) {
           throw "Couldn't find the submission document"
         }
 
+        submissionDocument.submissionCollection = "observationSubmissions"
+        submissionDocument.scoringSystem = "pointsBasedScoring"
 
-        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+        let allCriteriaInSolution = new Array
+        let allQuestionIdInSolution = new Array
+        let solutionQuestions = new Array
 
-          submissionDocument.scoringSystem = "pointsBasedScoring"
+        allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-          let allCriteriaInSolution = new Array
-          let allQuestionIdInSolution = new Array
-          let solutionQuestions = new Array
+        if(allCriteriaInSolution.length > 0) {
+          
+          submissionDocument.themes = solutionDocument.flattenedThemes
 
-          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+          let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+            _id : {
+              $in : allCriteriaInSolution
+            }
+          }, [
+            "evidences"
+          ])
 
-          if(allCriteriaInSolution.length > 0) {
-            
-            submissionDocument.themes = solutionDocument.flattenedThemes
+          allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+        }
 
-            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
-              _id : {
-                $in : allCriteriaInSolution
-              }
-            }, [
-              "evidences"
-            ])
+        if(allQuestionIdInSolution.length > 0) {
 
-            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
-          }
-
-          if(allQuestionIdInSolution.length > 0) {
-
-            solutionQuestions = await questionsHelper.questionDocument({
-              _id : {
-                $in : allQuestionIdInSolution
-              },
-              responseType : {
-                $in : [
-                  "radio",
-                  "multiselect",
-                  "slider"
-                ]
-              }
-            }, [
-              "weightage",
-              "options",
-              "responseType"
-            ])
-
-          }
-
-          if(solutionQuestions.length > 0) {
-            submissionDocument.questionDocuments = {}
-            solutionQuestions.forEach(question => {
-              submissionDocument.questionDocuments[question._id.toString()] = {
-                _id : question._id,
-                weightage : question.weightage
-              }
-              if(question.options && question.options.length > 0) {
-                question.options.forEach(option => {
-                  (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
-                })
-              }
-            })
-          }
+          solutionQuestions = await questionsHelper.questionDocument({
+            _id : {
+              $in : allQuestionIdInSolution
+            },
+            responseType : {
+              $in : [
+                "radio",
+                "multiselect",
+                "slider"
+              ]
+            }
+          }, [
+            "weightage",
+            "options",
+            "responseType"
+          ])
 
         }
+
+        if(solutionQuestions.length > 0) {
+          submissionDocument.questionDocuments = {}
+          solutionQuestions.forEach(question => {
+            submissionDocument.questionDocuments[question._id.toString()] = {
+              _id : question._id,
+              weightage : question.weightage
+            }
+            if(question.options && question.options.length > 0) {
+              question.options.forEach(option => {
+                (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+              })
+            }
+          })
+        }
+
 
         let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
 
@@ -579,7 +581,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/observationSubmissions/multiRate?entityId=:entityExternalId1,:entityExternalId2&solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Multi Rate
+  * @api {get} /assessment/api/v1/observationSubmissions/multiRate?entityId=:entityExternalId1,:entityExternalId2&solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate Multiple Entities of Observation
   * @apiVersion 1.0.0
   * @apiName Rate Multiple Entities of Observation
   * @apiGroup Observation Submissions
@@ -600,12 +602,13 @@ module.exports = class ObservationSubmissions extends Abstract {
         req.body = req.body || {};
         let message = "Crtieria rating completed successfully"
 
-        let programId = req.query.programId
+        let createdBy = req.query.createdBy
         let solutionId = req.query.solutionId
+        let submissionNumber = (req.query.submissionNumber) ? req.query.submissionNumber : "all"
         let entityId = req.query.entityId.split(",")
 
-        if (!programId) {
-          throw "Program Id is not found"
+        if (!createdBy) {
+          throw "Created by is not found"
         }
 
         if (!solutionId) {
@@ -618,7 +621,9 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let solutionDocument = await database.models.solutions.findOne({
           externalId: solutionId,
-        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+          type : "observation",
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, type : 1 }).lean()
 
         if (!solutionDocument) {
           return resolve({
@@ -628,83 +633,84 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
 
         let queryObject = {
-          "entityExternalId": { $in: entityId },
-          "programExternalId": programId,
-          "solutionExternalId": solutionId
+          "createdBy": createdBy,
+          "solutionExternalId": solutionId,
+          "entityExternalId": { $in: entityId }
         }
 
-        let submissionDocuments = await database.models.submissions.find(
+        if(submissionNumber != "all" && parseInt(submissionNumber)) {
+          queryObject["submissionNumber"] = parseInt(submissionNumber)
+        }
+
+        let submissionDocuments = await database.models.observationSubmissions.find(
           queryObject,
-          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, "programExternalId": 1, entityExternalId: 1 }
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, solutionExternalId: 1, entityExternalId: 1 }
         ).lean();
 
         if (!submissionDocuments) {
           throw "Couldn't find the submission document"
         }
 
-        let commonSolutionDocumentParameters = {}
+        let commonSolutionDocumentParameters = {
+          submissionCollection : "observationSubmissions",
+          scoringSystem : "pointsBasedScoring"
+        }
 
-        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+        let allCriteriaInSolution = new Array
+        let allQuestionIdInSolution = new Array
+        let solutionQuestions = new Array
 
-          commonSolutionDocumentParameters.scoringSystem = "pointsBasedScoring"
+        allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-          let allCriteriaInSolution = new Array
-          let allQuestionIdInSolution = new Array
-          let solutionQuestions = new Array
+        if(allCriteriaInSolution.length > 0) {
+          
+          commonSolutionDocumentParameters.themes = solutionDocument.flattenedThemes
 
-          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+          let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+            _id : {
+              $in : allCriteriaInSolution
+            }
+          }, [
+            "evidences"
+          ])
 
-          if(allCriteriaInSolution.length > 0) {
-            
-            commonSolutionDocumentParameters.themes = solutionDocument.flattenedThemes
+          allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+        }
 
-            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
-              _id : {
-                $in : allCriteriaInSolution
-              }
-            }, [
-              "evidences"
-            ])
+        if(allQuestionIdInSolution.length > 0) {
 
-            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
-          }
+          solutionQuestions = await questionsHelper.questionDocument({
+            _id : {
+              $in : allQuestionIdInSolution
+            },
+            responseType : {
+              $in : [
+                "radio",
+                "multiselect",
+                "slider"
+              ]
+            }
+          }, [
+            "weightage",
+            "options",
+            "responseType"
+          ])
 
-          if(allQuestionIdInSolution.length > 0) {
+        }
 
-            solutionQuestions = await questionsHelper.questionDocument({
-              _id : {
-                $in : allQuestionIdInSolution
-              },
-              responseType : {
-                $in : [
-                  "radio",
-                  "multiselect",
-                  "slider"
-                ]
-              }
-            }, [
-              "weightage",
-              "options",
-              "responseType"
-            ])
-
-          }
-
-          if(solutionQuestions.length > 0) {
-            commonSolutionDocumentParameters.questionDocuments = {}
-            solutionQuestions.forEach(question => {
-              commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
-                _id : question._id,
-                weightage : question.weightage
-              }
-              if(question.options && question.options.length > 0) {
-                question.options.forEach(option => {
-                  (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
-                })
-              }
-            })
-          }
-
+        if(solutionQuestions.length > 0) {
+          commonSolutionDocumentParameters.questionDocuments = {}
+          solutionQuestions.forEach(question => {
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
+              _id : question._id,
+              weightage : question.weightage
+            }
+            if(question.options && question.options.length > 0) {
+              question.options.forEach(option => {
+                (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+              })
+            }
+          })
         }
 
         if(commonSolutionDocumentParameters && Object.keys(commonSolutionDocumentParameters).length > 0) {

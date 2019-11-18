@@ -842,7 +842,9 @@ module.exports = class submissionsHelper {
                                 })
                             }
 
-                            let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+                            let submissionModel = (eachSubmissionDocument.submissionCollection) ? eachSubmissionDocument.submissionCollection : "submissions"
+
+                            let updatedSubmissionDocument = await database.models[submissionModel].findOneAndUpdate(
                                 {
                                     _id: eachSubmissionDocument._id
                                 },
