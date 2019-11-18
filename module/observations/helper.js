@@ -225,14 +225,16 @@ module.exports = class observationsHelper {
                 const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
                     user_id: userId,
                     internal: false,
-                    text: `New solution available now (Observation form)`,
+                    text: `New observation available now (Observation form)`,
                     type: "information",
                     action: "mapping",
                     payload: {
                         type: observationData.solutionType,
                         solution_id: observationData.solutionId,
                         observation_id: observationData.observationId
-                    }
+                    },
+                    title: "New Observation",
+                    created_at: new Date()
                 })
 
                 if (kafkaMessage.status != "success") {
@@ -306,7 +308,7 @@ module.exports = class observationsHelper {
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
-                            entityName:eachObservationData.entityInformation.name
+                            entityName: eachObservationData.entityInformation.name
                         })
 
                     })
