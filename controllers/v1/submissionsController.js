@@ -1101,9 +1101,9 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/multiRate?entityId=:entityId1,:entityId2&programId=:programExternalId&solutionId=:solutionExternalId Multi Rate
+  * @api {get} /assessment/api/v1/submissions/multiRate?entityId=:entityId1,:entityId2&programId=:programExternalId&solutionId=:solutionExternalId Rate Multiple Entities
   * @apiVersion 1.0.0
-  * @apiName Multi Rate
+  * @apiName Rate Multiple Entities
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} solutionId Solution External ID.
@@ -1133,8 +1133,19 @@ module.exports = class Submission extends Abstract {
           throw "Solution Id is not found"
         }
 
-        if (!req.query.entityId) {
+        if (!req.query.entityId || !(req.query.entityId.length >= 1)) {
           throw "Entity Id is not found"
+        }
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
         }
 
         let queryObject = {
@@ -1150,6 +1161,77 @@ module.exports = class Submission extends Abstract {
 
         if (!submissionDocuments) {
           throw "Couldn't find the submission document"
+        }
+
+        let commonSolutionDocumentParameters = {}
+
+        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+
+          commonSolutionDocumentParameters.scoringSystem = "pointsBasedScoring"
+
+          let allCriteriaInSolution = new Array
+          let allQuestionIdInSolution = new Array
+          let solutionQuestions = new Array
+
+          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+          if(allCriteriaInSolution.length > 0) {
+            
+            commonSolutionDocumentParameters.themes = solutionDocument.flattenedThemes
+
+            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+              _id : {
+                $in : allCriteriaInSolution
+              }
+            }, [
+              "evidences"
+            ])
+
+            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+          }
+
+          if(allQuestionIdInSolution.length > 0) {
+
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id : {
+                $in : allQuestionIdInSolution
+              },
+              responseType : {
+                $in : [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
+              }
+            }, [
+              "weightage",
+              "options",
+              "responseType"
+            ])
+
+          }
+
+          if(solutionQuestions.length > 0) {
+            commonSolutionDocumentParameters.questionDocuments = {}
+            solutionQuestions.forEach(question => {
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
+                _id : question._id,
+                weightage : question.weightage
+              }
+              if(question.options && question.options.length > 0) {
+                question.options.forEach(option => {
+                  (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                })
+              }
+            })
+          }
+
+        }
+
+        if(commonSolutionDocumentParameters && Object.keys(commonSolutionDocumentParameters).length > 0) {
+          submissionDocuments.forEach(eachsubmissionDocument => {
+            _.merge(eachsubmissionDocument,commonSolutionDocumentParameters)
+          })
         }
 
         let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi")

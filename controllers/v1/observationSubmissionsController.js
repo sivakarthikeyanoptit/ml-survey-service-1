@@ -434,5 +434,299 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/rate/:entityExternalId?solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate an Entity Observation
+  * @apiVersion 1.0.0
+  * @apiName Rate a Single Entity of Observation
+  * @apiGroup Observation Submissions
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} createdBy Keycloak user ID.
+  * @apiParam {String} submissionNumber Submission Number.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/rate/1002036?solutionId=EF-DCPCR-2018-001&createdBy=e97b5582-471c-4649-8401-3cc4249359bb&submissionNumber=2
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async rate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let message = "Crtieria rating completed successfully"
+
+        let programId = req.query.programId
+        let solutionId = req.query.solutionId
+        let entityId = req.params._id
+
+        if (!programId) {
+          throw "Program Id is not found"
+        }
+
+        if (!solutionId) {
+          throw "Solution Id is not found"
+        }
+
+        if (!entityId) {
+          throw "Entity Id is not found"
+        }
+
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let queryObject = {
+          "entityExternalId": entityId,
+          "programExternalId": programId,
+          "solutionExternalId": solutionId
+        }
+
+        let submissionDocument = await database.models.submissions.findOne(
+          queryObject,
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "programExternalId": 1 }
+        ).lean();
+
+        if (!submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        }
+
+
+        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+
+          submissionDocument.scoringSystem = "pointsBasedScoring"
+
+          let allCriteriaInSolution = new Array
+          let allQuestionIdInSolution = new Array
+          let solutionQuestions = new Array
+
+          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+          if(allCriteriaInSolution.length > 0) {
+            
+            submissionDocument.themes = solutionDocument.flattenedThemes
+
+            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+              _id : {
+                $in : allCriteriaInSolution
+              }
+            }, [
+              "evidences"
+            ])
+
+            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+          }
+
+          if(allQuestionIdInSolution.length > 0) {
+
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id : {
+                $in : allQuestionIdInSolution
+              },
+              responseType : {
+                $in : [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
+              }
+            }, [
+              "weightage",
+              "options",
+              "responseType"
+            ])
+
+          }
+
+          if(solutionQuestions.length > 0) {
+            submissionDocument.questionDocuments = {}
+            solutionQuestions.forEach(question => {
+              submissionDocument.questionDocuments[question._id.toString()] = {
+                _id : question._id,
+                weightage : question.weightage
+              }
+              if(question.options && question.options.length > 0) {
+                question.options.forEach(option => {
+                  (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                })
+              }
+            })
+          }
+
+        }
+
+        let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
+
+        return resolve({ result: resultingArray })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/multiRate?entityId=:entityExternalId1,:entityExternalId2&solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Multi Rate
+  * @apiVersion 1.0.0
+  * @apiName Rate Multiple Entities of Observation
+  * @apiGroup Observation Submissions
+  * @apiParam {String} entityId Entity ID.
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} createdBy Keycloak user ID.
+  * @apiParam {String} submissionNumber Submission Number.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/multiRate?entityId=1556397,1310274&solutionId=EF-DCPCR-2018-001&createdBy=e97b5582-471c-4649-8401-3cc4249359bb&submissionNumber=all
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async multiRate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let message = "Crtieria rating completed successfully"
+
+        let programId = req.query.programId
+        let solutionId = req.query.solutionId
+        let entityId = req.query.entityId.split(",")
+
+        if (!programId) {
+          throw "Program Id is not found"
+        }
+
+        if (!solutionId) {
+          throw "Solution Id is not found"
+        }
+
+        if (!req.query.entityId || !(req.query.entityId.length >= 1)) {
+          throw "Entity Id is not found"
+        }
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let queryObject = {
+          "entityExternalId": { $in: entityId },
+          "programExternalId": programId,
+          "solutionExternalId": solutionId
+        }
+
+        let submissionDocuments = await database.models.submissions.find(
+          queryObject,
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, "programExternalId": 1, entityExternalId: 1 }
+        ).lean();
+
+        if (!submissionDocuments) {
+          throw "Couldn't find the submission document"
+        }
+
+        let commonSolutionDocumentParameters = {}
+
+        if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+
+          commonSolutionDocumentParameters.scoringSystem = "pointsBasedScoring"
+
+          let allCriteriaInSolution = new Array
+          let allQuestionIdInSolution = new Array
+          let solutionQuestions = new Array
+
+          allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+          if(allCriteriaInSolution.length > 0) {
+            
+            commonSolutionDocumentParameters.themes = solutionDocument.flattenedThemes
+
+            let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+              _id : {
+                $in : allCriteriaInSolution
+              }
+            }, [
+              "evidences"
+            ])
+
+            allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+          }
+
+          if(allQuestionIdInSolution.length > 0) {
+
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id : {
+                $in : allQuestionIdInSolution
+              },
+              responseType : {
+                $in : [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
+              }
+            }, [
+              "weightage",
+              "options",
+              "responseType"
+            ])
+
+          }
+
+          if(solutionQuestions.length > 0) {
+            commonSolutionDocumentParameters.questionDocuments = {}
+            solutionQuestions.forEach(question => {
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
+                _id : question._id,
+                weightage : question.weightage
+              }
+              if(question.options && question.options.length > 0) {
+                question.options.forEach(option => {
+                  (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                })
+              }
+            })
+          }
+
+        }
+
+        if(commonSolutionDocumentParameters && Object.keys(commonSolutionDocumentParameters).length > 0) {
+          submissionDocuments.forEach(eachsubmissionDocument => {
+            _.merge(eachsubmissionDocument,commonSolutionDocumentParameters)
+          })
+        }
+
+        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi")
+
+        return resolve({ result: resultingArray })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 };
 
