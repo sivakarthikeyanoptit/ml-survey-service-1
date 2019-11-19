@@ -10,7 +10,7 @@ module.exports = {
     //       "slider"
     //     ]
     //   }
-    // }).project({options: 1}).toArray();
+    // }).project({options: 1, responseType : 1}).toArray();
 
 
     // currentQuestionCollection.forEach( async (question) => {
@@ -29,6 +29,30 @@ module.exports = {
     //     }
     //   )
     // });
+
+    // currentQuestionCollection = await db.collection('questions').find({
+    //   "responseType": "slider"
+    // }).project({options: 1}).toArray();
+
+    // currentQuestionCollection.forEach( async (question) => {
+    //   question.sliderOptions = new Array
+    //   for (let sliderRangeCounter = 0; sliderRangeCounter < 100; sliderRangeCounter++) {
+    //     question.sliderOptions.push({
+    //       value : parseFloat(sliderRangeCounter),
+    //       score : Math.ceil(Math.random() * 10)
+    //     })
+    //     sliderRangeCounter += 1
+    //   }
+    //   await db.collection('questions').findOneAndUpdate(
+    //     {
+    //       _id : question._id
+    //     },
+    //     {
+    //       $set: { "sliderOptions":question.sliderOptions  }
+    //     }
+    //   )
+    // });
+
 
   },
 

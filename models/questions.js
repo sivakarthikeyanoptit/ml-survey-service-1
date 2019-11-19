@@ -18,6 +18,7 @@ module.exports = {
     createdBy: "String",
     updatedBy: "String",
     options: Array,
+    sliderOptions: Array,
     children: Array,
     questionGroup: Array,
     questionType: "String",
