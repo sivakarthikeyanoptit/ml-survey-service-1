@@ -526,10 +526,14 @@ module.exports = class submissionsHelper {
 
                                                     result += questionPointsBasedScore
                                                     if(answersToUpdate[questionId]) {
-                                                        answersToUpdate[questionId].pointsBasedScore = questionPointsBasedScore
+                                                        answersToUpdate[questionId].pointsBasedScore = questionPointsBasedScore,
+                                                        answersToUpdate[questionId].scoreAchieved = scoreOfAllQuestionInCriteria[questionId].score,
+                                                        answersToUpdate[questionId].weightage = scoreOfAllQuestionInCriteria[questionId].weightage
                                                     } else {
                                                         answersToUpdate[questionId] = {
-                                                            pointsBasedScore : questionPointsBasedScore
+                                                            pointsBasedScore : questionPointsBasedScore,
+                                                            scoreAchieved: scoreOfAllQuestionInCriteria[questionId].score,
+                                                            weightage : scoreOfAllQuestionInCriteria[questionId].weightage
                                                         }
                                                     }
                                                     allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScore = questionPointsBasedScore
@@ -1099,15 +1103,15 @@ module.exports = class submissionsHelper {
     
                                         if (score == "NA") {
                                             themeResult[theme.externalId].valuesNotFound = true
-                                            themeResult[theme.externalId].score = score
-                                            theme.score = score
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
                                         } else if (score == "No Level Matched") {
                                             themeResult[theme.externalId].noExpressionMatched = true
-                                            themeResult[theme.externalId].score = score
-                                            theme.score = score
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
                                         } else {
-                                            themeResult[theme.externalId].score = score
-                                            theme.score = score
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
                                         }
     
                                         themeResult[theme.externalId].expressionResult = expressionResult
