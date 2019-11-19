@@ -544,6 +544,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           }, [
             "weightage",
             "options",
+            "sliderOptions",
             "responseType"
           ])
 
@@ -560,6 +561,9 @@ module.exports = class ObservationSubmissions extends Abstract {
               question.options.forEach(option => {
                 (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
               })
+            }
+            if(question.sliderOptions && question.sliderOptions.length > 0) {
+              submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
           })
         }
@@ -693,6 +697,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           }, [
             "weightage",
             "options",
+            "sliderOptions",
             "responseType"
           ])
 
@@ -709,6 +714,9 @@ module.exports = class ObservationSubmissions extends Abstract {
               question.options.forEach(option => {
                 (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
               })
+            }
+            if(question.sliderOptions && question.sliderOptions.length > 0) {
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
           })
         }

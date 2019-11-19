@@ -496,17 +496,28 @@ module.exports = class submissionsHelper {
                                                     if(questionOptionsSelected.length > 0) {
                                                         let selectedOptionScoreFound = false
                                                         questionOptionsSelected.forEach(optionValue => {
-                                                            if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()] && eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
-                                                                if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
-                                                                    scoreOfAllQuestionInCriteria[question.qid.toString()].score += eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
-                                                                } else {
-                                                                    scoreOfAllQuestionInCriteria[question.qid.toString()] = {
-                                                                        score : eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`],
-                                                                        weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
-                                                                        questionIndexInArray : questionIndexInArray
-                                                                    }
+                                                            if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
+                                                                
+                                                                let optionScore = "NA"
+                                                                if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
+                                                                    optionScore = eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
+                                                                } else if (eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions && eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions.length > 0) {
+                                                                    let sliderOptionApplicable = _.find(eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions, { 'value': optionValue})
+                                                                    optionScore = (sliderOptionApplicable && sliderOptionApplicable.score) ? sliderOptionApplicable.score : "NA"
                                                                 }
-                                                                selectedOptionScoreFound = true
+
+                                                                if(optionScore != "NA") {
+                                                                    if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].score += optionScore
+                                                                    } else {
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()] = {
+                                                                            score : optionScore,
+                                                                            weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
+                                                                            questionIndexInArray : questionIndexInArray
+                                                                        }
+                                                                    }
+                                                                    selectedOptionScoreFound = true
+                                                                }
                                                             }
                                                         })
                                                         if(selectedOptionScoreFound) {
