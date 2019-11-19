@@ -557,14 +557,23 @@ module.exports = class ObservationSubmissions extends Abstract {
               _id : question._id,
               weightage : question.weightage
             }
+            let questionMaxScore = 0
             if(question.options && question.options.length > 0) {
+              if(question.responseType != "multiselect") {
+                questionMaxScore = _.maxBy(question.options, 'score').score;
+              }
               question.options.forEach(option => {
+                if(question.responseType == "multiselect") {
+                  questionMaxScore += option.score
+                }
                 (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
               })
             }
             if(question.sliderOptions && question.sliderOptions.length > 0) {
+              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
+            submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
           })
         }
 
@@ -710,14 +719,23 @@ module.exports = class ObservationSubmissions extends Abstract {
               _id : question._id,
               weightage : question.weightage
             }
+            let questionMaxScore = 0
             if(question.options && question.options.length > 0) {
+              if(question.responseType != "multiselect") {
+                questionMaxScore = _.maxBy(question.options, 'score').score;
+              }
               question.options.forEach(option => {
+                if(question.responseType == "multiselect") {
+                  questionMaxScore += option.score
+                }
                 (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
               })
             }
             if(question.sliderOptions && question.sliderOptions.length > 0) {
+              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = questionMaxScore
           })
         }
 

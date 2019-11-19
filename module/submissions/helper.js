@@ -544,7 +544,8 @@ module.exports = class submissionsHelper {
                                                         answersToUpdate[questionId] = {
                                                             pointsBasedScore : questionPointsBasedScore,
                                                             scoreAchieved: scoreOfAllQuestionInCriteria[questionId].score,
-                                                            weightage : scoreOfAllQuestionInCriteria[questionId].weightage
+                                                            weightage : scoreOfAllQuestionInCriteria[questionId].weightage,
+                                                            maxScore : eachSubmissionDocument.questionDocuments[questionId].maxScore
                                                         }
                                                     }
                                                     allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScore = questionPointsBasedScore
