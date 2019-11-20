@@ -485,6 +485,10 @@ module.exports = class submissionsHelper {
                                                 return "NA"
                                             }
 
+                                            criteria.scoreAchieved = 0
+                                            criteria.maxScore = 0
+                                            criteria.percentageScore = 0
+
                                             let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
 
 
@@ -563,20 +567,14 @@ module.exports = class submissionsHelper {
 
                                                 if(criteriaMaxScore > 0) {
                                                     criteria.maxScore = criteriaMaxScore
-                                                } else {
-                                                    criteria.maxScore = 0
                                                 }
 
                                                 if(criteriaScoreAchieved > 0) {
                                                     criteria.scoreAchieved = criteriaScoreAchieved
-                                                } else {
-                                                    criteria.scoreAchieved = 0
                                                 }
 
                                                 if(criteriaMaxScore > 0 && criteriaScoreAchieved > 0) {
                                                     criteria.percentageScore = ((criteriaScoreAchieved / criteriaMaxScore)*100)
-                                                } else {
-                                                    criteria.percentageScore = 0
                                                 }
                                             }
 
@@ -1077,7 +1075,7 @@ module.exports = class submissionsHelper {
                                                     theme.percentageScore = ((theme.scoreAchieved/theme.maxScore)*100)
                                                 }
                                                 
-                                                children.push(Object.values(scoreOfAllSubthemeInTheme))
+                                                children = Object.values(scoreOfAllSubthemeInTheme)
                                                 
                                                 
                                             }
