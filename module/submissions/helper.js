@@ -508,12 +508,14 @@ module.exports = class submissionsHelper {
 
                                                                 if(optionScore != "NA") {
                                                                     if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
-                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].score += optionScore
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved += optionScore
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].score) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].score  / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
                                                                     } else {
                                                                         scoreOfAllQuestionInCriteria[question.qid.toString()] = {
-                                                                            score : optionScore,
+                                                                            scoreAchieved : optionScore,
                                                                             weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
-                                                                            questionIndexInArray : questionIndexInArray
+                                                                            questionIndexInArray : questionIndexInArray,
+                                                                            percentageScore : (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && optionScore) ? ((optionScore / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
                                                                         }
                                                                     }
                                                                     selectedOptionScoreFound = true
@@ -525,31 +527,57 @@ module.exports = class submissionsHelper {
                                                         }
                                                         if(selectedOptionScoreFound) {
                                                             question.optionScores = eachSubmissionDocument.questionDocuments[question.qid.toString()]
-                                                            question.optionScores.scoreAchieved = (scoreOfAllQuestionInCriteria[question.qid.toString()].score) ? scoreOfAllQuestionInCriteria[question.qid.toString()].score : ""
+                                                            question.optionScores.percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
+                                                            question.optionScores.scoreAchieved = (scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved : ""
                                                         }
                                                     }
                                                 }
                                             })
 
                                             if(totalWeightOfQuestionInCriteria > 0 && Object.keys(scoreOfAllQuestionInCriteria).length > 0) {
+                                                let criteriaMaxScore = 0
+                                                let criteriaScoreAchieved = 0
                                                 Object.keys(scoreOfAllQuestionInCriteria).forEach(questionId => {
-                                                    const questionPointsBasedScore = (scoreOfAllQuestionInCriteria[questionId].score*scoreOfAllQuestionInCriteria[questionId].weightage)/totalWeightOfQuestionInCriteria
+                                                    const questionPointsBasedScore = (scoreOfAllQuestionInCriteria[questionId].scoreAchieved*scoreOfAllQuestionInCriteria[questionId].weightage)/totalWeightOfQuestionInCriteria
 
                                                     result += questionPointsBasedScore
                                                     if(answersToUpdate[questionId]) {
-                                                        answersToUpdate[questionId].pointsBasedScore = questionPointsBasedScore,
-                                                        answersToUpdate[questionId].scoreAchieved = scoreOfAllQuestionInCriteria[questionId].score,
+                                                        answersToUpdate[questionId].pointsBasedScoreInParent = questionPointsBasedScore,
+                                                        answersToUpdate[questionId].scoreAchieved = scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
                                                         answersToUpdate[questionId].weightage = scoreOfAllQuestionInCriteria[questionId].weightage
                                                     } else {
                                                         answersToUpdate[questionId] = {
-                                                            pointsBasedScore : questionPointsBasedScore,
-                                                            scoreAchieved: scoreOfAllQuestionInCriteria[questionId].score,
+                                                            pointsBasedScoreInParent : questionPointsBasedScore,
+                                                            scoreAchieved: scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
                                                             weightage : scoreOfAllQuestionInCriteria[questionId].weightage,
-                                                            maxScore : eachSubmissionDocument.questionDocuments[questionId].maxScore
+                                                            maxScore : eachSubmissionDocument.questionDocuments[questionId].maxScore,
+                                                            percentageScore : scoreOfAllQuestionInCriteria[questionId].percentageScore
                                                         }
                                                     }
-                                                    allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScore = questionPointsBasedScore
+
+                                                    criteriaMaxScore += eachSubmissionDocument.questionDocuments[questionId].maxScore
+                                                    criteriaScoreAchieved += scoreOfAllQuestionInCriteria[questionId].scoreAchieved
+
+                                                    allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScoreInParent = questionPointsBasedScore
                                                 })
+
+                                                if(criteriaMaxScore > 0) {
+                                                    criteria.maxScore = criteriaMaxScore
+                                                } else {
+                                                    criteria.maxScore = 0
+                                                }
+
+                                                if(criteriaScoreAchieved > 0) {
+                                                    criteria.scoreAchieved = criteriaScoreAchieved
+                                                } else {
+                                                    criteria.scoreAchieved = 0
+                                                }
+
+                                                if(criteriaMaxScore > 0 && criteriaScoreAchieved > 0) {
+                                                    criteria.percentageScore = ((criteriaScoreAchieved / criteriaMaxScore)*100)
+                                                } else {
+                                                    criteria.percentageScore = 0
+                                                }
                                             }
 
                                             submissionAnswers.push(...allCriteriaQuestions)
@@ -784,6 +812,10 @@ module.exports = class submissionsHelper {
                                     result.criteria[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
                                     result.criteria[criteria.externalId].expressionVariables = expressionVariables
 
+                                    result.criteria[criteria.externalId].maxScore = criteria.maxScore
+                                    result.criteria[criteria.externalId].percentageScore = criteria.percentageScore
+                                    result.criteria[criteria.externalId].scoreAchieved = criteria.scoreAchieved
+
                                     if (score == "NA") {
                                         result.criteria[criteria.externalId].valuesNotFound = true
                                         result.criteria[criteria.externalId].score = score
@@ -798,9 +830,9 @@ module.exports = class submissionsHelper {
                                     }
 
                                     if(eachSubmissionDocument.scoringSystem == "pointsBasedScoring") {
-                                        criteria.pointsBasedScore = 0
+                                        criteria.pointsBasedScoreOfAllChildren = 0
                                         submissionAnswers.forEach(answer => {
-                                            if(answer.pointsBasedScore) criteria.pointsBasedScore += answer.pointsBasedScore
+                                            if(answer.pointsBasedScoreInParent) criteria.pointsBasedScoreOfAllChildren += answer.pointsBasedScoreInParent
                                         })
                                     }
                                     
@@ -835,16 +867,23 @@ module.exports = class submissionsHelper {
 
                         if (result.runUpdateQuery) {
 
-                            let updateObject = {}
-
-                            updateObject.$set = {
-                                criteria: criteriaData,
-                                ratingCompletedAt: new Date()
-                            }
+                            let updateObject = {$set : {}}
 
                             if(themes.success) {
                                 updateObject.$set.themes = themes.themeData
+                                if(themes.criteriaToUpdate && Object.keys(themes.criteriaToUpdate).length > 0) {
+                                    criteriaData.forEach(criteria => {
+                                        if(themes.criteriaToUpdate[criteria._id.toString()]) {
+                                            Object.keys(themes.criteriaToUpdate[criteria._id.toString()]).forEach(criteriaKeyToUpdate => {
+                                                criteria[criteriaKeyToUpdate] = themes.criteriaToUpdate[criteria._id.toString()][criteriaKeyToUpdate]
+                                            })
+                                        }
+                                    })
+                                }
                             }
+
+                            updateObject.$set.criteria = criteriaData
+                            updateObject.$set.ratingCompletedAt =  new Date()
 
                             if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
                                 Object.keys(answersToUpdate).forEach(questionId => {
@@ -925,6 +964,7 @@ module.exports = class submissionsHelper {
                 let themeScoreCalculationCompleted = true
                 let themeResult = {}
                 let criteriaMap = {}
+                let criteriaToUpdate = {}
 
                 for (let pointerToThemeArray = 0; pointerToThemeArray < themesWithRubric.length; pointerToThemeArray++) {
                     const theme = themesWithRubric[pointerToThemeArray];
@@ -984,7 +1024,9 @@ module.exports = class submissionsHelper {
                                                             scoreOfAllSubthemeInTheme[subTheme.externalId] = {
                                                                 subThemeExternalId :subTheme.externalId,
                                                                 weightage : subTheme.weightage,
-                                                                scoreAchieved : subThemeScore.pointsBasedScore
+                                                                pointsBasedScoreOfAllChildren : subThemeScore.pointsBasedScoreOfAllChildren,
+                                                                scoreAchieved : subThemeScore.scoreAchieved,
+                                                                maxScore : subThemeScore.maxScore
                                                             }
                                                             totalWeightOfSubthemeInTheme += subTheme.weightage
                                                         }
@@ -1002,8 +1044,11 @@ module.exports = class submissionsHelper {
                                                         if(!theme.immediateChildren && criteriaMap[themeCriteria.criteriaId.toString()]) {
                                                             scoreOfAllSubthemeInTheme[themeCriteria.criteriaId.toString()] = {
                                                                 criteriaId :themeCriteria.criteriaId,
+                                                                criteriaExternalId :themeCriteria.externalId,
                                                                 weightage : themeCriteria.weightage,
-                                                                scoreAchieved : criteriaMap[themeCriteria.criteriaId.toString()].pointsBasedScore
+                                                                pointsBasedScoreOfAllChildren : criteriaMap[themeCriteria.criteriaId.toString()].pointsBasedScoreOfAllChildren,
+                                                                scoreAchieved : criteriaMap[themeCriteria.criteriaId.toString()].scoreAchieved,
+                                                                maxScore : criteriaMap[themeCriteria.criteriaId.toString()].maxScore
                                                             }
                                                             totalWeightOfSubthemeInTheme += themeCriteria.weightage
                                                         }
@@ -1012,15 +1057,29 @@ module.exports = class submissionsHelper {
                                                 })
 
                                                 theme.pointsBasedScore = 0
+                                                theme.maxScore = 0
+                                                theme.scoreAchieved = 0
+                                                theme.percentageScore = 0
 
                                                 Object.keys(scoreOfAllSubthemeInTheme).length > 0 && Object.keys(scoreOfAllSubthemeInTheme).forEach(subThemeKey => {
-                                                    theme.pointsBasedScore += (scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
-                                                    scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScore = (scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    result += (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    theme.maxScore += scoreOfAllSubthemeInTheme[subThemeKey].maxScore
+                                                    theme.scoreAchieved += scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved
+                                                    scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent = (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    if(scoreOfAllSubthemeInTheme[subThemeKey].criteriaId) {
+                                                        criteriaToUpdate[scoreOfAllSubthemeInTheme[subThemeKey].criteriaId.toString()] = {
+                                                            pointsBasedScoreInParent : scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent,
+                                                        }
+                                                    }
                                                 })
-    
+                                                
+                                                if(theme.maxScore > 0 && theme.scoreAchieved >0) {
+                                                    theme.percentageScore = ((theme.scoreAchieved/theme.maxScore)*100)
+                                                }
+                                                
                                                 children.push(Object.values(scoreOfAllSubthemeInTheme))
                                                 
-                                                result = theme.pointsBasedScore
+                                                
                                             }
 
                                             return result;
@@ -1112,6 +1171,9 @@ module.exports = class submissionsHelper {
     
                                         themeResult[theme.externalId].expressionVariablesDefined = theme.rubric.expressionVariables
                                         themeResult[theme.externalId].expressionVariables = expressionVariables
+                                        themeResult[theme.externalId].maxScore = theme.maxScore
+                                        themeResult[theme.externalId].percentageScore = theme.percentageScore
+                                        themeResult[theme.externalId].scoreAchieved = theme.scoreAchieved
     
                                         if (score == "NA") {
                                             themeResult[theme.externalId].valuesNotFound = true
@@ -1126,6 +1188,12 @@ module.exports = class submissionsHelper {
                                             theme.pointsBasedLevel = score
                                         }
     
+
+                                        theme.pointsBasedScoreOfAllChildren = 0
+                                        children.forEach(child => {
+                                            if(child.pointsBasedScoreInParent) theme.pointsBasedScoreOfAllChildren += child.pointsBasedScoreInParent
+                                        })
+
                                         themeResult[theme.externalId].expressionResult = expressionResult
                                         themeResult[theme.externalId].children = children
                                     }
@@ -1152,7 +1220,8 @@ module.exports = class submissionsHelper {
                 return resolve({
                     success : themeScoreCalculationCompleted,
                     themeData : themeScores,
-                    themeResult : themeResult
+                    themeResult : themeResult,
+                    criteriaToUpdate : criteriaToUpdate
                 });
 
 
