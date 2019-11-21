@@ -234,7 +234,8 @@ module.exports = class observationsHelper {
                         observation_id: observationData.observationId
                     },
                     title: "New Observation",
-                    created_at: new Date()
+                    created_at: new Date(),
+                    "appName": "samiksha"
                 })
 
                 if (kafkaMessage.status != "success") {
