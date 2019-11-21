@@ -102,7 +102,7 @@ module.exports = class assessmentsHelper {
                     delete questionArrayElm[1]["criteriaId"]
 
                     // Remove weightage of each question from being sent to client.
-                    (questionArrayElm[1].weightage) ? delete questionArrayElm[1]["weightage"] : ""
+                    (questionArrayElm[1]["weightage"]) ? delete questionArrayElm[1]["weightage"] : ""
 
                     if (questionArrayElm[1].responseType === "matrix") {
                         let instanceQuestionArray = new Array()
