@@ -422,7 +422,8 @@ module.exports = class entityAssessorHelper {
                             entity_id: entity.entityId
                         },
                         title: "New Assessment",
-                        created_at: new Date()
+                        created_at: new Date(),
+                        "appName": "samiksha"
                     })
 
                     if (kafkaMessage.status != "success") {
