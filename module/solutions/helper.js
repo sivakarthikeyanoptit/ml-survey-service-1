@@ -276,6 +276,224 @@ module.exports = class solutionsHelper {
     });
   }
 
+  static setThemeRubricExpressions(currentSolutionThemeStructure, themeRubricExpressionData, solutionLevelKeys) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        themeRubricExpressionData = themeRubricExpressionData.map(function(themeRow) {
+          themeRow = gen.utils.valueParser(themeRow)
+          themeRow.status = "Failed to find a matching theme or sub-theme with the same external id and name.";
+          return themeRow;
+        })
+
+        const getThemeExpressions = function (externalId, name) {
+          return _.find(themeRubricExpressionData, { 'externalId': externalId, 'name': name })
+        }
+
+
+        const updateThemeRubricExpressionData = function (themeRow) {
+          
+          const themeIndex = themeRubricExpressionData.findIndex(row => row.externalId === themeRow.externalId && row.name === themeRow.name)
+
+          if(themeIndex >= 0) {
+            themeRubricExpressionData[themeIndex] = themeRow
+          }
+
+        }
+
+        const parseAllThemes = function (themes) {
+
+          themes.forEach(theme => {
+
+            const checkIfThemeIsToBeUpdated = getThemeExpressions(theme.externalId, theme.name)
+            
+            if(checkIfThemeIsToBeUpdated) {
+              
+              theme.rubric = {
+                expressionVariables : {
+                  SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
+                },
+                levels : {}
+              }
+              solutionLevelKeys.forEach(level => {
+                theme.rubric.levels[level] = {expression : `(${checkIfThemeIsToBeUpdated[level]})`}
+              })
+              
+              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? Number(Number.parseFloat(checkIfThemeIsToBeUpdated.weightage).toFixed(2)) : 0
+
+              checkIfThemeIsToBeUpdated.status = "Success"
+
+              updateThemeRubricExpressionData(checkIfThemeIsToBeUpdated)
+            } 
+            // else if(!theme.criteria) {
+            //   let someRandomValue = themeRubricExpressionData[Math.floor(Math.random()*themeRubricExpressionData.length)];
+
+            //   theme.rubric = {
+            //     expressionVariables : {
+            //       SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
+            //     },
+            //     levels : {}
+            //   }
+            //   solutionLevelKeys.forEach(level => {
+            //     theme.rubric.levels[level] = {expression: `(${someRandomValue[level]})`}
+            //   })
+
+            //   theme.weightage = (someRandomValue.hasOwnProperty('weightage')) ? Number(Number.parseFloat(someRandomValue.weightage).toFixed(2)) : 0
+
+            // }
+
+            if(theme.children && theme.children.length >0) {
+              parseAllThemes(theme.children)
+            }
+
+          })
+
+        }
+        
+        parseAllThemes(currentSolutionThemeStructure)
+
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+
+        return resolve({
+          themes: currentSolutionThemeStructure,
+          csvData : themeRubricExpressionData,
+          flattenedThemes : flatThemes
+        });
+
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  static updateCriteriaWeightageInThemes(currentSolutionThemeStructure, criteriaWeightageArray) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        criteriaWeightageArray = criteriaWeightageArray.map(function(criteria) {
+          criteria.criteriaId = criteria.criteriaId.toString();
+          return criteria;
+        })
+
+        const cirteriaWeightToUpdateCount = criteriaWeightageArray.length
+
+        let criteriaWeightageUpdatedCount = 0
+
+        const getCriteriaWeightElement = function (criteriaId) {
+          return _.find(criteriaWeightageArray, { 'criteriaId': criteriaId.toString()})
+        }
+
+        const parseAllThemes = function (themes) {
+
+          themes.forEach(theme => {
+
+            if(theme.criteria && theme.criteria.length > 0) {
+              for (let pointerToCriteriaArray = 0; pointerToCriteriaArray < theme.criteria.length; pointerToCriteriaArray ++) {
+                let eachCriteria = theme.criteria[pointerToCriteriaArray];
+                const checkIfCriteriaIsToBeUpdated = getCriteriaWeightElement(eachCriteria.criteriaId)
+                if(checkIfCriteriaIsToBeUpdated) {
+                  theme.criteria[pointerToCriteriaArray] = {
+                    criteriaId : ObjectId(checkIfCriteriaIsToBeUpdated.criteriaId),
+                    weightage : Number(Number.parseFloat(checkIfCriteriaIsToBeUpdated.weightage).toFixed(2))
+                  }
+                  criteriaWeightageUpdatedCount += 1
+                }
+              }
+            }
+
+            if(theme.children && theme.children.length > 0) {
+              parseAllThemes(theme.children)
+            }
+
+          })
+
+        }
+        
+        parseAllThemes(currentSolutionThemeStructure)
+
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+
+        if(criteriaWeightageUpdatedCount == cirteriaWeightToUpdateCount) {
+          return resolve({
+            themes: currentSolutionThemeStructure,
+            flattenedThemes : flatThemes,
+            success : true
+          });
+        } else {
+          throw new Error("Something went wrong! Not all criteira weightage were updated.")
+        }
+
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  static generateFlatThemeRubricStructure(solutionThemeStructure) {
+
+
+    let flattenThemes =  function (themes,hierarchyLevel = 0,hierarchyTrack = [],flatThemes = []) {
+                  
+      themes.forEach(theme => {
+        
+        if (theme.children) {
+
+          theme.hierarchyLevel = hierarchyLevel
+          theme.hierarchyTrack = hierarchyTrack
+
+          let hierarchyTrackToUpdate = [...hierarchyTrack]
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+          flattenThemes(theme.children,hierarchyLevel+1,hierarchyTrackToUpdate,flatThemes)
+          
+          if(!theme.criteria) theme.criteria = new Array
+          if(!theme.immediateChildren) theme.immediateChildren = new Array
+
+          theme.children.forEach(childTheme => {
+            if(childTheme.criteria) {
+              childTheme.criteria.forEach(criteria => {
+                theme.criteria.push(criteria)
+              })
+            }
+            theme.immediateChildren.push(_.omit(childTheme,["children","rubric","criteria","hierarchyLevel","hierarchyTrack"]))
+          })
+
+          flatThemes.push(_.omit(theme,["children"]))
+
+        } else {
+
+          theme.hierarchyLevel = hierarchyLevel
+          theme.hierarchyTrack = hierarchyTrack
+
+          let hierarchyTrackToUpdate = [...hierarchyTrack]
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+
+          let themeCriteriaArray = new Array
+
+          theme.criteria.forEach(criteria => {
+            themeCriteriaArray.push({
+                criteriaId : criteria.criteriaId,
+                weightage : criteria.weightage
+            })
+          })
+
+          theme.criteria = themeCriteriaArray
+
+          flatThemes.push(theme)
+
+        }
+
+      })
+
+      return flatThemes
+    }
+    
+    let flatThemeStructure = flattenThemes(_.cloneDeep(solutionThemeStructure))
+    
+    return flatThemeStructure
+
+  }
+
   static search(filteredData, pageSize, pageNo) {
     return new Promise(async (resolve, reject) => {
       try {

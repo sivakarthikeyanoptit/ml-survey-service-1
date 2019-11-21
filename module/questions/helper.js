@@ -89,7 +89,7 @@ module.exports = class questionsHelper {
 
             if (parsedQuestion["responseType"] == "slider") {
               if (parsedQuestion["validationRegex"] == "IsNumber") {
-                allValues["validation"]["regex"] = "^[0-9s]*$"
+                allValues["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$"
               }
               allValues["validation"]["max"] = parsedQuestion.validationMax
               allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = ""
@@ -116,12 +116,17 @@ module.exports = class questionsHelper {
           }
 
           allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
+          
+          let allowedBlankValueCount = 10
+          let blankValueCount = 0
+
           allValues["options"] = new Array
 
           // Adding data in options field
-          for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
+          for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
             let optionValue = "R" + pointerToResponseCount
             let optionHint = "R" + pointerToResponseCount + "-hint"
+            let optionScore = "R" + pointerToResponseCount + "-score"
 
             if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
               let eachOption = {
@@ -131,10 +136,44 @@ module.exports = class questionsHelper {
               if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
                 eachOption.hint = parsedQuestion[optionHint]
               }
+
+              if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+                eachOption.score = Math.round(parsedQuestion[optionScore])
+              }
+
               allValues.options.push(eachOption)
+            } else {
+              blankValueCount += 1
+              if(blankValueCount >= allowedBlankValueCount) {
+                break;
+              }
             }
           }
 
+
+          allValues["sliderOptions"] = new Array
+          blankValueCount = 0
+          // Adding data in slider options field
+          for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+            let optionValue = "slider-value-" + pointerToResponseCount
+            let optionScore = "slider-value-" + pointerToResponseCount + "-score"
+
+            if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
+              let eachOption = {
+                value: parseFloat(parsedQuestion[optionValue])
+              }
+              if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+                eachOption.score = Math.round(parsedQuestion[optionScore])
+              }
+
+              allValues.sliderOptions.push(eachOption)
+            } else {
+              blankValueCount += 1
+              if(blankValueCount >= allowedBlankValueCount) {
+                break;
+              }
+            }
+          }
 
           Object.keys(parsedQuestion).forEach(parsedQuestionData => {
             if (!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)) {
@@ -331,7 +370,7 @@ module.exports = class questionsHelper {
 
           if (parsedQuestion["responseType"] == "slider") {
             if (parsedQuestion["validationRegex"] == "IsNumber") {
-              existingQuestion["validation"]["regex"] = "^[0-9s]*$"
+              existingQuestion["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$"
             }
             existingQuestion["validation"]["max"] = parsedQuestion.validationMax
             existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : ""
@@ -374,11 +413,16 @@ module.exports = class questionsHelper {
           existingQuestion["questionGroup"] = parsedQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',')
         }
 
-        existingQuestion["options"] = new Array
+        let allowedBlankValueCount = 10
+        let blankValueCount = 0
 
-        for (let pointerToResponseCount = 1; pointerToResponseCount < 26; pointerToResponseCount++) {
+        existingQuestion["options"] = new Array
+        
+        // Adding data in options field
+        for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
           let optionValue = "R" + pointerToResponseCount
           let optionHint = "R" + pointerToResponseCount + "-hint"
+          let optionScore = "R" + pointerToResponseCount + "-score"
 
           if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
             let eachOption = {
@@ -388,9 +432,42 @@ module.exports = class questionsHelper {
             if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
               eachOption.hint = parsedQuestion[optionHint]
             }
+            if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+              eachOption.score = Math.round(parsedQuestion[optionScore])
+            }
             existingQuestion.options.push(eachOption)
+          } else {
+            blankValueCount += 1
+            if(blankValueCount >= allowedBlankValueCount) {
+              break;
+            }
           }
 
+        }
+
+
+        existingQuestion["sliderOptions"] = new Array
+        
+        blankValueCount = 0
+        // Adding data in slider options field
+        for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+          let optionValue = "slider-value-" + pointerToResponseCount
+          let optionScore = "slider-value-" + pointerToResponseCount + "-score"
+
+          if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
+            let eachOption = {
+              value: parseFloat(parsedQuestion[optionValue])
+            }
+            if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
+              eachOption.score = Math.round(parsedQuestion[optionScore])
+            }
+            existingQuestion.sliderOptions.push(eachOption)
+          } else {
+            blankValueCount += 1
+            if(blankValueCount >= allowedBlankValueCount) {
+              break;
+            }
+          }
         }
 
         Object.keys(parsedQuestion).forEach(parsedQuestionData => {
@@ -561,5 +638,31 @@ module.exports = class questionsHelper {
     return fileTypes
 
   }
+
+  static questionDocument(questionFilter = "all", fieldsArray = "all") {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let queryObject = (questionFilter != "all") ? questionFilter : {};
+
+
+        let projectionObject = {}
+
+        if (fieldsArray != "all") {
+          fieldsArray.forEach(field => {
+            projectionObject[field] = 1;
+          });
+        }
+
+        let questionDocuments = await database.models.questions.find(queryObject, projectionObject).lean();
+        
+        return resolve(questionDocuments);
+        
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
 
 };

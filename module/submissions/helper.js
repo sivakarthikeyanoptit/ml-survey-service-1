@@ -429,17 +429,22 @@ module.exports = class submissionsHelper {
 
                     result.runUpdateQuery = true
 
+                    let answersToUpdate = {}
+
                     let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission)
 
                     if (allSubmittedEvidence) {
+
+                        result.criteria = {}
+                        result.themes = {}
 
                         let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
 
                             if (criteria.weightage > 0) {
 
-                                result[criteria.externalId] = {}
-                                result[criteria.externalId].criteriaName = criteria.name
-                                result[criteria.externalId].criteriaExternalId = criteria.externalId
+                                result.criteria[criteria.externalId] = {}
+                                result.criteria[criteria.externalId].criteriaName = criteria.name
+                                result.criteria[criteria.externalId].criteriaExternalId = criteria.externalId
 
                                 let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
                                     return eachRubricLevels.expression != ""
@@ -466,6 +471,115 @@ module.exports = class submissionsHelper {
                                             }
 
                                             submissionAnswers.push(result)
+                                            return result
+                                        }
+
+
+                                        if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")) >= 0) {
+                                            
+                                            result = 0
+
+                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")))
+                                            let criteriaId = questionOrCriteriaArray[criteriaIdIndex]
+                                            if (criteriaIdIndex < 0) {
+                                                return "NA"
+                                            }
+
+                                            criteria.scoreAchieved = 0
+                                            criteria.maxScore = 0
+                                            criteria.percentageScore = 0
+
+                                            let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
+
+
+                                            let scoreOfAllQuestionInCriteria = {}
+                                            let totalWeightOfQuestionInCriteria = 0
+                                            allCriteriaQuestions.forEach((question,questionIndexInArray) => {
+                                                if(question.value && (question.value != "" || Array.isArray(question.value)) && !question.notApplicable) {
+                                                    let questionOptionsSelected = (Array.isArray(question.value)) ? question.value : [question.value]
+                                                    if(questionOptionsSelected.length > 0) {
+                                                        let selectedOptionScoreFound = false
+                                                        questionOptionsSelected.forEach(optionValue => {
+                                                            if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
+                                                                
+                                                                let optionScore = "NA"
+                                                                if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
+                                                                    optionScore = eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
+                                                                } else if (eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions && eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions.length > 0) {
+                                                                    let sliderOptionApplicable = _.find(eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions, { 'value': optionValue})
+                                                                    optionScore = (sliderOptionApplicable && sliderOptionApplicable.score) ? sliderOptionApplicable.score : "NA"
+                                                                }
+
+                                                                if(optionScore != "NA") {
+                                                                    if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved += optionScore
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].score) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].score  / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
+                                                                    } else {
+                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()] = {
+                                                                            scoreAchieved : optionScore,
+                                                                            weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
+                                                                            questionIndexInArray : questionIndexInArray,
+                                                                            percentageScore : (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && optionScore) ? ((optionScore / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
+                                                                        }
+                                                                    }
+                                                                    selectedOptionScoreFound = true
+                                                                }
+                                                            }
+                                                        })
+                                                        if(selectedOptionScoreFound) {
+                                                            totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1
+                                                        }
+                                                        if(selectedOptionScoreFound) {
+                                                            question.optionScores = eachSubmissionDocument.questionDocuments[question.qid.toString()]
+                                                            question.optionScores.percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
+                                                            question.optionScores.scoreAchieved = (scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved : ""
+                                                        }
+                                                    }
+                                                }
+                                            })
+
+                                            if(totalWeightOfQuestionInCriteria > 0 && Object.keys(scoreOfAllQuestionInCriteria).length > 0) {
+                                                let criteriaMaxScore = 0
+                                                let criteriaScoreAchieved = 0
+                                                Object.keys(scoreOfAllQuestionInCriteria).forEach(questionId => {
+                                                    const questionPointsBasedScore = (scoreOfAllQuestionInCriteria[questionId].scoreAchieved*scoreOfAllQuestionInCriteria[questionId].weightage)/totalWeightOfQuestionInCriteria
+
+                                                    result += questionPointsBasedScore
+                                                    if(answersToUpdate[questionId]) {
+                                                        answersToUpdate[questionId].pointsBasedScoreInParent = questionPointsBasedScore,
+                                                        answersToUpdate[questionId].scoreAchieved = scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
+                                                        answersToUpdate[questionId].weightage = scoreOfAllQuestionInCriteria[questionId].weightage
+                                                    } else {
+                                                        answersToUpdate[questionId] = {
+                                                            pointsBasedScoreInParent : questionPointsBasedScore,
+                                                            scoreAchieved: scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
+                                                            weightage : scoreOfAllQuestionInCriteria[questionId].weightage,
+                                                            maxScore : eachSubmissionDocument.questionDocuments[questionId].maxScore,
+                                                            percentageScore : scoreOfAllQuestionInCriteria[questionId].percentageScore
+                                                        }
+                                                    }
+
+                                                    criteriaMaxScore += eachSubmissionDocument.questionDocuments[questionId].maxScore
+                                                    criteriaScoreAchieved += scoreOfAllQuestionInCriteria[questionId].scoreAchieved
+
+                                                    allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScoreInParent = questionPointsBasedScore
+                                                })
+
+                                                if(criteriaMaxScore > 0) {
+                                                    criteria.maxScore = criteriaMaxScore
+                                                }
+
+                                                if(criteriaScoreAchieved > 0) {
+                                                    criteria.scoreAchieved = criteriaScoreAchieved
+                                                }
+
+                                                if(criteriaMaxScore > 0 && criteriaScoreAchieved > 0) {
+                                                    criteria.percentageScore = ((criteriaScoreAchieved / criteriaMaxScore)*100)
+                                                }
+                                            }
+
+                                            submissionAnswers.push(...allCriteriaQuestions)
+
                                             return result
                                         }
 
@@ -681,37 +795,48 @@ module.exports = class submissionsHelper {
 
                                     let score = "NA"
                                     if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                                        if (expressionResult.L4 && expressionResult.L4.result) {
-                                            score = "L4"
-                                        } else if (expressionResult.L3 && expressionResult.L3.result) {
-                                            score = "L3"
-                                        } else if (expressionResult.L2 && expressionResult.L2.result) {
-                                            score = "L2"
-                                        } else if (expressionResult.L1 && expressionResult.L1.result) {
-                                            score = "L1"
-                                        } else {
-                                            score = "No Level Matched"
+                                        score = "No Level Matched"
+                                        if(expressionResult && Object.keys(expressionResult).length > 0) {
+                                            const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort())
+                                            for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
+                                                const levelKey = levelArrayFromHighToLow[levelIndex];
+                                                if(expressionResult[levelKey] && expressionResult[levelKey].result) {
+                                                    score = levelKey
+                                                }
+                                            }
                                         }
                                     }
 
-                                    result[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
-                                    result[criteria.externalId].expressionVariables = expressionVariables
+                                    result.criteria[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables
+                                    result.criteria[criteria.externalId].expressionVariables = expressionVariables
+
+                                    result.criteria[criteria.externalId].maxScore = criteria.maxScore
+                                    result.criteria[criteria.externalId].percentageScore = criteria.percentageScore
+                                    result.criteria[criteria.externalId].scoreAchieved = criteria.scoreAchieved
 
                                     if (score == "NA") {
-                                        result[criteria.externalId].valuesNotFound = true
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].valuesNotFound = true
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     } else if (score == "No Level Matched") {
-                                        result[criteria.externalId].noExpressionMatched = true
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].noExpressionMatched = true
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     } else {
-                                        result[criteria.externalId].score = score
+                                        result.criteria[criteria.externalId].score = score
                                         criteria.score = score
                                     }
 
-                                    result[criteria.externalId].expressionResult = expressionResult
-                                    result[criteria.externalId].submissionAnswers = submissionAnswers
+                                    if(eachSubmissionDocument.scoringSystem == "pointsBasedScoring") {
+                                        criteria.pointsBasedScoreOfAllChildren = 0
+                                        submissionAnswers.forEach(answer => {
+                                            if(answer.pointsBasedScoreInParent) criteria.pointsBasedScoreOfAllChildren += answer.pointsBasedScoreInParent
+                                        })
+                                    }
+                                    
+
+                                    result.criteria[criteria.externalId].expressionResult = expressionResult
+                                    result.criteria[criteria.externalId].submissionAnswers = submissionAnswers
                                 }
 
                                 return criteria
@@ -724,16 +849,55 @@ module.exports = class submissionsHelper {
                             result.runUpdateQuery = false
                         }
 
+                        let themes = {}
+
+                        if(result.runUpdateQuery && eachSubmissionDocument.scoringSystem == "pointsBasedScoring" && eachSubmissionDocument.themes && eachSubmissionDocument.themes.length > 0) {
+                                
+                            themes = await this.calulateThemeScores(eachSubmissionDocument.themes, criteriaData)
+                            
+                            if(!themes.success) {
+                                result.runUpdateQuery = false
+                            }
+                            
+                            result.themes = themes.themeResult
+
+                        }
+
                         if (result.runUpdateQuery) {
 
-                            let updateObject = {}
+                            let updateObject = {$set : {}}
 
-                            updateObject.$set = {
-                                criteria: criteriaData,
-                                ratingCompletedAt: new Date()
+                            if(themes.success) {
+                                updateObject.$set.themes = themes.themeData
+                                if(themes.criteriaToUpdate && Object.keys(themes.criteriaToUpdate).length > 0) {
+                                    criteriaData.forEach(criteria => {
+                                        if(themes.criteriaToUpdate[criteria._id.toString()]) {
+                                            Object.keys(themes.criteriaToUpdate[criteria._id.toString()]).forEach(criteriaKeyToUpdate => {
+                                                criteria[criteriaKeyToUpdate] = themes.criteriaToUpdate[criteria._id.toString()][criteriaKeyToUpdate]
+                                            })
+                                        }
+                                    })
+                                }
                             }
 
-                            let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
+                            updateObject.$set.criteria = criteriaData
+                            updateObject.$set.ratingCompletedAt =  new Date()
+
+                            if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
+                                Object.keys(answersToUpdate).forEach(questionId => {
+                                    if(Object.keys(answersToUpdate[questionId]).length > 0) {
+                                        Object.keys(answersToUpdate[questionId]).forEach(answerField => {
+                                            if(answerField != "value" || answerField != "payload") {
+                                                updateObject.$set[`answers.${questionId}.${answerField}`] = answersToUpdate[questionId][answerField]
+                                            }
+                                        })
+                                    }
+                                })
+                            }
+
+                            let submissionModel = (eachSubmissionDocument.submissionCollection) ? eachSubmissionDocument.submissionCollection : "submissions"
+
+                            let updatedSubmissionDocument = await database.models[submissionModel].findOneAndUpdate(
                                 {
                                     _id: eachSubmissionDocument._id
                                 },
@@ -741,6 +905,7 @@ module.exports = class submissionsHelper {
                             );
 
                         }
+
                         let message = "Crtieria rating completed successfully"
 
                         if (sourceApiHelp == "singleRateApi") {
@@ -754,6 +919,7 @@ module.exports = class submissionsHelper {
                             entityId: eachSubmissionDocument.entityExternalId,
                             message: message
                         })
+
                     } else {
 
                         if (sourceApiHelp == "singleRateApi") {
@@ -784,5 +950,284 @@ module.exports = class submissionsHelper {
 
     }
 
+
+    static calulateThemeScores(themesWithRubric, criteriaDataArray) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+                let themeScores = new Array
+                let themeByHierarchyLevel = {}
+                let maxThemeDepth = 0
+                let themeScoreCalculationCompleted = true
+                let themeResult = {}
+                let criteriaMap = {}
+                let criteriaToUpdate = {}
+
+                for (let pointerToThemeArray = 0; pointerToThemeArray < themesWithRubric.length; pointerToThemeArray++) {
+                    const theme = themesWithRubric[pointerToThemeArray];
+                    if(theme.hierarchyLevel && theme.hierarchyLevel > maxThemeDepth) {
+                        maxThemeDepth = theme.hierarchyLevel
+                    }
+                    (themeByHierarchyLevel[theme.hierarchyLevel]) ? themeByHierarchyLevel[theme.hierarchyLevel].push(theme):  themeByHierarchyLevel[theme.hierarchyLevel] = [theme]
+                }
+
+                criteriaDataArray.forEach(criteria => {
+                    criteriaMap[criteria._id.toString()] = criteria
+                })
+
+                if(Object.keys(themeByHierarchyLevel).length > 0) {
+                    while (maxThemeDepth >= 0) {
+                        
+                        if(themeByHierarchyLevel[maxThemeDepth]) {
+
+                            let themeData = await Promise.all(themeByHierarchyLevel[maxThemeDepth].map(async (theme) => {
+
+                                themeResult[theme.externalId] = {}
+                                themeResult[theme.externalId].themeName = theme.name
+                                themeResult[theme.externalId].themeExternalId = theme.externalId
+
+                                if (theme.weightage > 0) {
+    
+                                    let allThemeLevelExpressions = Object.values(theme.rubric.levels).every(eachRubricLevels => {
+                                        return eachRubricLevels.expression != ""
+                                    })
+    
+                                    if (theme.rubric.expressionVariables && allThemeLevelExpressions) {
+    
+                                        let children = new Array
+    
+                                        const subThemeValueExtractor = function (subTheme) {
+                                            
+                                            let result = "NA";
+                                            
+                                            const subThemeArray = subTheme.split('.')
+                                            
+                                            if (subThemeArray.findIndex(theme => _.includes(theme, "sumOfPointsOfAllChildren")) >= 0) {
+                                                
+                                                result = 0
+    
+                                                let themeExternalIdIndex = subThemeArray.findIndex(theme => !(_.includes(theme, "sumOfPointsOfAllChildren")))
+                                                if (themeExternalIdIndex < 0) {
+                                                    return "NA"
+                                                }
+
+                                                let scoreOfAllSubthemeInTheme = {}
+                                                let totalWeightOfSubthemeInTheme = 0
+
+                                                if(theme.immediateChildren) {
+                                                    theme.immediateChildren.forEach(subTheme => {
+                                                        const subThemeScore =  _.find(themeScores, { 'externalId': subTheme.externalId})
+                                                        if(subTheme.weightage > 0) {
+                                                            scoreOfAllSubthemeInTheme[subTheme.externalId] = {
+                                                                subThemeExternalId :subTheme.externalId,
+                                                                weightage : subTheme.weightage,
+                                                                pointsBasedScoreOfAllChildren : subThemeScore.pointsBasedScoreOfAllChildren,
+                                                                scoreAchieved : subThemeScore.scoreAchieved,
+                                                                maxScore : subThemeScore.maxScore
+                                                            }
+                                                            totalWeightOfSubthemeInTheme += subTheme.weightage
+                                                        }
+                                                    })
+                                                }
+
+                                                theme.criteriaLevelCount = {}
+
+                                                theme.criteria.forEach(themeCriteria => {
+                                                    if(themeCriteria.weightage > 0) {
+                                                        if(criteriaMap[themeCriteria.criteriaId.toString()]) {
+                                                            (theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score]) ? theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] += 1 : theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] = 1
+                                                        }
+
+                                                        if(!theme.immediateChildren && criteriaMap[themeCriteria.criteriaId.toString()]) {
+                                                            scoreOfAllSubthemeInTheme[themeCriteria.criteriaId.toString()] = {
+                                                                criteriaId :themeCriteria.criteriaId,
+                                                                criteriaExternalId :themeCriteria.externalId,
+                                                                weightage : themeCriteria.weightage,
+                                                                pointsBasedScoreOfAllChildren : criteriaMap[themeCriteria.criteriaId.toString()].pointsBasedScoreOfAllChildren,
+                                                                scoreAchieved : criteriaMap[themeCriteria.criteriaId.toString()].scoreAchieved,
+                                                                maxScore : criteriaMap[themeCriteria.criteriaId.toString()].maxScore
+                                                            }
+                                                            totalWeightOfSubthemeInTheme += themeCriteria.weightage
+                                                        }
+
+                                                    }
+                                                })
+
+                                                theme.pointsBasedScore = 0
+                                                theme.maxScore = 0
+                                                theme.scoreAchieved = 0
+                                                theme.percentageScore = 0
+
+                                                Object.keys(scoreOfAllSubthemeInTheme).length > 0 && Object.keys(scoreOfAllSubthemeInTheme).forEach(subThemeKey => {
+                                                    result += (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    theme.maxScore += scoreOfAllSubthemeInTheme[subThemeKey].maxScore
+                                                    theme.scoreAchieved += scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved
+                                                    scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent = (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme
+                                                    if(scoreOfAllSubthemeInTheme[subThemeKey].criteriaId) {
+                                                        criteriaToUpdate[scoreOfAllSubthemeInTheme[subThemeKey].criteriaId.toString()] = {
+                                                            pointsBasedScoreInParent : scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent,
+                                                        }
+                                                    }
+                                                })
+                                                
+                                                if(theme.maxScore > 0 && theme.scoreAchieved >0) {
+                                                    theme.percentageScore = ((theme.scoreAchieved/theme.maxScore)*100)
+                                                }
+                                                
+                                                children = Object.values(scoreOfAllSubthemeInTheme)
+                                                
+                                                
+                                            }
+
+                                            return result;
+                                        }
+    
+                                        let expressionVariables = {};
+                                        let expressionResult = {};
+                                        let allValuesAvailable = true;
+    
+                                        Object.keys(theme.rubric.expressionVariables).forEach(variable => {
+                                            if (variable != "default") {
+                                                expressionVariables[variable] = subThemeValueExtractor(theme.rubric.expressionVariables[variable]);
+                                                expressionVariables[variable] = (expressionVariables[variable] === "NA" && theme.rubric.expressionVariables.default && theme.rubric.expressionVariables.default[variable]) ? theme.rubric.expressionVariables.default[variable] : expressionVariables[variable]
+                                                if (expressionVariables[variable] === "NA") {
+                                                    allValuesAvailable = false;
+                                                }
+                                            }
+                                        })
+    
+                                        let errorWhileParsingThemeExpression = false
+                                        let errorExpression = {}
+    
+                                        if (allValuesAvailable) {
+                                            
+                                            Object.keys(theme.rubric.levels).forEach(level => {
+    
+                                                if (theme.rubric.levels[level].expression != "") {
+    
+                                                    try {
+    
+                                                        expressionResult[level] = {
+                                                            expressionParsed: theme.rubric.levels[level].expression,
+                                                            result: mathJs.eval(theme.rubric.levels[level].expression, expressionVariables)
+                                                        }
+    
+                                                    } catch (error) {
+                                                        console.log("---------------Some exception caught begins---------------")
+                                                        console.log(error)
+                                                        console.log(theme.name)
+                                                        console.log(theme.rubric.levels[level].expression)
+                                                        console.log(expressionVariables)
+                                                        console.log(theme.rubric.expressionVariables)
+                                                        console.log("---------------Some exception caught ends---------------")
+    
+                                                        expressionResult[level] = {
+                                                            expressionParsed: theme.rubric.levels[level].expression
+                                                        }
+    
+                                                        let errorObject = {
+                                                            errorName: error.message,
+                                                            themeName: theme.name,
+                                                            expression: theme.rubric.levels[level].expression,
+                                                            expressionVariables: JSON.stringify(expressionVariables),
+                                                            errorLevels: theme.rubric.levels[level].level,
+                                                            expressionVariablesDefined: JSON.stringify(theme.rubric.expressionVariables)
+                                                        }
+    
+                                                        slackClient.rubricErrorLogs(errorObject)
+    
+                                                        errorWhileParsingThemeExpression = true
+    
+                                                    }
+    
+                                                } else {
+    
+                                                    expressionResult[level] = {
+                                                        expressionParsed: theme.rubric.levels[level].expression,
+                                                        result: false
+                                                    }
+                                                }
+    
+                                            })
+    
+                                        }
+    
+                                        let score = "NA"
+                                        if (allValuesAvailable && !errorWhileParsingThemeExpression) {
+                                            score = "No Level Matched"
+                                            if(expressionResult && Object.keys(expressionResult).length > 0) {
+                                                const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort())
+                                                for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
+                                                    const levelKey = levelArrayFromHighToLow[levelIndex];
+                                                    if(expressionResult[levelKey] && expressionResult[levelKey].result) {
+                                                        score = levelKey
+                                                    }
+                                                }
+                                            }
+                                        }
+    
+                                        themeResult[theme.externalId].expressionVariablesDefined = theme.rubric.expressionVariables
+                                        themeResult[theme.externalId].expressionVariables = expressionVariables
+                                        themeResult[theme.externalId].maxScore = theme.maxScore
+                                        themeResult[theme.externalId].percentageScore = theme.percentageScore
+                                        themeResult[theme.externalId].scoreAchieved = theme.scoreAchieved
+    
+                                        if (score == "NA") {
+                                            themeResult[theme.externalId].valuesNotFound = true
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
+                                        } else if (score == "No Level Matched") {
+                                            themeResult[theme.externalId].noExpressionMatched = true
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
+                                        } else {
+                                            themeResult[theme.externalId].pointsBasedLevel = score
+                                            theme.pointsBasedLevel = score
+                                        }
+    
+
+                                        theme.pointsBasedScoreOfAllChildren = 0
+                                        children.forEach(child => {
+                                            if(child.pointsBasedScoreInParent) theme.pointsBasedScoreOfAllChildren += child.pointsBasedScoreInParent
+                                        })
+
+                                        themeResult[theme.externalId].expressionResult = expressionResult
+                                        themeResult[theme.externalId].children = children
+                                    }
+    
+                                    return theme
+    
+                                }
+    
+                            }));
+
+                            if (themeData.findIndex(theme => theme === undefined) >= 0) {
+                                maxThemeDepth = -1
+                                themeScoreCalculationCompleted = false
+                                break;
+                            }
+
+                            themeScores = themeScores.concat(themeData)
+                        }
+
+                        maxThemeDepth -= 1
+                    }
+                }
+
+                return resolve({
+                    success : themeScoreCalculationCompleted,
+                    themeData : themeScores,
+                    themeResult : themeResult,
+                    criteriaToUpdate : criteriaToUpdate
+                });
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+    }
 
 };

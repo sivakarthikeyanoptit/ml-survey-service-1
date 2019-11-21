@@ -101,6 +101,9 @@ module.exports = class assessmentsHelper {
                     questionArrayElm[1]["gpsLocation"] = ""
                     delete questionArrayElm[1]["criteriaId"]
 
+                    // Remove weightage of each question from being sent to client.
+                    (option.weightage) ? delete questionArrayElm[1]["weightage"] : ""
+
                     if (questionArrayElm[1].responseType === "matrix") {
                         let instanceQuestionArray = new Array()
                         questionArrayElm[1].instanceQuestions.forEach(instanceQuestionId => {
@@ -118,6 +121,15 @@ module.exports = class assessmentsHelper {
                         });
 
                         questionArrayElm[1]["instanceQuestions"] = instanceQuestionArray;
+                    }
+
+                    // Remove score from each option from being sent to client.
+                    if (questionArrayElm[1].options && questionArrayElm[1].options.length > 0) {
+                        questionArrayElm[1].options.forEach(option => {
+                            if (option.score) {
+                                delete option.score
+                            }
+                        });
                     }
 
                     if (questionArrayElm[1]["isAGeneralQuestion"] === true) {

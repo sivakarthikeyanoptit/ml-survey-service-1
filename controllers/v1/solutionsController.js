@@ -1,5 +1,6 @@
 const csv = require("csvtojson");
 const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
@@ -408,16 +409,16 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-* @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
-* @apiVersion 1.0.0
-* @apiName update Solutions
-* @apiGroup Solutions
-* @apiParam {File} Mandatory solution file of type json.
-* @apiSampleRequest /assessment/api/v1/solutions/update
-* @apiHeader {String} X-authenticated-user-token Authenticity token  
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {post} /assessment/api/v1/solutions/update?solutionExternalId={solutionExternalId} Update Solutions
+  * @apiVersion 1.0.0
+  * @apiName update Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} Mandatory solution file of type json.
+  * @apiSampleRequest /assessment/api/v1/solutions/update
+  * @apiHeader {String} X-authenticated-user-token Authenticity token  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async update(req) {
     return new Promise(async (resolve, reject) => {
@@ -467,6 +468,354 @@ module.exports = class Solutions extends Abstract {
           errorObject: error
         })
       }
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/solutions/uploadThemesRubricExpressions/{{solutionsExternalID}} Upload Rubric For Themes Of Solutions
+  * @apiVersion 1.0.0
+  * @apiName Upload Rubric For Themes Of Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/uploadThemesRubricExpressions/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadThemesRubricExpressions(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: req.params._id,
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let themeData = await csv().fromString(req.files.themes.data.toString());
+
+        if(!themeData.length>0) {
+          throw new Error("Bad data.")
+        }
+
+        let solutionLevelKeys = new Array
+
+        Object.keys(solutionDocument.levelToScoreMapping).forEach(level => {
+          solutionLevelKeys.push(level)
+        })
+
+        const themesWithRubricDetails = await solutionsHelper.setThemeRubricExpressions(solutionDocument.themes, themeData, solutionLevelKeys)
+
+        if(themesWithRubricDetails.themes) {
+          await database.models.solutions.findOneAndUpdate(
+            { _id: solutionDocument._id },
+            {
+                themes : themesWithRubricDetails.themes,
+                flattenedThemes : themesWithRubricDetails.flattenedThemes
+            }
+          );
+        }
+
+        const fileName = `Solution-Theme-Rubric-Upload-Result`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        if(!themesWithRubricDetails.csvData) {
+          throw new Error("Something went wrong! No CSV Data found.")
+        }
+
+        for (let pointerToThemeRow = 0; pointerToThemeRow < themesWithRubricDetails.csvData.length; pointerToThemeRow++) {
+          input.push(themesWithRubricDetails.csvData[pointerToThemeRow])
+        }
+
+        input.push(null)
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/solutions/uploadCriteriaRubricExpressions/{{solutionsExternalID}} Upload Rubric For Criteria Of Solutions
+  * @apiVersion 1.0.0
+  * @apiName Upload Rubric For Criteria Of Solutions
+  * @apiGroup Solutions
+  * @apiParam {File} criteria Mandatory file upload with criteria data.
+  * @apiSampleRequest /assessment/api/v1/solutions/uploadCriteriaRubricExpressions/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  async uploadCriteriaRubricExpressions(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: req.params._id,
+        }, { themes: 1, levelToScoreMapping: 1, type : 1, subType : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
+
+        if(!criteriaData.length>0) {
+          throw new Error("Bad data.")
+        }
+
+        let solutionLevelKeys = new Array
+
+        Object.keys(solutionDocument.levelToScoreMapping).forEach(level => {
+          solutionLevelKeys.push(level)
+        })
+
+        let allCriteriaIdInSolution = new Array
+        let allCriteriaIdWithWeightageInSolution = {}
+        let allCriteriaExternalIdToInternalIdMap = {}
+        let allCriteriaInSolution = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
+
+        allCriteriaInSolution.forEach(eachCriteria => {
+          allCriteriaIdInSolution.push(eachCriteria.criteriaId)
+          allCriteriaIdWithWeightageInSolution[eachCriteria.criteriaId.toString()] = {
+            criteriaId: eachCriteria.criteriaId,
+            weightage: eachCriteria.weightage
+          }
+        })
+
+        let allCriteriaDocuments = await database.models.criteria.find({
+          _id: {
+            $in : allCriteriaIdInSolution
+          },
+        }, { _id: 1, externalId : 1, name: 1, description: 1, criteriaType: 1, rubric: 1}).lean()
+
+        if (!allCriteriaDocuments || allCriteriaDocuments.length < 1) {
+          criteriaData = criteriaData.map(function(criteriaRow) {
+            criteriaRow.status = "No criteria found for the solution.";
+            return criteriaRow;
+          })
+        } else {
+          allCriteriaDocuments.forEach(criteriaDocument => {
+            allCriteriaExternalIdToInternalIdMap[criteriaDocument.externalId] = criteriaDocument
+          })
+        }
+
+        let allCriteriaRubricUpdatedSuccessfully = true
+
+        let criteriaWeightageToUpdate = new Array
+
+        if(Object.keys(allCriteriaExternalIdToInternalIdMap).length > 0) {
+
+          criteriaData = await Promise.all(criteriaData.map(async (criteriaRow) => {
+            
+            criteriaRow = gen.utils.valueParser(criteriaRow)
+            
+            if(!allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]) {
+              criteriaRow.status = "Invalid criteria external ID.";
+              allCriteriaRubricUpdatedSuccessfully = false
+              return criteriaRow;
+            }
+
+            const criteriaId = allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]._id
+
+            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow)
+            
+            if(criteriaRubricUpdation.success) {
+              criteriaRow.status = "Success.";
+            }
+
+            if(criteriaRow.hasOwnProperty('weightage') && allCriteriaIdWithWeightageInSolution[criteriaId.toString()].weightage != criteriaRow.weightage) {
+              criteriaWeightageToUpdate.push({
+                criteriaId :  criteriaId,
+                weightage : criteriaRow.weightage
+              })
+              allCriteriaIdWithWeightageInSolution[criteriaId.toString()] = {
+                criteriaId: criteriaId,
+                weightage: criteriaRow.weightage
+              }
+            }
+
+            return criteriaRow
+
+          }));
+        }
+
+        let updateSubmissions = false
+        if(allCriteriaRubricUpdatedSuccessfully) {
+
+          if(Object.keys(criteriaWeightageToUpdate).length > 0) {
+
+            const solutionThemes = await solutionsHelper.updateCriteriaWeightageInThemes(solutionDocument.themes, criteriaWeightageToUpdate)
+
+            if(solutionThemes.success && solutionThemes.themes) {
+              await database.models.solutions.findOneAndUpdate(
+                { _id: solutionDocument._id },
+                {
+                    themes : solutionThemes.themes,
+                    flattenedThemes : solutionThemes.flattenedThemes
+                }
+              );
+              updateSubmissions = true
+            }
+
+          } else {
+            updateSubmissions = true
+          }
+
+        }
+
+        if(updateSubmissions) {
+
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: allCriteriaIdInSolution } })
+
+          let submissionDocumentCriterias = new Array
+
+          // const L1Array = [
+          //   "0<=SCORE<6",
+          //   "0<=SCORE<4",
+          //   "0<=SCORE<5",
+          //   "0<=SCORE<7",
+          //   "0<=SCORE<2"
+          // ]
+          // const L2Array = [
+          //   "6<=SCORE<10",
+          //   "4<=SCORE<7",
+          //   "5<=SCORE<8",
+          //   "7<=SCORE<13",
+          //   "2<=SCORE<4"
+          // ]
+          // const L3Array = [
+          //   "10<=SCORE<15",
+          //   "7<=SCORE<12",
+          //   "8<=SCORE<11",
+          //   "13<=SCORE<18",
+          //   "4<=SCORE<7"
+          // ]
+          // const L4Array = [
+          //   "16<=SCORE<100000",
+          //   "12<=SCORE<100000",
+          //   "11<=SCORE<100000",
+          //   "18<=SCORE<100000",
+          //   "7<=SCORE<100000"
+          // ]
+
+          criteriaQuestionDocument.forEach(criteria => {
+            // if((criteria.rubric.expressionVariables && !criteria.rubric.expressionVariables.SCORE) || (!criteria.rubric.expressionVariables)) {
+            //   criteria.rubric.expressionVariables = {
+            //     SCORE : `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
+            //   }
+            //   criteria._doc.rubric.expressionVariables.SCORE = `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
+            //   let randomValue = Math.floor(Math.random()*L1Array.length)
+            //   if(!criteria.rubric.levels.L1) criteria.rubric.levels = {L1 : {}}
+            //   criteria.rubric.levels.L1.expression = L1Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L1) criteria._doc.rubric.levels = {L1 : {}}
+            //   criteria._doc.rubric.levels.L1.expression = L1Array[randomValue];
+            //   if(!criteria.rubric.levels.L2) criteria.rubric.levels.L2 = {}
+            //   criteria.rubric.levels.L2.expression = L2Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L2) criteria._doc.rubric.levels.L2 = {}
+            //   criteria._doc.rubric.levels.L2.expression = L2Array[randomValue];
+            //   if(!criteria.rubric.levels.L3) criteria.rubric.levels.L3 = {}
+            //   criteria.rubric.levels.L3.expression = L3Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L3) criteria._doc.rubric.levels.L3 = {}
+            //   criteria._doc.rubric.levels.L3.expression = L3Array[randomValue];
+            //   if(!criteria.rubric.levels.L4) criteria.rubric.levels.L4 = {}
+            //   criteria.rubric.levels.L4.expression = L4Array[randomValue];
+            //   if(!criteria._doc.rubric.levels.L4) criteria._doc.rubric.levels.L4 = {}
+            //   criteria._doc.rubric.levels.L4.expression = L4Array[randomValue];
+            // }
+            criteria.weightage = allCriteriaIdWithWeightageInSolution[criteria._id.toString()].weightage
+            submissionDocumentCriterias.push(
+              _.omit(criteria._doc, [
+                "resourceType",
+                "language",
+                "keywords",
+                "concepts",
+                "createdFor",
+                "evidences"
+              ])
+            );
+          });
+
+          let updatedCriteriasObject = {}
+
+          if(submissionDocumentCriterias.length > 0) {
+            updatedCriteriasObject.$set = {
+              criteria: submissionDocumentCriterias
+            }
+          }
+
+          let submissionCollectionToUpdate = ""
+
+          if(updatedCriteriasObject.$set.criteria) {
+            if(solutionDocument.type == "observation") {
+              submissionCollectionToUpdate = "observationSubmissions"
+            } else if(solutionDocument.type == "assessment") {
+              submissionCollectionToUpdate = "submissions"
+            }
+          }
+
+          if(submissionCollectionToUpdate != "") {
+            await database.models[submissionCollectionToUpdate].updateMany(
+              { solutionId: solutionDocument._id },
+              updatedCriteriasObject
+            );
+          }
+
+        }
+
+        const fileName = `Solution-Criteria-Rubric-Upload-Result`;
+        let fileStream = new FileStream(fileName);
+        let input = fileStream.initStream();
+
+        (async function () {
+          await fileStream.getProcessorPromise();
+          return resolve({
+            isResponseAStream: true,
+            fileNameWithPath: fileStream.fileNameWithPath()
+          });
+        })();
+
+        for (let pointerToCriteriaRow = 0; pointerToCriteriaRow < criteriaData.length; pointerToCriteriaRow++) {
+          input.push(criteriaData[pointerToCriteriaRow])
+        }
+
+        input.push(null)
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
     })
   }
 
