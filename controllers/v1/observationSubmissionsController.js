@@ -1,5 +1,6 @@
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
-
+const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
+const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
 
 module.exports = class ObservationSubmissions extends Abstract {
@@ -431,6 +432,331 @@ module.exports = class ObservationSubmissions extends Abstract {
           message: error
         });
       }
+    })
+  }
+
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/rate/:entityExternalId?solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate a Single Entity of Observation
+  * @apiVersion 1.0.0
+  * @apiName Rate a Single Entity of Observation
+  * @apiGroup Observation Submissions
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} createdBy Keycloak user ID.
+  * @apiParam {String} submissionNumber Submission Number.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/rate/1002036?solutionId=EF-DCPCR-2018-001&createdBy=e97b5582-471c-4649-8401-3cc4249359bb&submissionNumber=2
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async rate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let message = "Crtieria rating completed successfully"
+
+        let createdBy = req.query.createdBy
+        let solutionId = req.query.solutionId
+        let entityId = req.params._id
+        let submissionNumber = (req.query.submissionNumber) ? parseInt(req.query.submissionNumber) : 1
+
+        if (!createdBy) {
+          throw "Created by is not found"
+        }
+
+        if (!solutionId) {
+          throw "Solution Id is not found"
+        }
+
+        if (!entityId) {
+          throw "Entity Id is not found"
+        }
+
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+          type : "observation",
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1}).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let queryObject = {
+          "createdBy": createdBy,
+          "entityExternalId": entityId,
+          "solutionExternalId": solutionId,
+          "submissionNumber" : (submissionNumber) ? submissionNumber : 1
+        }
+
+        let submissionDocument = await database.models.observationSubmissions.findOne(
+          queryObject,
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1 }
+        ).lean();
+
+        if (!submissionDocument._id) {
+          throw "Couldn't find the submission document"
+        }
+
+        submissionDocument.submissionCollection = "observationSubmissions"
+        submissionDocument.scoringSystem = "pointsBasedScoring"
+
+        let allCriteriaInSolution = new Array
+        let allQuestionIdInSolution = new Array
+        let solutionQuestions = new Array
+
+        allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+        if(allCriteriaInSolution.length > 0) {
+          
+          submissionDocument.themes = solutionDocument.flattenedThemes
+
+          let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+            _id : {
+              $in : allCriteriaInSolution
+            }
+          }, [
+            "evidences"
+          ])
+
+          allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+        }
+
+        if(allQuestionIdInSolution.length > 0) {
+
+          solutionQuestions = await questionsHelper.questionDocument({
+            _id : {
+              $in : allQuestionIdInSolution
+            },
+            responseType : {
+              $in : [
+                "radio",
+                "multiselect",
+                "slider"
+              ]
+            }
+          }, [
+            "weightage",
+            "options",
+            "sliderOptions",
+            "responseType"
+          ])
+
+        }
+
+        if(solutionQuestions.length > 0) {
+          submissionDocument.questionDocuments = {}
+          solutionQuestions.forEach(question => {
+            submissionDocument.questionDocuments[question._id.toString()] = {
+              _id : question._id,
+              weightage : question.weightage
+            }
+            let questionMaxScore = 0
+            if(question.options && question.options.length > 0) {
+              if(question.responseType != "multiselect") {
+                questionMaxScore = _.maxBy(question.options, 'score').score;
+              }
+              question.options.forEach(option => {
+                if(question.responseType == "multiselect") {
+                  questionMaxScore += option.score
+                }
+                (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+              })
+            }
+            if(question.sliderOptions && question.sliderOptions.length > 0) {
+              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+              submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
+            }
+            submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+          })
+        }
+
+
+        let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
+
+        return resolve({ result: resultingArray })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/multiRate?entityId=:entityExternalId1,:entityExternalId2&solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate Multiple Entities of Observation
+  * @apiVersion 1.0.0
+  * @apiName Rate Multiple Entities of Observation
+  * @apiGroup Observation Submissions
+  * @apiParam {String} entityId Entity ID.
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} createdBy Keycloak user ID.
+  * @apiParam {String} submissionNumber Submission Number.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/multiRate?entityId=1556397,1310274&solutionId=EF-DCPCR-2018-001&createdBy=e97b5582-471c-4649-8401-3cc4249359bb&submissionNumber=all
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  async multiRate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.body = req.body || {};
+        let message = "Crtieria rating completed successfully"
+
+        let createdBy = req.query.createdBy
+        let solutionId = req.query.solutionId
+        let submissionNumber = (req.query.submissionNumber) ? req.query.submissionNumber : "all"
+        let entityId = req.query.entityId.split(",")
+
+        if (!createdBy) {
+          throw "Created by is not found"
+        }
+
+        if (!solutionId) {
+          throw "Solution Id is not found"
+        }
+
+        if (!req.query.entityId || !(req.query.entityId.length >= 1)) {
+          throw "Entity Id is not found"
+        }
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: solutionId,
+          type : "observation",
+          scoringSystem : "pointsBasedScoring"
+        }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, type : 1 }).lean()
+
+        if (!solutionDocument) {
+          return resolve({
+            status: 400,
+            message: "Solution does not exist"
+          });
+        }
+
+        let queryObject = {
+          "createdBy": createdBy,
+          "solutionExternalId": solutionId,
+          "entityExternalId": { $in: entityId }
+        }
+
+        if(submissionNumber != "all" && parseInt(submissionNumber)) {
+          queryObject["submissionNumber"] = parseInt(submissionNumber)
+        }
+
+        let submissionDocuments = await database.models.observationSubmissions.find(
+          queryObject,
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, solutionExternalId: 1, entityExternalId: 1 }
+        ).lean();
+
+        if (!submissionDocuments) {
+          throw "Couldn't find the submission document"
+        }
+
+        let commonSolutionDocumentParameters = {
+          submissionCollection : "observationSubmissions",
+          scoringSystem : "pointsBasedScoring"
+        }
+
+        let allCriteriaInSolution = new Array
+        let allQuestionIdInSolution = new Array
+        let solutionQuestions = new Array
+
+        allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+        if(allCriteriaInSolution.length > 0) {
+          
+          commonSolutionDocumentParameters.themes = solutionDocument.flattenedThemes
+
+          let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+            _id : {
+              $in : allCriteriaInSolution
+            }
+          }, [
+            "evidences"
+          ])
+
+          allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+        }
+
+        if(allQuestionIdInSolution.length > 0) {
+
+          solutionQuestions = await questionsHelper.questionDocument({
+            _id : {
+              $in : allQuestionIdInSolution
+            },
+            responseType : {
+              $in : [
+                "radio",
+                "multiselect",
+                "slider"
+              ]
+            }
+          }, [
+            "weightage",
+            "options",
+            "sliderOptions",
+            "responseType"
+          ])
+
+        }
+
+        if(solutionQuestions.length > 0) {
+          commonSolutionDocumentParameters.questionDocuments = {}
+          solutionQuestions.forEach(question => {
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
+              _id : question._id,
+              weightage : question.weightage
+            }
+            let questionMaxScore = 0
+            if(question.options && question.options.length > 0) {
+              if(question.responseType != "multiselect") {
+                questionMaxScore = _.maxBy(question.options, 'score').score;
+              }
+              question.options.forEach(option => {
+                if(question.responseType == "multiselect") {
+                  questionMaxScore += option.score
+                }
+                (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+              })
+            }
+            if(question.sliderOptions && question.sliderOptions.length > 0) {
+              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
+            }
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+          })
+        }
+
+        if(commonSolutionDocumentParameters && Object.keys(commonSolutionDocumentParameters).length > 0) {
+          submissionDocuments.forEach(eachsubmissionDocument => {
+            _.merge(eachsubmissionDocument,commonSolutionDocumentParameters)
+          })
+        }
+
+        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi")
+
+        return resolve({ result: resultingArray })
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+
     })
   }
 
