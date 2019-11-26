@@ -1,5 +1,5 @@
 const csv = require("csvtojson");
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class Entities extends Abstract {

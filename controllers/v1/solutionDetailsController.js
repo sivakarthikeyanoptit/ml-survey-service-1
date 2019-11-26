@@ -1,4 +1,4 @@
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream")
 
 module.exports = class SolutionDetails {

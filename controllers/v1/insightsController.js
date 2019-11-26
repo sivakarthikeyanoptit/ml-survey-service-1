@@ -1,5 +1,5 @@
 const moment = require("moment-timezone");
-const insightsHelper = require(ROOT_PATH + "/module/insights/helper")
+const insightsHelper = require(MODULES_BASE_PATH + "/insights/helper")
 
 module.exports = class Insights extends Abstract {
 

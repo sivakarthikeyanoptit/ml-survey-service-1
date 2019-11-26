@@ -1,5 +1,10 @@
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
+let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
 
 module.exports = class submissionsHelper {
     static findSubmissionByEntityProgram(document, requestObject) {
@@ -78,7 +83,7 @@ module.exports = class submissionsHelper {
                 let result = {}
                 result._id = submissionDocument._id
                 result.status = submissionDocument.status
-                result.evidences = submissionDocument.evidences
+                result.evidencesStatus = submissionDocument.evidencesStatus
 
                 return resolve(result);
 
@@ -101,13 +106,16 @@ module.exports = class submissionsHelper {
                 result.ratingsEnabled = true
                 result.responseMessage = ""
 
-                if (submissionDocument.evidences && submissionDocument.status !== "blocked") {
-                    const evidencesArray = Object.entries(submissionDocument.evidences)
+                if (submissionDocument.evidencesStatus && submissionDocument.status !== "blocked") {
+                    const evidencesArray = submissionDocument.evidencesStatus
                     for (let iterator = 0; iterator < evidencesArray.length; iterator++) {
-                        if (!evidencesArray[iterator][1].isSubmitted || evidencesArray[iterator][1].hasConflicts === true) {
-                            result.ratingsEnabled = false
-                            result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
-                            break
+                        if (!evidencesArray[iterator].isSubmitted || evidencesArray[iterator].hasConflicts === true) {
+                            // If inactive methods are allowed in submission put this condition.
+                            // if(!(evidencesArray[iterator].isActive === false)) {
+                                result.ratingsEnabled = false
+                                result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings."
+                                break
+                            //}
                         }
                     }
                 } else {
@@ -116,6 +124,27 @@ module.exports = class submissionsHelper {
                 }
 
                 return resolve(result);
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+    }
+
+
+    static isSubmissionToBeAutoRated(submissionSolutionId) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(submissionSolutionId)
+
+                let submissionToBeAutoRated = solutionDocument ? true : false;
+                
+                return resolve(submissionToBeAutoRated);
 
 
             } catch (error) {
@@ -217,7 +246,8 @@ module.exports = class submissionsHelper {
             inprogress: 'In Progress',
             completed: 'Complete',
             blocked: 'Blocked',
-            started: 'Started'
+            started: 'Started',
+            ratingPending: 'Rating Pending'
         }
         return submissionStatus[status] || ""
     }
@@ -237,7 +267,13 @@ module.exports = class submissionsHelper {
                 }
 
                 let queryOptions = {
-                    new: true
+                    new : true,
+                    projection: {
+                        _id: 1,
+                        solutionId: 1,
+                        evidencesStatus: 1,
+                        status: 1
+                    }
                 }
 
                 let submissionDocument = await database.models[modelName].findOne(
@@ -360,17 +396,28 @@ module.exports = class submissionsHelper {
                     let { ratingsEnabled } = canRatingsBeEnabled
 
                     if (ratingsEnabled) {
+
                         let updateStatusObject = {}
                         updateStatusObject.$set = {}
-                        updateStatusObject.$set = {
-                            status: "completed",
-                            completedDate: new Date()
+
+                        let isSubmissionToBeAutoRated = await this.isSubmissionToBeAutoRated(updatedSubmissionDocument.solutionId)
+                        
+                        if(!isSubmissionToBeAutoRated) {
+                            updateStatusObject.$set = {
+                                status: "completed",
+                                completedDate: new Date()
+                            }
+                        } else {
+                            updateStatusObject.$set = {
+                                status: "ratingPending"
+                            }
                         }
                         updatedSubmissionDocument = await database.models[modelName].findOneAndUpdate(
                             queryObject,
                             updateStatusObject,
                             queryOptions
                         );
+
                     }
 
                     let status = await this.extractStatusOfSubmission(updatedSubmissionDocument)
@@ -436,6 +483,7 @@ module.exports = class submissionsHelper {
                     if (allSubmittedEvidence) {
 
                         result.criteria = {}
+                        result.criteriaErrors = new Array
                         result.themes = {}
 
                         let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
@@ -775,6 +823,8 @@ module.exports = class submissionsHelper {
                                                         expressionVariablesDefined: JSON.stringify(criteria.rubric.expressionVariables)
                                                     }
 
+                                                    result.criteriaErrors.push(errorObject)
+
                                                     slackClient.rubricErrorLogs(errorObject)
 
                                                     errorWhileParsingCriteriaExpression = true
@@ -860,6 +910,7 @@ module.exports = class submissionsHelper {
                             }
                             
                             result.themes = themes.themeResult
+                            result.themeErrors = themes.themeErrors
 
                         }
 
@@ -966,6 +1017,7 @@ module.exports = class submissionsHelper {
 
             try {
                 let themeScores = new Array
+                let themeErrors = new Array
                 let themeByHierarchyLevel = {}
                 let maxThemeDepth = 0
                 let themeScoreCalculationCompleted = true
@@ -1143,7 +1195,9 @@ module.exports = class submissionsHelper {
                                                             errorLevels: theme.rubric.levels[level].level,
                                                             expressionVariablesDefined: JSON.stringify(theme.rubric.expressionVariables)
                                                         }
-    
+                                                        
+                                                        themeErrors.push(errorObject)
+
                                                         slackClient.rubricErrorLogs(errorObject)
     
                                                         errorWhileParsingThemeExpression = true
@@ -1228,6 +1282,7 @@ module.exports = class submissionsHelper {
                     success : themeScoreCalculationCompleted,
                     themeData : themeScores,
                     themeResult : themeResult,
+                    themeErrors : themeErrors,
                     criteriaToUpdate : criteriaToUpdate
                 });
 
@@ -1236,6 +1291,215 @@ module.exports = class submissionsHelper {
                 return reject(error);
             }
 
+        })
+    }
+
+
+    static pushCompletedSubmissionForReporting(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw "No submission id found"
+                }
+
+                if(typeof submissionId == "string") {
+                    submissionId = ObjectId(submissionId)
+                }
+
+                let submissionsDocument = await database.models.submissions.findOne({
+                    _id: submissionId,
+                    status: "completed"
+                }).lean()
+
+                if (!submissionsDocument) {
+                    throw "No submission found or submission status is not completed"
+                }
+
+
+                const kafkaMessage = await kafkaClient.pushCompletedSubmissionToKafka(submissionsDocument)
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            submissionId:submissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                }
+
+                return resolve(kafkaMessage)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static pushSubmissionToQueueForRating(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw "No submission id found"
+                }
+                if(typeof submissionId !== "string") {
+                    submissionId = submissionId.toString()
+                }
+                const kafkaMessage = await kafkaClient.pushSubmissionToKafkaQueueForRating({submissionModel : "submissions",submissionId : submissionId})
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            submissionId:submissionId,
+                            submissionModel:"submissions",
+                            message:kafkaMessage.message
+                        }
+                    }
+                    slackClient.kafkaErrorAlert(errorObject)
+                }
+
+                return resolve(kafkaMessage)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static rateSubmissionById(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+
+            let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : ""
+
+            try {
+
+                if (submissionId == "") {
+                    throw new Error("No submission id found")
+                }
+
+                let submissionDocument = await database.models.submissions.findOne(
+                    {_id : ObjectId(submissionId)},
+                    { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "programExternalId": 1, "solutionExternalId" : 1 }
+                ).lean();
+        
+                if (!submissionDocument._id) {
+                    throw new Error("Couldn't find the submission document")
+                }
+               
+                let solutionDocument = await database.models.solutions.findOne({
+                    externalId: submissionDocument.solutionExternalId,
+                }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, sendSubmissionRatingEmailsTo : 1 }).lean()
+
+                if (!solutionDocument) {
+                    throw new Error("Couldn't find the solution document")
+                }
+
+                if(solutionDocument.sendSubmissionRatingEmailsTo && solutionDocument.sendSubmissionRatingEmailsTo != "") {
+                    emailRecipients = solutionDocument.sendSubmissionRatingEmailsTo
+                }
+
+                if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+
+                    submissionDocument.scoringSystem = "pointsBasedScoring"
+
+                    let allCriteriaInSolution = new Array
+                    let allQuestionIdInSolution = new Array
+                    let solutionQuestions = new Array
+
+                    allCriteriaInSolution = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+                    if(allCriteriaInSolution.length > 0) {
+                        
+                        submissionDocument.themes = solutionDocument.flattenedThemes
+
+                        let allCriteriaDocument = await criteriaHelper.criteriaDocument({
+                            _id : {
+                                $in : allCriteriaInSolution
+                            }
+                        }, [
+                            "evidences"
+                        ])
+
+                        allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
+                    }
+
+                    if(allQuestionIdInSolution.length > 0) {
+
+                        solutionQuestions = await questionsHelper.questionDocument({
+                            _id : {
+                                $in : allQuestionIdInSolution
+                            },
+                            responseType : {
+                                $in : [
+                                "radio",
+                                "multiselect",
+                                "slider"
+                                ]
+                            }
+                        }, [
+                            "weightage",
+                            "options",
+                            "sliderOptions",
+                            "responseType"
+                        ])
+
+                    }
+
+                    if(solutionQuestions.length > 0) {
+                        submissionDocument.questionDocuments = {}
+                        solutionQuestions.forEach(question => {
+                        submissionDocument.questionDocuments[question._id.toString()] = {
+                            _id : question._id,
+                            weightage : question.weightage
+                        }
+                        let questionMaxScore = 0
+                        if(question.options && question.options.length > 0) {
+                            if(question.responseType != "multiselect") {
+                            questionMaxScore = _.maxBy(question.options, 'score').score;
+                            }
+                            question.options.forEach(option => {
+                            if(question.responseType == "multiselect") {
+                                questionMaxScore += option.score
+                            }
+                            (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                            })
+                        }
+                        if(question.sliderOptions && question.sliderOptions.length > 0) {
+                            questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+                            submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
+                        }
+                        submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+                        })
+                    }
+
+                }
+
+                let resultingArray = await this.rateEntities([submissionDocument], "singleRateApi")
+
+                if(resultingArray.result.runUpdateQuery) {
+                    await database.models.submissions.updateOne(
+                        {
+                            _id: ObjectId(submissionId)
+                        },
+                        {
+                            status: "completed",
+                            completedDate: new Date()
+                        }
+                    );
+                    await this.pushCompletedSubmissionForReporting(submissionId)
+                    emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Successful - "+submissionId,JSON.stringify(resultingArray))
+                    return resolve("Submission rating completed successfully.")
+                } else {
+                    emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Failed - "+submissionId,JSON.stringify(resultingArray))
+                    return resolve("Submission rating completed successfully.")
+                }
+
+            } catch (error) {
+                emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Failed - "+submissionId,error.message)
+                return reject(error);
+            }
         })
     }
 

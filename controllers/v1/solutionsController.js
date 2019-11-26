@@ -1,6 +1,6 @@
 const csv = require("csvtojson");
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
-const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
@@ -679,7 +679,8 @@ module.exports = class Solutions extends Abstract {
                 { _id: solutionDocument._id },
                 {
                     themes : solutionThemes.themes,
-                    flattenedThemes : solutionThemes.flattenedThemes
+                    flattenedThemes : solutionThemes.flattenedThemes,
+                    isRubricDriven : true
                 }
               );
               updateSubmissions = true
@@ -697,59 +698,8 @@ module.exports = class Solutions extends Abstract {
 
           let submissionDocumentCriterias = new Array
 
-          // const L1Array = [
-          //   "0<=SCORE<6",
-          //   "0<=SCORE<4",
-          //   "0<=SCORE<5",
-          //   "0<=SCORE<7",
-          //   "0<=SCORE<2"
-          // ]
-          // const L2Array = [
-          //   "6<=SCORE<10",
-          //   "4<=SCORE<7",
-          //   "5<=SCORE<8",
-          //   "7<=SCORE<13",
-          //   "2<=SCORE<4"
-          // ]
-          // const L3Array = [
-          //   "10<=SCORE<15",
-          //   "7<=SCORE<12",
-          //   "8<=SCORE<11",
-          //   "13<=SCORE<18",
-          //   "4<=SCORE<7"
-          // ]
-          // const L4Array = [
-          //   "16<=SCORE<100000",
-          //   "12<=SCORE<100000",
-          //   "11<=SCORE<100000",
-          //   "18<=SCORE<100000",
-          //   "7<=SCORE<100000"
-          // ]
-
           criteriaQuestionDocument.forEach(criteria => {
-            // if((criteria.rubric.expressionVariables && !criteria.rubric.expressionVariables.SCORE) || (!criteria.rubric.expressionVariables)) {
-            //   criteria.rubric.expressionVariables = {
-            //     SCORE : `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
-            //   }
-            //   criteria._doc.rubric.expressionVariables.SCORE = `${criteria._id.toString()}.scoreOfAllQuestionInCriteria()`
-            //   let randomValue = Math.floor(Math.random()*L1Array.length)
-            //   if(!criteria.rubric.levels.L1) criteria.rubric.levels = {L1 : {}}
-            //   criteria.rubric.levels.L1.expression = L1Array[randomValue];
-            //   if(!criteria._doc.rubric.levels.L1) criteria._doc.rubric.levels = {L1 : {}}
-            //   criteria._doc.rubric.levels.L1.expression = L1Array[randomValue];
-            //   if(!criteria.rubric.levels.L2) criteria.rubric.levels.L2 = {}
-            //   criteria.rubric.levels.L2.expression = L2Array[randomValue];
-            //   if(!criteria._doc.rubric.levels.L2) criteria._doc.rubric.levels.L2 = {}
-            //   criteria._doc.rubric.levels.L2.expression = L2Array[randomValue];
-            //   if(!criteria.rubric.levels.L3) criteria.rubric.levels.L3 = {}
-            //   criteria.rubric.levels.L3.expression = L3Array[randomValue];
-            //   if(!criteria._doc.rubric.levels.L3) criteria._doc.rubric.levels.L3 = {}
-            //   criteria._doc.rubric.levels.L3.expression = L3Array[randomValue];
-            //   if(!criteria.rubric.levels.L4) criteria.rubric.levels.L4 = {}
-            //   criteria.rubric.levels.L4.expression = L4Array[randomValue];
-            //   if(!criteria._doc.rubric.levels.L4) criteria._doc.rubric.levels.L4 = {}
-            //   criteria._doc.rubric.levels.L4.expression = L4Array[randomValue];
-            // }
+
             criteria.weightage = allCriteriaIdWithWeightageInSolution[criteria._id.toString()].weightage
             submissionDocumentCriterias.push(
               _.omit(criteria._doc, [

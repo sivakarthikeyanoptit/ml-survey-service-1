@@ -1,9 +1,9 @@
-const userExtensionHelper = require(ROOT_PATH + "/module/userExtension/helper")
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController")
-const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
 
 module.exports = class Observations extends v1Observation {
 

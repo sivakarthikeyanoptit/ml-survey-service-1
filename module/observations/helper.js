@@ -1,4 +1,4 @@
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 

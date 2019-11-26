@@ -1,10 +1,10 @@
-const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
-const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
-const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
-const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper")
 
 module.exports = class ObservationSubmissions extends Abstract {
 
@@ -174,10 +174,14 @@ module.exports = class ObservationSubmissions extends Abstract {
       let submissionDocumentEvidences = {};
       let submissionDocumentCriterias = [];
       Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
+        if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
           solutionDocument.evidenceMethods[solutionEcm].startTime = ""
           solutionDocument.evidenceMethods[solutionEcm].endTime = ""
           solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
           solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+        } else {
+          delete solutionDocument.evidenceMethods[solutionEcm]
+        }
       })
       submissionDocumentEvidences = solutionDocument.evidenceMethods
 
@@ -400,8 +404,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
 
         if (response.result.status && response.result.status === "completed") {
-          await observationSubmissionsHelper.pushToKafka(req.params._id)
+          await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id)
           await observationSubmissionsHelper.generateHtml(req.params._id)
+        } else if(response.result.status && response.result.status === "ratingPending") {
+          await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id)
         }
 
         return resolve(response);
@@ -530,90 +536,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/observationSubmissions/generateHtml/:observationSubmissionId  Generate Observation Submissions PDF
-* @apiVersion 1.0.0
-* @apiName Generate Observation Submissions PDF
-* @apiGroup Observation Submissions
-* @apiUse successBody
-* @apiUse errorBody
-*/
-  async generateHtml(req) {
-    return new Promise(async (resolve, reject) => {
-      try {
-
-        let generatePdf = await observationSubmissionsHelper.generateHtml(req.params._id)
-        return resolve(generatePdf);
-
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: error
-        });
-      }
-    })
-  }
-
-
-  /**
-  * @api {get} /assessment/api/v1/observationSubmissions/pdfFileUrl/:observationSubmissionId Get Observation Submission PDF URL
-  * @apiVersion 1.0.0
-  * @apiName Get Observation Submission PDF URL
-  * @apiGroup Observation Submissions
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
-
-  async pdfFileUrl(req) {
-    return new Promise(async (resolve, reject) => {
-
-      try {
-
-        let result = {
-          url: ""
-        }
-
-        let message = "Observation submission PDF File URL fetched successfully";
-
-        let submissionDocument = await database.models.observationSubmissions.findOne(
-          {
-            $and: [
-              { "_id": req.params._id },
-              { pdfFileUrl: { $ne: "" } },
-              { pdfFileUrl: { $exists: true } }
-            ]
-          },
-          {
-            pdfFileUrl: 1
-          }
-        );
-
-        if (!submissionDocument || !submissionDocument._id) {
-          message = "PDF not available."
-        } else {
-          result.url = "https://storage.googleapis.com/sl-" + (process.env.NODE_ENV == "production" ? "prod" : "dev") + "-storage/" + submissionDocument.pdfFileUrl
-        }
-
-        let response = {
-          message: message,
-          result: result
-        };
-
-        return resolve(response);
-
-
-      } catch (error) {
-        return reject({
-          status: 500,
-          message: error,
-          errorObject: error
-        });
-      }
-
-    })
-  }
-
-  /**
-  * @api {get} /assessment/api/v1/observationSubmissions/pushToKafka/:observationSubmissionId Push Observation Submission to Kafka
+  * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
   * @apiVersion 1.0.0
   * @apiName Push Observation Submission to Kafka
   * @apiGroup Observation Submissions
@@ -621,11 +544,11 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiUse errorBody
   */
 
-  async pushToKafka(req) {
+  async pushCompletedObservationSubmissionForReporting(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushToKafka(req.params._id)
+        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id)
 
         if(pushObservationSubmissionToKafka.status != "success") {
           throw pushObservationSubmissionToKafka.message
@@ -643,7 +566,6 @@ module.exports = class ObservationSubmissions extends Abstract {
       }
     })
   }
-
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/rate/:entityExternalId?solutionId=:solutionExternalId&createdBy=:keycloakUserId&submissionNumber=:submissionInstanceNumber Rate a Single Entity of Observation
@@ -789,7 +711,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
 
-        return resolve({ result: resultingArray })
+        return resolve(resultingArray)
 
       } catch (error) {
         return reject({

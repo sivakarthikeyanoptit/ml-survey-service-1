@@ -1,4 +1,4 @@
-const entityAssessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper");
+const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 
 
 module.exports = class EntityAssessors extends Abstract {

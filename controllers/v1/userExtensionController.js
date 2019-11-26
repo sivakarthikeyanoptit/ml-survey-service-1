@@ -1,7 +1,7 @@
 const csv = require("csvtojson");
-const userExtensionHelper = require(ROOT_PATH + "/module/userExtension/helper")
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 
 module.exports = class UserExtension extends Abstract {
   constructor() {

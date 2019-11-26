@@ -20,6 +20,8 @@ module.exports = function () {
   // let readStream = fs.createReadStream(__dirname +'/../logs/'+process.env.NODE_ENV + '/logs.log');
   global.async = require("async");
   global.ROOT_PATH = path.join(__dirname, '..')
+  global.GENERIC_HELPERS_PATH = ROOT_PATH + "/generics/helpers"
+  global.MODULES_BASE_PATH = ROOT_PATH + "/module"
   global.log = new Log(global.config.log);
   global._ = require("lodash");
   gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
@@ -73,6 +75,16 @@ module.exports = function () {
       else return new Controller();
     }
   });
+
+
+  // Load all kafka consumer files
+  fs.readdirSync(ROOT_PATH + '/generics/kafkaConsumers/').forEach(function (file) {
+    if (file.match(/\.js$/) !== null) {
+      var name = file.replace('Consumer.js', '');
+      global[name + 'Consumer'] = require(ROOT_PATH + '/generics/kafkaConsumers/' + file);
+    }
+  });
+
 };
 
 function mkdirp(dir, exist = "", state = 1) {

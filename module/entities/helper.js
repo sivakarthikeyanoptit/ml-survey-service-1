@@ -1,4 +1,4 @@
-const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 
 module.exports = class entitiesHelper {
 

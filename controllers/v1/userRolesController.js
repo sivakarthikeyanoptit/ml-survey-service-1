@@ -1,5 +1,5 @@
 const csv = require("csvtojson");
-const userRolesHelper = require(ROOT_PATH + "/module/userRoles/helper")
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class UserRoles extends Abstract {

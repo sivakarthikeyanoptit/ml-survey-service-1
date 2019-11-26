@@ -15,7 +15,7 @@ module.exports = {
     levelToScoreMapping: Object,
     themes: Array,
     noOfRatingLevels: Number,
-    isRubricDriven: Boolean,
+    isRubricDriven: { type : Boolean, default: false },
     updatedBy: String,
     isDeleted: Boolean,
     createdBy: String,

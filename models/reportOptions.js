@@ -1,7 +1,7 @@
 module.exports = {
     name: "reportOptions",
     schema: {
-      name: "String",
+      name: String,
       result: ["json"]
     }
   };
