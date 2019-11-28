@@ -285,9 +285,7 @@ module.exports = class Questions extends Abstract {
             pointerToPendingData++
           ) {
 
-            let eachPendingItem = gen.utils.valueParser(
-              pendingItems[pointerToPendingData]
-            );
+            let eachPendingItem = pendingItems[pointerToPendingData]
 
             let question = questionInCsv(eachPendingItem)
 
