@@ -228,7 +228,7 @@ module.exports = class Observations extends Abstract {
                     {
                         $match: {
                             createdBy: req.userDetails.userId,
-                            status: {$ne:"inactive"}
+                            status: { $ne: "inactive" }
                         }
                     },
                     {
@@ -354,7 +354,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     {
                         entityTypeId: 1,
@@ -498,7 +498,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     {
                         entityTypeId: 1,
@@ -563,7 +563,7 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: {$ne:"inactive"},entities: ObjectId(req.query.entityId) }).lean();
+                let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: { $ne: "inactive" }, entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
 
@@ -607,7 +607,7 @@ module.exports = class Observations extends Abstract {
                         sections: 1,
                         entityTypeId: 1,
                         entityType: 1,
-                        captureGpsLocationAtQuestionLevel : 1
+                        captureGpsLocationAtQuestionLevel: 1
                     }
                 ).lean();
 
@@ -1031,14 +1031,18 @@ module.exports = class Observations extends Abstract {
                 let entityIds = []
 
                 observationData.forEach(eachObservationData => {
-                    if (!users.includes(eachObservationData.user)) {
+                    if (!eachObservationData["keycloak-userId"] && eachObservationData.user && !users.includes(eachObservationData.user)) {
                         users.push(eachObservationData.user)
                     }
                     solutionExternalIds.push(eachObservationData.solutionExternalId)
                     entityIds.push(ObjectId(eachObservationData.entityId))
                 })
 
-                let userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                let userIdByExternalId
+
+                if (users.length > 0) {
+                    userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                }
 
                 let entityDocument = await database.models.entities.find({
                     _id: {
@@ -1067,7 +1071,9 @@ module.exports = class Observations extends Abstract {
                         frameworkExternalId: 1,
                         frameworkId: 1,
                         name: 1,
-                        description: 1
+                        description: 1,
+                        type: 1,
+                        subType: 1
                     }).lean()
 
                 let solutionObject = {}
@@ -1091,7 +1097,18 @@ module.exports = class Observations extends Abstract {
                         csvResult[eachObservationData] = currentData[eachObservationData]
                     })
 
-                    let userId = userIdByExternalId[currentData.user]
+                    let userId;
+
+                    if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
+                        userId = currentData["keycloak-userId"]
+                    } else {
+
+                        if (userIdByExternalId[currentData.user] === "") {
+                            throw { status: 400, message: "Keycloak id for user is not present" };
+                        }
+
+                        userId = userIdByExternalId[currentData.user]
+                    }
 
                     if (solutionObject[currentData.solutionExternalId] !== undefined) {
                         solution = solutionObject[currentData.solutionExternalId]
@@ -1113,8 +1130,8 @@ module.exports = class Observations extends Abstract {
                 input.push(null);
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || 500,
+                    message: error.message || "Oops Something Went Wrong!",
                     errorObject: error
                 });
             }
@@ -1151,7 +1168,7 @@ module.exports = class Observations extends Abstract {
                     {
                         _id: req.params._id,
                         createdBy: req.userDetails.userId,
-                        status: {$ne:"inactive"}
+                        status: { $ne: "inactive" }
                     },
                     updateQuery
                 ).lean();
@@ -1221,6 +1238,110 @@ module.exports = class Observations extends Abstract {
 
         });
 
+    }
+
+
+    /**
+  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
+  * @apiVersion 1.0.0
+  * @apiName Pending Observations
+  * @apiGroup Observations
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Pending Observations",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d31a14dbff58d3d65ede344",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5c6bd309af0065f0e0d4223b",
+            "createdAt": "2019-07-19T10:54:05.638Z",
+            "entityId": "5cebbefe5943912f56cf8e16",
+            "observationId": "5d1070326f6ed50bc34aec2c"
+        }
+        ]
+    }
+  */
+
+    async pendingObservations() {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let status = {
+                    pending: true
+                }
+
+                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
+
+                return resolve({
+                    message: "Pending Observations",
+                    result: pendingObservationDocuments
+                })
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+    /**
+* @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
+* @apiVersion 1.0.0
+* @apiName Completed Observations
+* @apiGroup Observations
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/observations/completedObservations
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+{
+    "message": "Completed Observations",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d2702e60110594953c1614a",
+            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "solutionId": "5c6bd309af0065f0e0d4223b",
+            "createdAt": "2019-06-27T08:55:16.718Z",
+            "entityId": "5cebbefe5943912f56cf8e16",
+            "observationId": "5d1483c9869c433b0440c5dd"
+        }
+    ]
+}
+*/
+
+    async completedObservations() {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let status = {
+                    completed: true
+                }
+
+                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
+
+                return resolve({
+                    message: "Completed Observations",
+                    result: completedObservationDocuments
+                })
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
     }
 
 }

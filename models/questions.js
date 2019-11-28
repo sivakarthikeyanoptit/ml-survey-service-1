@@ -18,6 +18,7 @@ module.exports = {
     createdBy: "String",
     updatedBy: "String",
     options: Array,
+    sliderOptions: Array,
     children: Array,
     questionGroup: Array,
     questionType: "String",
@@ -40,6 +41,7 @@ module.exports = {
     sectionHeader: String,
     allowAudioRecording: Boolean,
     page: String,
-    questionNumber: String
+    questionNumber: String,
+    weightage: { type : Number, default: 1 }
   }
 };

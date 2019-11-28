@@ -8,6 +8,7 @@ module.exports = {
     evidencesStatus: Array,
     evidences: Object,
     criteria: Array,
+    themes: Array,
     answers: Object,
     entityExternalId: "String",
     entityInformation: Object,
