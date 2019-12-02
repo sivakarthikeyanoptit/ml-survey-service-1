@@ -23,6 +23,9 @@ module.exports = {
     entityTypeId: "ObjectId",
     entityType: "String",
     submissionNumber: Number,
-    pdfFileUrl:String
+    pdfFileUrl:String,
+    pointsBasedMaxScore : Number,
+    pointsBasedScoreAchieved : Number,
+    pointsBasedPercentageScore : Number
   }
 };

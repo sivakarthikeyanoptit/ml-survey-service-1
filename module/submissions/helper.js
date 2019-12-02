@@ -884,15 +884,24 @@ module.exports = class submissionsHelper {
                             updateObject.$set.ratingCompletedAt =  new Date()
 
                             if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
+                                updateObject.$set.pointsBasedMaxScore = 0
+                                updateObject.$set.pointsBasedScoreAchieved = 0
                                 Object.keys(answersToUpdate).forEach(questionId => {
                                     if(Object.keys(answersToUpdate[questionId]).length > 0) {
                                         Object.keys(answersToUpdate[questionId]).forEach(answerField => {
+                                            if(answerField == "maxScore") updateObject.$set.pointsBasedMaxScore += answersToUpdate[questionId][answerField]
+                                            if(answerField == "scoreAchieved") updateObject.$set.pointsBasedScoreAchieved += answersToUpdate[questionId][answerField]
                                             if(answerField != "value" || answerField != "payload") {
                                                 updateObject.$set[`answers.${questionId}.${answerField}`] = answersToUpdate[questionId][answerField]
                                             }
                                         })
                                     }
                                 })
+                                if(updateObject.$set.pointsBasedMaxScore > 0 && updateObject.$set.pointsBasedScoreAchieved >0) {
+                                    updateObject.$set.pointsBasedPercentageScore = ((updateObject.$set.pointsBasedScoreAchieved/updateObject.$set.pointsBasedMaxScore)*100)
+                                } else {
+                                    updateObject.$set.pointsBasedPercentageScore = 0
+                                }
                             }
 
                             let submissionModel = (eachSubmissionDocument.submissionCollection) ? eachSubmissionDocument.submissionCollection : "submissions"
