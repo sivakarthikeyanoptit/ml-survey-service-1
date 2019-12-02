@@ -27,6 +27,9 @@ module.exports = {
     submissionsUpdatedHistory: Array,
     ratingCompletedAt: Date,
     entityTypeId: "ObjectId",
-    entityType: "String"
+    entityType: "String",
+    pointsBasedMaxScore : Number,
+    pointsBasedScoreAchieved : Number,
+    pointsBasedPercentageScore : Number
   }
 };
