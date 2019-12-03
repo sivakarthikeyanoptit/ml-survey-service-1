@@ -78,7 +78,7 @@ module.exports = class userExtensionHelper {
                             entity.metaInformation.subEntityGroups = new Array
 
                             Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
-                                if (entity.groups[immediateChildrenEntityType]) {
+                                if (entity.groups && entity.groups[immediateChildrenEntityType]) {
                                     entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
                                     entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
                                 }
