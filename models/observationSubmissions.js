@@ -16,6 +16,7 @@ module.exports = {
     entityProfile: Object,
     feedback: Array,
     generalQuestions: Object,
+    ratingCompletedAt: Date,
     completedDate: Date,
     solutionId: "ObjectId",
     solutionExternalId: String,
