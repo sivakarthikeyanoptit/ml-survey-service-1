@@ -30,6 +30,7 @@ module.exports = {
     entityType: "String",
     pointsBasedMaxScore : Number,
     pointsBasedScoreAchieved : Number,
-    pointsBasedPercentageScore : Number
+    pointsBasedPercentageScore : Number,
+    isRubricDriven : { type : Boolean, default: false }
   }
 };

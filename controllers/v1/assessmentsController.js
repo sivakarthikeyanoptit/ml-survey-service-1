@@ -165,7 +165,8 @@ module.exports = class Assessments {
                         sections: 1,
                         entityTypeId: 1,
                         entityType: 1,
-                        captureGpsLocationAtQuestionLevel :1
+                        captureGpsLocationAtQuestionLevel :1,
+                        isRubricDriven : 1
                     }
                 ).lean();
 
@@ -245,6 +246,7 @@ module.exports = class Assessments {
                     solutionExternalId: solutionDocument.externalId,
                     frameworkId: solutionDocument.frameworkId,
                     frameworkExternalId: solutionDocument.frameworkExternalId,
+                    isRubricDriven : (solutionDocument.isRubricDriven) ? solutionDocument.isRubricDriven : false,
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     programId: programDocument._id,
