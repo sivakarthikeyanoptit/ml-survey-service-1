@@ -349,7 +349,8 @@ module.exports = class Observations extends v1Observation {
                         sections: 1,
                         entityTypeId: 1,
                         entityType: 1,
-                        captureGpsLocationAtQuestionLevel : 1
+                        captureGpsLocationAtQuestionLevel : 1,
+                        isRubricDriven : 1
                     }
                 ).lean();
 
@@ -420,6 +421,7 @@ module.exports = class Observations extends v1Observation {
                     solutionExternalId: solutionDocument.externalId,
                     frameworkId: solutionDocument.frameworkId,
                     frameworkExternalId: solutionDocument.frameworkExternalId,
+                    isRubricDriven : (solutionDocument.isRubricDriven) ? solutionDocument.isRubricDriven : false,
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     observationId: observationDocument._id,
