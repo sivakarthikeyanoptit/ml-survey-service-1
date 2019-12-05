@@ -16,6 +16,7 @@ module.exports = {
     entityProfile: Object,
     feedback: Array,
     generalQuestions: Object,
+    ratingCompletedAt: Date,
     completedDate: Date,
     solutionId: "ObjectId",
     solutionExternalId: String,
@@ -26,7 +27,6 @@ module.exports = {
     pdfFileUrl:String,
     pointsBasedMaxScore : Number,
     pointsBasedScoreAchieved : Number,
-    pointsBasedPercentageScore : Number,
-    isRubricDriven : { type : Boolean, default: false }
+    pointsBasedPercentageScore : Number
   }
 };
