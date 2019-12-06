@@ -365,11 +365,10 @@ module.exports = class Entities extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/entities/bulkUpdate?type=:entityType Bulk Update Entities CSV
+  * @api {post} /assessment/api/v1/entities/bulkUpdate Bulk Update Entities CSV
   * @apiVersion 1.0.0
   * @apiName Bulk Update Entities CSV
   * @apiGroup Entities
-  * @apiParam {String} type Entity Type.
   * @apiParam {File} entities Mandatory entities file of type CSV.
   * @apiUse successBody
   * @apiUse errorBody
