@@ -74,9 +74,9 @@ module.exports = class Questions extends Abstract {
   }
 
   /**
-   * @api {post} /assessment/api/v1/questions/bulkCreate bulkCreate Questions CSV
+   * @api {post} /assessment/api/v1/questions/bulkCreate Bulk Create Questions CSV
    * @apiVersion 1.0.0
-   * @apiName bulkCreate Questions
+   * @apiName Bulk Create Questions CSV
    * @apiGroup Questions
    * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
@@ -305,9 +305,9 @@ module.exports = class Questions extends Abstract {
   }
 
   /**
-   * @api {post} /assessment/api/v1/questions/bulkUpdate Bulk update Questions CSV
+   * @api {post} /assessment/api/v1/questions/bulkUpdate Bulk Update Questions CSV
    * @apiVersion 1.0.0
-   * @apiName Bulk update Questions CSV
+   * @apiName Bulk Update Questions CSV
    * @apiGroup Questions
    * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
