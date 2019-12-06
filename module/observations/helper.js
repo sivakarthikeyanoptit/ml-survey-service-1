@@ -79,36 +79,106 @@ module.exports = class observationsHelper {
 
     }
 
-    static list(entityType, entityId) {
+    static list(userId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let queryObject = { _id: ObjectId(entityId) };
-                let projectObject = { [`groups.${entityType}`]: 1 };
+                if(userId == "") throw new Error("Invalid userId")
 
-                let result = await database.models.entities.findOne(queryObject, projectObject).lean();
+                let observations = new Array;
 
-                let entityIds = result.groups[entityType];
-
-                let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
-                    metaInformation: 1
-                }).lean();
-
-                result = entityData.map(entity => {
-                    return {
-                        entityId: entity._id,
-                        ...entity.metaInformation
+                let assessorObservationsQueryObject = [
+                    {
+                        $match: {
+                            createdBy: userId,
+                            status: { $ne: "inactive" }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "entities",
+                            localField: "entities",
+                            foreignField: "_id",
+                            as: "entityDocuments"
+                        }
+                    },
+                    {
+                        $project: {
+                            "name": 1,
+                            "description": 1,
+                            "entities": 1,
+                            "startDate": 1,
+                            "endDate": 1,
+                            "status": 1,
+                            "solutionId": 1,
+                            "entityDocuments._id": 1,
+                            "entityDocuments.metaInformation.externalId": 1,
+                            "entityDocuments.metaInformation.name": 1
+                        }
                     }
-                })
+                ];
 
-                return resolve(result);
+                const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
+
+                let observation
+                let submissions
+                let entityObservationSubmissionStatus
+
+                for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
+
+                    observation = userObservations[pointerToAssessorObservationArray];
+
+
+                    submissions = await database.models.observationSubmissions.find(
+                        {
+                            observationId: observation._id,
+                            entityId: {
+                                $in: observation.entities
+                            }
+                        },
+                        {
+                            "themes": 0,
+                            "criteria": 0,
+                            "evidences": 0,
+                            "answers": 0
+                        }
+                    ).sort( { createdAt: -1 } )
+
+                    let observationEntitySubmissions = {}
+                    submissions.forEach(observationEntitySubmission => {
+                        if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
+                            observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
+                                submissionStatus: "",
+                                submissions: new Array,
+                                entityId: observationEntitySubmission.entityId.toString()
+                            }
+                        }
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
+                    })
+
+                    // entityObservationSubmissionStatus = submissions.reduce(
+                    //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
+
+
+                    observation.entities = new Array
+                    observation.entityDocuments.forEach(observationEntity => {
+                        observation.entities.push({
+                            _id: observationEntity._id,
+                            submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
+                            submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
+                            ...observationEntity.metaInformation
+                        })
+                    })
+                    observations.push(_.omit(observation, ["entityDocuments"]))
+                }
+
+                return resolve(observations);
 
             } catch (error) {
                 return reject(error);
             }
         })
-
-
     }
 
     static findSubmission(document) {
