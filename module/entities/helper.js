@@ -342,11 +342,7 @@ module.exports = class entitiesHelper {
                 const entityUploadedData = await Promise.all(
                     entityCSVData.map(async singleEntity => {
 
-                        singleEntity._arrayFields.split(",").forEach(arrayTypeField => {
-                            if (singleEntity[arrayTypeField]) {
-                                singleEntity[arrayTypeField] = singleEntity[arrayTypeField].split(",")
-                            }
-                        })
+                        singleEntity = gen.utils.valueParser(singleEntity)
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
@@ -364,7 +360,7 @@ module.exports = class entitiesHelper {
 
                         if (!newEntity._id) return;
 
-                        singleEntity["_systemId"] = newEntity._id.toString()
+                        singleEntity["_SYSTEM_ID"] = newEntity._id.toString()
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
@@ -387,6 +383,63 @@ module.exports = class entitiesHelper {
                 )
 
                 return resolve(entityUploadedData);
+            } catch (error) {
+                return reject(error)
+            }
+        })
+
+    }
+
+
+    static bulkUpdate(userDetails, entityCSVData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                const entityUploadedData = await Promise.all(entityCSVData.map(async singleEntity => {
+
+                    singleEntity = gen.utils.valueParser(singleEntity)
+
+                    if(!singleEntity["_SYSTEM_ID"] || singleEntity["_SYSTEM_ID"] == "") {
+                        singleEntity["UPDATE_STATUS"] = "Invalid or missing _SYSTEM_ID"
+                        return singleEntity
+                    }
+
+                    let columnsToUpdate = _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") })
+                    
+                    let metaInformationToSet = {}
+
+                    Object.keys(columnsToUpdate).forEach(key => {
+                        metaInformationToSet[`metaInformation.${key}`] = columnsToUpdate[key]
+                    })
+
+                    if(Object.keys(metaInformationToSet).length > 0) {
+
+                        let updateEntity = await database.models.entities.findOneAndUpdate(
+                            { _id: singleEntity["_SYSTEM_ID"] },
+                            { $set: metaInformationToSet},
+                            { _id: 1 }
+                        )
+                
+                        if (!updateEntity || !updateEntity._id) {
+                            singleEntity["UPDATE_STATUS"] = "Entity Not Updated"
+                        } else {
+                            singleEntity["UPDATE_STATUS"] = "Success"
+                        }
+
+                    } else {
+                        singleEntity["UPDATE_STATUS"] = "No information to update."
+                    }
+
+                    return singleEntity
+
+                }))
+
+                if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
+                    throw "Something went wrong, not all records were inserted/updated."
+                }
+
+                return resolve(entityUploadedData);
+
             } catch (error) {
                 return reject(error)
             }

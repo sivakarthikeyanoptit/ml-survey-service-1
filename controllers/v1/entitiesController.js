@@ -308,9 +308,9 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/entities/bulkCreate?type=:entityType Upload Entity Information CSV
+  * @api {post} /assessment/api/v1/entities/bulkCreate?type=:entityType Bulk Create Entities CSV
   * @apiVersion 1.0.0
-  * @apiName Upload Entity Information CSV
+  * @apiName Bulk Create Entities CSV
   * @apiGroup Entities
   * @apiParam {String} type Entity Type.
   * @apiParam {File} entities Mandatory entities file of type CSV.
@@ -363,6 +363,62 @@ module.exports = class Entities extends Abstract {
     })
   }
 
+
+  /**
+  * @api {post} /assessment/api/v1/entities/bulkUpdate Bulk Update Entities CSV
+  * @apiVersion 1.0.0
+  * @apiName Bulk Update Entities CSV
+  * @apiGroup Entities
+  * @apiParam {File} entities Mandatory entities file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+  bulkUpdate(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let entityCSVData = await csv().fromString(req.files.entities.data.toString());
+        
+        let newEntityData = await entitiesHelper.bulkUpdate(req.userDetails, entityCSVData);
+
+        if (newEntityData.length > 0) {
+
+          const fileName = `Entity-Upload`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          await Promise.all(newEntityData.map(async newEntity => {
+            input.push(newEntity)
+          }))
+
+          input.push(null)
+
+        } else {
+          throw new Error("Something went wrong while doing entity bulk update!")
+        }
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
 
   /**
   * @api {post} /assessment/api/v1/entities/mappingUpload?programId=:programExternalId&?solutionId=:solutionExternalId Upload Entity Mapping Information CSV
