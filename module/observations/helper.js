@@ -218,6 +218,41 @@ module.exports = class observationsHelper {
 
     }
 
+    static findLastSubmissionNumberForObservationId(observationId = "") {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                if(observationId == "") throw new Error("Invalid observation id.")
+
+                if(typeof observationId == "string") {
+                    observationId = ObjectId(observationId)
+                }
+
+                let submissionDocument = await database.models.observationSubmissions.find(
+                    {
+                        observationId: observationId
+                    },{
+                        submissionNumber : 1
+                    }
+                ).sort( { createdAt: -1 } ).limit(1).lean();
+
+                return resolve({
+                    success: true,
+                    message: "Submission Number fetched successfully.",
+                    result: (submissionDocument[0].submissionNumber) ? submissionDocument[0].submissionNumber : 0 
+                });
+
+
+            } catch (error) {
+                return reject(error);
+            }
+
+        })
+
+    }
+
     static bulkCreate(solution, entityDocument, userId) {
         return new Promise(async (resolve, reject) => {
             try {

@@ -212,6 +212,39 @@ module.exports = class Observations extends Abstract {
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/observations/list
+     * @apiParamExample {json} Response:
+        "result": [
+            {
+                "_id": "5d09c34d1f7fd5a2391f7251",
+                "entities": [],
+                "name": "Observation 1",
+                "description": "Observation Description",
+                "status": "published",
+                "solutionId": "5b98fa069f664f7e1ae7498c"
+            },
+            {
+                "_id": "5d1070326f6ed50bc34aec2c",
+                "entities": [
+                    {
+                        "_id": "5cebbefe5943912f56cf8e16",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    },
+                    {
+                        "_id": "5cebbf275943912f56cf8e18",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    }
+                ],
+                "status": "published",
+                "endDate": "2019-06-24T00:00:00.000Z",
+                "name": "asdasd",
+                "description": "asdasdasd",
+                "solutionId": "5c6bd309af0065f0e0d4223b"
+            }
+        ]
      * @apiUse successBody
      * @apiUse errorBody
      */

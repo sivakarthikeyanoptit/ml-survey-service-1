@@ -1,6 +1,7 @@
 const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
 const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
+const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
 
 module.exports = class ObservationSubmissions extends Abstract {
@@ -22,9 +23,38 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiParam {String} entityId Entity ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/create/5d2c1c57037306041ef0c7ea?entityId=5d2c1c57037306041ef0c8fa
   * @apiParamExample {json} Response:
-  * "result": {
-      "allowed": true
-    }
+  * "result": [
+        {
+            "_id": "5d09c34d1f7fd5a2391f7251",
+            "entities": [],
+            "name": "Observation 1",
+            "description": "Observation Description",
+            "status": "published",
+            "solutionId": "5b98fa069f664f7e1ae7498c"
+        },
+        {
+            "_id": "5d1070326f6ed50bc34aec2c",
+            "entities": [
+                {
+                    "_id": "5cebbefe5943912f56cf8e16",
+                    "submissionStatus": "pending",
+                    "submissions": [],
+                    "name": "asd"
+                },
+                {
+                    "_id": "5cebbf275943912f56cf8e18",
+                    "submissionStatus": "pending",
+                    "submissions": [],
+                    "name": "asd"
+                }
+            ],
+            "status": "published",
+            "endDate": "2019-06-24T00:00:00.000Z",
+            "name": "asdasd",
+            "description": "asdasdasd",
+            "solutionId": "5c6bd309af0065f0e0d4223b"
+        }
+      ]
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -34,38 +64,20 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
-        let result = {
-          allowed: true
-        }
+        let lastSubmissionNumberForObservationId = 0
 
-        let message = "Observation submission check completed successfully";
+        lastSubmissionNumberForObservationId = await observationsHelper.findLastSubmissionNumberForObservationId(req.params._id)
+        
+        let observations = new Array;
 
-        let submissionDocument = await database.models.observationSubmissions.findOne(
-          { "_id": req.params._id },
-          {
-            ["evidences." + req.query.evidenceId + ".isSubmitted"]: 1,
-            ["evidences." + req.query.evidenceId + ".submissions"]: 1
-          }
-        );
+        observations = await observationsHelper.list(req.userDetails.userId)
+        
+        let responseMessage = "Observation submission created successfully"
 
-        if (!submissionDocument || !submissionDocument._id) {
-          throw "Couldn't find the submission document"
-        } else {
-          if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
-            submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
-              if (submission.submittedBy == req.userDetails.userId) {
-                result.allowed = false
-              }
-            })
-          }
-        }
-
-        let response = {
-          message: message,
-          result: result
-        };
-
-        return resolve(response);
+        return resolve({
+            message: responseMessage,
+            result: observations
+        });
 
       } catch (error) {
         return reject({
