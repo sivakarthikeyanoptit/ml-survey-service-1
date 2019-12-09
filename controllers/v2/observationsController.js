@@ -56,7 +56,7 @@ module.exports = class Observations extends v1Observation {
 
                     projection.push("entityTypeId", "entities", "entityType")
 
-                    let observationDocument = await observationsHelper.observationDocument(findObject, projection)
+                    let observationDocument = await observationsHelper.observationDocuments(findObject, projection)
                     result = observationDocument[0]
                 }
 
@@ -65,7 +65,7 @@ module.exports = class Observations extends v1Observation {
                     findQuery.push(req.query.solutionId)
                     projection.push("entityTypeId", "entityType")
 
-                    let solutionDocument = await solutionsHelper.solutionDocument(findQuery, projection)
+                    let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection)
                     result = _.merge(solutionDocument[0])
                 }
 
@@ -111,189 +111,191 @@ module.exports = class Observations extends v1Observation {
     }
 
     /**
-  * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
-  * @apiVersion 2.0.0
-  * @apiName Assessments
-  * @apiGroup Observations
-  * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} entityId Entity ID.
-  * @apiParam {Int} submissionNumber Submission Number.
-  * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
-  * @apiParamExample {json} Response:
-  * {
-    "evidences": [
-        {
-            "code": "BL",
-            "sections": [
-                {
-                    "code": "SQ",
-                    "questions": [
-                        {
-                            "_id": "",
-                            "question": "",
-                            "options": "",
-                            "children": "",
-                            "questionGroup": "",
-                            "fileName": "",
-                            "instanceQuestions": "",
-                            "deleted": "",
-                            "tip": "",
-                            "externalId": "",
-                            "visibleIf": "",
-                            "file": "",
-                            "responseType": "pageQuestions",
-                            "validation": "",
-                            "page": "p1",
-                            "showRemarks": "",
-                            "isCompleted": "",
-                            "remarks": "",
-                            "value": "",
-                            "canBeNotApplicable": "",
-                            "usedForScoring": "",
-                            "modeOfCollection": "",
-                            "questionType": "",
-                            "accessibility": "",
-                            "updatedAt": "",
-                            "createdAt": "",
-                            "__v": "",
-                            "evidenceMethod": "",
-                            "payload": "",
-                            "startTime": "",
-                            "endTime": "",
-                            "pageQuestions": [
-                                {
-                                    "_id": "5be4e40e9a14ba4b5038dcfb",
-                                    "question": [
-                                        "Are all empty rooms and terrace areas locked securely? ",
-                                        ""
-                                    ],
-                                    "options": [
-                                        {
-                                            "value": "R1",
-                                            "label": "None"
-                                        },
-                                        {
-                                            "value": "R2",
-                                            "label": "Some"
-                                        },
-                                        {
-                                            "value": "R3",
-                                            "label": "Most"
-                                        },
-                                        {
-                                            "value": "R4",
-                                            "label": "All"
-                                        }
-                                    ],
-                                    "children": [],
-                                    "questionGroup": [
-                                        "A1"
-                                    ],
-                                    "fileName": [],
-                                    "instanceQuestions": [],
-                                    "deleted": false,
-                                    "tip": "",
-                                    "externalId": "LW/SS/22",
-                                    "visibleIf": "",
-                                    "file": "",
-                                    "responseType": "radio",
-                                    "validation": {
-                                        "required": true
-                                    },
-                                    "page": "p1",
-                                    "showRemarks": false,
-                                    "isCompleted": false,
-                                    "remarks": "",
-                                    "value": "",
-                                    "canBeNotApplicable": "false",
-                                    "usedForScoring": "",
-                                    "modeOfCollection": "onfield",
-                                    "questionType": "auto",
-                                    "accessibility": "local",
-                                    "updatedAt": "2018-11-09T01:34:06.839Z",
-                                    "createdAt": "2018-11-09T01:34:06.839Z",
-                                    "__v": 0,
-                                    "evidenceMethod": "LW",
-                                    "payload": {
-                                        "criteriaId": "5be1616549e0121f01b2180c",
-                                        "responseType": "radio",
-                                        "evidenceMethod": "LW",
-                                        "rubricLevel": ""
-                                    },
-                                    "startTime": "",
-                                    "endTime": ""
-                                },
-                                {
-                                    "_id": "5be445459a14ba4b5038dce8",
-                                    "question": [
-                                        "Is the list of important phone numbers displayed? ",
-                                        ""
-                                    ],
-                                    "options": [
-                                        {
-                                            "value": "R1",
-                                            "label": "Yes"
-                                        },
-                                        {
-                                            "value": "R2",
-                                            "label": "No"
-                                        }
-                                    ],
-                                    "children": [],
-                                    "questionGroup": [
-                                        "A1"
-                                    ],
-                                    "fileName": [],
-                                    "instanceQuestions": [],
-                                    "deleted": false,
-                                    "tip": "Look for Fire, Ambulance, Childline, Police, Child Welfare Committee, Hospital/ Doctor  ",
-                                    "externalId": "LW/SS/17",
-                                    "visibleIf": "",
-                                    "file": {
-                                        "required": true,
-                                        "type": [
-                                            "image/jpeg"
+     * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
+     * @apiVersion 2.0.0
+     * @apiName Assessments
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiParam {String} entityId Entity ID.
+     * @apiParam {Int} submissionNumber Submission Number.
+     * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
+     * @apiParamExample {json} Response:
+     * {
+        "evidences": [
+            {
+                "code": "BL",
+                "sections": [
+                    {
+                        "code": "SQ",
+                        "questions": [
+                            {
+                                "_id": "",
+                                "question": "",
+                                "options": "",
+                                "children": "",
+                                "questionGroup": "",
+                                "fileName": "",
+                                "instanceQuestions": "",
+                                "deleted": "",
+                                "tip": "",
+                                "externalId": "",
+                                "visibleIf": "",
+                                "file": "",
+                                "responseType": "pageQuestions",
+                                "validation": "",
+                                "page": "p1",
+                                "showRemarks": "",
+                                "isCompleted": "",
+                                "remarks": "",
+                                "value": "",
+                                "canBeNotApplicable": "",
+                                "usedForScoring": "",
+                                "modeOfCollection": "",
+                                "questionType": "",
+                                "accessibility": "",
+                                "updatedAt": "",
+                                "createdAt": "",
+                                "__v": "",
+                                "evidenceMethod": "",
+                                "payload": "",
+                                "startTime": "",
+                                "endTime": "",
+                                "pageQuestions": [
+                                    {
+                                        "_id": "5be4e40e9a14ba4b5038dcfb",
+                                        "question": [
+                                            "Are all empty rooms and terrace areas locked securely? ",
+                                            ""
                                         ],
-                                        "minCount": 1,
-                                        "maxCount": 0,
-                                        "caption": false
-                                    },
-                                    "responseType": "radio",
-                                    "validation": {
-                                        "required": true
-                                    },
-                                    "showRemarks": false,
-                                    "isCompleted": false,
-                                    "remarks": "",
-                                    "value": "",
-                                    "page": "p1",
-                                    "canBeNotApplicable": "false",
-                                    "usedForScoring": "",
-                                    "modeOfCollection": "onfield",
-                                    "questionType": "auto",
-                                    "accessibility": "local",
-                                    "updatedAt": "2018-11-08T14:16:37.565Z",
-                                    "createdAt": "2018-11-08T14:16:37.565Z",
-                                    "__v": 0,
-                                    "evidenceMethod": "LW",
-                                    "payload": {
-                                        "criteriaId": "5be15e0749e0121f01b21809",
+                                        "options": [
+                                            {
+                                                "value": "R1",
+                                                "label": "None"
+                                            },
+                                            {
+                                                "value": "R2",
+                                                "label": "Some"
+                                            },
+                                            {
+                                                "value": "R3",
+                                                "label": "Most"
+                                            },
+                                            {
+                                                "value": "R4",
+                                                "label": "All"
+                                            }
+                                        ],
+                                        "children": [],
+                                        "questionGroup": [
+                                            "A1"
+                                        ],
+                                        "fileName": [],
+                                        "instanceQuestions": [],
+                                        "deleted": false,
+                                        "tip": "",
+                                        "externalId": "LW/SS/22",
+                                        "visibleIf": "",
+                                        "file": "",
                                         "responseType": "radio",
+                                        "validation": {
+                                            "required": true
+                                        },
+                                        "page": "p1",
+                                        "showRemarks": false,
+                                        "isCompleted": false,
+                                        "remarks": "",
+                                        "value": "",
+                                        "canBeNotApplicable": "false",
+                                        "usedForScoring": "",
+                                        "modeOfCollection": "onfield",
+                                        "questionType": "auto",
+                                        "accessibility": "local",
+                                        "updatedAt": "2018-11-09T01:34:06.839Z",
+                                        "createdAt": "2018-11-09T01:34:06.839Z",
+                                        "__v": 0,
                                         "evidenceMethod": "LW",
-                                        "rubricLevel": ""
+                                        "payload": {
+                                            "criteriaId": "5be1616549e0121f01b2180c",
+                                            "responseType": "radio",
+                                            "evidenceMethod": "LW",
+                                            "rubricLevel": ""
+                                        },
+                                        "startTime": "",
+                                        "endTime": ""
                                     },
-                                    "startTime": "",
-                                    "endTime": ""
-                                }
-                            ]
-                        }
-                    ]
-                }]
-        }]
-}
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
+                                    {
+                                        "_id": "5be445459a14ba4b5038dce8",
+                                        "question": [
+                                            "Is the list of important phone numbers displayed? ",
+                                            ""
+                                        ],
+                                        "options": [
+                                            {
+                                                "value": "R1",
+                                                "label": "Yes"
+                                            },
+                                            {
+                                                "value": "R2",
+                                                "label": "No"
+                                            }
+                                        ],
+                                        "children": [],
+                                        "questionGroup": [
+                                            "A1"
+                                        ],
+                                        "fileName": [],
+                                        "instanceQuestions": [],
+                                        "deleted": false,
+                                        "tip": "Look for Fire, Ambulance, Childline, Police, Child Welfare Committee, Hospital/ Doctor  ",
+                                        "externalId": "LW/SS/17",
+                                        "visibleIf": "",
+                                        "file": {
+                                            "required": true,
+                                            "type": [
+                                                "image/jpeg"
+                                            ],
+                                            "minCount": 1,
+                                            "maxCount": 0,
+                                            "caption": false
+                                        },
+                                        "responseType": "radio",
+                                        "validation": {
+                                            "required": true
+                                        },
+                                        "showRemarks": false,
+                                        "isCompleted": false,
+                                        "remarks": "",
+                                        "value": "",
+                                        "page": "p1",
+                                        "canBeNotApplicable": "false",
+                                        "usedForScoring": "",
+                                        "modeOfCollection": "onfield",
+                                        "questionType": "auto",
+                                        "accessibility": "local",
+                                        "updatedAt": "2018-11-08T14:16:37.565Z",
+                                        "createdAt": "2018-11-08T14:16:37.565Z",
+                                        "__v": 0,
+                                        "evidenceMethod": "LW",
+                                        "payload": {
+                                            "criteriaId": "5be15e0749e0121f01b21809",
+                                            "responseType": "radio",
+                                            "evidenceMethod": "LW",
+                                            "rubricLevel": ""
+                                        },
+                                        "startTime": "",
+                                        "endTime": ""
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
     async assessment(req) {
 
         return new Promise(async (resolve, reject) => {
