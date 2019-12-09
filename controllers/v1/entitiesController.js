@@ -457,16 +457,22 @@ module.exports = class Entities extends Abstract {
         //     {}
         //   );
 
-        const entityMapUploadedData = await Promise.all(
-          entityCSVData.map(async (singleRow) => {
+        // const entityMapUploadedData = await Promise.all(
+        //   entityCSVData.map(async (singleRow) => {
 
-            if (singleRow.parentEntiyId != "" && singleRow.childEntityId != "") {
-              await entitiesHelper.addSubEntityToParent(singleRow.parentEntiyId, singleRow.childEntityId);
-            }
-            return true
+        //     if (singleRow.parentEntiyId != "" && singleRow.childEntityId != "") {
+        //       await entitiesHelper.addSubEntityToParent(singleRow.parentEntiyId, singleRow.childEntityId);
+        //     }
+        //     return true
 
-          })
-        )
+        //   })
+        // )
+
+        for (let indexToEntityMapData = 0; indexToEntityMapData < entityCSVData.length; indexToEntityMapData++) {
+          if (entityCSVData[indexToEntityMapData].parentEntiyId != "" && entityCSVData[indexToEntityMapData].childEntityId != "") {
+            await entitiesHelper.addSubEntityToParent(entityCSVData[indexToEntityMapData].parentEntiyId, entityCSVData[indexToEntityMapData].childEntityId);
+          }
+        }
 
         return resolve({
           message: "Information updated successfully."
