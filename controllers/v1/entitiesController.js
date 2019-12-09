@@ -567,7 +567,7 @@ module.exports = class Entities extends Abstract {
 
         let result = {}
         let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityDocument = await entitiesHelper.entities({ _id: req.params._id }, projection)
+        let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection)
 
         if (entityDocument.length < 0) {
           throw { status: 404, message: "No entitiy found" };

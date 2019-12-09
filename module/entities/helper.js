@@ -595,7 +595,7 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static entities(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
+    static entityDocuments(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};

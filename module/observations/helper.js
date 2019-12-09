@@ -4,7 +4,7 @@ const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications")
 
 module.exports = class observationsHelper {
 
-    static observationDocument(findQuery = "all", fields = "all") {
+    static observationDocuments(findQuery = "all", fields = "all") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};

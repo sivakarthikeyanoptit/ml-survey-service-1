@@ -56,7 +56,7 @@ module.exports = class Observations extends v1Observation {
 
                     projection.push("entityTypeId", "entities", "entityType")
 
-                    let observationDocument = await observationsHelper.observationDocument(findObject, projection)
+                    let observationDocument = await observationsHelper.observationDocuments(findObject, projection)
                     result = observationDocument[0]
                 }
 
@@ -65,7 +65,7 @@ module.exports = class Observations extends v1Observation {
                     findQuery.push(req.query.solutionId)
                     projection.push("entityTypeId", "entityType")
 
-                    let solutionDocument = await solutionsHelper.solutions(findQuery, projection)
+                    let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection)
                     result = _.merge(solutionDocument[0])
                 }
 

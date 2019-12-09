@@ -66,7 +66,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
-        let observationDocument = await observationsHelper.observationDocument({
+        let observationDocument = await observationsHelper.observationDocuments({
           _id: req.params._id,
           createdBy: req.userDetails.userId,
           status: {$ne:"inactive"},
@@ -77,31 +77,31 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         observationDocument = observationDocument[0]
 
-        let entityDocument = await entitiesHelper.entities({
+        let entityDocument = await entitiesHelper.entityDocuments({
           _id: req.query.entityId,
           entityType: observationDocument.entityType
-        }, {
-          metaInformation: 1,
-          entityTypeId: 1,
-          entityType: 1
-        })
+        }, [
+          "metaInformation",
+          "entityTypeId",
+          "entityType"
+        ])
 
         if (!entityDocument[0]) return resolve({ status: 400, message: 'No entity found.' })
         
         entityDocument = entityDocument[0]
 
-        let solutionDocument = await solutionsHelper.solutions({
+        let solutionDocument = await solutionsHelper.solutionDocuments({
           _id: observationDocument.solutionId,
           status: "active",
-        }, {
-          externalId: 1,
-          themes: 1,
-          frameworkId: 1,
-          frameworkExternalId: 1,
-          evidenceMethods: 1,
-          entityTypeId: 1,
-          entityType: 1
-        })
+        }, [
+          "externalId",
+          "themes",
+          "frameworkId",
+          "frameworkExternalId",
+          "evidenceMethods",
+          "entityTypeId",
+          "entityType"
+        ])
 
         if (!solutionDocument[0]) return resolve({ status: 400, message: 'No solution found.' })
 
@@ -155,7 +155,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           }
       })
 
-      let criteriaDocuments = await criteriaHelper.criteriaDocument(
+      let criteriaDocuments = await database.models.criteria.find(
           { _id: { $in: criteriaId } },
           {
               evidences : 0,
@@ -163,7 +163,11 @@ module.exports = class ObservationSubmissions extends Abstract {
               language: 0,
               keywords: 0,
               concepts: 0,
-              createdFor: 0
+              createdFor: 0,
+              updatedAt : 0,
+              createdAt : 0,
+              frameworkCriteriaId : 0,
+              __v : 0
           }
       ).lean();
 
