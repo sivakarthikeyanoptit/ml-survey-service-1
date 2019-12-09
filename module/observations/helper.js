@@ -218,21 +218,26 @@ module.exports = class observationsHelper {
 
     }
 
-    static findLastSubmissionNumberForObservationId(observationId = "") {
+    static findLastSubmissionForObservationEntity(observationId = "", entityId = "") {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                if(observationId == "") throw new Error("Invalid observation id.")
+                if(observationId == "" || entityId == "") throw new Error("Invalid observation or entity id.")
 
                 if(typeof observationId == "string") {
                     observationId = ObjectId(observationId)
                 }
 
+                if(typeof entityId == "string") {
+                    entityId = ObjectId(entityId)
+                }
+
                 let submissionDocument = await database.models.observationSubmissions.find(
                     {
-                        observationId: observationId
+                        observationId: observationId,
+                        entityId : entityId
                     },{
                         submissionNumber : 1
                     }
@@ -241,7 +246,7 @@ module.exports = class observationsHelper {
                 return resolve({
                     success: true,
                     message: "Submission Number fetched successfully.",
-                    result: (submissionDocument[0].submissionNumber) ? submissionDocument[0].submissionNumber : 0 
+                    result: (submissionDocument[0] && submissionDocument[0].submissionNumber) ? submissionDocument[0].submissionNumber : 0 
                 });
 
 

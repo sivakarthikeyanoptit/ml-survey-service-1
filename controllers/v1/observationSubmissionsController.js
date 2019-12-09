@@ -2,6 +2,8 @@ const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
 const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
 const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
 const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
+const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
 const observationSubmissionsHelper = require(ROOT_PATH + "/module/observationSubmissions/helper")
 
 module.exports = class ObservationSubmissions extends Abstract {
@@ -64,20 +66,146 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
-        let lastSubmissionNumberForObservationId = 0
+        let observationDocument = await observationsHelper.observationDocument({
+          _id: req.params._id,
+          createdBy: req.userDetails.userId,
+          status: {$ne:"inactive"},
+          entities: ObjectId(req.query.entityId)
+        })
 
-        lastSubmissionNumberForObservationId = await observationsHelper.findLastSubmissionNumberForObservationId(req.params._id)
+        if (!observationDocument[0]) return resolve({ status: 400, message: 'No observation found.' })
+
+        observationDocument = observationDocument[0]
+
+        let entityDocument = await entitiesHelper.entities({
+          _id: req.query.entityId,
+          entityType: observationDocument.entityType
+        }, {
+          metaInformation: 1,
+          entityTypeId: 1,
+          entityType: 1
+        })
+
+        if (!entityDocument[0]) return resolve({ status: 400, message: 'No entity found.' })
         
-        let observations = new Array;
+        entityDocument = entityDocument[0]
 
-        observations = await observationsHelper.list(req.userDetails.userId)
+        let solutionDocument = await solutionsHelper.solutions({
+          _id: observationDocument.solutionId,
+          status: "active",
+        }, {
+          externalId: 1,
+          themes: 1,
+          frameworkId: 1,
+          frameworkExternalId: 1,
+          evidenceMethods: 1,
+          entityTypeId: 1,
+          entityType: 1
+        })
+
+        if (!solutionDocument[0]) return resolve({ status: 400, message: 'No solution found.' })
+
+        solutionDocument = solutionDocument[0]
+
+        let entityProfileForm = await database.models.entityTypes.findOne(
+            solutionDocument.entityTypeId,
+            {
+                profileForm: 1
+            }
+        ).lean();
+
+        if (!entityProfileForm) return resolve({ status: 400, message: 'No entity profile form found.' })
+
+        let lastSubmissionNumber = 0
+
+        const lastSubmissionForObservationEntity = await observationsHelper.findLastSubmissionForObservationEntity(req.params._id, req.query.entityId)
         
-        let responseMessage = "Observation submission created successfully"
+        if(!lastSubmissionForObservationEntity.success) throw new Error(lastSubmissionForObservationEntity.message)
 
-        return resolve({
-            message: responseMessage,
-            result: observations
-        });
+        lastSubmissionNumber = lastSubmissionForObservationEntity.result + 1
+
+        let submissionDocument = {
+          entityId: entityDocument._id,
+          entityExternalId: (entityDocument.metaInformation.externalId) ? entityDocument.metaInformation.externalId : "",
+          entityInformation: entityDocument.metaInformation,
+          solutionId: solutionDocument._id,
+          solutionExternalId: solutionDocument.externalId,
+          frameworkId: solutionDocument.frameworkId,
+          frameworkExternalId: solutionDocument.frameworkExternalId,
+          entityTypeId: solutionDocument.entityTypeId,
+          entityType: solutionDocument.entityType,
+          observationId: observationDocument._id,
+          observationInformation: {
+              ..._.omit(observationDocument, ["_id", "entities", "deleted", "__v"])
+          },
+          createdBy: observationDocument.createdBy,
+          evidenceSubmissions: [],
+          entityProfile: {},
+          status: "started"
+      };
+
+      let criteriaId = new Array
+      let criteriaObject = {}
+      let criteriaIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
+
+      criteriaIdArray.forEach(eachCriteriaId => {
+          criteriaId.push(eachCriteriaId.criteriaId)
+          criteriaObject[eachCriteriaId.criteriaId.toString()] = {
+              weightage: eachCriteriaId.weightage
+          }
+      })
+
+      let criteriaDocuments = await criteriaHelper.criteriaDocument(
+          { _id: { $in: criteriaId } },
+          {
+              evidences : 0,
+              resourceType: 0,
+              language: 0,
+              keywords: 0,
+              concepts: 0,
+              createdFor: 0
+          }
+      ).lean();
+
+      let submissionDocumentEvidences = {};
+      let submissionDocumentCriterias = [];
+      Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
+          solutionDocument.evidenceMethods[solutionEcm].startTime = ""
+          solutionDocument.evidenceMethods[solutionEcm].endTime = ""
+          solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
+          solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+      })
+      submissionDocumentEvidences = solutionDocument.evidenceMethods
+
+      criteriaDocuments.forEach(criteria => {
+
+          criteria.weightage = criteriaObject[criteria._id.toString()].weightage
+
+          submissionDocumentCriterias.push(
+              _.omit(criteria, [
+                  "evidences"
+              ])
+          );
+
+      });
+
+      submissionDocument.evidences = submissionDocumentEvidences;
+      submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
+      submissionDocument.criteria = submissionDocumentCriterias;
+      submissionDocument.submissionNumber = lastSubmissionNumber;
+
+      await database.models.observationSubmissions.create(submissionDocument);
+      
+      let observations = new Array;
+
+      observations = await observationsHelper.list(req.userDetails.userId)
+      
+      let responseMessage = "Observation submission created successfully"
+
+      return resolve({
+          message: responseMessage,
+          result: observations
+      });
 
       } catch (error) {
         return reject({
