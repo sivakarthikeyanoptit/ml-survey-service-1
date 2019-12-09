@@ -178,7 +178,7 @@ module.exports = class UserExtension extends Abstract {
         let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
         let entityType = req.query.entityType ? req.query.entityType : "school"
 
-        let entitiesFound = await entitiesHelper.entities({
+        let entitiesFound = await entitiesHelper.entityDocuments({
           _id: { $in: userExtensionEntities },
           entityType: entityType
         }, ["_id"])
@@ -197,7 +197,7 @@ module.exports = class UserExtension extends Abstract {
 
         findQuery[`groups.${entityType}`] = { $exists: true }
 
-        let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+        let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`])
 
         if (remainingEntities.length > 0) {
           remainingEntities.forEach(eachEntityNotFound => {
@@ -237,7 +237,7 @@ module.exports = class UserExtension extends Abstract {
           }
       }
 
-        let result = await entitiesHelper.entities(queryObject, projection, req.pageSize, skippingValue)
+        let result = await entitiesHelper.entityDocuments(queryObject, projection, req.pageSize, skippingValue)
 
         return resolve({
           message: "User Extension entities fetched successfully",

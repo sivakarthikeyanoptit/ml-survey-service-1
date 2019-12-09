@@ -595,7 +595,7 @@ module.exports = class entitiesHelper {
         })
     }
 
-    static entities(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
+    static entityDocuments(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};
@@ -643,7 +643,7 @@ module.exports = class entitiesHelper {
                     throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
                 }
 
-                let relatedEntitiesDocument = await this.entities(relatedEntitiesQuery, projection)
+                let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection)
                 relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
 
                 return resolve(relatedEntitiesDocument)

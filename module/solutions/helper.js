@@ -1,6 +1,6 @@
 
 module.exports = class solutionsHelper {
-  static solutionDocument(solutionIds = "all", fields = "all") {
+  static solutionDocuments(solutionIds = "all", fields = "all") {
     return new Promise(async (resolve, reject) => {
       try {
         let queryObject = {};

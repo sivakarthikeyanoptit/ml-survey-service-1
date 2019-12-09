@@ -349,7 +349,7 @@ module.exports = class userExtensionHelper {
                 }
 
 
-                let entitiesFound = await entitiesHelper.entities({
+                let entitiesFound = await entitiesHelper.entityDocuments({
                     _id: { $in: allEntities },
                     entityType: entityType
                 }, ["_id"])
@@ -368,7 +368,7 @@ module.exports = class userExtensionHelper {
 
                 findQuery[`groups.${entityType}`] = { $exists: true }
 
-                let remainingEntities = await entitiesHelper.entities(findQuery, [`groups.${entityType}`])
+                let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`])
 
                 if (remainingEntities.length > 0) {
                     remainingEntities.forEach(eachEntityNotFound => {

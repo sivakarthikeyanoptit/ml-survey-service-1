@@ -212,6 +212,39 @@ module.exports = class Observations extends Abstract {
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/observations/list
+     * @apiParamExample {json} Response:
+        "result": [
+            {
+                "_id": "5d09c34d1f7fd5a2391f7251",
+                "entities": [],
+                "name": "Observation 1",
+                "description": "Observation Description",
+                "status": "published",
+                "solutionId": "5b98fa069f664f7e1ae7498c"
+            },
+            {
+                "_id": "5d1070326f6ed50bc34aec2c",
+                "entities": [
+                    {
+                        "_id": "5cebbefe5943912f56cf8e16",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    },
+                    {
+                        "_id": "5cebbf275943912f56cf8e18",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    }
+                ],
+                "status": "published",
+                "endDate": "2019-06-24T00:00:00.000Z",
+                "name": "asdasd",
+                "description": "asdasdasd",
+                "solutionId": "5c6bd309af0065f0e0d4223b"
+            }
+        ]
      * @apiUse successBody
      * @apiUse errorBody
      */
@@ -224,91 +257,8 @@ module.exports = class Observations extends Abstract {
 
                 let observations = new Array;
 
-                let assessorObservationsQueryObject = [
-                    {
-                        $match: {
-                            createdBy: req.userDetails.userId,
-                            status: { $ne: "inactive" }
-                        }
-                    },
-                    {
-                        $lookup: {
-                            from: "entities",
-                            localField: "entities",
-                            foreignField: "_id",
-                            as: "entityDocuments"
-                        }
-                    },
-                    {
-                        $project: {
-                            "name": 1,
-                            "description": 1,
-                            "entities": 1,
-                            "startDate": 1,
-                            "endDate": 1,
-                            "status": 1,
-                            "solutionId": 1,
-                            "entityDocuments._id": 1,
-                            "entityDocuments.metaInformation.externalId": 1,
-                            "entityDocuments.metaInformation.name": 1
-                        }
-                    }
-                ];
-
-                const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
-
-                let observation
-                let submissions
-                let entityObservationSubmissionStatus
-
-                for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
-
-                    observation = userObservations[pointerToAssessorObservationArray];
-
-
-                    submissions = await database.models.observationSubmissions.find(
-                        {
-                            entityId: {
-                                $in: observation.entities
-                            },
-                            observationId: observation._id
-                        },
-                        {
-                            "criteria": 0,
-                            "evidences": 0,
-                            "answers": 0
-                        }
-                    )
-
-                    let observationEntitySubmissions = {}
-                    submissions.forEach(observationEntitySubmission => {
-                        if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
-                            observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
-                                submissionStatus: "",
-                                submissions: new Array,
-                                entityId: observationEntitySubmission.entityId.toString()
-                            }
-                        }
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
-                    })
-
-                    // entityObservationSubmissionStatus = submissions.reduce(
-                    //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
-
-
-                    observation.entities = new Array
-                    observation.entityDocuments.forEach(observationEntity => {
-                        observation.entities.push({
-                            _id: observationEntity._id,
-                            submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
-                            submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
-                            ...observationEntity.metaInformation
-                        })
-                    })
-                    observations.push(_.omit(observation, ["entityDocuments"]))
-                }
-
+                observations = await observationsHelper.list(req.userDetails.userId)
+                
                 let responseMessage = "Observation list fetched successfully"
 
                 return resolve({
