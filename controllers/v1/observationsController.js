@@ -283,7 +283,7 @@ module.exports = class Observations extends Abstract {
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
      * @apiGroup Observations
-    * @apiParamExample {json} Request-Body:
+     * @apiParamExample {json} Request-Body:
      * {
      *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      * }
@@ -414,22 +414,22 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
-     * {
-        "message": "Entities fetched successfully",
-        "status": 200,
-        "result": [
-            {
-                "data": [
-                    {
-                        "_id": "5c5b1581e7e84d1d1be9175f",
-                        "name": "Vijaya krishna.T",
-                        "selected": false
-                    }
-                ],
-                "count": 435
-            }
-        ]
-    }
+        {
+            "message": "Entities fetched successfully",
+            "status": 200,
+            "result": [
+                {
+                    "data": [
+                        {
+                            "_id": "5c5b1581e7e84d1d1be9175f",
+                            "name": "Vijaya krishna.T",
+                            "selected": false
+                        }
+                    ],
+                    "count": 435
+                }
+            ]
+        }
      */
 
 
@@ -502,6 +502,7 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+
     async assessment(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -784,15 +785,15 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
-   * @apiVersion 1.0.0
-   * @apiName Mark As Completed
-   * @apiGroup Observations
-   * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiSampleRequest /assessment/api/v1/observations/complete/:observationId
-   * @apiUse successBody
-   * @apiUse errorBody
-   */
+     * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
+     * @apiVersion 1.0.0
+     * @apiName Mark As Completed
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/complete/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
 
 
     async complete(req) {
@@ -949,9 +950,9 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
+     * @api {post} /assessment/api/v1/observations/bulkCreate Bulk Create Observations CSV
      * @apiVersion 1.0.0
-     * @apiName bulkCreate observations CSV
+     * @apiName Bulk Create Observations CSV
      * @apiGroup Observations
      * @apiParam {File} observation  Mandatory observation file of type CSV.
      * @apiUse successBody
@@ -1093,14 +1094,14 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-        * @api {post} /assessment/api/v1/observations/update/:observationId update name and description of Observations
-        * @apiVersion 1.0.0
-        * @apiName update observations
-        * @apiGroup Observations
-        * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
-        * @apiUse successBody
-        * @apiUse errorBody
-        */
+    * @api {post} /assessment/api/v1/observations/update/:observationId Update Observation Details
+    * @apiVersion 1.0.0
+    * @apiName Update Observation Details
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
 
     async update(req) {
         return new Promise(async (resolve, reject) => {
@@ -1149,15 +1150,15 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/delete/:observationId Delete an Observation
-   * @apiVersion 1.0.0
-   * @apiName Delete an Observation
-   * @apiGroup Observations
-   * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiSampleRequest /assessment/api/v1/observations/delete/:observationId
-   * @apiUse successBody
-   * @apiUse errorBody
-   */
+     * @api {get} /assessment/api/v1/observations/delete/:observationId Delete an Observation
+     * @apiVersion 1.0.0
+     * @apiName Delete an Observation
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/delete/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
 
 
     async delete(req) {
@@ -1196,30 +1197,30 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
-  * @apiVersion 1.0.0
-  * @apiName Pending Observations
-  * @apiGroup Observations
-  * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
-  * @apiUse successBody
-  * @apiUse errorBody
-  * @apiParamExample {json} Response:
-  * {
-    "message": "Pending Observations",
-    "status": 200,
-    "result": [
+     * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
+     * @apiVersion 1.0.0
+     * @apiName Pending Observations
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
+     * @apiUse successBody
+     * @apiUse errorBody
+     * @apiParamExample {json} Response:
         {
-            "_id": "5d31a14dbff58d3d65ede344",
-            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
-            "solutionId": "5c6bd309af0065f0e0d4223b",
-            "createdAt": "2019-07-19T10:54:05.638Z",
-            "entityId": "5cebbefe5943912f56cf8e16",
-            "observationId": "5d1070326f6ed50bc34aec2c"
+            "message": "Pending Observations",
+            "status": 200,
+            "result": [
+                {
+                    "_id": "5d31a14dbff58d3d65ede344",
+                    "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+                    "solutionId": "5c6bd309af0065f0e0d4223b",
+                    "createdAt": "2019-07-19T10:54:05.638Z",
+                    "entityId": "5cebbefe5943912f56cf8e16",
+                    "observationId": "5d1070326f6ed50bc34aec2c"
+                }
+            ]
         }
-        ]
-    }
-  */
+    */
 
     async pendingObservations() {
         return new Promise(async (resolve, reject) => {
@@ -1248,30 +1249,30 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-* @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
-* @apiVersion 1.0.0
-* @apiName Completed Observations
-* @apiGroup Observations
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/observations/completedObservations
-* @apiUse successBody
-* @apiUse errorBody
-* @apiParamExample {json} Response:
-{
-    "message": "Completed Observations",
-    "status": 200,
-    "result": [
+    * @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
+    * @apiVersion 1.0.0
+    * @apiName Completed Observations
+    * @apiGroup Observations
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/observations/completedObservations
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
         {
-            "_id": "5d2702e60110594953c1614a",
-            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
-            "solutionId": "5c6bd309af0065f0e0d4223b",
-            "createdAt": "2019-06-27T08:55:16.718Z",
-            "entityId": "5cebbefe5943912f56cf8e16",
-            "observationId": "5d1483c9869c433b0440c5dd"
+            "message": "Completed Observations",
+            "status": 200,
+            "result": [
+                {
+                    "_id": "5d2702e60110594953c1614a",
+                    "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+                    "solutionId": "5c6bd309af0065f0e0d4223b",
+                    "createdAt": "2019-06-27T08:55:16.718Z",
+                    "entityId": "5cebbefe5943912f56cf8e16",
+                    "observationId": "5d1483c9869c433b0440c5dd"
+                }
+            ]
         }
-    ]
-}
-*/
+    */
 
     async completedObservations() {
         return new Promise(async (resolve, reject) => {
