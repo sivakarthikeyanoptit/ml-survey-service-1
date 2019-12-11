@@ -23,6 +23,31 @@ var connect = function(config) {
       console.error.bind(console, "kafka producer creation error!")
     })
 
+
+    Consumer = kafka.Consumer
+
+    if(config.consumerTopics["submissionRatingQueueTopic"] && config.consumerTopics["submissionRatingQueueTopic"] != "") {
+ 
+        let consumer = new Consumer(
+            client,
+            [
+                { topic: config.consumerTopics["submissionRatingQueueTopic"], offset: 0, partition: 0 }
+            ],
+            {
+                autoCommit: true
+            }
+        );
+
+        consumer.on('message', async function (message) {
+          submissionRatingQueueConsumer.messageReceived(message)
+        });
+
+        consumer.on('error', async function (error) {
+          submissionRatingQueueConsumer.errorTriggered(error)
+        });
+
+    }
+
     return {
       kafkaProducer: producer,
       kafkaClient: client,

@@ -1,8 +1,8 @@
 module.exports = {
     name: "forms",
     schema: {
-      name: "String",
-      value: "Array"
+      name: String,
+      value: Array
     }
   };
   

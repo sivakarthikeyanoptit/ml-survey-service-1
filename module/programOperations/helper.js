@@ -1,5 +1,5 @@
 const moment = require("moment");
-const entityAssessorsTrackers = require(ROOT_PATH + "/module/entityAssessorTracker/helper");
+const entityAssessorsTrackers = require(MODULES_BASE_PATH + "/entityAssessorTracker/helper");
 module.exports = class programOperationsHelper {
 
   static constructResultObject(graphName, value, totalCount, userDetails, programName, queryParams) {

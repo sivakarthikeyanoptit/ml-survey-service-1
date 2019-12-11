@@ -1,10 +1,10 @@
-const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const assessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper")
+const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper")
 
 module.exports = class Observations extends Abstract {
 
@@ -672,10 +672,14 @@ module.exports = class Observations extends Abstract {
                 let submissionDocumentEvidences = {};
                 let submissionDocumentCriterias = [];
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
-                    solutionDocument.evidenceMethods[solutionEcm].startTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].endTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
-                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
+                        solutionDocument.evidenceMethods[solutionEcm].startTime = ""
+                        solutionDocument.evidenceMethods[solutionEcm].endTime = ""
+                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
+                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    } else {
+                        delete solutionDocument.evidenceMethods[solutionEcm]
+                    }
                 })
                 submissionDocumentEvidences = solutionDocument.evidenceMethods
 
@@ -691,7 +695,7 @@ module.exports = class Observations extends Abstract {
 
                     criteria.evidences.forEach(evidenceMethod => {
 
-                        if (evidenceMethod.code) {
+                        if (submissionDocumentEvidences[evidenceMethod.code] && evidenceMethod.code) {
 
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 

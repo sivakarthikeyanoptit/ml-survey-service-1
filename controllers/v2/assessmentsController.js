@@ -1,5 +1,5 @@
-const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
-const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
 
 module.exports = class Assessments {
 
@@ -322,10 +322,14 @@ module.exports = class Assessments {
                 let submissionDocumentCriterias = [];
 
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
-                    solutionDocument.evidenceMethods[solutionEcm].startTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].endTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
-                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
+                        solutionDocument.evidenceMethods[solutionEcm].startTime = ""
+                        solutionDocument.evidenceMethods[solutionEcm].endTime = ""
+                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
+                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    } else {
+                        delete solutionDocument.evidenceMethods[solutionEcm]
+                    }
                 })
                 submissionDocumentEvidences = solutionDocument.evidenceMethods
 
@@ -341,7 +345,7 @@ module.exports = class Assessments {
 
                     criteria.evidences.forEach(evidenceMethod => {
 
-                        if (submissionDocumentEvidences[evidenceMethod.code].modeOfCollection === isRequestForOncallOrOnField) {
+                        if (submissionDocumentEvidences[evidenceMethod.code] && submissionDocumentEvidences[evidenceMethod.code].modeOfCollection === isRequestForOncallOrOnField) {
 
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 

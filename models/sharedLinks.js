@@ -1,21 +1,21 @@
 module.exports = {
     name: "sharedLink",
     schema: {
-        privateURL: "string",
-        publicURL: "string",
-        linkId: "string",
+        privateURL: String,
+        publicURL: String,
+        linkId: String,
         isActive: Boolean,
         accessedCount: Number,
         linkViews: Array,
-        reportName: "string",
-        queryParams: "string",
+        reportName: String,
+        queryParams: String,
         userDetails: {
-            id: "string",
+            id: String,
             accessiblePrograms: Array,
             allRoles: Array,
-            firstName: "string",
-            lastName: "string",
-            email: "string"
+            firstName: String,
+            lastName: String,
+            email: String
         },
     }
 };

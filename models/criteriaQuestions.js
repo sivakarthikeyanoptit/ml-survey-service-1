@@ -8,7 +8,7 @@ module.exports = {
         name: String,
         score: String,
         remarks: String,
-        showRemarks: "boolean",
+        showRemarks: Boolean,
         description: String,
         resourceType: [String],
         language: [String],

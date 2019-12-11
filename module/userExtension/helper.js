@@ -1,6 +1,6 @@
-const userRolesHelper = require(ROOT_PATH + "/module/userRoles/helper");
-const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 
 module.exports = class userExtensionHelper {

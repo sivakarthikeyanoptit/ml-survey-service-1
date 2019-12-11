@@ -1,5 +1,5 @@
-const entitiyTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper")
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
+const entitiyTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 
 module.exports = class EntityTypes extends Abstract {
   constructor() {

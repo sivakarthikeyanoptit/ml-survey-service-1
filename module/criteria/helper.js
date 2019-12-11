@@ -48,7 +48,10 @@ module.exports = class criteriaHelper {
 
                  await database.models.criteria.findOneAndUpdate(
                     {_id : criteriaId},
-                    {rubric: rubric}
+                    {
+                        rubric: rubric,
+                        criteriaType : "auto"
+                    }
                 );
 
                 return resolve({

@@ -1,5 +1,5 @@
 const csv = require("csvtojson");
-const staticLinksHelper = require(ROOT_PATH + "/module/staticLinks/helper")
+const staticLinksHelper = require(MODULES_BASE_PATH + "/staticLinks/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
 module.exports = class StaticLinks extends Abstract {

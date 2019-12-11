@@ -37,11 +37,12 @@ module.exports = {
     frameworkExternalId: String,
     parentSolutionId: "ObjectId",
     noOfRatingLevels: Number,
-    isRubricDriven: Boolean,
+    isRubricDriven: { type : Boolean, default: false },
     isReusable: Boolean,
     roles: Object,
     observationMetaFormKey: String,
     updatedBy: String,
-    captureGpsLocationAtQuestionLevel:{ type : Boolean, default: false }
+    captureGpsLocationAtQuestionLevel:{ type : Boolean, default: false },
+    sendSubmissionRatingEmailsTo: String,
   }
 };

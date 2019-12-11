@@ -11,7 +11,8 @@ var DB = function(config) {
   // Added to remove depreciation warnings from logs.
   mongoose.set('useCreateIndex', true)
   mongoose.set('useFindAndModify', false)
-
+  mongoose.set('useUnifiedTopology', true)
+  
   var db = mongoose.createConnection(
     config.host + "/" + config.database,
     config.options

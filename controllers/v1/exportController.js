@@ -1,4 +1,4 @@
-const filesHelper = require(ROOT_PATH + "/module/files/helper")
+const filesHelper = require(MODULES_BASE_PATH + "/files/helper")
 
 module.exports = class Export {
 

@@ -1,6 +1,6 @@
-const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper");
-const insightsHelper = require(ROOT_PATH + "/module/insights/helper");
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+const insightsHelper = require(MODULES_BASE_PATH + "/insights/helper");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 module.exports = class Programs extends Abstract {
 
   constructor() {
@@ -16,30 +16,30 @@ module.exports = class Programs extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/programs/list List all the programs
-* @apiVersion 1.0.0
-* @apiName Fetch Program List
-* @apiGroup Program
-* @apiParamExample {json} Response:
-  "result": [
-    {
-      "_id": "5b98d7b6d4f87f317ff615ee",
-      "externalId": "PROGID01",
-      "name": "DCPCR School Development Index 2018-19",
-      "description": "DCPCR School Development Index 2018-19",
-      "assessments": [
-        {
-          "_id": "5b98fa069f664f7e1ae7498c",
-          "externalId": "EF-DCPCR-2018-001",
-          "name": "DCPCR Assessment Framework 2018",
-          "description": "DCPCR Assessment Framework 2018"
-        }
-      ]
-    }
-  ]
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/programs/list List all the programs
+  * @apiVersion 1.0.0
+  * @apiName Fetch Program List
+  * @apiGroup Program
+  * @apiParamExample {json} Response:
+    "result": [
+      {
+        "_id": "5b98d7b6d4f87f317ff615ee",
+        "externalId": "PROGID01",
+        "name": "DCPCR School Development Index 2018-19",
+        "description": "DCPCR School Development Index 2018-19",
+        "assessments": [
+          {
+            "_id": "5b98fa069f664f7e1ae7498c",
+            "externalId": "EF-DCPCR-2018-001",
+            "name": "DCPCR Assessment Framework 2018",
+            "description": "DCPCR Assessment Framework 2018"
+          }
+        ]
+      }
+    ]
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async list(req) {
     return new Promise(async (resolve, reject) => {
@@ -87,30 +87,30 @@ module.exports = class Programs extends Abstract {
   }
 
   /**
-* @api {get} /assessment/api/v1/programs/entityList?solutionId=""&search="" Fetch Entity List
-* @apiVersion 1.0.0
-* @apiName Fetch Entity List 
-* @apiGroup Program
-* @apiParam {String} solutionId Solution ID.
-* @apiParam {String} Page Page.
-* @apiParam {String} Limit Limit.
-* @apiSampleRequest /assessment/api/v1/programs/entityList?solutionId=5c5693fd28466d82967b9429&search=
-* @apiParamExample {json} Response:
-  "result": {
-      "totalCount": 54,
-      "entityInformation": [
-        {
-          "externalId": "EXC1001",
-          "addressLine1": "Chaitanya Nagar, Gajuwaka, Visakhapatnam, Andhra Pradesh",
-          "name": "Chalapathi School",
-          "administration": "",
-          "status": ""
-        }
-      ]
-    }  
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/programs/entityList?solutionId=""&search="" Fetch Entity List
+  * @apiVersion 1.0.0
+  * @apiName Fetch Entity List 
+  * @apiGroup Program
+  * @apiParam {String} solutionId Solution ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiSampleRequest /assessment/api/v1/programs/entityList?solutionId=5c5693fd28466d82967b9429&search=
+  * @apiParamExample {json} Response:
+    "result": {
+        "totalCount": 54,
+        "entityInformation": [
+          {
+            "externalId": "EXC1001",
+            "addressLine1": "Chaitanya Nagar, Gajuwaka, Visakhapatnam, Andhra Pradesh",
+            "name": "Chalapathi School",
+            "administration": "",
+            "status": ""
+          }
+        ]
+      }  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async entityList(req) {
     return new Promise(async (resolve, reject) => {
@@ -242,7 +242,7 @@ module.exports = class Programs extends Abstract {
         let singleEntityDrillDown
 
         if (insightDocument.length > 0) {
-          let solutionDocument = await solutionsHelper.checkForScoringSystemFromInsights(insightDocument[0].solutionId)
+          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId)
 
           singleEntityDrillDown = solutionDocument ? true : false;
 
@@ -281,39 +281,39 @@ module.exports = class Programs extends Abstract {
 
 
   /**
-* @api {get} /assessment/api/v1/programs/userList?solutionId=:solutionInternalId&search=:searchText&page=:page&limit=:limit Fetch User List
-* @apiVersion 1.0.0
-* @apiName Fetch User Entity List 
-* @apiGroup Program
-* @apiParam {String} ProgramId Program ID.
-* @apiParam {String} Page Page.
-* @apiParam {String} Limit Limit.
-* @apiSampleRequest /assessment/api/v1/programs/userList?solutionId=5b98fa069f664f7e1ae7498c&search=&page=1&limit=1
-* @apiParamExample {json} Response:
-  "result": {
-    "totalCount": 3055,
-    "assessorInformation": [
-    {
-      "_id": "5bfe69021d0c350d61b78e68",
-      "userId": "32172a5c-8bfe-4520-9089-355de77aac71",
-      "__v": 0,
-      "createdAt": "2019-01-01T00:00:00.000Z",
-      "createdBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
-      "externalId": "SPM001",
-      "parentId": "",
-      "programId": "5c9d0937a43629432ce631db",
-      "role": "PROGRAM_MANAGER",
-      "updatedAt": "2019-01-01T00:00:00.000Z",
-      "updatedBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
-      "solutionId": null,
-      "entityTypeId": "5ce23d633c330302e720e65f",
-      "entityType": "school"
-     }
-      ]
-    }
-* @apiUse successBody
-* @apiUse errorBody
-*/
+  * @api {get} /assessment/api/v1/programs/userList?solutionId=:solutionInternalId&search=:searchText&page=:page&limit=:limit Fetch User List
+  * @apiVersion 1.0.0
+  * @apiName Fetch User Entity List 
+  * @apiGroup Program
+  * @apiParam {String} ProgramId Program ID.
+  * @apiParam {String} Page Page.
+  * @apiParam {String} Limit Limit.
+  * @apiSampleRequest /assessment/api/v1/programs/userList?solutionId=5b98fa069f664f7e1ae7498c&search=&page=1&limit=1
+  * @apiParamExample {json} Response:
+    "result": {
+      "totalCount": 3055,
+      "assessorInformation": [
+      {
+        "_id": "5bfe69021d0c350d61b78e68",
+        "userId": "32172a5c-8bfe-4520-9089-355de77aac71",
+        "__v": 0,
+        "createdAt": "2019-01-01T00:00:00.000Z",
+        "createdBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
+        "externalId": "SPM001",
+        "parentId": "",
+        "programId": "5c9d0937a43629432ce631db",
+        "role": "PROGRAM_MANAGER",
+        "updatedAt": "2019-01-01T00:00:00.000Z",
+        "updatedBy": "e7719630-0457-47ca-a5ce-8190ffb34f13",
+        "solutionId": null,
+        "entityTypeId": "5ce23d633c330302e720e65f",
+        "entityType": "school"
+      }
+        ]
+      }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   async userList(req) {
     return new Promise(async (resolve, reject) => {
@@ -532,7 +532,7 @@ module.exports = class Programs extends Abstract {
         let singleEntityDrillDown
 
         if (insightDocument.length > 0) {
-          let solutionDocument = await solutionsHelper.checkForScoringSystemFromInsights(insightDocument[0].solutionId)
+          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId)
           singleEntityDrillDown = solutionDocument ? true : false;
         }
 

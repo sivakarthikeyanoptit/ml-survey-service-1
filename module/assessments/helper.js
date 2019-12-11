@@ -1,4 +1,4 @@
-const questionHelper = require(ROOT_PATH + "/module/questions/helper");
+const questionHelper = require(MODULES_BASE_PATH + "/questions/helper");
 module.exports = class assessmentsHelper {
 
     static getUserRole(roles) {
