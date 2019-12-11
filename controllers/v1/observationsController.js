@@ -1299,4 +1299,97 @@ module.exports = class Observations extends Abstract {
         });
     }
 
+           /**
+* @api {get} /assessment/api/v1/observations/details/:observationId 
+* Observations details.
+* @apiVersion 1.0.0
+* @apiGroup Observations
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/observations/details/5de8a220c210d4700813e695
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+{
+    "message": "Observation details fetched successfully",
+    "status": 200,
+    "result": {
+        "_id": "5d282bbcc1e91c71b6c025ee",
+        "entities": [
+            {
+                "_id": "5d5bacc27b68e809c81f4994",
+                "deleted": false,
+                "entityTypeId": "5d28233dd772d270e55b4072",
+                "entityType": "school",
+                "metaInformation": {
+                    "externalId": "1355120",
+                    "districtId": "",
+                    "districtName": "",
+                    "zoneId": "NARELA",
+                    "name": "SHAHBAD DAIRY C-I",
+                    "types": [
+                        "A1"
+                    ],
+                    "addressLine1": "",
+                    "city": "New Delhi",
+                    "pincode": "",
+                    "state": "New Delhi",
+                    "country": "India"
+                },
+                "updatedBy": "7996ada6-4d46-4e77-b350-390dee883892",
+                "createdBy": "7996ada6-4d46-4e77-b350-390dee883892",
+                "updatedAt": "2019-08-20T08:18:10.985Z",
+                "createdAt": "2019-08-20T08:18:10.985Z",
+                "__v": 0
+            }
+        ],
+        "deleted": false,
+        "name": "CRO-2019 By",
+        "description": "CRO-2019m",
+        "status": "inactive",
+        "solutionId": "5d282bbcc1e91c71b6c025e6",
+        "solutionExternalId": "CRO-2019-TEMPLATE",
+        "frameworkId": "5d28233fd772d270e55b4199",
+        "frameworkExternalId": "CRO-2019",
+        "entityTypeId": "5d28233dd772d270e55b4072",
+        "entityType": "school",
+        "createdBy": "6e24b29b-8b81-4b70-b1b5-fa430488b1cf",
+        "updatedAt": "2019-10-16T06:34:54.224Z",
+        "createdAt": "2019-07-01T14:05:11.706Z",
+        "startDate": "2018-07-12T06:05:50.963Z",
+        "endDate": "2020-07-12T06:05:50.963Z",
+        "__v": 0,
+        "count": 11
+    }
+}
+*/
+      /**
+      *  Observation details.
+      * @method
+      * @name details
+      * @param  {Request} req request body.
+      * @returns {JSON} Response consists of message,status and result.
+      * Result will have the details of the observations including entities details.
+     */
+
+    async details(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observationDetails = await observationsHelper.details(req.params._id);
+
+                return resolve({
+                    message: "Observation details fetched successfully",
+                    result: observationDetails
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || 500,
+                    message: error.message || "Oops! Something went wrong!",
+                    errorObject: error
+                });
+            }
+        });
+    }
+
 }
