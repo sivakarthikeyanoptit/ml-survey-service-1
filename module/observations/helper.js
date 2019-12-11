@@ -435,4 +435,43 @@ module.exports = class observationsHelper {
         })
     }
 
+     /**
+      *  Helper function for observation details api.
+      * @method
+      * @name details
+      * @param  {String} observationId observation id.
+      * @returns {Promise} Returns a Promise.
+     */
+
+    static details(observationId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observationDocument = await this.observationDocuments({
+                    _id:observationId
+                });
+
+                if(!observationDocument[0]) {
+                    throw new Error("No Observation found.");
+                }
+
+                if(observationDocument[0].entities.length>0) {
+
+                    let entitiesDocument = await entitiesHelper.entityDocuments({
+                        _id:{$in:observationDocument[0].entities}
+                    });
+
+                    observationDocument[0]["count"] = entitiesDocument.length;
+                    observationDocument[0].entities = entitiesDocument;
+                }
+
+                return resolve(observationDocument[0]);
+
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 };

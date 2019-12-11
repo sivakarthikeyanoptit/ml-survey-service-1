@@ -5,6 +5,18 @@ module.exports = class Assessments {
 
     constructor() {
     }
+    
+    /**
+     * @apiDefine errorBody
+     * @apiError {String} status 4XX,5XX
+     * @apiError {String} message Error
+     */
+
+    /**
+     * @apiDefine successBody
+     *  @apiSuccess {String} status 200
+     * @apiSuccess {String} result Data
+     */
 
     /**
     * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
