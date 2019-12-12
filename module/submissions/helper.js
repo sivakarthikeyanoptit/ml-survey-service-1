@@ -142,7 +142,7 @@ module.exports = class submissionsHelper {
 
                 let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(submissionSolutionId)
 
-                let submissionToBeAutoRated = solutionDocument ? true : false;
+                let submissionToBeAutoRated = (solutionDocument[0] && solutionDocument[0].scoringSystem && solutionDocument[0].scoringSystem != "") ? true : false;
                 
                 return resolve(submissionToBeAutoRated);
 
