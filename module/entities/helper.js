@@ -447,6 +447,58 @@ module.exports = class entitiesHelper {
 
     }
 
+
+    static processEntityMappingUploadData(mappingData = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(mappingData.length < 1) throw new Error("Invalid mapping data")
+
+                this.entityMapProccessData = {
+                    entityTypeMap : {},
+                    relatedEntities : {},
+                    entityToUpdate : {}
+                }
+
+                for (let indexToEntityMapData = 0; indexToEntityMapData < mappingData.length; indexToEntityMapData++) {
+                  if (mappingData[indexToEntityMapData].parentEntiyId != "" && mappingData[indexToEntityMapData].childEntityId != "") {
+                    await this.addSubEntityToParent(mappingData[indexToEntityMapData].parentEntiyId, mappingData[indexToEntityMapData].childEntityId);
+                  }
+                }
+
+                if(Object.keys(this.entityMapProccessData.entityToUpdate).length > 0) {
+                    await Promise.all(Object.keys(this.entityMapProccessData.entityToUpdate).map(async entityIdToUpdate => {
+                        
+                        let updateQuery = {"$addToSet" : {}}
+
+                        Object.keys(this.entityMapProccessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
+                            updateQuery["$addToSet"][groupToUpdate] = {
+                                $each: this.entityMapProccessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
+                            }
+                        })
+
+                        await database.models.entities.updateMany(
+                            { _id: ObjectId(entityIdToUpdate) },
+                            updateQuery
+                        );
+
+                    }))
+                }
+
+                this.entityMapProccessData = {}
+                
+                return resolve({
+                    success : true,
+                    message: "Information updated successfully."
+                });
+
+            } catch (error) {
+                return reject(error)
+            }
+        })
+    }
+
+
     static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -454,9 +506,9 @@ module.exports = class entitiesHelper {
                 let childEntity = await database.models.entities.findOne({
                     _id: ObjectId(childEntityId)
                 }, {
-                        entityType: 1,
-                        groups: 1
-                    }).lean()
+                    entityType: 1,
+                    groups: 1
+                }).lean()
 
 
                 if (childEntity.entityType) {
@@ -633,6 +685,10 @@ module.exports = class entitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
+                if(this.entityMapProccessData && this.entityMapProccessData.relatedEntities[entityId.toString()]) {
+                    return resolve(this.entityMapProccessData.relatedEntities[entityId.toString()])
+                }
+
                 let relatedEntitiesQuery = {}
 
                 if (entityTypeId && entityId && entityType) {
@@ -645,6 +701,10 @@ module.exports = class entitiesHelper {
 
                 let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection)
                 relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
+
+                if(this.entityMapProccessData) {
+                    this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument
+                }
 
                 return resolve(relatedEntitiesDocument)
 
@@ -662,33 +722,77 @@ module.exports = class entitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
-                    name: parentEntity.entityType
-                }, {
+                let updateParentHierarchy = false
+
+                if(this.entityMapProccessData) {
+                    
+                    if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType]) {
+                        if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
+                            updateParentHierarchy = true
+                        }
+                    } else {
+
+                        let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                            name: parentEntity.entityType
+                        }, {
+                            toBeMappedToParentEntities: 1
+                        }).lean()
+                        
+                        if(checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                            updateParentHierarchy = true
+                        }
+                        
+                        this.entityMapProccessData.entityTypeMap[parentEntity.entityType] = {
+                            updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
+                        }
+
+                    }
+
+                } else {
+
+                    let checkParentEntitiesMappedValue = await database.models.entityTypes.findOne({
+                        name: parentEntity.entityType
+                    }, {
                         toBeMappedToParentEntities: 1
                     }).lean()
+                    
+                    if(checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                        updateParentHierarchy = true
+                    }
+                }
 
 
 
-                if (checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
+                if (updateParentHierarchy) {
                     let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
 
                     if (relatedEntities.length > 0) {
-
-                        let updateQuery = {}
-                        updateQuery["$addToSet"] = {}
-                        updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
-
-                        let allEntities = []
-
-                        relatedEntities.forEach(eachRelatedEntities => {
-                            allEntities.push(eachRelatedEntities._id)
-                        })
-
-                        await database.models.entities.updateMany(
-                            { _id: { $in: allEntities } },
-                            updateQuery
-                        );
+                        if(this.entityMapProccessData) {
+                            relatedEntities.forEach(eachRelatedEntities => {
+                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
+                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()] = {}
+                                }
+                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
+                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array
+                                }
+                                this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id)
+                            })
+                        } else {
+                            let updateQuery = {}
+                            updateQuery["$addToSet"] = {}
+                            updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+    
+                            let allEntities = []
+    
+                            relatedEntities.forEach(eachRelatedEntities => {
+                                allEntities.push(eachRelatedEntities._id)
+                            })
+    
+                            await database.models.entities.updateMany(
+                                { _id: { $in: allEntities } },
+                                updateQuery
+                            );
+                        }
                     }
                 }
 

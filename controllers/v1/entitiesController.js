@@ -438,39 +438,9 @@ module.exports = class Entities extends Abstract {
 
         let entityCSVData = await csv().fromString(req.files.entityMap.data.toString());
 
-        //   let solutionEntities = await database.models.solutions.findOne({
-        //     programExternalId: req.query.programId,
-        //     externalId: req.query.solutionId
-        //   }, {
-        //     entities : 1
-        //   }).lean();
-
-        //   if(!solutionEntities.entities.length > 0) 
-        //     throw "Invalid Solution ID."
-
-        //   const solutionEntitiyMap = solutionEntities.entities.reduce(
-        //     (ac, entityId) => ({
-        //       ...ac,
-        //       [entityId.toString()]: true
-        //     }),
-        //     {}
-        //   );
-
-        // const entityMapUploadedData = await Promise.all(
-        //   entityCSVData.map(async (singleRow) => {
-
-        //     if (singleRow.parentEntiyId != "" && singleRow.childEntityId != "") {
-        //       await entitiesHelper.addSubEntityToParent(singleRow.parentEntiyId, singleRow.childEntityId);
-        //     }
-        //     return true
-
-        //   })
-        // )
-
-        for (let indexToEntityMapData = 0; indexToEntityMapData < entityCSVData.length; indexToEntityMapData++) {
-          if (entityCSVData[indexToEntityMapData].parentEntiyId != "" && entityCSVData[indexToEntityMapData].childEntityId != "") {
-            await entitiesHelper.addSubEntityToParent(entityCSVData[indexToEntityMapData].parentEntiyId, entityCSVData[indexToEntityMapData].childEntityId);
-          }
+        let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData)
+        if(!entityMappingUploadResponse.success) {
+          throw new Error ("Something went wrong while doing entity mapping upload.")
         }
 
         return resolve({
