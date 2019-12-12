@@ -1,31 +1,35 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Remove users from solution document and convert school profile to entity profile."
-    
 
-    let solutionDocuments = await db.collection('solutions').find({}).project({roles: 1}).toArray();
+      global.migrationMsg = "Migrated up remove-users-from-solutions file";
 
-    await Promise.all(solutionDocuments.map(async (solution) => {
+      let solutionDocuments = await db.collection('solutions').find({}).project({ roles: 1 }).toArray();
 
-      let newRoles = {}
-      Object.keys(solution.roles).forEach(role => {
-        if(solution.roles[role].acl && solution.roles[role].acl.schoolProfile) {
-          newRoles[role] = {
-            acl: {
-              entityProfile : solution.roles[role].acl.schoolProfile
+      if(solutionDocuments.length>0) {
+
+        global.migrationMsg = "Remove users from solution document and convert school profile to entity profile."
+        
+        await Promise.all(solutionDocuments.map(async (solution) => {
+
+          let newRoles = {}
+          Object.keys(solution.roles).forEach(role => {
+            if (solution.roles[role].acl && solution.roles[role].acl.schoolProfile) {
+              newRoles[role] = {
+                acl: {
+                  entityProfile: solution.roles[role].acl.schoolProfile
+                }
+              }
             }
-          }
-        }
-      })
+          })
 
-      return await db.collection('solutions').findOneAndUpdate({
-        _id: solution._id
-      }, { $set: {roles: newRoles}})
+          return await db.collection('solutions').findOneAndUpdate({
+            _id: solution._id
+          }, { $set: { roles: newRoles } })
 
-    }))
+        }))
 
-    return true
-
+        return true
+      }
   },
 
   async down(db) {

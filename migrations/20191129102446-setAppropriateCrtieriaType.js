@@ -1,9 +1,13 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Set criteriaType to manual for non algo criteria and update solutions/frameworks accordingly"
     
+    global.migrationMsg = "Migrated up setAppropriateCriteriaType file";
     let criteriaDocuments = await db.collection('criteria').find({"rubric.levels.L1.expression" :{$eq : ""}}).project({rubric: 1,criteriaType : 1}).toArray();
 
+    if(criteriaDocuments.length>0) {
+    
+    global.migrationMsg = "Set criteriaType to manual for non algo criteria and update solutions/frameworks accordingly"
+    
     await Promise.all(criteriaDocuments.map(async (criteria) => {
 
       
@@ -114,7 +118,7 @@ module.exports = {
     }))
 
 
-  },
+  }},
 
   async down(db) {
     // return await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});
