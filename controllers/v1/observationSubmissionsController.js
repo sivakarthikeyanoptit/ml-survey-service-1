@@ -405,7 +405,6 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         if (response.result.status && response.result.status === "completed") {
           await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id)
-          await observationSubmissionsHelper.generateHtml(req.params._id)
         } else if(response.result.status && response.result.status === "ratingPending") {
           await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id)
         }
