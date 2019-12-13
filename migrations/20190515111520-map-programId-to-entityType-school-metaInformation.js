@@ -1,17 +1,20 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Map createdByProgramId to all entities metaInformation";
+    global.migrationMsg = "Migrated up map-programId-to-entityType-school-metaInformation";
 
     let solutionWithEntities = await db.collection('solutions').find({}).project({ programId: 1, entities: 1 }).toArray();
 
-    solutionWithEntities.forEach(async (solution) => {
-      await Promise.all(solution.entities.map(async (entity) => {
-        return db.collection('entities').updateOne(
-          { _id: entity },
-          { $set: { "metaInformation.createdByProgramId": solution.programId } }
-        )
-      }))
-    });
+    if (solutionWithEntities.length > 0) {
+      
+      solutionWithEntities.forEach(async (solution) => {
+        await Promise.all(solution.entities.map(async (entity) => {
+          return db.collection('entities').updateOne(
+            { _id: entity },
+            { $set: { "metaInformation.createdByProgramId": solution.programId } }
+          )
+        }))
+      });
+    }
 
   },
 

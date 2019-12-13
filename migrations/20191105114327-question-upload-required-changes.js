@@ -1,5 +1,6 @@
 module.exports = {
   async up(db) {
+
     global.migrationMsg = "Modified question validation field"
 
     await db.collection('questions').updateMany({
