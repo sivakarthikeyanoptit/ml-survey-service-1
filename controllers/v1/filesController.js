@@ -1,55 +1,6 @@
-let gcp = require(ROOT_PATH + "/generics/helpers/gcpFileUpload");
-let UploadFile = require(ROOT_PATH + "/generics/helpers/fileUpload");
-let uploadFile = new UploadFile(
-  require("path").join(__dirname + "/../" + "uploads")
-);
-let fs = require("fs");
+const filesHelper = require(MODULES_BASE_PATH + "/files/helper")
 
 module.exports = class FileUpload {
-
-  async upload(req) {
-    return new Promise((resolve, reject) => {
-      return uploadFile.save(req.files, true).then(uploads => {
-        async.forEachOfSeries(
-          uploads.uploads,
-          (uploadedFile, key, cb) => {
-            let temp = uploads.uploads[key].url.split("/");
-            gcp
-              .upload(uploadedFile.url)
-              .then(file => {
-                fs.unlinkSync(uploadedFile.url);
-                uploads.uploads[key].infoLink = file[1].selfLink;
-                uploads.uploads[key].url = file[1].mediaLink;
-                // cb();
-                console.log(temp[temp.length - 1]);
-
-                gcp
-                  .makePublic(temp[temp.length - 1])
-                  .then(file => {
-                    cb(null);
-                  })
-                  .catch(error => {
-                    cb(error);
-                    console.error(error);
-                  });
-              })
-              .catch(err => {
-                console.error("ERROR:", err);
-                cb(null);
-              });
-          },
-          error => {
-            if (error) return reject(error);
-            return resolve({
-              message: "File uploaded successfully",
-              result: uploads.uploads,
-              failed: uploads.failedDocs.length ? uploads.failedDocs : undefined
-            });
-          }
-        );
-      });
-    });
-  }
 
   /**
   * @api {post} /assessment/api/v1/files/getImageUploadUrl Get File Upload URL
@@ -67,53 +18,41 @@ module.exports = class FileUpload {
   * @apiUse successBody
   * @apiUse errorBody
   */
-  async getImageUploadUrl(req) {
+
+  getImageUploadUrl(req) {
+
     return new Promise(async (resolve, reject) => {
 
-      let responseMessage = ""
-      let result = {}
+      try {
 
-      if (req.body.submissionId && req.body.submissionId != "" && Array.isArray(req.body.files)) {
+        if(!Array.isArray(req.body.files) || req.body.files.length < 1) throw new Error("File names not given.")
 
-        let noOfMinutes = 30
-        let expiry = Date.now() + noOfMinutes * 60 * 1000
+        const folderPath = req.body.submissionId + "/" + req.userDetails.userId + "/"
 
-        result = await new Promise(async (resolve, reject) => {
-          const config = {
-            action: 'write',
-            expires: expiry,
-            contentType: 'multipart/form-data'
-          };
-          const folderPath = req.body.submissionId + "/" + req.userDetails.userId + "/"
+        let signedUrl = await filesHelper.getSignedUrls(folderPath, req.body.files);
 
-          let fileUrls = []
-          for (let counter = 0; counter < req.body.files.length; counter++) {
+        if(signedUrl.success) {
+          return resolve({
+            message: "URLs generated successfully.",
+            result: signedUrl.files
+          });
+        } else {
+          throw new Error(signedUrl.message)
+        }
 
-            let gcpFile = gcp.bucket.file(folderPath + req.body.files[counter])
+      } catch (error) {
 
-            const signedUrl = await gcpFile.getSignedUrl(config)
-            fileUrls.push({
-              file: req.body.files[counter],
-              url: signedUrl[0],
-              payload: { sourcePath: gcpFile.name }
-            })
-          }
-          resolve(fileUrls)
+        return reject({
+          status: error.status || 500,
+          message: error.message || "Oops! something went wrong.",
+          errorObject: error
         })
-        responseMessage = "URLs generated successfully."
-      } else {
-        responseMessage = "Invalid request."
+
       }
 
-      return resolve({
-        message: responseMessage,
-        result: result
-      });
 
-    }).catch(error => {
-      return reject({
-        error
-      })
     })
+
   }
+
 };

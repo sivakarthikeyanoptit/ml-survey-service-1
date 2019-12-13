@@ -131,8 +131,10 @@ var Request = class Request {
                             'content-type': 'application/json',
                             'content-length': Buffer.byteLength(data)
                         };
-                    else
+                    else {
+                        options.headers['content-type'] = 'application/json'
                         options.headers['content-length'] = Buffer.byteLength(data)
+                    }
                 }
             } catch (error) {
                 return process.nextTick(function () {

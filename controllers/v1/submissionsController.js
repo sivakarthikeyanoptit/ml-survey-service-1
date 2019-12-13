@@ -1,8 +1,8 @@
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
-const submissionsHelper = require(ROOT_PATH + "/module/submissions/helper")
-const criteriaHelper = require(ROOT_PATH + "/module/criteria/helper")
-const questionsHelper = require(ROOT_PATH + "/module/questions/helper")
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 
 
 module.exports = class Submission extends Abstract {
@@ -190,195 +190,24 @@ module.exports = class Submission extends Abstract {
 
       try {
 
-        req.body = req.body || {};
-        let message = "Submission completed successfully"
-        let runUpdateQuery = false
+        let response = await submissionsHelper.createEvidencesInSubmission(req, "submissions", false);
 
-        let queryObject = {
-          _id: ObjectId(req.params._id)
+        if (response.result.status && response.result.status === "completed") {
+          await submissionsHelper.pushCompletedSubmissionForReporting(req.params._id)
+        } else if(response.result.status && response.result.status === "ratingPending") {
+          await submissionsHelper.pushSubmissionToQueueForRating(req.params._id)
         }
 
-        let queryOptions = {
-          new: true
-        }
-
-        let submissionDocument = await database.models.submissions.findOne(
-          queryObject
-        );
-
-        let updateObject = {}
-        let result = {}
-
-        if (req.body.entityProfile) {
-          updateObject.$set = { entityProfile: req.body.entityProfile }
-          runUpdateQuery = true
-        }
-
-        if (req.body.evidence) {
-          req.body.evidence.gpsLocation = req.headers.gpslocation
-          req.body.evidence.submittedBy = req.userDetails.userId
-          req.body.evidence.submittedByName = req.userDetails.firstName + " " + req.userDetails.lastName
-          req.body.evidence.submittedByEmail = req.userDetails.email
-          req.body.evidence.submissionDate = new Date()
-
-          let evidencesStatusToBeChanged = submissionDocument.evidencesStatus.find(singleEvidenceStatus => singleEvidenceStatus.externalId == req.body.evidence.externalId);
-          if (submissionDocument.evidences[req.body.evidence.externalId].isSubmitted === false) {
-            runUpdateQuery = true
-            req.body.evidence.isValid = true
-            let answerArray = {}
-            Object.entries(req.body.evidence.answers).forEach(answer => {
-              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
-                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
-                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
-                      answer[1].value.push(generalQuestionInstanceValue)
-                    })
-                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
-                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
-                    })
-                  })
-                }
-                for (let countOfInstances = 0; countOfInstances < answer[1].value.length; countOfInstances++) {
-
-                  _.valuesIn(answer[1].value[countOfInstances]).forEach(question => {
-
-                    if (answerArray[question.qid]) {
-                      answerArray[question.qid].instanceResponses.push(question.value)
-                      answerArray[question.qid].instanceRemarks.push(question.remarks)
-                      answerArray[question.qid].instanceFileName.push(question.fileName)
-                    } else {
-                      let clonedQuestion = { ...question }
-                      clonedQuestion.instanceResponses = new Array
-                      clonedQuestion.instanceRemarks = new Array
-                      clonedQuestion.instanceFileName = new Array
-                      clonedQuestion.instanceResponses.push(question.value)
-                      clonedQuestion.instanceRemarks.push(question.remarks)
-                      clonedQuestion.instanceFileName.push(question.fileName)
-                      delete clonedQuestion.value
-                      delete clonedQuestion.remarks
-                      delete clonedQuestion.fileName
-                      delete clonedQuestion.payload
-                      answerArray[question.qid] = clonedQuestion
-                    }
-
-                  })
-                }
-                answer[1].countOfInstances = answer[1].value.length
-              }
-              answerArray[answer[0]] = answer[1]
-            });
-
-            if (answerArray.isAGeneralQuestionResponse) { delete answerArray.isAGeneralQuestionResponse }
-
-
-            evidencesStatusToBeChanged['isSubmitted'] = true;
-            evidencesStatusToBeChanged['notApplicable'] = req.body.evidence.notApplicable;
-            evidencesStatusToBeChanged['startTime'] = req.body.evidence.startTime;
-            evidencesStatusToBeChanged['endTime'] = req.body.evidence.endTime;
-            evidencesStatusToBeChanged['hasConflicts'] = false;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
-
-            updateObject.$push = {
-              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
-            }
-            updateObject.$set = {
-              answers: _.assignIn(submissionDocument.answers, answerArray),
-              ["evidences." + req.body.evidence.externalId + ".isSubmitted"]: true,
-              ["evidences." + req.body.evidence.externalId + ".notApplicable"]: req.body.evidence.notApplicable,
-              ["evidences." + req.body.evidence.externalId + ".startTime"]: req.body.evidence.startTime,
-              ["evidences." + req.body.evidence.externalId + ".endTime"]: req.body.evidence.endTime,
-              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: false,
-              evidencesStatus: submissionDocument.evidencesStatus,
-              status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
-            }
-          } else {
-            runUpdateQuery = true
-            req.body.evidence.isValid = false
-
-            Object.entries(req.body.evidence.answers).forEach(answer => {
-              if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                if (answer[1].isAGeneralQuestion == true && submissionDocument.generalQuestions && submissionDocument.generalQuestions[answer[0]]) {
-                  submissionDocument.generalQuestions[answer[0]].submissions.forEach(generalQuestionSubmission => {
-                    generalQuestionSubmission.value.forEach(generalQuestionInstanceValue => {
-                      generalQuestionInstanceValue.isAGeneralQuestionResponse = true
-                      answer[1].value.push(generalQuestionInstanceValue)
-                    })
-                    generalQuestionSubmission.payload.labels[0].forEach(generalQuestionInstancePayload => {
-                      answer[1].payload.labels[0].push(generalQuestionInstancePayload)
-                    })
-                  })
-                }
-                answer[1].countOfInstances = answer[1].value.length
-              }
-            });
-
-            updateObject.$push = {
-              ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
-            }
-
-            evidencesStatusToBeChanged['hasConflicts'] = true;
-            evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
-
-            updateObject.$set = {
-              evidencesStatus: submissionDocument.evidencesStatus,
-              ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: true,
-              status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
-            }
-
-            message = "Duplicate evidence method submission detected."
-          }
-
-        }
-
-        if (runUpdateQuery) {
-          let updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-            queryObject,
-            updateObject,
-            queryOptions
-          );
-
-          let canRatingsBeEnabled = await submissionsHelper.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument)
-          let { ratingsEnabled } = canRatingsBeEnabled
-
-          if (ratingsEnabled) {
-            let updateStatusObject = {}
-            updateStatusObject.$set = {}
-            updateStatusObject.$set = {
-              status: "completed",
-              completedDate: new Date()
-            }
-            updatedSubmissionDocument = await database.models.submissions.findOneAndUpdate(
-              queryObject,
-              updateStatusObject,
-              queryOptions
-            );
-          }
-
-          let status = await submissionsHelper.extractStatusOfSubmission(updatedSubmissionDocument)
-
-          let response = {
-            message: message,
-            result: status
-          };
-
-          return resolve(response);
-
-        } else {
-
-          let response = {
-            message: message
-          };
-
-          return resolve(response);
-        }
+        return resolve(response);
 
       } catch (error) {
+
         return reject({
           status: 500,
           message: "Oops! Something went wrong!",
           errorObject: error
         });
+
       }
 
     })
@@ -1100,7 +929,7 @@ module.exports = class Submission extends Abstract {
 
         let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
 
-        return resolve({ result: resultingArray })
+        return resolve(resultingArray)
 
       } catch (error) {
         return reject({
@@ -2142,5 +1971,38 @@ module.exports = class Submission extends Abstract {
       }
     });
   }
+
+
+  /**
+  * @api {get} /assessment/api/v1/submissions/pushCompletedSubmissionForReporting/:submissionId Push Completed Submission for Reporting
+  * @apiVersion 1.0.0
+  * @apiName Push Completed Submission for Reporting
+  * @apiGroup Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+ async pushCompletedSubmissionForReporting(req) {
+  return new Promise(async (resolve, reject) => {
+    try {
+
+      let pushSubmissionToKafka = await submissionsHelper.pushCompletedSubmissionForReporting(req.params._id)
+
+      if(pushSubmissionToKafka.status != "success") {
+        throw pushSubmissionToKafka.message
+      }
+
+      return resolve({
+        message: pushSubmissionToKafka.message
+      });
+
+    } catch (error) {
+      return reject({
+        status: 500,
+        message: error
+      });
+    }
+  })
+}
 
 };

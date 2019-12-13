@@ -1,15 +1,17 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
-const reportsHelper = require(ROOT_PATH + "/module/reports/helper");
-const imageBaseUrl =
-  "https://storage.cloud.google.com/sl-" +
-  (process.env.NODE_ENV == "production" ? "prod" : "dev") +
-  "-storage/";
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const reportsHelper = require(MODULES_BASE_PATH + "/reports/helper");
+let imageBaseUrl = ""
+  // "https://storage.cloud.google.com/sl-" +
+  // (process.env.NODE_ENV == "production" ? "prod" : "dev") +
+  // "-storage/";
 
 module.exports = class Reports {
 
-  constructor() { }
+  constructor() { 
+    reportsHelper.getFilePublicBaseUrl().then(data => {imageBaseUrl = data })
+  }
 
   static get name() {
     return "submissions";

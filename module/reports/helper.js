@@ -1,4 +1,5 @@
 let moment = require("moment");
+const filesHelper = require(MODULES_BASE_PATH + "/files/helper");
 
 module.exports = class reportsHelper {
 
@@ -19,6 +20,21 @@ module.exports = class reportsHelper {
             return error;
         }
 
+    }
+
+
+    static getFilePublicBaseUrl() {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+            const url = filesHelper.getFilePublicBaseUrl()
+
+            return resolve(url)
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 };

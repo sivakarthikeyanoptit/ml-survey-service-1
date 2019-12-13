@@ -27,11 +27,16 @@ var makePublic = file_name => {
 var getThumbnail = file_name => {
   return `https://storage.googleapis.com/${BUCKET_NAME}/${file_name}`;
 };
+// Get file public base url.
+  var getFilePublicBaseUrl = () => {
+    return `https://storage.cloud.google.com/${BUCKET_NAME}/`;
+  };
 // }
 // gcpFileUpload();
 module.exports = {
   upload: gcpFileUpload,
   makePublic: makePublic,
   getThumbnail: getThumbnail,
-  bucket: myBucket
+  bucket: myBucket,
+  getFilePublicBaseUrl : getFilePublicBaseUrl
 };

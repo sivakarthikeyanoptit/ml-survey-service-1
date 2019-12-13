@@ -1,8 +1,8 @@
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
-const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
-const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
+const opsHelper = require(MODULES_BASE_PATH + "/programOperations/helper");
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const submissionHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 module.exports = class ProgramOperations {
 
     /**

@@ -1,5 +1,5 @@
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper");
-const frameworksHelper = require(ROOT_PATH + "/module/frameworks/helper");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const frameworksHelper = require(MODULES_BASE_PATH + "/frameworks/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 

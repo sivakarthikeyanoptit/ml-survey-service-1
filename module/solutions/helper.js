@@ -31,7 +31,7 @@ module.exports = class solutionsHelper {
     });
   }
 
-  static checkForScoringSystemFromInsights(solutionId) {
+  static checkIfSolutionIsRubricDriven(solutionId) {
     return new Promise(async (resolve, reject) => {
       try {
         let solutionDocument = await database.models.solutions
@@ -41,7 +41,8 @@ module.exports = class solutionsHelper {
               scoringSystem: {
                 $exists: true,
                 $ne: ""
-              }
+              },
+              isRubricDriven : true
             },
             {
               scoringSystem: 1

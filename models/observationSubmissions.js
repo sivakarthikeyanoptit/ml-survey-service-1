@@ -3,14 +3,14 @@ module.exports = {
   schema: {
     entityId: "ObjectId",
     observationId: "ObjectId",
-    createdBy: "String",
-    status: "String",
+    createdBy: String,
+    status: String,
     evidencesStatus: Array,
     evidences: Object,
     criteria: Array,
     themes: Array,
     answers: Object,
-    entityExternalId: "String",
+    entityExternalId: String,
     entityInformation: Object,
     observationInformation: Object,
     entityProfile: Object,
@@ -22,11 +22,10 @@ module.exports = {
     solutionExternalId: String,
     submissionsUpdatedHistory: Array,
     entityTypeId: "ObjectId",
-    entityType: "String",
+    entityType: String,
     submissionNumber: Number,
-    pdfFileUrl:String,
-    pointsBasedMaxScore : Number,
-    pointsBasedScoreAchieved : Number,
-    pointsBasedPercentageScore : Number
+    pointsBasedMaxScore : { type : Number, default: 0 },
+    pointsBasedScoreAchieved : { type : Number, default: 0 },
+    pointsBasedPercentageScore : { type : Number, default: 0 }
   }
 };

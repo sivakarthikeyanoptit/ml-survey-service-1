@@ -63,10 +63,6 @@ module.exports = async function (req, res, next) {
 
   if (req.path.includes("/sharedLinks/verify")) return next();
 
-  if (req.path.includes("/gotenberg/fileUpload")) {
-    req.headers["internal-access-token"] = req.query["internal-access-token"]
-  }
-
   if (req.headers && req.headers.linkid) {
 
     let isShareable = await database.models.sharedLink.findOne({ linkId: req.headers.linkid, isActive: true });
@@ -106,7 +102,7 @@ module.exports = async function (req, res, next) {
     delete req.headers[e];
   });
 
-  let paths = ["reports", "gotenberg", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails"]
+  let paths = ["reports", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails"]
 
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
