@@ -503,7 +503,7 @@ module.exports = class submissionsHelper {
                                                             if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
                                                                 
                                                                 let optionScore = "NA"
-                                                                if(`${optionValue}-score` in eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
+                                                                if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
                                                                     optionScore = eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
                                                                 } else if (eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions && eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions.length > 0) {
                                                                     let sliderOptionApplicable = _.find(eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions, { 'value': optionValue})
