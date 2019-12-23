@@ -550,9 +550,8 @@ module.exports = class submissionsHelper {
                                                         questionOptionsSelected.forEach(optionValue => {
                                                             if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
                                                                 
-                                                                let optionScore = "NA"
-                                                                //report correction for emergency reuirement
-                                                                //if(eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]) {
+                                                                let optionScore = "NA";
+                                                                
                                                                 if(`${optionValue}-score` in eachSubmissionDocument.questionDocuments[question.qid.toString()]) {  
                                                                 optionScore = eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`]
                                                                 } else if (eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions && eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions.length > 0) {

@@ -696,7 +696,11 @@ module.exports = class ObservationSubmissions extends Abstract {
                 if(question.responseType == "multiselect") {
                   questionMaxScore += option.score
                 }
-                (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                if ("score" in option) {
+                  option.score >= 0 ? 
+                  submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] =
+                   option.score : "";
+                }
               })
             }
             if(question.sliderOptions && question.sliderOptions.length > 0) {
@@ -858,7 +862,13 @@ module.exports = class ObservationSubmissions extends Abstract {
                 if(question.responseType == "multiselect") {
                   questionMaxScore += option.score
                 }
-                (option.score && option.score > 0) ? commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : ""
+                if("score" in option) {
+
+                  option.score >= 0 ? 
+                  commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = 
+                  option.score 
+                  : "";
+                }
               })
             }
             if(question.sliderOptions && question.sliderOptions.length > 0) {
