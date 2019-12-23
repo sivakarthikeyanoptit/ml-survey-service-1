@@ -1,15 +1,19 @@
 module.exports = {
   async up(db) {
-    
-    let sourceDB = global.transferFromDb
 
-    let questions = await sourceDB.collection('questions').find({}).toArray();
+    global.migrationMsg = "Migrated up transfer-questions file";
 
-    await db.collection('questions').insertMany(questions);
+    if (process.env.TRANSFER_FROM_DB !== "") {
 
-    global.migrationMsg = "Total questions transferred - "+questions.length
+      let sourceDB = global.transferFromDb;
+      let questions = await sourceDB.collection('questions').find({}).toArray();
 
-    return 
+      await db.collection('questions').insertMany(questions);
+
+      global.migrationMsg = "Total questions transferred - " + questions.length
+
+      return
+    }
   },
 
   async down(db) {

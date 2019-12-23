@@ -1,45 +1,51 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Create reusable solutions."
-    
 
-    let solutionDocuments = await db.collection('solutions').find({}).toArray();
+      let solutionDocuments = await db.collection('solutions').find({}).toArray();
+      global.migrationMsg = "Migrated up create-reusable-solutions file";
 
-    await Promise.all(solutionDocuments.map(async (solutionDocument) => {
+      if (solutionDocuments.length>0) {
 
-      if(solutionDocument.isReusable == false) {
-        solutionDocument.isReusable = true
-        solutionDocument.externalId = solutionDocument.externalId+"-TEMPLATE"
+        global.migrationMsg = "Create reusable solutions.";
+        
+        await Promise.all(solutionDocuments.map(async (solutionDocument) => {
 
-        let baseSolutionId = await db.collection('solutions').insertOne(_.omit(solutionDocument,[
-          "_id",
-          "roles",
-          "entities",
-          "programId",
-          "programExternalId",
-          "programName",
-          "programDescription",
-          "startDate",
-          "endDate"
-        ]));
-  
-        if(baseSolutionId.insertedId) {
-          return await db.collection('solutions').findOneAndUpdate({
-            _id: solutionDocument._id
-          }, { $set: {
-            parentId: baseSolutionId.insertedId,
-            isReusable : false
-          }})
+        if (solutionDocument.isReusable == false) {
+          solutionDocument.isReusable = true
+          solutionDocument.externalId = solutionDocument.externalId + "-TEMPLATE"
+
+          let baseSolutionId = await db.collection('solutions').insertOne(_.omit(solutionDocument, [
+            "_id",
+            "roles",
+            "entities",
+            "programId",
+            "programExternalId",
+            "programName",
+            "programDescription",
+            "startDate",
+            "endDate"
+          ]));
+
+          if (baseSolutionId.insertedId) {
+            return await db.collection('solutions').findOneAndUpdate({
+              _id: solutionDocument._id
+            }, {
+              $set: {
+                parentId: baseSolutionId.insertedId,
+                isReusable: false
+              }
+              })
+          }
         }
-      }
 
 
-    }))
+        }))
 
-    await db.collection('solutions').updateMany( {}, { $rename: { "parentId": "parentSolutionId" } } )
+      await db.collection('solutions').updateMany({}, { $rename: { "parentId": "parentSolutionId" } })
 
-    return true
+      return true
 
+    }
   },
 
   async down(db) {
