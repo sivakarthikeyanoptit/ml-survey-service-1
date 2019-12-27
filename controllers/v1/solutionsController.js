@@ -1,6 +1,7 @@
 const csv = require("csvtojson");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 module.exports = class Solutions extends Abstract {
 
@@ -46,10 +47,6 @@ module.exports = class Solutions extends Abstract {
   async details(req) {
     return new Promise(async (resolve, reject) => {
       try {
-
-        if (!req.params._id || req.params._id == "") {
-          throw "Invalid parameters."
-        }
 
         let findQuery = {
           _id: req.params._id
@@ -303,7 +300,7 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-    * @api {get} /assessment/api/v1/solutions/mapEntityToSolution/:solutionExternalId Map entity id to solution
+    * @api {post} /assessment/api/v1/solutions/mapEntityToSolution/:solutionExternalId Map entity id to solution
     * @apiVersion 1.0.0
     * @apiName Map entity id to solution
     * @apiGroup Solutions
@@ -768,5 +765,235 @@ module.exports = class Solutions extends Abstract {
 
     })
   }
+
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/questionList/:solutionInternalId Question List of a Solution
+  * @apiVersion 1.0.0
+  * @apiName Question List of a Solution
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/solutions/questionList/5b98fa069f664f7e1ae7498c
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Question list for solution fetched successfully.",
+    "status": 200,
+    "result": {
+        "questions": [
+            {
+                "_id": "5be2b39789cc9c64df3efdd3",
+                "question": [
+                    "Are there any unnamed bottles lying around in school that may be harmful?",
+                    "Some hindi text"
+                ],
+                "options": [
+                    {
+                        "value": "R1",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "R2",
+                        "label": "No"
+                    }
+                ],
+                "children": [],
+                "questionGroup": [
+                    "A1","A2","A4"
+                ],
+                "fileName": [],
+                "instanceQuestions": [],
+                "deleted": false,
+                "tip": "",
+                "externalId": "LW/SS/01",
+                "visibleIf": "",
+                "file": {
+                    "required": "",
+                    "type": [
+                        ""
+                    ],
+                    "minCount": "",
+                    "maxCount": "",
+                    "caption": ""
+                },
+                "responseType": "radio",
+                "validation": "true",
+                "showRemarks": false,
+                "isCompleted": false,
+                "remarks": "",
+                "value": "",
+                "canBeNotApplicable": "false",
+                "usedForScoring": "",
+                "modeOfCollection": "onfield",
+                "questionType": "auto",
+                "accessibility": "local",
+                "autoCapture": "",
+                "dateFormat": "",
+                "instanceIdentifier": "",
+                "isAGeneralQuestion": false,
+                "rubricLevel": "L2",
+            }
+        ]
+      }
+    }
+  */
+
+  async questionList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let findQuery = {
+          _id: req.params._id,
+          status : "active",
+          isDeleted : false,
+          type:{
+            $in: [
+              "assessment",
+              "observation"
+            ]
+          }
+        }
+
+        let projectionFields = [
+          "name",
+          "themes",
+          "evidenceMethods",
+          "questionSequenceByEcm"
+        ]
+
+        let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projectionFields)
+
+        solutionDocument = solutionDocument[0]
+
+        if (!solutionDocument) {
+            throw new Error('No solution found.');
+        }
+
+        let activeECMCodes = new Array
+        let activeECMs = new Array
+        let checkEcmSequenceExists = true
+
+        Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
+          if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
+            activeECMCodes.push(solutionEcm) 
+            activeECMs.push(solutionDocument.evidenceMethods[solutionEcm])
+            if(solutionEcm["sequenceNo"] == undefined) checkEcmSequenceExists = false
+          }
+        })
+
+        if (checkEcmSequenceExists) {
+          activeECMs = _.sortBy(activeECMs, "sequenceNo")
+        } else {
+          activeECMs.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
+        }
+
+        let criteriasIdArray = gen.utils.getCriteriaIds(solutionDocument.themes);
+
+        let criteriaFindQuery = {
+          _id: { $in: criteriasIdArray},
+          evidences : { $elemMatch: { code: { $in: activeECMCodes } } }
+        }
+
+        let criteriaProjectionArray = [
+          "name",
+          "externalId",
+          { evidences : { $elemMatch: { code: { $in: activeECMCodes } } } }
+        ]
+
+        let allCriteriaDocument = await criteriaHelper.criteriaDocument(criteriaFindQuery,criteriaProjectionArray)
+
+        if (allCriteriaDocument.length < 1) {
+          throw new Error('No criteria found.');
+        }
+
+        let allQuestionIdsInCrtieria = gen.utils.getAllQuestionId(allCriteriaDocument);
+
+        if (allQuestionIdsInCrtieria.length < 1) {
+          throw new Error('No criteria question found.');
+        }
+
+        let allQuestionDocuments = await questionsHelper.questionDocument({ _id: { $in: allQuestionIdsInCrtieria } });
+
+        if (allQuestionDocuments.length < 1) {
+          throw new Error('No question found.');
+        }
+        
+        let matrixQuestions = new Array
+        let questionMapOfExternalIdToInternalId = {}
+        let questionMapByInternalId = {}
+
+        allQuestionDocuments.forEach(question => {
+
+          // Remove weightage of each question from being sent to client.
+          if(question.weightage) delete question["weightage"]
+
+          // Remove score from each option from being sent to client.
+          if (question.options && question.options.length > 0) {
+            question.options.forEach(option => {
+                if (option.score) {
+                    delete option.score
+                }
+            });
+          }
+
+          if (question.responseType === "matrix") {
+              matrixQuestions.push(question)
+          }
+
+          questionMapOfExternalIdToInternalId[question.externalId] = question._id.toString()
+          questionMapByInternalId[question._id.toString()] = question
+
+        });
+
+        matrixQuestions.forEach(matrixQuestion => {
+          for (let pointerToInstanceQuestionsArray = 0; pointerToInstanceQuestionsArray < matrixQuestion.instanceQuestions.length; pointerToInstanceQuestionsArray++) {
+            const instanceChildQuestionId = matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray].toString()
+            if(questionMapByInternalId[instanceChildQuestionId]) {
+              matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray] = _.cloneDeep(questionMapByInternalId[instanceChildQuestionId])
+              delete questionMapByInternalId[instanceChildQuestionId]
+            }
+          }
+          questionMapByInternalId[matrixQuestion._id.toString()] = matrixQuestion
+        })
+
+        let questionList = new Array
+
+        if(solutionDocument.questionSequenceByEcm) {
+          for (let pointerToActiveECMs = 0; pointerToActiveECMs < activeECMs.length; pointerToActiveECMs++) {
+            const ecmCode = activeECMs[pointerToActiveECMs];
+            if(solutionDocument.questionSequenceByEcm[ecmCode]) {
+              for (const [sectionCode, sectionQuestionIds] of Object.entries(solutionDocument.questionSequenceByEcm[ecmCode])) {
+                for (let pointerToSectionQuestions = 0; pointerToSectionQuestions < sectionQuestionIds.length; pointerToSectionQuestions++) {
+                  const externalId = sectionQuestionIds[pointerToSectionQuestions];
+                  if(questionMapOfExternalIdToInternalId[externalId] && questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]]) {
+                    questionList.push(questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]])
+                    delete questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]]
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        questionList.push(...Object.values(questionMapByInternalId));
+
+        return resolve({
+          message: `Question list for solution ${solutionDocument.name} fetched successfully.`,
+          result: {
+            questions : questionList
+          }
+        });
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
+
 
 };

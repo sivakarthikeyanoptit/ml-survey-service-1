@@ -1,33 +1,27 @@
 
 module.exports = class solutionsHelper {
-  static solutionDocuments(solutionIds = "all", fields = "all") {
+  
+  static solutionDocuments(solutionFilter = "all", fieldsArray = "all") {
     return new Promise(async (resolve, reject) => {
-      try {
-        let queryObject = {};
-
-        if (solutionIds != "all") {
-          queryObject = {
-            _id: {
-              $in: solutionIds
+        try {
+    
+            let queryObject = (solutionFilter != "all") ? solutionFilter : {};
+    
+            let projectionObject = {}
+    
+            if (fieldsArray != "all") {
+                fieldsArray.forEach(field => {
+                    projectionObject[field] = 1;
+                });
             }
-          };
+    
+            let solutionDocuments = await database.models.solutions.find(queryObject, projectionObject).lean();
+            
+            return resolve(solutionDocuments);
+            
+        } catch (error) {
+            return reject(error);
         }
-
-        let projectionObject = {};
-
-        if (fields != "all") {
-          fields.forEach(element => {
-            projectionObject[element] = 1;
-          });
-        }
-
-        let solutionDocuments = await database.models.solutions
-          .find(queryObject, projectionObject)
-          .lean();
-        return resolve(solutionDocuments);
-      } catch (error) {
-        return reject(error);
-      }
     });
   }
 
