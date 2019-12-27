@@ -180,25 +180,11 @@ module.exports = class Assessments {
                     entities: { $in: [ObjectId(req.query.entityId)] }
                 };
 
+                let solutionDocumentProjectionFields = await assessmentsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
+
                 let solutionDocument = await database.models.solutions.findOne(
                     solutionQueryObject,
-                    {
-                        name: 1,
-                        externalId: 1,
-                        description: 1,
-                        themes: 1,
-                        entityProfileFieldsPerEntityTypes: 1,
-                        registry: 1,
-                        questionSequenceByEcm: 1,
-                        frameworkId: 1,
-                        frameworkExternalId: 1,
-                        roles: 1,
-                        evidenceMethods: 1,
-                        sections: 1,
-                        entityTypeId: 1,
-                        entityType: 1,
-                        captureGpsLocationAtQuestionLevel : 1
-                    }
+                    solutionDocumentProjectionFields
                 ).lean();
 
 
@@ -252,22 +238,14 @@ module.exports = class Assessments {
                     form: form
                 };
 
-                response.result.program = await _.pick(programDocument, [
-                    "_id",
-                    "externalId",
-                    "name",
-                    "description",
-                    "imageCompression"
-                ]);
 
-                response.result.solution = await _.pick(solutionDocument, [
-                    "_id",
-                    "externalId",
-                    "name",
-                    "description",
-                    "registry",
-                    "captureGpsLocationAtQuestionLevel"
-                ]);
+                let programDocumentFieldList = await assessmentsHelper.programDocumentFieldListInResponse()
+
+                response.result.program = await _.pick(programDocument, programDocumentFieldList);
+
+                let solutionDocumentFieldList = await assessmentsHelper.solutionDocumentFieldListInResponse()
+
+                response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
 
                 let submissionDocument = {
                     entityId: entityDocument._id,
