@@ -334,25 +334,11 @@ module.exports = class Observations extends v1Observation {
                     status: "active",
                 };
 
+                let solutionDocumentProjectionFields = await observationsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
+
                 let solutionDocument = await database.models.solutions.findOne(
                     solutionQueryObject,
-                    {
-                        name: 1,
-                        externalId: 1,
-                        description: 1,
-                        themes: 1,
-                        entityProfileFieldsPerEntityTypes: 1,
-                        registry: 1,
-                        questionSequenceByEcm: 1,
-                        frameworkId: 1,
-                        frameworkExternalId: 1,
-                        roles: 1,
-                        evidenceMethods: 1,
-                        sections: 1,
-                        entityTypeId: 1,
-                        entityType: 1,
-                        captureGpsLocationAtQuestionLevel : 1
-                    }
+                    solutionDocumentProjectionFields
                 ).lean();
 
                 if (!solutionDocument) {
@@ -405,14 +391,10 @@ module.exports = class Observations extends v1Observation {
                     form: form
                 };
 
-                response.result.solution = await _.pick(solutionDocument, [
-                    "_id",
-                    "externalId",
-                    "name",
-                    "description",
-                    "registry",
-                    "captureGpsLocationAtQuestionLevel"
-                ]);
+
+                let solutionDocumentFieldList = await observationsHelper.solutionDocumentFieldListInResponse()
+
+                response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
 
                 let submissionDocument = {
                     entityId: entityDocument._id,
