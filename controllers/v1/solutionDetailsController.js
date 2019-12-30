@@ -8,7 +8,7 @@ module.exports = class SolutionDetails {
   }
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/entities?programId:programExternalId&solutionId:solutionExternalId&primary:primaryEntityFilter&type:subEntityType Framework & Rubric Details
+  * @api {get} /assessment/api/v1/solutionDetails/entities?programId:programExternalId&solutionId:solutionExternalId&primary:primaryEntityFilter&type:subEntityType All Entities of a Solution
   * @apiVersion 1.0.0
   * @apiName Entities of a Solution
   * @apiGroup Solution Entity Details
@@ -103,7 +103,7 @@ module.exports = class SolutionDetails {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId
+  * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId All Criteria of a Solution
   * @apiVersion 1.0.0
   * @apiName Criterias of a Solution
   * @apiGroup Solution Entity Details
@@ -173,7 +173,7 @@ module.exports = class SolutionDetails {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/questions/:solutionsId
+  * @api {get} /assessment/api/v1/solutionDetails/questions/:solutionsId All Questions of a Solution
   * @apiVersion 1.0.0
   * @apiName Questions of a Solution
   * @apiGroup Solution Entity Details

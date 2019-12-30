@@ -61,8 +61,9 @@ module.exports = class Observations extends v1Observation {
                 }
 
                 if (req.query.solutionId) {
-                    let findQuery = []
-                    findQuery.push(req.query.solutionId)
+                    let findQuery = {
+                        _id: ObjectId(req.query.solutionId)
+                    };
                     projection.push("entityTypeId", "entityType")
 
                     let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection)

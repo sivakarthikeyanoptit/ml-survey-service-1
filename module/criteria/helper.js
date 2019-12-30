@@ -77,13 +77,21 @@ module.exports = class criteriaHelper {
         
                 if (fieldsArray != "all") {
                     fieldsArray.forEach(field => {
-                        projectionObject[field] = 1;
+                        if(typeof field === "string") {
+                            projectionObject[field] = 1;
+                        } else {
+                            if(Object.keys(field).length >0) {
+                                for (let [key, value] of Object.entries(field)) {
+                                    projectionObject[key] = value
+                              }
+                            }
+                        }
                     });
                 }
         
-                let questionDocuments = await database.models.criteria.find(queryObject, projectionObject).lean();
+                let criteriaDocuments = await database.models.criteria.find(queryObject, projectionObject).lean();
                 
-                return resolve(questionDocuments);
+                return resolve(criteriaDocuments);
                 
             } catch (error) {
                 return reject(error);
