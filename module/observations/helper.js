@@ -1,8 +1,29 @@
+/**
+ * name : observations/helper.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Observations helper functionality.
+ */
+
+// Dependencies
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
-module.exports = class observationsHelper {
+/**
+    * ObservationsHelper
+    * @class
+*/
+module.exports = class ObservationsHelper {
+
+    /**
+   * Get Observation document based on filtered data provided.
+   * @method
+   * @name observationDocuments
+   * @param {Object} [findQuery = "all"] -filter data.
+   * @param {Array} [fields = "all"] - Projected fields.
+   * @returns {Array} - List of observations.
+   */
 
     static observationDocuments(findQuery = "all", fields = "all") {
         return new Promise(async (resolve, reject) => {
@@ -31,6 +52,17 @@ module.exports = class observationsHelper {
         });
     }
 
+    /**
+   * Create observation.
+   * @method
+   * @name create
+   * @param {String} solutionId -solution id.
+   * @param {Object} data - Observation creation data.
+   * @param {Object} data - Observation creation data. 
+   * @param {Object} userDetails - Logged in user details.
+   * @returns {Object} observation creation data.
+   */
+
     static create(solutionId, data, userDetails) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -47,12 +79,14 @@ module.exports = class observationsHelper {
                         entityType: 1
                     }).lean();
 
-                if (!solutionDocument) throw "No solution id found."
+                if (!solutionDocument) {
+                    throw "No solution id found.";
+                }
 
                 if (data.entities) {
-                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId)
+                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId);
 
-                    data.entities = entitiesToAdd.entityIds
+                    data.entities = entitiesToAdd.entityIds;
 
                 }
 
@@ -79,11 +113,22 @@ module.exports = class observationsHelper {
 
     }
 
+
+    /**
+   * list observation.
+   * @method
+   * @name list
+   * @param {String} [userId = ""] -Logged in user id.
+   * @returns {Object} observation list.
+   */
+
     static list(userId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(userId == "") throw new Error("Invalid userId")
+                if(userId == "") {
+                    throw new Error("Invalid userId");
+                }
 
                 let observations = new Array;
 
@@ -118,11 +163,11 @@ module.exports = class observationsHelper {
                     }
                 ];
 
-                const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
+                const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject);
 
-                let observation
-                let submissions
-                let entityObservationSubmissionStatus
+                let observation;
+                let submissions;
+                let entityObservationSubmissionStatus;
 
                 for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
 
@@ -142,35 +187,35 @@ module.exports = class observationsHelper {
                             "evidences": 0,
                             "answers": 0
                         }
-                    ).sort( { createdAt: -1 } )
+                    ).sort( { createdAt: -1 } );
 
-                    let observationEntitySubmissions = {}
+                    let observationEntitySubmissions = {};
                     submissions.forEach(observationEntitySubmission => {
                         if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
                             observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
                                 submissionStatus: "",
                                 submissions: new Array,
                                 entityId: observationEntitySubmission.entityId.toString()
-                            }
+                            };
                         }
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status;
+                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission);
                     })
 
                     // entityObservationSubmissionStatus = submissions.reduce(
                     //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
 
 
-                    observation.entities = new Array
+                    observation.entities = new Array;
                     observation.entityDocuments.forEach(observationEntity => {
                         observation.entities.push({
                             _id: observationEntity._id,
                             submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
                             submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
                             ...observationEntity.metaInformation
-                        })
+                        });
                     })
-                    observations.push(_.omit(observation, ["entityDocuments"]))
+                    observations.push(_.omit(observation, ["entityDocuments"]));
                 }
 
                 return resolve(observations);
@@ -180,6 +225,18 @@ module.exports = class observationsHelper {
             }
         })
     }
+
+     /**
+   * find observation submission. 
+   * @method
+   * @name findSubmission
+   * @param {Object} document
+   * @param {Object} document.entityId - entity id.
+   * @param {Object} document.solutionId - solution id.
+   * @param {Object} document.observationId - observation id.
+   * @param {Object} document.submissionNumber - submission number.     
+   * @returns {Object} Submission document.
+   */
 
     static findSubmission(document) {
 
@@ -218,20 +275,31 @@ module.exports = class observationsHelper {
 
     }
 
+    /**
+   * find last submission for observation entity. 
+   * @method
+   * @name findLastSubmissionForObservationEntity
+   * @param {String} [observationId = ""] - observation id.
+   * @param {String} [entityId = ""] - entity id.       
+   * @returns {Object} submissionNumber.
+   */
+
     static findLastSubmissionForObservationEntity(observationId = "", entityId = "") {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                if(observationId == "" || entityId == "") throw new Error("Invalid observation or entity id.")
+                if(observationId == "" || entityId == "") {
+                    throw new Error("Invalid observation or entity id.");
+                }
 
                 if(typeof observationId == "string") {
-                    observationId = ObjectId(observationId)
+                    observationId = ObjectId(observationId);
                 }
 
                 if(typeof entityId == "string") {
-                    entityId = ObjectId(entityId)
+                    entityId = ObjectId(entityId);
                 }
 
                 let submissionDocument = await database.models.observationSubmissions.find(
@@ -257,6 +325,27 @@ module.exports = class observationsHelper {
         })
 
     }
+
+    /**
+   * Bulk create observation. 
+   * @method
+   * @name bulkCreate
+   * @param {Object} solution - solution document.
+   * @param {String} solution.externalId - solution external id.
+   * @param {String} solution.frameworkId - framework id.
+   * @param {String} solution.frameworkExternalId - framework external id.
+   * @param {String} solution.name - solution name.   
+   * @param {String} solution.description - solution description.  
+   * @param {String} solution.type - solution type. 
+   * @param {String} solution._id - solution id. 
+   * @param {Object} entityDocument - entity document. 
+   * @param {String} entityDocument._id - entity id.
+   * @param {String} entityDocument.entityTypeId - entity type id.
+   * @param {String} entityDocument.entityType - entity type.
+   * @param {String} entityDocument.parentId - parent id.
+   * @param {String} userId - logged in user id.      
+   * @returns {Object} status.
+   */
 
     static bulkCreate(solution, entityDocument, userId) {
         return new Promise(async (resolve, reject) => {
@@ -324,6 +413,15 @@ module.exports = class observationsHelper {
         })
     }
 
+    /**
+   * Send user notifications. 
+   * @method
+   * @name sendUserNotifications
+   * @param {Object} [observationData = {}] - .
+   * @param {String} [userId = ""] - logged in user id.      
+   * @returns {Object} message and success status.
+   */
+
     static sendUserNotifications(userId = "", observationData = {}) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -370,6 +468,16 @@ module.exports = class observationsHelper {
         })
     }
 
+    /**
+   * Common function for pending observation or completed observations.
+   * @method
+   * @name pendingOrCompletedObservations
+   * @param {Object} observationStatus  - can be pending or completed.
+   * @param {String} pending  - pending observations.
+   * @param {String} completed  - completed observations.      
+   * @returns {Object} list of pending or completed observation.
+   */
+
     static pendingOrCompletedObservations(observationStatus) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -377,19 +485,19 @@ module.exports = class observationsHelper {
                 let findQuery = {};
 
                 if (observationStatus.pending) {
-                    findQuery["status"] = { $ne: "completed" }
+                    findQuery["status"] = { $ne: "completed" };
                 }
 
                 if (observationStatus.completed) {
-                    findQuery["status"] = "completed"
+                    findQuery["status"] = "completed";
                 }
 
                 let observationDocuments = await database.models.observationSubmissions.find(findQuery, {
                     _id: 1
-                }).lean()
+                }).lean();
 
                 if (!observationDocuments.length > 0) {
-                    throw "No Pending or Completed Observations found"
+                    throw "No Pending or Completed Observations found";
                 }
 
                 let lengthOfObservationSubmissionsChunk = 500;
@@ -403,12 +511,12 @@ module.exports = class observationsHelper {
                 for (let pointerToObservationSubmission = 0; pointerToObservationSubmission < chunkOfObservationSubmissions.length; pointerToObservationSubmission++) {
 
                     observationSubmissionsIds = chunkOfObservationSubmissions[pointerToObservationSubmission].map(eachObservationSubmission => {
-                        return eachObservationSubmission._id
+                        return eachObservationSubmission._id;
                     })
 
                     observationSubmissionsDocument = await database.models.observationSubmissions.find({
                         _id: { $in: observationSubmissionsIds }
-                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1 }).lean()
+                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1 }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
 
@@ -420,7 +528,7 @@ module.exports = class observationsHelper {
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
                             entityName: eachObservationData.entityInformation.name
-                        })
+                        });
 
                     })
                     )
@@ -436,11 +544,11 @@ module.exports = class observationsHelper {
     }
 
      /**
-      *  Helper function for observation details api.
+      * observation details.
       * @method
       * @name details
       * @param  {String} observationId observation id.
-      * @returns {Promise} Returns a Promise.
+      * @returns {details} observation details.
      */
 
     static details(observationId) {

@@ -1,7 +1,19 @@
+/**
+ * name : entitiesController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All Entities related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
-const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+ /**
+    * Entities
+    * @class
+*/
 module.exports = class Entities extends Abstract {
   constructor() {
     super(entitiesSchema);
@@ -116,6 +128,15 @@ module.exports = class Entities extends Abstract {
         }
     ]
   */
+  
+  /**
+   * Add entities.
+   * @method
+   * @name add
+   * @param {Object} req - All requested Data.
+   * @param {Object} req.files - requested files.
+   * @returns {JSON} - Added entities information.
+   */
 
   add(req) {
     return new Promise(async (resolve, reject) => {
@@ -126,7 +147,7 @@ module.exports = class Entities extends Abstract {
           programId: req.query.programId,
           solutionId: req.query.solutionId,
           parentEntityId: req.query.parentEntityId
-        }
+        };
         let result = await entitiesHelper.add(queryParams, req.body.data, req.userDetails);
 
         return resolve({
@@ -158,6 +179,17 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * List entities.
+   * @method
+   * @name list
+   * @param {Object} req - requested entity information.
+   * @param {String} req.query.type - type of entity requested.
+   * @param {String} req.params._id - requested entity id. 
+   * @param {Number} req.pageSize - total size of the page.
+   * @returns {JSON} - Listed entity details.
+   */
 
   list(req) {
     return new Promise(async (resolve, reject) => {
@@ -196,6 +228,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * Entities form.
+   * @method
+   * @name form
+   * @param {Object} req - requested entity information.
+   * @param {String} req.query.type - type of entity requested.
+   * @returns {JSON} - Listed entity details.
+   */
+
   form(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -231,6 +273,17 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Fetch entity details.
+   * @method
+   * @name fetch
+   * @param {Object} req - requested entity data.
+   * @param {String} req.query.type - entity type.
+   * @param {String} req.params._id - entity id.   
+   * @returns {JSON} - fetch entity details.
+   */
+
   fetch(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -281,6 +334,18 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Update entity information.
+   * @method
+   * @name update
+   * @param {Object} req - requested entity data.
+   * @param {String} req.query.type - entity type.
+   * @param {String} req.params._id - entity id.
+   * @param {Object} req.body - entity information that need to be updated.       
+   * @returns {JSON} - Updated entity information.
+   */
+
   update(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -317,6 +382,19 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+     /**
+   * Bulk create entities.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - requested data.
+   * @param {String} req.query.type - requested entity type.
+   * @param {Object} req.userDetails - logged in user details.
+   * @param {Object} req.files.entities - entities data.         
+   * @returns {CSV} - A CSV with name Entity-Upload is saved inside the folder
+   * public/reports/currentDate
+   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -340,10 +418,10 @@ module.exports = class Entities extends Abstract {
           }());
 
           await Promise.all(newEntityData.map(async newEntity => {
-            input.push(newEntity)
+            input.push(newEntity);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
           throw "Something went wrong!"
@@ -373,6 +451,18 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+     /**
+   * Bulk update entities.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} req - requested data.
+   * @param {Object} req.userDetails - logged in user details.
+   * @param {Object} req.files.entities - entities data.         
+   * @returns {CSV} - A CSV with name Entity-Upload is saved inside the folder
+   * public/reports/currentDate
+   */
+
   bulkUpdate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -397,10 +487,10 @@ module.exports = class Entities extends Abstract {
           }());
 
           await Promise.all(newEntityData.map(async newEntity => {
-            input.push(newEntity)
+            input.push(newEntity);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
           throw new Error("Something went wrong while doing entity bulk update!")
@@ -431,6 +521,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * Map parent entity to child entity.
+   * @method
+   * @name mappingUpload
+   * @param {Object} req - requested data.
+   * @param {Array} req.files.entityMap - Array of entityMap data.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   mappingUpload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -438,9 +538,9 @@ module.exports = class Entities extends Abstract {
 
         let entityCSVData = await csv().fromString(req.files.entityMap.data.toString());
 
-        let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData)
+        let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData);
         if(!entityMappingUploadResponse.success) {
-          throw new Error ("Something went wrong while doing entity mapping upload.")
+          throw new Error ("Something went wrong while doing entity mapping upload.");
         }
 
         return resolve({
@@ -469,6 +569,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * upload entities for portal.
+   * @method
+   * @name uploadForPortal
+   * @param {Object} req - requested data.
+   * @param {Array} req.files.entities - Array of entities data.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   uploadForPortal(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -536,23 +646,32 @@ module.exports = class Entities extends Abstract {
         ]
   */
 
+    /**
+   * Related entities of the given entity.
+   * @method
+   * @name relatedEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - requested entity id.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   relatedEntities(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
         let result = {}
-        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection)
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"];
+        let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection);
 
         if (entityDocument.length < 0) {
           throw { status: 404, message: "No entitiy found" };
         }
 
-        let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
+        let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection);
 
         _.merge(result, entityDocument[0])
-        result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : []
+        result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : [];
 
         return resolve({
           message: "Fetched Entities details",

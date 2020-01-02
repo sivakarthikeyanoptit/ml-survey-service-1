@@ -1,10 +1,36 @@
+/**
+ * name : entityAssessors/helper.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All Entity Assessors helper functionality.
+ */
+
+//Dependencies
 const csv = require("csvtojson");
 const moment = require("moment");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 
-module.exports = class entityAssessorHelper {
+/**
+    * EntityAssessorHelper
+    * @class
+*/
+module.exports = class EntityAssessorHelper {
+
+    /**
+   * Get track of entity assessor.
+   * @method
+   * @name createInidvidualEntityAssessor
+   * @param {Object} entityAssessor - entityAssessor data.
+   * @param {String} programId - program id.
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @param {Object} userEntityDetails
+   * @param {Object} userDetails - logged in user details. 
+   * @param {Object} userDetails.id - logged in user id. 
+   * @returns {Object} Entity assessor data.
+   */
 
     static createInidvidualEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
         return new Promise(async (resolve, reject) => {
@@ -21,10 +47,18 @@ module.exports = class entityAssessorHelper {
                 );
                 return resolve(entityAssessor);
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
     }
+
+        /**
+   * Get track of entity assessor.
+   * @method
+   * @name uploadEntityAssessorTracker
+   * @param {Object} entityAssessor - entityAssessor data.
+   * @returns {Object} Uploaded entity assessor tracker data.
+   */
 
     static uploadEntityAssessorTracker(entityAssessor) {
         return new Promise(async (resolve, reject) => {
@@ -32,11 +66,15 @@ module.exports = class entityAssessorHelper {
 
                 let entityAssessorsTrackersDocument = await database.models.entityAssessorsTrackers.find({ "assessorUserId": entityAssessor.assessorId, "programId": entityAssessor.programId }).sort({ "dateOfOperation": -1 }).limit(1).lean();
 
-                if (!entityAssessorsTrackersDocument.length) return resolve();
+                if (!entityAssessorsTrackersDocument.length) {
+                    return resolve();
+                }
 
                 let actions = ["APPEND", "OVERRIDE", "REMOVE"];
 
-                if (entityAssessor.entities.length) entityAssessor.entities = entityAssessor.entities.map(entity => entity.toString());
+                if (entityAssessor.entities.length) {
+                    entityAssessor.entities = entityAssessor.entities.map(entity => entity.toString());
+                }
 
                 let trackerObject = {};
 
@@ -52,7 +90,7 @@ module.exports = class entityAssessorHelper {
 
                         entityAssessor.entities.forEach(entity => {
                             if (!updatedData.includes(entity)) {
-                                updatedData.push(entity)
+                                updatedData.push(entity);
                             }
                         })
 
@@ -118,7 +156,7 @@ module.exports = class entityAssessorHelper {
                 });
 
                 let lastDataDate = moment(entityAssessorsTrackersDocument.dateOfOperation).format("DD-MM-YYYY");
-                let todayDate = moment().format("DD-MM-YYYY")
+                let todayDate = moment().format("DD-MM-YYYY");
 
                 if (lastDataDate != todayDate) {
 
@@ -130,8 +168,8 @@ module.exports = class entityAssessorHelper {
 
                     entityAssessorsTrackersDocument.validTo = moment().endOf('day').subtract(1, 'days');
 
-                    delete entityAssessorsTrackersDocument.createdAt
-                    delete entityAssessorsTrackersDocument._id
+                    delete entityAssessorsTrackersDocument.createdAt;
+                    delete entityAssessorsTrackersDocument._id;
 
                     await database.models.entityAssessorsTrackers.findOneAndUpdate(queryObject, entityAssessorsTrackersDocument, {
                         upsert: true,
@@ -153,6 +191,17 @@ module.exports = class entityAssessorHelper {
             }
         })
     }
+
+    /**
+   * Entity Assessors upload helper function.
+   * @method
+   * @name upload
+   * @param {Object} files -uploaded files.
+   * @param {String} programId - program id.
+   * @param {String} solutionId - solution id. 
+   * @param {String} userId - Logged in user id.
+   * @param {String} token - Logged in user token.
+   */
 
     static upload(files, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
@@ -177,11 +226,15 @@ module.exports = class entityAssessorHelper {
                     solutionIds.push(solutionId ? solutionId : assessor.solutionId);
 
                     if (!assessor["keycloak-userId"]) {
-                        if (!userExternalIds.includes(assessor.externalId)) userExternalIds.push(assessor.externalId);
+                        if (!userExternalIds.includes(assessor.externalId)) {
+                            userExternalIds.push(assessor.externalId);
+                        }
                     }
 
                     if (!assessor["keycloak-parentId"]) {
-                        if (assessor.parentId && assessor.parentId !== "" && !userExternalIds.includes(assessor.parentId)) userExternalIds.push(assessor.parentId);
+                        if (assessor.parentId && assessor.parentId !== "" && !userExternalIds.includes(assessor.parentId)) {
+                            userExternalIds.push(assessor.parentId);
+                        }
                     }
 
                 });
@@ -206,11 +259,11 @@ module.exports = class entityAssessorHelper {
                             name: "$metaInformation.name"
                         }
                     }
-                ])
+                ]);
 
-                let entityDataByExternalId = _.keyBy(entityFromDatabase, "externalId")
+                let entityDataByExternalId = _.keyBy(entityFromDatabase, "externalId");
 
-                let userIdByExternalId
+                let userIdByExternalId;
 
                 if (userExternalIds.length > 0) {
                     userIdByExternalId = await this.getInternalUserIdByExternalId(token, userExternalIds);
@@ -222,7 +275,7 @@ module.exports = class entityAssessorHelper {
                             programId: program._id,
                             name: program.name
                         }
-                    }), {})
+                    }), {});
 
                 let solutionData = solutionsFromDatabase.reduce(
                     (ac, solution) => ({
@@ -234,24 +287,24 @@ module.exports = class entityAssessorHelper {
                             type: solution.type,
                             subType: solution.subType,
                         }
-                    }), {})
+                    }), {});
 
                 assessorData = await Promise.all(assessorData.map(async (assessor) => {
 
                     if (assessor["keycloak-userId"] && assessor["keycloak-userId"] !== "") {
-                        assessor["userId"] = assessor["keycloak-userId"]
+                        assessor["userId"] = assessor["keycloak-userId"];
                     } else {
 
                         if (userIdByExternalId[assessor.externalId] === "") {
                             throw { status: 400, message: "Keycloak id for user is not present" };
                         }
 
-                        assessor["userId"] = userIdByExternalId[assessor.externalId]
+                        assessor["userId"] = userIdByExternalId[assessor.externalId];
                     }
 
 
                     if (assessor["keycloak-parentId"] && assessor["keycloak-parentId"] !== "") {
-                        assessor["parentId"] = assessor["keycloak-parentId"]
+                        assessor["parentId"] = assessor["keycloak-parentId"];
                     } else {
                         if (assessor.parentId && assessor.parentId !== "") {
 
@@ -259,13 +312,13 @@ module.exports = class entityAssessorHelper {
                                 throw { status: 400, message: "Keycloak id for parent is not present" };
                             }
 
-                            assessor["parentId"] = userIdByExternalId[assessor.parentId]
+                            assessor["parentId"] = userIdByExternalId[assessor.parentId];
                         }
                     }
 
 
-                    let assessorEntityArray = new Array
-                    let assessorPushNotificationArray = new Array
+                    let assessorEntityArray = new Array;
+                    let assessorPushNotificationArray = new Array;
 
                     assessor.programName = programsData[assessor.programId].name;
                     assessor.programId = programsData[assessor.programId].programId;
@@ -280,7 +333,7 @@ module.exports = class entityAssessorHelper {
                     assessor.entities.split(",").forEach(assessorEntity => {
                         assessorEntity = entityDataByExternalId[assessorEntity.trim()];
                         if (assessorEntity && assessorEntity._id) {
-                            assessorEntityArray.push(assessorEntity._id)
+                            assessorEntityArray.push(assessorEntity._id);
                             assessorPushNotificationArray.push({
                                 entityId: assessorEntity._id,
                                 entityType: assessor.entityType,
@@ -291,7 +344,7 @@ module.exports = class entityAssessorHelper {
                                 solutionType: assessor.solutionType,
                                 solutionSubType: assessor.solutionSubType,
                                 solutionName: assessor.solutionName
-                            })
+                            });
                         }
                     })
 
@@ -300,20 +353,22 @@ module.exports = class entityAssessorHelper {
                     let fieldsWithOutEntity = {};
 
                     Object.keys(database.models.entityAssessors.schema.paths).forEach(fieldName => {
-                        if (fieldName != 'entities' && assessor[fieldName]) fieldsWithOutEntity[fieldName] = assessor[fieldName];
+                        if (fieldName != 'entities' && assessor[fieldName]) {
+                            fieldsWithOutEntity[fieldName] = assessor[fieldName];
+                        }
                     })
 
                     let updateObject;
-                    let sendPushNotificationToAssessor = false
+                    let sendPushNotificationToAssessor = false;
 
                     if (assessor.entityOperation == "OVERRIDE") {
-                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } }
-                        sendPushNotificationToAssessor = true
+                        updateObject = { $set: { entities: assessor.entities, ...fieldsWithOutEntity } };
+                        sendPushNotificationToAssessor = true;
                     }
 
                     else if (assessor.entityOperation == "APPEND") {
                         updateObject = { $addToSet: { entities: assessor.entities }, $set: fieldsWithOutEntity };
-                        sendPushNotificationToAssessor = true
+                        sendPushNotificationToAssessor = true;
                     }
 
                     else if (assessor.entityOperation == "REMOVE") {
@@ -337,7 +392,7 @@ module.exports = class entityAssessorHelper {
                         "solutionId": assessor.solutionId,
                         "entityType": assessor.entityType,
                         "entityTypeId": assessor.entityTypeId,
-                    }
+                    };
 
                     await this.uploadEntityAssessorTracker(entityAssessorDocument);
 
@@ -365,6 +420,15 @@ module.exports = class entityAssessorHelper {
         })
     }
 
+     /**
+   * Get user id from external id.
+   * @method
+   * @name getInternalUserIdByExternalId
+   * @param {Array} userExternalIds - Array of externalIds.
+   * @param {String} token - user logged in token.
+   * @returns {Array} Array of userId for external ids.
+   */
+
     static getInternalUserIdByExternalId(token, userExternalIds) {
 
         return new Promise(async (resolve, reject) => {
@@ -376,14 +440,14 @@ module.exports = class entityAssessorHelper {
                 let externalIdToUserIdMap = {};
 
                 let result = await Promise.all(userExternalIds.map(userExternalId => {
-                    return shikshalokam.getKeycloakUserIdByLoginId(token, userExternalId)
+                    return shikshalokam.getKeycloakUserIdByLoginId(token, userExternalId);
                 }))
 
                 userExternalIds.forEach((loginId, index) => {
                     if (result[index] && result[index][0]) {
-                        externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"]
+                        externalIdToUserIdMap[loginId] = result[index][0]["userLoginId"];
                     } else {
-                        externalIdToUserIdMap[loginId] = ""
+                        externalIdToUserIdMap[loginId] = "";
                     }
                 })
 
@@ -399,12 +463,21 @@ module.exports = class entityAssessorHelper {
 
     }
 
+      /**
+   * Send notifications to user.
+   * @method
+   * @name sendUserNotifications
+   * @param {String} [userId = ""] - Logged in userId.
+   * @param {Array} [entities = []] - Array of entities. 
+   * @returns {Object} Consisting of success and message. 
+   */
+
     static sendUserNotifications(userId = "", entities = []) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 if (userId == "") {
-                    throw new Error("Invalid user id.")
+                    throw new Error("Invalid user id.");
                 }
 
                 const kafakResponses = await Promise.all(entities.map(async entity => {
@@ -424,7 +497,7 @@ module.exports = class entityAssessorHelper {
                         title: "New Assessment",
                         created_at: new Date(),
                         "appName": "samiksha"
-                    })
+                    });
 
                     if (kafkaMessage.status != "success") {
                         let errorObject = {
@@ -432,12 +505,12 @@ module.exports = class entityAssessorHelper {
                                 userId: userId,
                                 message: `Failed to push entity notification for entity ${entity.entityName} in program ${entity.programName} and solution ${entity.solutionName}`
                             }
-                        }
-                        slackClient.kafkaErrorAlert(errorObject)
+                        };
+                        slackClient.kafkaErrorAlert(errorObject);
                         return;
                     }
 
-                    return kafkaMessage
+                    return kafkaMessage;
 
                 }));
 
@@ -448,13 +521,23 @@ module.exports = class entityAssessorHelper {
                 return resolve({
                     success: true,
                     message: "All notifications pushed to Kafka."
-                })
+                });
 
             } catch (error) {
                 return reject(error);
             }
         })
     }
+
+      /**
+   * Entity Assessors upload helper function.
+   * @method
+   * @name pendingOrCompletedAssessment
+   * @param {Object} assessmentStatus - status of the assessments.
+   * @param {String} assessmentStatus.pending - pending assessments.
+   * @param {String} assessmentStatus.completed - completed assessments. 
+   * @returns {Array} Array of pending or completed assessments.
+   */
 
     static pendingOrCompletedAssessment(assessmentStatus) {
         return new Promise(async (resolve, reject) => {
@@ -465,12 +548,12 @@ module.exports = class entityAssessorHelper {
                 }, { _id: 1 }).lean();
 
                 if (!entityAssessorsDocument.length > 0) {
-                    throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" }
+                    throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" };
                 }
 
                 let entityAssessorChunkLength = 500;
 
-                let chunkOfEntityAssessors = _.chunk(entityAssessorsDocument, entityAssessorChunkLength)
+                let chunkOfEntityAssessors = _.chunk(entityAssessorsDocument, entityAssessorChunkLength);
 
                 let entityAssessorsDocuments;
 
@@ -481,22 +564,22 @@ module.exports = class entityAssessorHelper {
                 if (assessmentStatus.pending) {
                     status = {
                         $ne: "completed"
-                    }
+                    };
                 }
 
                 if (assessmentStatus.completed) {
-                    status = "completed"
+                    status = "completed";
                 }
 
                 for (let pointerToAssessors = 0; pointerToAssessors < chunkOfEntityAssessors.length; pointerToAssessors++) {
 
                     entityAssessorsIds = chunkOfEntityAssessors[pointerToAssessors].map(eachAssessor => {
                         return eachAssessor._id
-                    })
+                    });
 
                     entityAssessorsDocuments = await database.models.entityAssessors.find({
                         _id: { $in: entityAssessorsIds }
-                    }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1, entityTypeId: 1 }).lean()
+                    }, { solutionId: 1, entityTypeId: 1, entities: 1, programId: 1, userId: 1, entityTypeId: 1 }).lean();
 
                     await Promise.all(entityAssessorsDocuments.map(async eachAssessor => {
 
@@ -506,18 +589,18 @@ module.exports = class entityAssessorHelper {
                             status: status,
                             entityTypeId: eachAssessor.entityTypeId,
                             entityId: { $in: eachAssessor.entities }
-                        }
+                        };
 
                         let assessmentSubmissionsDoc = await database.models.submissions.find(queryObj, {
                             _id: 1, createdAt: 1, entityId: 1, "entityInformation.name": 1
-                        }).lean()
+                        }).lean();
 
 
                         if (assessmentSubmissionsDoc.length > 0) {
 
-                            let userId = eachAssessor.userId
+                            let userId = eachAssessor.userId;
                             let solutionId = eachAssessor.solutionId;
-                            let programId = eachAssessor.programId
+                            let programId = eachAssessor.programId;
 
                             assessmentSubmissionsDoc.forEach(eachAssessmentSubmissions => {
 
@@ -529,7 +612,7 @@ module.exports = class entityAssessorHelper {
                                     entityId: eachAssessmentSubmissions.entityId,
                                     programId: programId,
                                     entityName: eachAssessmentSubmissions.entityInformation.name
-                                })
+                                });
 
                             })
 
@@ -539,7 +622,7 @@ module.exports = class entityAssessorHelper {
                     )
                 }
 
-                return resolve(entityAssessorsData)
+                return resolve(entityAssessorsData);
 
             } catch (error) {
                 return reject(error);

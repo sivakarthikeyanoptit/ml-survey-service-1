@@ -1,8 +1,19 @@
+/**
+ * name : frameworksController.js
+ * author : Aman
+ * created-date : 22-Dec-2018
+ * Description : All frameworks related information.
+ */
+
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const frameworksHelper = require(MODULES_BASE_PATH + "/frameworks/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const csv = require("csvtojson");
 
+/**
+    * Frameworks
+    * @class
+*/
 module.exports = class Frameworks extends Abstract {
   constructor() {
     super(frameworksSchema);
@@ -23,6 +34,15 @@ module.exports = class Frameworks extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Upload themes for frameworks.
+   * @method
+   * @name uploadThemes
+   * @param {Object} req -request Data.
+   * @param {CSV} req.files.themes - themes csv file.
+   * @returns {CSV}
+   */
 
   async uploadThemes(req) {
     return new Promise(async (resolve, reject) => {
@@ -54,20 +74,20 @@ module.exports = class Frameworks extends Abstract {
         let headerSequence
         let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let frameworkThemes = await solutionsHelper.uploadTheme("frameworks", frameworkDocument._id, themes, headerSequence)
+        let frameworkThemes = await solutionsHelper.uploadTheme("frameworks", frameworkDocument._id, themes, headerSequence);
 
         for (let pointerToFrameworkTheme = 0; pointerToFrameworkTheme < frameworkThemes.length; pointerToFrameworkTheme++) {
-          input.push(frameworkThemes[pointerToFrameworkTheme])
+          input.push(frameworkThemes[pointerToFrameworkTheme]);
         }
 
-        input.push(null)
+        input.push(null);
       }
       catch (error) {
         reject({
           status: 500,
           message: error,
           errorObject: error
-        })
+        });
       }
     })
   }
@@ -84,31 +104,39 @@ module.exports = class Frameworks extends Abstract {
  * @apiUse errorBody
  */
 
+  /**
+   * Create framework.
+   * @method
+   * @name create
+   * @param {Object} req -request Data.
+   * @param {JSON} req.files.framework - framework json files.
+   * @returns {JSON} - message and status of framework created.
+   */
+
   async create(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-
         let frameworkData = JSON.parse(req.files.framework.data.toString());
 
         if (!frameworkData.externalId) {
-          throw "External Id for framework is required"
+          throw "External Id for framework is required";
         }
 
         if (!frameworkData.name) {
-          throw "Name for framework is required"
+          throw "Name for framework is required";
         }
 
         if (!frameworkData.description) {
-          throw "Description for framework is required"
+          throw "Description for framework is required";
         }
         if (!frameworkData.entityType) {
-          throw "Entity Type for framework is required"
+          throw "Entity Type for framework is required";
         }
 
         let entityDocument = await database.models.entityTypes.findOne({
           name: frameworkData.entityType
-        }, { _id: 1 }).lean()
+        }, { _id: 1 }).lean();
 
         let queryObject = {
           externalId: frameworkData.externalId,
@@ -118,26 +146,26 @@ module.exports = class Frameworks extends Abstract {
         };
 
 
-        let frameworkMandatoryFields = frameworksHelper.mandatoryField()
+        let frameworkMandatoryFields = frameworksHelper.mandatoryField();
 
-        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 }).lean()
+        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 }).lean();
 
 
         if (frameworkDocument) {
-          throw "Framework already exists"
+          throw "Framework already exists";
         }
 
         Object.keys(frameworkMandatoryFields).forEach(eachMandatoryField => {
           if (frameworkData[eachMandatoryField] === undefined) {
-            frameworkData[eachMandatoryField] = frameworkMandatoryFields[eachMandatoryField]
+            frameworkData[eachMandatoryField] = frameworkMandatoryFields[eachMandatoryField];
           }
         })
 
-        frameworkData["entityTypeId"] = entityDocument._id
-        frameworkData["createdBy"] = req.userDetails.id
-        frameworkData.isDeleted = false
+        frameworkData["entityTypeId"] = entityDocument._id;
+        frameworkData["createdBy"] = req.userDetails.id;
+        frameworkData.isDeleted = false;
 
-        frameworkDocument = await database.models.frameworks.create(frameworkData)
+        frameworkDocument = await database.models.frameworks.create(frameworkData);
 
         return resolve({
           status: 200,
@@ -166,6 +194,15 @@ module.exports = class Frameworks extends Abstract {
 * @apiUse errorBody
 */
 
+    /**
+   * Update framework.
+   * @method
+   * @name update
+   * @param {Object} req -request Data.
+   * @param {JSON} req.files.framework - framework json files.
+   * @returns {JSON} - message and status of framework created.
+   */
+
   async update(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -177,7 +214,7 @@ module.exports = class Frameworks extends Abstract {
           externalId: req.query.frameworkExternalId
         };
 
-        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { themes: 0 }).lean()
+        let frameworkDocument = await database.models.frameworks.findOne(queryObject, { themes: 0 }).lean();
 
         if (!frameworkDocument) {
           return resolve({
@@ -186,12 +223,12 @@ module.exports = class Frameworks extends Abstract {
           });
         }
 
-        let updateObject = _.merge(_.omit(frameworkDocument, "createdAt"), frameworkData)
-        updateObject.updatedBy = req.userDetails.id
+        let updateObject = _.merge(_.omit(frameworkDocument, "createdAt"), frameworkData);
+        updateObject.updatedBy = req.userDetails.id;
 
         frameworkDocument = await database.models.frameworks.findOneAndUpdate({
           _id: frameworkDocument._id
-        }, updateObject)
+        }, updateObject);
 
         return resolve({
           status: 200,
@@ -203,7 +240,7 @@ module.exports = class Frameworks extends Abstract {
           status: 500,
           message: error,
           errorObject: error
-        })
+        });
       }
     })
   }

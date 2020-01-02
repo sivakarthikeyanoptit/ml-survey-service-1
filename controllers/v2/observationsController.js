@@ -1,9 +1,22 @@
-const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper")
-const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
-const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
-const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
-const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController")
-const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
+/**
+ * name : observationsController.js
+ * author : Aman
+ * created-date : 22-Nov-2018
+ * Description : Updated Observations related information .
+ */
+
+// Dependencies
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController");
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
+
+/**
+    * Observations
+    * @class
+*/
 
 module.exports = class Observations extends v1Observation {
 
@@ -34,6 +47,15 @@ module.exports = class Observations extends v1Observation {
      * @apiUse errorBody
      */
 
+       /**
+    * Search entities in observation.
+    * @method
+    * @name searchEntities
+    * @param {Object} req -request Data.
+    * @param {String} req.query.observationId -observation id. 
+    * @returns {JSON} List of entities in observations.
+    */
+
     async searchEntities(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -44,20 +66,20 @@ module.exports = class Observations extends v1Observation {
                     result: {}
                 };
 
-                let userId = req.userDetails.userId
-                let result
+                let userId = req.userDetails.userId;
+                let result;
 
-                let projection = []
+                let projection = [];
 
                 if (req.query.observationId) {
-                    let findObject = {}
-                    findObject["_id"] = req.query.observationId
-                    findObject["createdBy"] = userId
+                    let findObject = {};
+                    findObject["_id"] = req.query.observationId;
+                    findObject["createdBy"] = userId;
 
-                    projection.push("entityTypeId", "entities", "entityType")
+                    projection.push("entityTypeId", "entities", "entityType");
 
-                    let observationDocument = await observationsHelper.observationDocuments(findObject, projection)
-                    result = observationDocument[0]
+                    let observationDocument = await observationsHelper.observationDocuments(findObject, projection);
+                    result = observationDocument[0];
                 }
 
                 if (req.query.solutionId) {
@@ -66,16 +88,16 @@ module.exports = class Observations extends v1Observation {
                     };
                     projection.push("entityTypeId", "entityType")
 
-                    let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection)
-                    result = _.merge(solutionDocument[0])
+                    let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection);
+                    result = _.merge(solutionDocument[0]);
                 }
 
-                let userAllowedEntities = new Array
+                let userAllowedEntities = new Array;
 
                 try {
-                    userAllowedEntities = await userExtensionHelper.getUserEntitiyUniverseByEntityType(userId, result.entityType)
+                    userAllowedEntities = await userExtensionHelper.getUserEntitiyUniverseByEntityType(userId, result.entityType);
                 } catch (error) {
-                    userAllowedEntities = []
+                    userAllowedEntities = [];
                 }
 
 
@@ -89,13 +111,13 @@ module.exports = class Observations extends v1Observation {
                     })
                 }
 
-                let messageData = "Entities fetched successfully"
+                let messageData = "Entities fetched successfully";
                 if (!entityDocuments[0].count) {
-                    entityDocuments[0].count = 0
-                    messageData = "No entity found"
+                    entityDocuments[0].count = 0;
+                    messageData = "No entity found";
                 }
-                response.result = entityDocuments
-                response["message"] = messageData
+                response.result = entityDocuments;
+                response["message"] = messageData;
 
                 return resolve(response);
 
@@ -297,6 +319,19 @@ module.exports = class Observations extends v1Observation {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+        /**
+    * Assessment for observation.
+    * @method
+    * @name assessment
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @param {String} req.query.entityId - entity id.
+    * @param {String} req.query.submissionNumber - submission number
+    * @param {String} req.userDetails.allRoles -user roles.
+    * @returns {JSON} - Observation Assessment details.
+    */
+
     async assessment(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -310,8 +345,9 @@ module.exports = class Observations extends v1Observation {
 
                 let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: {$ne:"inactive"},entities: ObjectId(req.query.entityId) }).lean();
 
-                if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
-
+                if (!observationDocument) {
+                    return resolve({ status: 400, message: 'No observation found.' });
+                }
 
                 let entityQueryObject = { _id: req.query.entityId, entityType: observationDocument.entityType };
                 let entityDocument = await database.models.entities.findOne(
@@ -325,7 +361,7 @@ module.exports = class Observations extends v1Observation {
 
                 if (!entityDocument) {
                     let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
@@ -344,10 +380,10 @@ module.exports = class Observations extends v1Observation {
 
                 if (!solutionDocument) {
                     let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
-                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles)
+                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
                 let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
 
                 let entityProfileForm = await database.models.entityTypes.findOne(
@@ -359,29 +395,29 @@ module.exports = class Observations extends v1Observation {
 
                 if (!entityProfileForm) {
                     let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
                 let form = [];
                 let entityDocumentTypes = (entityDocument.metaInformation.types) ? entityDocument.metaInformation.types : ["A1"];
                 let entityDocumentQuestionGroup = (entityDocument.metaInformation.questionGroup) ? entityDocument.metaInformation.questionGroup : ["A1"];
-                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes
+                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes;
                 let filteredFieldsToBeShown = [];
 
                 if (entityProfileFieldsPerEntityTypes) {
                     entityDocumentTypes.forEach(entityType => {
                         if (entityProfileFieldsPerEntityTypes[entityType]) {
-                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType])
+                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType]);
                         }
                     })
                 }
 
                 entityProfileForm.profileForm.forEach(profileFormField => {
                     if (filteredFieldsToBeShown.includes(profileFormField.field)) {
-                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : ""
+                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : "";
                         profileFormField.visible = profileFieldAccessibility ? (profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1) : true;
                         profileFormField.editable = profileFieldAccessibility ? (profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1) : true;
-                        form.push(profileFormField)
+                        form.push(profileFormField);
                     }
                 })
 
@@ -423,15 +459,15 @@ module.exports = class Observations extends v1Observation {
                 assessment.description = solutionDocument.description;
                 assessment.externalId = solutionDocument.externalId;
 
-                let criteriaId = new Array
-                let criteriaObject = {}
+                let criteriaId = new Array;
+                let criteriaObject = {};
                 let criteriaIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
                 criteriaIdArray.forEach(eachCriteriaId => {
-                    criteriaId.push(eachCriteriaId.criteriaId)
+                    criteriaId.push(eachCriteriaId.criteriaId);
                     criteriaObject[eachCriteriaId.criteriaId.toString()] = {
                         weightage: eachCriteriaId.weightage
-                    }
+                    };
                 })
 
                 let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
@@ -449,16 +485,16 @@ module.exports = class Observations extends v1Observation {
                 let submissionDocumentEvidences = {};
                 let submissionDocumentCriterias = [];
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
-                    solutionDocument.evidenceMethods[solutionEcm].startTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].endTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
-                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    solutionDocument.evidenceMethods[solutionEcm].startTime = "";
+                    solutionDocument.evidenceMethods[solutionEcm].endTime = "";
+                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false;
+                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array;
                 })
-                submissionDocumentEvidences = solutionDocument.evidenceMethods
+                submissionDocumentEvidences = solutionDocument.evidenceMethods;
 
                 criteriaQuestionDocument.forEach(criteria => {
 
-                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage
+                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage;
 
                     submissionDocumentCriterias.push(
                         _.omit(criteria, [
@@ -473,9 +509,9 @@ module.exports = class Observations extends v1Observation {
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 
                                 evidenceMethod.sections.forEach(ecmSection => {
-                                    ecmSection.name = solutionDocument.sections[ecmSection.code]
+                                    ecmSection.name = solutionDocument.sections[ecmSection.code];
                                 })
-                                _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code])
+                                _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code]);
                                 evidenceMethodArray[evidenceMethod.code] = evidenceMethod;
 
                             } else {
@@ -495,7 +531,7 @@ module.exports = class Observations extends v1Observation {
                                     });
 
                                     if (!sectionExisitsInEvidenceMethod) {
-                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code]
+                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code];
                                         evidenceMethodArray[evidenceMethod.code].sections.push(evidenceMethodSection);
                                     } else {
                                         evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {

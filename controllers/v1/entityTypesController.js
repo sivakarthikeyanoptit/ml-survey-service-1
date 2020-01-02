@@ -1,6 +1,18 @@
-const entitiyTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper")
-const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+/**
+ * name : entityTypesController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Entity types information. 
+ */
 
+ // Dependencies
+const entitiyTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+
+ /**
+    * EntityTypes
+    * @class
+*/
 module.exports = class EntityTypes extends Abstract {
   constructor() {
     super(entityTypesSchema);
@@ -33,6 +45,13 @@ module.exports = class EntityTypes extends Abstract {
     ]
   */
 
+  /**
+   * Get all the entity types which can be observed.
+   * @method
+   * @name canBeObserved 
+   * @returns {JSON} - List of all entity types that can be observed.
+   */
+
   canBeObserved() {
     return new Promise(async (resolve, reject) => {
 
@@ -51,7 +70,7 @@ module.exports = class EntityTypes extends Abstract {
           status: error.status || 500,
           message: error.message || "Oops! something went wrong.",
           errorObject: error
-        })
+        });
 
       }
 
@@ -70,6 +89,13 @@ module.exports = class EntityTypes extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * Get all the entity types which can be observed.
+   * @method
+   * @name createGroupEntityTypeIndex 
+   * @returns {JSON} - List of all entity types that can be observed.
+   */
 
   createGroupEntityTypeIndex() {
     return new Promise(async (resolve, reject) => {

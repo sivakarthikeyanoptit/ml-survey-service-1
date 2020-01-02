@@ -1,7 +1,19 @@
+/**
+ * name : userRolesController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : User roles related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
 const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+/**
+    * UserRoles
+    * @class
+*/
 module.exports = class UserRoles extends Abstract {
   constructor() {
     super(userRolesSchema);
@@ -35,6 +47,13 @@ module.exports = class UserRoles extends Abstract {
         }
       ]
   */
+
+    /**
+   * list user roles.
+   * @method
+   * @name list
+   * @returns {JSON} list of user roles. 
+   */
 
   list(req) {
     return new Promise(async (resolve, reject) => {
@@ -80,6 +99,15 @@ module.exports = class UserRoles extends Abstract {
   * @apiUse errorBody
   */
 
+    /**
+   * Bulk create user roles.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req -request data.
+   * @param {Object} req.files.userRoles -userRoles data.
+   * @returns {CSV} Bulk create user roles data. 
+   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -87,7 +115,9 @@ module.exports = class UserRoles extends Abstract {
 
         let userRolesCSVData = await csv().fromString(req.files.userRoles.data.toString());
 
-        if (!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
+        if (!userRolesCSVData || userRolesCSVData.length < 1) {
+          throw "File or data is missing.";
+        }
 
         let newUserRoleData = await userRolesHelper.bulkCreate(userRolesCSVData, req.userDetails);
 
@@ -106,13 +136,13 @@ module.exports = class UserRoles extends Abstract {
           }());
 
           await Promise.all(newUserRoleData.map(async userRole => {
-            input.push(userRole)
+            input.push(userRole);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw "Something went wrong!";
         }
 
       } catch (error) {
@@ -121,7 +151,7 @@ module.exports = class UserRoles extends Abstract {
           status: error.status || 500,
           message: error.message || "Oops! something went wrong.",
           errorObject: error
-        })
+        });
 
       }
 
@@ -139,6 +169,16 @@ module.exports = class UserRoles extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * Bulk update user roles.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} req -request data.
+   * @param {Object} req.files.userRoles -userRoles data.
+   * @returns {CSV} Bulk update user roles data. 
+   */
+
   bulkUpdate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -146,7 +186,9 @@ module.exports = class UserRoles extends Abstract {
 
         let userRolesCSVData = await csv().fromString(req.files.userRoles.data.toString());
 
-        if (!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
+        if (!userRolesCSVData || userRolesCSVData.length < 1) {
+          throw "File or data is missing.";
+        }
 
         let newUserRoleData = await userRolesHelper.bulkUpdate(userRolesCSVData, req.userDetails);
 
@@ -165,10 +207,10 @@ module.exports = class UserRoles extends Abstract {
           }());
 
           await Promise.all(newUserRoleData.map(async userRole => {
-            input.push(userRole)
-          }))
+            input.push(userRole);
+          }));
 
-          input.push(null)
+          input.push(null);
 
         } else {
           throw "Something went wrong!"

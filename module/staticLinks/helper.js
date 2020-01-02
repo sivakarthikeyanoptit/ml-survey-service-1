@@ -1,4 +1,24 @@
-module.exports = class staticLinksHelper {
+/**
+ * name : StaticLinks/helper.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Static links related helper functionality.
+ */
+
+/**
+    * StaticLinksHelper
+    * @class
+*/
+module.exports = class StaticLinksHelper {
+
+    /**
+   * List static links.
+   * @method
+   * @name list
+   * @param {Object} filterQueryObject -
+   * @param {Object} projectionQueryObject - required projected data.
+   * @returns {Array} List of static links data. 
+   */
 
     static list(filterQueryObject, projectionQueryObject) {
         return new Promise(async (resolve, reject) => {
@@ -15,6 +35,16 @@ module.exports = class staticLinksHelper {
 
 
     }
+
+     /**
+   * Bulk create static links.
+   * @method
+   * @name bulkCreate
+   * @param {Object} staticLinksCSVData - array of static links
+   * @param {Object} userDetails - logged in user data.
+   * @param {String} userDetails.id - logged in user id. 
+   * @returns {Array} List of static links with _SYSTEM_ID. 
+   */
 
     static bulkCreate(staticLinksCSVData,userDetails) {
 
@@ -35,20 +65,20 @@ module.exports = class staticLinksHelper {
                             );
 
                             if (newLink._id) {
-                                staticLink["_SYSTEM_ID"] = newLink._id 
-                                staticLink.status = "Success"
+                                staticLink["_SYSTEM_ID"] = newLink._id ;
+                                staticLink.status = "Success";
                             } else {
-                                staticLink["_SYSTEM_ID"] = ""
-                                staticLink.status = "Failed"
+                                staticLink["_SYSTEM_ID"] = "";
+                                staticLink.status = "Failed";
                             }
 
                         } catch (error) {
-                            staticLink["_SYSTEM_ID"] = ""
-                            staticLink.status = error.message
+                            staticLink["_SYSTEM_ID"] = "";
+                            staticLink.status = error.message;
                         }
 
 
-                        return staticLink
+                        return staticLink;
                     })
                 )
 
@@ -62,6 +92,15 @@ module.exports = class staticLinksHelper {
 
     }
 
+      /**
+   * Bulk update static links.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} staticLinksCSVData - array of static links
+   * @param {Object} userDetails - logged in user data.
+   * @param {String} userDetails.id - logged in user id. 
+   * @returns {Array} List of static links with _SYSTEM_ID. 
+   */
 
     static bulkUpdate(staticLinksCSVData,userDetails) {
 
@@ -83,20 +122,20 @@ module.exports = class staticLinksHelper {
                             );
 
                             if (updateLink._id) {
-                                staticLink["_SYSTEM_ID"] = updateLink._id 
-                                staticLink.status = "Success"
+                                staticLink["_SYSTEM_ID"] = updateLink._id ;
+                                staticLink.status = "Success";
                             } else {
-                                staticLink["_SYSTEM_ID"] = ""
-                                staticLink.status = "Failed"
+                                staticLink["_SYSTEM_ID"] = "";
+                                staticLink.status = "Failed";
                             }
 
                         } catch (error) {
-                            staticLink["_SYSTEM_ID"] = ""
-                            staticLink.status = error.message
+                            staticLink["_SYSTEM_ID"] = "";
+                            staticLink.status = error.message;
                         }
 
 
-                        return staticLink
+                        return staticLink;
                     })
                 )
 
@@ -104,7 +143,7 @@ module.exports = class staticLinksHelper {
                 return resolve(staticLinksUploadedData);
 
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
 

@@ -1,3 +1,14 @@
+/**
+ * name : importController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : importing program,solution,framework,criteria,questions
+ */
+
+/**
+    * Import
+    * @class
+*/
 module.exports = class Import {
 
     constructor() {
@@ -17,6 +28,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import program.
+    * @method
+    * @name program
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.program - program data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     program(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -26,7 +46,7 @@ module.exports = class Import {
                     _id: ObjectId(programData._id)
                 };
 
-                let programDocument = await database.models.programs.findOne(queryObject, { _id: 1 })
+                let programDocument = await database.models.programs.findOne(queryObject, { _id: 1 });
 
                 if (programDocument) {
                     return resolve({
@@ -35,7 +55,7 @@ module.exports = class Import {
                     });
                 }
 
-                programDocument = await database.models.programs.create(programData)
+                programDocument = await database.models.programs.create(programData);
                 return resolve({
                     status: 200,
                     message: "Program imported successfully."
@@ -60,6 +80,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import solution.
+    * @method
+    * @name solution
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.solution - solution data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     solution(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -69,7 +98,7 @@ module.exports = class Import {
                     _id: ObjectId(solutionData._id)
                 };
 
-                let solutionDocument = await database.models.solutions.findOne(queryObject, { _id: 1 })
+                let solutionDocument = await database.models.solutions.findOne(queryObject, { _id: 1 });
 
                 if (solutionDocument) {
                     return resolve({
@@ -78,7 +107,7 @@ module.exports = class Import {
                     });
                 }
 
-                solutionDocument = await database.models.solutions.create(evaluationFrameworkData)
+                solutionDocument = await database.models.solutions.create(evaluationFrameworkData);
 
                 return resolve({
                     status: 200,
@@ -105,6 +134,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+    /**
+    * Import framework.
+    * @method
+    * @name framework
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.framework - framework data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     framework(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -115,7 +153,7 @@ module.exports = class Import {
                     _id: ObjectId(frameworkData._id)
                 };
 
-                let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 })
+                let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 });
 
                 if (frameworkDocument) {
                     return resolve({
@@ -124,7 +162,7 @@ module.exports = class Import {
                     });
                 }
 
-                frameworkDocument = await database.models.frameworks.create(frameworkData)
+                frameworkDocument = await database.models.frameworks.create(frameworkData);
 
                 return resolve({
                     status: 200,
@@ -151,6 +189,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import criteria.
+    * @method
+    * @name criteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.criteria - criteria data.
+    * @returns {JSON} consists of message and status. 
+    */
+   
     criteria(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -159,7 +206,7 @@ module.exports = class Import {
                 await database.models.criteria.create(criteriaData);
 
                 let responseMessage = `Criterias inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage })
+                return resolve({ status: 200, message: responseMessage });
             } catch (error) {
                 return reject({
                     status: 500,
@@ -181,6 +228,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+    /**
+    * Import questions.
+    * @method
+    * @name questions
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.questions - questions data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -189,7 +245,7 @@ module.exports = class Import {
                 await database.models.questions.create(questionData);
 
                 let responseMessage = `Questions inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage })
+                return resolve({ status: 200, message: responseMessage });
             }
             catch (error) {
                 return reject({

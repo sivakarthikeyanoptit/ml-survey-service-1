@@ -1,5 +1,17 @@
+/**
+ * name : filesController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All files related information.
+ */
+
+// Dependencies
 const filesHelper = require(MODULES_BASE_PATH + "/files/helper")
 
+/**
+    * FileUpload
+    * @class
+*/
 module.exports = class FileUpload {
 
   /**
@@ -19,15 +31,27 @@ module.exports = class FileUpload {
   * @apiUse errorBody
   */
 
+   /**
+   * Get the url of the image upload.
+   * @method
+   * @name getImageUploadUrl
+   * @param {Object} req -request Data.
+   * @param {Array} req.body.files - image upload files.
+   * @param {String} req.body.submissionId - submission id. 
+   * @returns {JSON} - Url generated link. 
+   */
+
   getImageUploadUrl(req) {
 
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        if(!Array.isArray(req.body.files) || req.body.files.length < 1) throw new Error("File names not given.")
+        if(!Array.isArray(req.body.files) || req.body.files.length < 1) {
+          throw new Error("File names not given.");
+        }
 
-        const folderPath = req.body.submissionId + "/" + req.userDetails.userId + "/"
+        const folderPath = req.body.submissionId + "/" + req.userDetails.userId + "/";
 
         let signedUrl = await filesHelper.getSignedUrls(folderPath, req.body.files);
 
@@ -37,7 +61,7 @@ module.exports = class FileUpload {
             result: signedUrl.files
           });
         } else {
-          throw new Error(signedUrl.message)
+          throw new Error(signedUrl.message);
         }
 
       } catch (error) {
@@ -46,7 +70,7 @@ module.exports = class FileUpload {
           status: error.status || 500,
           message: error.message || "Oops! something went wrong.",
           errorObject: error
-        })
+        });
 
       }
 

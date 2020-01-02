@@ -1,6 +1,28 @@
+/**
+ * name : programOperations/helper.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : Program operations related information.
+ */
+
+// Dependencies
+
 const moment = require("moment");
 const entityAssessorsTrackers = require(MODULES_BASE_PATH + "/entityAssessorTracker/helper");
-module.exports = class programOperationsHelper {
+
+/**
+    * ProgramOperationsHelper
+    * @class
+*/
+module.exports = class ProgramOperationsHelper {
+
+   /**
+   * Construct result object
+   * @method
+   * @name constructResultObject
+   * @param {String} graphName - report options name.
+   * @returns {JSON}
+   */
 
   static constructResultObject(graphName, value, totalCount, userDetails, programName, queryParams) {
     return new Promise(async (resolve, reject) => {
@@ -21,6 +43,20 @@ module.exports = class programOperationsHelper {
     })
 
   }
+
+  /**
+   * 
+   * @method
+   * @name getEntities
+   * @param {Object} userDetails - logged in user details.
+   * @param {String} userDetails.id - logged in user id.
+   * @param {Number} pageSize - total page size.
+   * @param {Number} pageNo - Page no.
+   * @param {Boolean} [pagination = false] - Enable pagination or not.
+   * @param {Array} assessorIds - assessor ids.
+   * @param {String} solutionId - solution id. 
+   * @returns {JSON}
+   */
 
   static getEntities(userDetails, queryParams, pageSize, pageNo, pagination = false, assessorIds, solutionId) {
     return new Promise(async (resolve, reject) => {
@@ -58,7 +94,7 @@ module.exports = class programOperationsHelper {
           userIds.push(entityAssessorDocuments[0].userId);
 
           entityAssessorDocuments[0].children.forEach(child => {
-            userIds.push(child.userId)
+            userIds.push(child.userId);
           })
 
           userIds = _.uniq(userIds);
@@ -73,7 +109,7 @@ module.exports = class programOperationsHelper {
         let entitisQueryObject = {};
         entitisQueryObject._id = { $in: entityObjectIds };
 
-        _.merge(entitisQueryObject, this.getQueryObject(queryParams))
+        _.merge(entitisQueryObject, this.getQueryObject(queryParams));
 
         let totalCount = database.models.entities.countDocuments(entitisQueryObject).exec();
 
@@ -84,7 +120,7 @@ module.exports = class programOperationsHelper {
 
         filteredEntityDocument = database.models.entities.find(entitisQueryObject, { _id: 1, "metaInformation.name": 1, "metaInformation.externalId": 1 }).limit(limitValue).skip(skipValue).lean().exec();
 
-        [filteredEntityDocument, totalCount] = await Promise.all([filteredEntityDocument, totalCount])
+        [filteredEntityDocument, totalCount] = await Promise.all([filteredEntityDocument, totalCount]);
 
         let entityDocumentFilteredObject = filteredEntityDocument.map(entity => {
           return {

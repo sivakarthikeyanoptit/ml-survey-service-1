@@ -1,8 +1,21 @@
+/**
+ * name : solutionsController.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Solution related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+
+/**
+    * Solutions
+    * @class
+*/
 module.exports = class Solutions extends Abstract {
 
   constructor() {
@@ -44,50 +57,59 @@ module.exports = class Solutions extends Abstract {
   * }
   */
 
+    /**
+   * Solution details
+   * @method
+   * @name details
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {JSON} consists of criteriaName and rubric levels. 
+   */
+
   async details(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let findQuery = {
           _id: req.params._id
-        }
+        };
 
-        let solutionDocument = await database.models.solutions.findOne(findQuery, { themes: 1, levelToScoreMapping: 1, name: 1 }).lean()
+        let solutionDocument = await database.models.solutions.findOne(findQuery, { themes: 1, levelToScoreMapping: 1, name: 1 }).lean();
 
         let criteriasIdArray = gen.utils.getCriteriaIds(solutionDocument.themes);
-        let criteriaDocument = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }, { "name": 1, "rubric.levels": 1 }).lean()
+        let criteriaDocument = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }, { "name": 1, "rubric.levels": 1 }).lean();
 
-        let criteriaObject = {}
+        let criteriaObject = {};
 
         criteriaDocument.forEach(eachCriteria => {
-          let levelsDescription = {}
+          let levelsDescription = {};
 
           for (let k in eachCriteria.rubric.levels) {
-            levelsDescription[k] = eachCriteria.rubric.levels[k].description
+            levelsDescription[k] = eachCriteria.rubric.levels[k].description;
           }
 
           criteriaObject[eachCriteria._id.toString()] = _.merge({
             name: eachCriteria.name
-          }, levelsDescription)
+          }, levelsDescription);
         })
 
-        let responseObject = {}
-        responseObject.heading = "Solution Framework + rubric for - " + solutionDocument.name
+        let responseObject = {};
+        responseObject.heading = "Solution Framework + rubric for - " + solutionDocument.name;
 
-        responseObject.sections = new Array
+        responseObject.sections = new Array;
 
-        let levelValue = {}
+        let levelValue = {};
 
-        let sectionHeaders = new Array
+        let sectionHeaders = new Array;
 
         sectionHeaders.push({
           name: "criteriaName",
           value: "Domain"
-        })
+        });
 
         for (let k in solutionDocument.levelToScoreMapping) {
-          levelValue[k] = ""
-          sectionHeaders.push({ name: k, value: solutionDocument.levelToScoreMapping[k].label })
+          levelValue[k] = "";
+          sectionHeaders.push({ name: k, value: solutionDocument.levelToScoreMapping[k].label });
         }
 
         let generateCriteriaThemes = function (themes, parentData = []) {
@@ -95,30 +117,30 @@ module.exports = class Solutions extends Abstract {
           themes.forEach(theme => {
 
             if (theme.children) {
-              let hierarchyTrackToUpdate = [...parentData]
-              hierarchyTrackToUpdate.push(_.pick(theme, ["type", "label", "externalId", "name"]))
+              let hierarchyTrackToUpdate = [...parentData];
+              hierarchyTrackToUpdate.push(_.pick(theme, ["type", "label", "externalId", "name"]));
 
-              generateCriteriaThemes(theme.children, hierarchyTrackToUpdate)
+              generateCriteriaThemes(theme.children, hierarchyTrackToUpdate);
 
             } else {
 
-              let tableData = new Array
-              let levelObjectFromCriteria = {}
+              let tableData = new Array;
+              let levelObjectFromCriteria = {};
 
-              let hierarchyTrackToUpdate = [...parentData]
-              hierarchyTrackToUpdate.push(_.pick(theme, ["type", "label", "externalId", "name"]))
+              let hierarchyTrackToUpdate = [...parentData];
+              hierarchyTrackToUpdate.push(_.pick(theme, ["type", "label", "externalId", "name"]));
 
               theme.criteria.forEach(criteria => {
 
                 if (criteriaObject[criteria.criteriaId.toString()]) {
 
                   Object.keys(levelValue).forEach(eachLevel => {
-                    levelObjectFromCriteria[eachLevel] = criteriaObject[criteria.criteriaId.toString()][eachLevel]
+                    levelObjectFromCriteria[eachLevel] = criteriaObject[criteria.criteriaId.toString()][eachLevel];
                   })
 
                   tableData.push(_.merge({
                     criteriaName: criteriaObject[criteria.criteriaId.toString()].name,
-                  }, levelObjectFromCriteria))
+                  }, levelObjectFromCriteria));
                 }
 
               })
@@ -130,15 +152,15 @@ module.exports = class Solutions extends Abstract {
                   headers: sectionHeaders
                 },
                 summary: hierarchyTrackToUpdate
-              }
+              };
 
-              responseObject.sections.push(eachSection)
+              responseObject.sections.push(eachSection);
             }
           })
 
         }
 
-        generateCriteriaThemes(solutionDocument.themes)
+        generateCriteriaThemes(solutionDocument.themes);
 
         let response = {
           message: "Solution framework + rubric fetched successfully.",
@@ -173,20 +195,31 @@ module.exports = class Solutions extends Abstract {
   * 
   */
 
+   /**
+   * Import solution from framework and mapped to the programs
+   * @method
+   * @name details
+   * @param {Object} req - requested data.
+   * @param {String} req.query.programId - program external id.
+   * @param {String} req.query.frameworkId - framework external id.
+   * @param {String} req.query.entityType - entity type. 
+   * @returns {JSON} consists of solution created id.
+   */
+
   async importFromFramework(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
         if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-          throw "Invalid parameters."
+          throw "Invalid parameters.";
         }
 
         let frameworkDocument = await database.models.frameworks.findOne({
           externalId: req.query.frameworkId
-        }).lean()
+        }).lean();
 
         if (!frameworkDocument._id) {
-          throw "Invalid parameters."
+          throw "Invalid parameters.";
         }
 
         let programDocument = await database.models.programs.findOne({
@@ -196,10 +229,10 @@ module.exports = class Solutions extends Abstract {
             externalId: 1,
             name: 1,
             description: 1
-          }).lean()
+          }).lean();
 
         if (!programDocument._id) {
-          throw "Invalid parameters."
+          throw "Invalid parameters.";
         }
 
         let entityTypeDocument = await database.models.entityTypes.findOne({
@@ -207,77 +240,77 @@ module.exports = class Solutions extends Abstract {
         }, {
             _id: 1,
             name: 1
-          }).lean()
+          }).lean();
 
         if (!entityTypeDocument._id) {
-          throw "Invalid parameters."
+          throw "Invalid parameters.";
         }
 
         let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
         let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
 
-        let solutionCriteriaToFrameworkCriteriaMap = {}
+        let solutionCriteriaToFrameworkCriteriaMap = {};
 
         await Promise.all(frameworkCriteria.map(async (criteria) => {
-          criteria.frameworkCriteriaId = criteria._id
-          let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
+          criteria.frameworkCriteriaId = criteria._id;
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
           if (newCriteriaId._id) {
-            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
           }
         }))
 
 
         let updateThemes = function (themes) {
           themes.forEach(theme => {
-            let criteriaIdArray = new Array
-            let themeCriteriaToSet = new Array
+            let criteriaIdArray = new Array;
+            let themeCriteriaToSet = new Array;
             if (theme.children) {
               updateThemes(theme.children);
             } else {
               criteriaIdArray = theme.criteria;
               criteriaIdArray.forEach(eachCriteria => {
-                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
-                themeCriteriaToSet.push(eachCriteria)
+                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                themeCriteriaToSet.push(eachCriteria);
               })
-              theme.criteria = themeCriteriaToSet
+              theme.criteria = themeCriteriaToSet;
             }
           })
           return true;
         }
 
-        let newSolutionDocument = _.cloneDeep(frameworkDocument)
+        let newSolutionDocument = _.cloneDeep(frameworkDocument);
 
-        updateThemes(newSolutionDocument.themes)
+        updateThemes(newSolutionDocument.themes);
 
-        newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE"
+        newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE";
 
-        newSolutionDocument.frameworkId = frameworkDocument._id
-        newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+        newSolutionDocument.frameworkId = frameworkDocument._id;
+        newSolutionDocument.frameworkExternalId = frameworkDocument.externalId;
 
-        newSolutionDocument.entityTypeId = entityTypeDocument._id
-        newSolutionDocument.entityType = entityTypeDocument.name
-        newSolutionDocument.isReusable = true
+        newSolutionDocument.entityTypeId = entityTypeDocument._id;
+        newSolutionDocument.entityType = entityTypeDocument.name;
+        newSolutionDocument.isReusable = true;
 
-        let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+        let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
 
-        let newSolutionId
+        let newSolutionId;
 
         if (newBaseSolutionId._id) {
 
-          newSolutionDocument.programId = programDocument._id
-          newSolutionDocument.programExternalId = programDocument.externalId
-          newSolutionDocument.programName = programDocument.name
-          newSolutionDocument.programDescription = programDocument.description
+          newSolutionDocument.programId = programDocument._id;
+          newSolutionDocument.programExternalId = programDocument.externalId;
+          newSolutionDocument.programName = programDocument.name;
+          newSolutionDocument.programDescription = programDocument.description;
 
-          newSolutionDocument.parentSolutionId = newBaseSolutionId._id
-          newSolutionDocument.isReusable = false
-          newSolutionDocument.externalId = frameworkDocument.externalId
+          newSolutionDocument.parentSolutionId = newBaseSolutionId._id;
+          newSolutionDocument.isReusable = false;
+          newSolutionDocument.externalId = frameworkDocument.externalId;
 
-          newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+          newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
 
           if (newSolutionId._id) {
-            await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } })
+            await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } });
           }
 
         }
@@ -306,9 +339,20 @@ module.exports = class Solutions extends Abstract {
     * @apiGroup Solutions
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiParam {String} solutionId solution id.
+    * @apiParam {File} entities Mandatory entities file of type CSV.
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+     /**
+   * Map entity to solution.
+   * @method
+   * @name details
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {CSV} req.files.entities - entities ids to be mapped to solution.
+   * @returns {JSON} consists message of successfully mapped entities
+   */
 
   async mapEntityToSolution(req) {
     return new Promise(async (resolve, reject) => {
@@ -356,6 +400,19 @@ module.exports = class Solutions extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * Upload themes in solution.
+   * @method
+   * @name uploadThemes
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {CSV} req.files.themes - themes to be uploaded to solution.
+   * csv consists of ### seperated data for theme,aoi,indicators field.
+   * ex: Theme1###T1###10(nameOfTheme###externalIdOfTheme###weightageOfTheme)
+   * @returns {CSV}
+   */
+
   async uploadThemes(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -383,16 +440,16 @@ module.exports = class Solutions extends Abstract {
           });
         }
 
-        let headerSequence
+        let headerSequence;
         let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
 
-        let solutionThemes = await solutionsHelper.uploadTheme("solutions", solutionDocument._id, themes, headerSequence)
+        let solutionThemes = await solutionsHelper.uploadTheme("solutions", solutionDocument._id, themes, headerSequence);
 
         for (let pointerToEditTheme = 0; pointerToEditTheme < solutionThemes.length; pointerToEditTheme++) {
-          input.push(solutionThemes[pointerToEditTheme])
+          input.push(solutionThemes[pointerToEditTheme]);
         }
 
-        input.push(null)
+        input.push(null);
 
       }
       catch (error) {
@@ -417,6 +474,16 @@ module.exports = class Solutions extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * Update solution.
+   * @method
+   * @name update
+   * @param {Object} req - requested data.
+   * @param {String} req.query.solutionExternalId - solution external id.
+   * @param {JSON} req.files.solution - solution data to be updated.
+   * @returns {JSON}
+   */
+
   async update(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -428,7 +495,7 @@ module.exports = class Solutions extends Abstract {
           externalId: req.query.solutionExternalId
         };
 
-        let solutionDocument = await database.models.solutions.findOne(queryObject, { themes: 0 }).lean()
+        let solutionDocument = await database.models.solutions.findOne(queryObject, { themes: 0 }).lean();
 
         if (!solutionDocument) {
           return resolve({
@@ -437,15 +504,15 @@ module.exports = class Solutions extends Abstract {
           });
         }
 
-        let solutionMandatoryField = solutionsHelper.mandatoryField()
+        let solutionMandatoryField = solutionsHelper.mandatoryField();
 
         Object.keys(solutionMandatoryField).forEach(eachSolutionMandatoryField => {
           if (solutionDocument[eachSolutionMandatoryField] === undefined && solutionData[eachSolutionMandatoryField] === undefined) {
-            solutionData[eachSolutionMandatoryField] = solutionMandatoryField[eachSolutionMandatoryField]
+            solutionData[eachSolutionMandatoryField] = solutionMandatoryField[eachSolutionMandatoryField];
           }
         })
 
-        let updateObject = _.merge(_.omit(solutionDocument, "createdAt"), solutionData)
+        let updateObject = _.merge(_.omit(solutionDocument, "createdAt"), solutionData);
 
         updateObject.updatedBy = req.userDetails.id
 
@@ -479,6 +546,16 @@ module.exports = class Solutions extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Upload themes rubric
+   * @method
+   * @name uploadThemesRubricExpressions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV}
+   */
+
   async uploadThemesRubricExpressions(req) {
 
     return new Promise(async (resolve, reject) => {
@@ -488,7 +565,7 @@ module.exports = class Solutions extends Abstract {
         let solutionDocument = await database.models.solutions.findOne({
           externalId: req.params._id,
           scoringSystem : "pointsBasedScoring"
-        }, { themes: 1, levelToScoreMapping : 1 }).lean()
+        }, { themes: 1, levelToScoreMapping : 1 }).lean();
 
         if (!solutionDocument) {
           return resolve({
@@ -500,16 +577,16 @@ module.exports = class Solutions extends Abstract {
         let themeData = await csv().fromString(req.files.themes.data.toString());
 
         if(!themeData.length>0) {
-          throw new Error("Bad data.")
+          throw new Error("Bad data.");
         }
 
-        let solutionLevelKeys = new Array
+        let solutionLevelKeys = new Array;
 
         Object.keys(solutionDocument.levelToScoreMapping).forEach(level => {
-          solutionLevelKeys.push(level)
+          solutionLevelKeys.push(level);
         })
 
-        const themesWithRubricDetails = await solutionsHelper.setThemeRubricExpressions(solutionDocument.themes, themeData, solutionLevelKeys)
+        const themesWithRubricDetails = await solutionsHelper.setThemeRubricExpressions(solutionDocument.themes, themeData, solutionLevelKeys);
 
         if(themesWithRubricDetails.themes) {
           await database.models.solutions.findOneAndUpdate(
@@ -534,14 +611,14 @@ module.exports = class Solutions extends Abstract {
         })();
 
         if(!themesWithRubricDetails.csvData) {
-          throw new Error("Something went wrong! No CSV Data found.")
+          throw new Error("Something went wrong! No CSV Data found.");
         }
 
         for (let pointerToThemeRow = 0; pointerToThemeRow < themesWithRubricDetails.csvData.length; pointerToThemeRow++) {
-          input.push(themesWithRubricDetails.csvData[pointerToThemeRow])
+          input.push(themesWithRubricDetails.csvData[pointerToThemeRow]);
         }
 
-        input.push(null)
+        input.push(null);
 
       } catch (error) {
         return reject({
@@ -565,6 +642,16 @@ module.exports = class Solutions extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * Upload criteria rubric
+   * @method
+   * @name uploadCriteriaRubricExpressions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV}
+   */
+
   async uploadCriteriaRubricExpressions(req) {
 
     return new Promise(async (resolve, reject) => {
@@ -573,7 +660,7 @@ module.exports = class Solutions extends Abstract {
 
         let solutionDocument = await database.models.solutions.findOne({
           externalId: req.params._id,
-        }, { themes: 1, levelToScoreMapping: 1, type : 1, subType : 1 }).lean()
+        }, { themes: 1, levelToScoreMapping: 1, type : 1, subType : 1 }).lean();
 
         if (!solutionDocument) {
           return resolve({
@@ -585,33 +672,33 @@ module.exports = class Solutions extends Abstract {
         let criteriaData = await csv().fromString(req.files.criteria.data.toString());
 
         if(!criteriaData.length>0) {
-          throw new Error("Bad data.")
+          throw new Error("Bad data.");
         }
 
-        let solutionLevelKeys = new Array
+        let solutionLevelKeys = new Array;
 
         Object.keys(solutionDocument.levelToScoreMapping).forEach(level => {
-          solutionLevelKeys.push(level)
+          solutionLevelKeys.push(level);
         })
 
-        let allCriteriaIdInSolution = new Array
-        let allCriteriaIdWithWeightageInSolution = {}
-        let allCriteriaExternalIdToInternalIdMap = {}
+        let allCriteriaIdInSolution = new Array;
+        let allCriteriaIdWithWeightageInSolution = {};
+        let allCriteriaExternalIdToInternalIdMap = {};
         let allCriteriaInSolution = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
         allCriteriaInSolution.forEach(eachCriteria => {
-          allCriteriaIdInSolution.push(eachCriteria.criteriaId)
+          allCriteriaIdInSolution.push(eachCriteria.criteriaId);
           allCriteriaIdWithWeightageInSolution[eachCriteria.criteriaId.toString()] = {
             criteriaId: eachCriteria.criteriaId,
             weightage: eachCriteria.weightage
-          }
+          };
         })
 
         let allCriteriaDocuments = await database.models.criteria.find({
           _id: {
             $in : allCriteriaIdInSolution
           },
-        }, { _id: 1, externalId : 1, name: 1, description: 1, criteriaType: 1, rubric: 1}).lean()
+        }, { _id: 1, externalId : 1, name: 1, description: 1, criteriaType: 1, rubric: 1}).lean();
 
         if (!allCriteriaDocuments || allCriteriaDocuments.length < 1) {
           criteriaData = criteriaData.map(function(criteriaRow) {
@@ -620,29 +707,29 @@ module.exports = class Solutions extends Abstract {
           })
         } else {
           allCriteriaDocuments.forEach(criteriaDocument => {
-            allCriteriaExternalIdToInternalIdMap[criteriaDocument.externalId] = criteriaDocument
+            allCriteriaExternalIdToInternalIdMap[criteriaDocument.externalId] = criteriaDocument;
           })
         }
 
-        let allCriteriaRubricUpdatedSuccessfully = true
+        let allCriteriaRubricUpdatedSuccessfully = true;
 
-        let criteriaWeightageToUpdate = new Array
+        let criteriaWeightageToUpdate = new Array;
 
         if(Object.keys(allCriteriaExternalIdToInternalIdMap).length > 0) {
 
           criteriaData = await Promise.all(criteriaData.map(async (criteriaRow) => {
             
-            criteriaRow = gen.utils.valueParser(criteriaRow)
+            criteriaRow = gen.utils.valueParser(criteriaRow);
             
             if(!allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]) {
               criteriaRow.status = "Invalid criteria external ID.";
-              allCriteriaRubricUpdatedSuccessfully = false
+              allCriteriaRubricUpdatedSuccessfully = false;
               return criteriaRow;
             }
 
-            const criteriaId = allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]._id
+            const criteriaId = allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]._id;
 
-            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow)
+            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow);
             
             if(criteriaRubricUpdation.success) {
               criteriaRow.status = "Success.";
@@ -652,24 +739,24 @@ module.exports = class Solutions extends Abstract {
               criteriaWeightageToUpdate.push({
                 criteriaId :  criteriaId,
                 weightage : criteriaRow.weightage
-              })
+              });
               allCriteriaIdWithWeightageInSolution[criteriaId.toString()] = {
                 criteriaId: criteriaId,
                 weightage: criteriaRow.weightage
-              }
+              };
             }
 
-            return criteriaRow
+            return criteriaRow;
 
           }));
         }
 
-        let updateSubmissions = false
+        let updateSubmissions = false;
         if(allCriteriaRubricUpdatedSuccessfully) {
 
           if(Object.keys(criteriaWeightageToUpdate).length > 0) {
 
-            const solutionThemes = await solutionsHelper.updateCriteriaWeightageInThemes(solutionDocument.themes, criteriaWeightageToUpdate)
+            const solutionThemes = await solutionsHelper.updateCriteriaWeightageInThemes(solutionDocument.themes, criteriaWeightageToUpdate);
 
             if(solutionThemes.success && solutionThemes.themes) {
               await database.models.solutions.findOneAndUpdate(
@@ -680,24 +767,24 @@ module.exports = class Solutions extends Abstract {
                     isRubricDriven : true
                 }
               );
-              updateSubmissions = true
+              updateSubmissions = true;
             }
 
           } else {
-            updateSubmissions = true
+            updateSubmissions = true;
           }
 
         }
 
         if(updateSubmissions) {
 
-          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: allCriteriaIdInSolution } })
+          let criteriaQuestionDocument = await database.models.criteriaQuestions.find({ _id: { $in: allCriteriaIdInSolution } });
 
-          let submissionDocumentCriterias = new Array
+          let submissionDocumentCriterias = new Array;
 
           criteriaQuestionDocument.forEach(criteria => {
 
-            criteria.weightage = allCriteriaIdWithWeightageInSolution[criteria._id.toString()].weightage
+            criteria.weightage = allCriteriaIdWithWeightageInSolution[criteria._id.toString()].weightage;
             submissionDocumentCriterias.push(
               _.omit(criteria._doc, [
                 "resourceType",
@@ -710,21 +797,21 @@ module.exports = class Solutions extends Abstract {
             );
           });
 
-          let updatedCriteriasObject = {}
+          let updatedCriteriasObject = {};
 
           if(submissionDocumentCriterias.length > 0) {
             updatedCriteriasObject.$set = {
               criteria: submissionDocumentCriterias
-            }
+            };
           }
 
-          let submissionCollectionToUpdate = ""
+          let submissionCollectionToUpdate = "";
 
           if(updatedCriteriasObject.$set.criteria) {
             if(solutionDocument.type == "observation") {
-              submissionCollectionToUpdate = "observationSubmissions"
+              submissionCollectionToUpdate = "observationSubmissions";
             } else if(solutionDocument.type == "assessment") {
-              submissionCollectionToUpdate = "submissions"
+              submissionCollectionToUpdate = "submissions";
             }
           }
 
@@ -750,10 +837,10 @@ module.exports = class Solutions extends Abstract {
         })();
 
         for (let pointerToCriteriaRow = 0; pointerToCriteriaRow < criteriaData.length; pointerToCriteriaRow++) {
-          input.push(criteriaData[pointerToCriteriaRow])
+          input.push(criteriaData[pointerToCriteriaRow]);
         }
 
-        input.push(null)
+        input.push(null);
 
       } catch (error) {
         return reject({

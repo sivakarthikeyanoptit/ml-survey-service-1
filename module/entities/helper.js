@@ -1,6 +1,29 @@
+/**
+ * name : entitiesController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All Entities related information.
+ */
+
+// Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 
-module.exports = class entitiesHelper {
+ /**
+    * EntitiesHelper
+    * @class
+*/
+module.exports = class EntitiesHelper {
+
+    /**
+   * Add entities.
+   * @method
+   * @name add
+   * @param {Object} queryParams - requested query data.
+   * @param {Object} data - requested entity data.
+   * @param {Object} userDetails - Logged in user information. 
+   * @param {String} userDetails.id - Logged in user id.
+   * @returns {JSON} - Created entity information.
+   */
 
     static add(queryParams, data, userDetails) {
         return new Promise(async (resolve, reject) => {
@@ -8,11 +31,13 @@ module.exports = class entitiesHelper {
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: queryParams.type }, { _id: 1 }).lean();
 
-                if (!entityTypeDocument) throw "No entity type found for given params"
+                if (!entityTypeDocument){
+                    throw "No entity type found for given params";
+                }
 
                 let entityDocuments = data.map(singleEntity => {
-                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId)
-                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId)
+                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
+                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
                     return {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
@@ -23,7 +48,7 @@ module.exports = class entitiesHelper {
                         "createdBy": userDetails.id
                     }
 
-                })
+                });
 
                 let entityData = await database.models.entities.create(
                     entityDocuments
@@ -35,7 +60,7 @@ module.exports = class entitiesHelper {
                 }
 
                 if (entityData.length != data.length) {
-                    throw "Some entity information was not inserted!"
+                    throw "Some entity information was not inserted!";
                 }
 
                 return resolve(entityData);
@@ -46,6 +71,17 @@ module.exports = class entitiesHelper {
         })
 
     }
+
+    /**
+   * List entities.
+   * @method
+   * @name list
+   * @param {String} entityType - entity type.
+   * @param {String} entityId - requested entity id.
+   * @param {String} [limitingValue = ""] - Limiting value if required. 
+   * @param {String} [skippingValue = ""] - Skipping value if required.
+   * @returns {JSON} - Details of entity.
+   */
 
     static list(entityType, entityId, limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
@@ -63,11 +99,11 @@ module.exports = class entitiesHelper {
                     immediateChildrenEntityType: 1
                 });
 
-                let enityTypeToImmediateChildrenEntityMap = {}
+                let enityTypeToImmediateChildrenEntityMap = {};
 
                 if (entityTypesArray.length > 0) {
                     entityTypesArray.forEach(entityType => {
-                        enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : []
+                        enityTypeToImmediateChildrenEntityMap[entityType.name] = (entityType.immediateChildrenEntityType && entityType.immediateChildrenEntityType.length > 0) ? entityType.immediateChildrenEntityType : [];
                     })
                 }
 
@@ -82,20 +118,20 @@ module.exports = class entitiesHelper {
                     .lean();
 
                 result = entityData.map(entity => {
-                    entity.metaInformation.childrenCount = 0
-                    entity.metaInformation.entityType = entity.entityType
-                    entity.metaInformation.entityTypeId = entity.entityTypeId
-                    entity.metaInformation.subEntityGroups = new Array
+                    entity.metaInformation.childrenCount = 0;
+                    entity.metaInformation.entityType = entity.entityType;
+                    entity.metaInformation.entityTypeId = entity.entityTypeId;
+                    entity.metaInformation.subEntityGroups = new Array;
 
                     Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
                         if (entity.groups[immediateChildrenEntityType]) {
-                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType
-                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length
+                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
+                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
                         }
                     })
 
                     entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
-                        entity.metaInformation.subEntityGroups.push(subEntityType)
+                        entity.metaInformation.subEntityGroups.push(subEntityType);
                     })
                     return {
                         _id: entity._id,
@@ -117,6 +153,14 @@ module.exports = class entitiesHelper {
 
     }
 
+    /**
+   * Entities form for samiksha.
+   * @method
+   * @name form
+   * @param {String} entityType - type of entity requested.
+   * @returns {JSON} - Listed entity form.
+   */
+
     static form(entityType) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -136,6 +180,15 @@ module.exports = class entitiesHelper {
 
 
     }
+
+     /**
+   * Fetch entity details.
+   * @method
+   * @name fetch
+   * @param {String} entityType - type of entity requested.
+   * @param {String} entityId - entity id. 
+   * @returns {JSON} - fetch entity details.
+   */
 
     static fetch(entityType, entityId) {
         return new Promise(async (resolve, reject) => {
@@ -165,7 +218,7 @@ module.exports = class entitiesHelper {
                 }
 
                 entityForm.forEach(eachField => {
-                    eachField.value = entityInformation[eachField.field]
+                    eachField.value = entityInformation[eachField.field];
                 })
 
                 return resolve(entityForm);
@@ -177,6 +230,16 @@ module.exports = class entitiesHelper {
         })
 
     }
+
+    /**
+   * Update entity information.
+   * @method
+   * @name update
+   * @param {String} entityType - entity type.
+   * @param {String} entityId - entity id.
+   * @param {Object} data - entity information that need to be updated.       
+   * @returns {JSON} - Updated entity information.
+   */
 
     static update(entityType, entityId, data) {
         return new Promise(async (resolve, reject) => {
@@ -201,6 +264,15 @@ module.exports = class entitiesHelper {
         })
     }
 
+    /**
+   * Update parent registry information.
+   * @method
+   * @name parentRegistryUpdate
+   * @param {String} entityId - entity id.
+   * @param {Object} data - parent entity information that need to be updated.       
+   * @returns {JSON} - Updated entity information.
+   */
+
     static parentRegistryUpdate(entityId, data) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -209,14 +281,16 @@ module.exports = class entitiesHelper {
                     { _id: ObjectId(entityId) }, { "metaInformation.callResponse": 1 }
                 ).lean();
 
-                if (!parentDocument) throw "No such parent found"
+                if (!parentDocument) {
+                    throw "No such parent found";
+                }
 
-                let updateSubmissionDocument = false
+                let updateSubmissionDocument = false;
                 if (data.updateFromParentPortal === true) {
                     if (data.callResponse && data.callResponse != "" && (!parentDocument.metaInformation.callResponse || (parentDocument.metaInformation.callResponse != data.callResponse))) {
-                        data.callResponseUpdatedTime = new Date()
+                        data.callResponseUpdatedTime = new Date();
                     }
-                    updateSubmissionDocument = true
+                    updateSubmissionDocument = true;
                 }
 
                 if (typeof (data.createdByProgramId) == "string") data.createdByProgramId = ObjectId(data.createdByProgramId);
@@ -231,48 +305,48 @@ module.exports = class entitiesHelper {
 
                     let queryObject = {
                         entityId: ObjectId(parentInformation._id)
-                    }
+                    };
 
                     let submissionDocument = await database.models.submissions.findOne(
                         queryObject,
                         { ["parentInterviewResponses." + parentInformation._id.toString()]: 1, parentInterviewResponsesStatus: 1 }
                     ).lean();
 
-                    let updateObject = {}
-                    updateObject.$set = {}
-                    let parentInterviewResponse = {}
+                    let updateObject = {};
+                    updateObject.$set = {};
+                    let parentInterviewResponse = {};
                     if (submissionDocument.parentInterviewResponses && submissionDocument.parentInterviewResponses[parentInformation._id.toString()]) {
-                        parentInterviewResponse = submissionDocument.parentInterviewResponses[parentInformation._id.toString()]
-                        parentInterviewResponse.parentInformation = parentInformation.metaInformation
+                        parentInterviewResponse = submissionDocument.parentInterviewResponses[parentInformation._id.toString()];
+                        parentInterviewResponse.parentInformation = parentInformation.metaInformation;
                     } else {
                         parentInterviewResponse = {
                             parentInformation: parentInformation.metaInformation,
                             status: "started",
                             startedAt: new Date()
-                        }
+                        };
                     }
 
                     updateObject.$set = {
                         ["parentInterviewResponses." + parentInformation._id.toString()]: parentInterviewResponse
-                    }
+                    };
 
-                    let parentInterviewResponseStatus = _.omit(parentInterviewResponse, ["parentInformation", "answers"])
-                    parentInterviewResponseStatus.parentId = parentInformation._id
-                    parentInterviewResponseStatus.parentType = parentInformation.metaInformation.type
+                    let parentInterviewResponseStatus = _.omit(parentInterviewResponse, ["parentInformation", "answers"]);
+                    parentInterviewResponseStatus.parentId = parentInformation._id;
+                    parentInterviewResponseStatus.parentType = parentInformation.metaInformation.type;
 
                     if (submissionDocument.parentInterviewResponsesStatus) {
-                        let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString())
+                        let parentInterviewReponseStatusElementIndex = submissionDocument.parentInterviewResponsesStatus.findIndex(parentInterviewStatus => parentInterviewStatus.parentId.toString() === parentInterviewResponseStatus.parentId.toString());
                         if (parentInterviewReponseStatusElementIndex >= 0) {
-                            submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus
+                            submissionDocument.parentInterviewResponsesStatus[parentInterviewReponseStatusElementIndex] = parentInterviewResponseStatus;
                         } else {
-                            submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+                            submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus);
                         }
                     } else {
-                        submissionDocument.parentInterviewResponsesStatus = new Array
-                        submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus)
+                        submissionDocument.parentInterviewResponsesStatus = new Array;
+                        submissionDocument.parentInterviewResponsesStatus.push(parentInterviewResponseStatus);
                     }
 
-                    updateObject.$set.parentInterviewResponsesStatus = submissionDocument.parentInterviewResponsesStatus
+                    updateObject.$set.parentInterviewResponsesStatus = submissionDocument.parentInterviewResponsesStatus;
 
                     await database.models.submissions.findOneAndUpdate(
                         { _id: submissionDocument._id },
@@ -288,11 +362,24 @@ module.exports = class entitiesHelper {
         })
     }
 
+    /**
+   * Bulk create entities.
+   * @method
+   * @name bulkCreate
+   * @param {String} entityType - entity type.
+   * @param {String} programId - program external id.
+   * @param {String} solutionId - solution external id.
+   * @param {Object} userDetails - logged in user details.
+   * @param {String} userDetails.id - logged in user id.
+   * @param {Array}  entityCSVData - Array of entity data.         
+   * @returns {JSON} - uploaded entity information.
+   */
+
     static bulkCreate(entityType, programId, solutionId, userDetails, entityCSVData) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let solutionsDocument = new Array
+                let solutionsDocument = new Array;
                 if (programId && solutionId) {
                     solutionsDocument = await database.models.solutions.find(
                         {
@@ -337,12 +424,14 @@ module.exports = class entitiesHelper {
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
 
-                if (!entityTypeDocument) throw "Invalid entity type id."
+                if (!entityTypeDocument) {
+                    throw "Invalid entity type id.";
+                }
 
                 const entityUploadedData = await Promise.all(
                     entityCSVData.map(async singleEntity => {
 
-                        singleEntity = gen.utils.valueParser(singleEntity)
+                        singleEntity = gen.utils.valueParser(singleEntity);
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
@@ -358,38 +447,48 @@ module.exports = class entitiesHelper {
                             }
                         );
 
-                        if (!newEntity._id) return;
-
-                        singleEntity["_SYSTEM_ID"] = newEntity._id.toString()
-
-                        if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
-                            solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id)
+                        if (!newEntity._id) {
+                            return;
                         }
 
-                        return singleEntity
+                        singleEntity["_SYSTEM_ID"] = newEntity._id.toString();
+
+                        if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
+                            solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id);
+                        }
+
+                        return singleEntity;
                     })
                 )
 
                 if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated."
+                    throw "Something went wrong, not all records were inserted/updated.";
                 }
 
                 solutionsData && await Promise.all(
                     Object.keys(solutionsData).map(async solutionExternalId => {
                         if (solutionsData[solutionExternalId].newEntities.length > 0) {
-                            await database.models.solutions.updateOne({ _id: solutionsData[solutionExternalId].solutionId }, { $addToSet: { entities: { $each: solutionsData[solutionExternalId].newEntities } } })
+                            await database.models.solutions.updateOne({ _id: solutionsData[solutionExternalId].solutionId }, { $addToSet: { entities: { $each: solutionsData[solutionExternalId].newEntities } } });
                         }
                     })
                 )
 
                 return resolve(entityUploadedData);
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
 
     }
 
+     /**
+   * Bulk update entities.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} userDetails - logged in user details.
+   * @param {Array} entityCSVData - Array of entity csv data to be updated.        
+   * @returns {Array} - Array of updated entity data.
+   */
 
     static bulkUpdate(userDetails, entityCSVData) {
         return new Promise(async (resolve, reject) => {
@@ -397,19 +496,19 @@ module.exports = class entitiesHelper {
 
                 const entityUploadedData = await Promise.all(entityCSVData.map(async singleEntity => {
 
-                    singleEntity = gen.utils.valueParser(singleEntity)
+                    singleEntity = gen.utils.valueParser(singleEntity);
 
                     if(!singleEntity["_SYSTEM_ID"] || singleEntity["_SYSTEM_ID"] == "") {
-                        singleEntity["UPDATE_STATUS"] = "Invalid or missing _SYSTEM_ID"
-                        return singleEntity
+                        singleEntity["UPDATE_STATUS"] = "Invalid or missing _SYSTEM_ID";
+                        return singleEntity;
                     }
 
-                    let columnsToUpdate = _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") })
+                    let columnsToUpdate = _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") });
                     
-                    let metaInformationToSet = {}
+                    let metaInformationToSet = {};
 
                     Object.keys(columnsToUpdate).forEach(key => {
-                        metaInformationToSet[`metaInformation.${key}`] = columnsToUpdate[key]
+                        metaInformationToSet[`metaInformation.${key}`] = columnsToUpdate[key];
                     })
 
                     if(Object.keys(metaInformationToSet).length > 0) {
@@ -418,41 +517,50 @@ module.exports = class entitiesHelper {
                             { _id: singleEntity["_SYSTEM_ID"] },
                             { $set: metaInformationToSet},
                             { _id: 1 }
-                        )
+                        );
                 
                         if (!updateEntity || !updateEntity._id) {
-                            singleEntity["UPDATE_STATUS"] = "Entity Not Updated"
+                            singleEntity["UPDATE_STATUS"] = "Entity Not Updated";
                         } else {
-                            singleEntity["UPDATE_STATUS"] = "Success"
+                            singleEntity["UPDATE_STATUS"] = "Success";
                         }
 
                     } else {
-                        singleEntity["UPDATE_STATUS"] = "No information to update."
+                        singleEntity["UPDATE_STATUS"] = "No information to update.";
                     }
 
-                    return singleEntity
+                    return singleEntity;
 
                 }))
 
                 if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated."
+                    throw "Something went wrong, not all records were inserted/updated.";
                 }
 
                 return resolve(entityUploadedData);
 
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
 
     }
 
+     /**
+   * Mapping upload
+   * @method
+   * @name processEntityMappingUploadData
+   * @param {Array} [mappingData = []] - Array of entityMap data.         
+   * @returns {JSON} - Success and message .
+   */
 
     static processEntityMappingUploadData(mappingData = []) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(mappingData.length < 1) throw new Error("Invalid mapping data")
+                if(mappingData.length < 1) {
+                    throw new Error("Invalid mapping data");
+                }
 
                 this.entityMapProccessData = {
                     entityTypeMap : {},
@@ -469,12 +577,12 @@ module.exports = class entitiesHelper {
                 if(Object.keys(this.entityMapProccessData.entityToUpdate).length > 0) {
                     await Promise.all(Object.keys(this.entityMapProccessData.entityToUpdate).map(async entityIdToUpdate => {
                         
-                        let updateQuery = {"$addToSet" : {}}
+                        let updateQuery = {"$addToSet" : {}};
 
                         Object.keys(this.entityMapProccessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
                             updateQuery["$addToSet"][groupToUpdate] = {
                                 $each: this.entityMapProccessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
-                            }
+                            };
                         })
 
                         await database.models.entities.updateMany(
@@ -485,7 +593,7 @@ module.exports = class entitiesHelper {
                     }))
                 }
 
-                this.entityMapProccessData = {}
+                this.entityMapProccessData = {};
                 
                 return resolve({
                     success : true,
@@ -493,11 +601,20 @@ module.exports = class entitiesHelper {
                 });
 
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
     }
 
+    /**
+   * Add child entity inside parent entity groups. 
+   * @method
+   * @name addSubEntityToParent
+   * @param {String} parentEntityId - parent entity id.
+   * @param {String} childEntityId - child entity id.
+   * @param {Boolean} [parentEntityProgramId = false] - Program id of parent entity.         
+   * @returns {JSON} - Success and message .
+   */
 
     static addSubEntityToParent(parentEntityId, childEntityId, parentEntityProgramId = false) {
         return new Promise(async (resolve, reject) => {
@@ -508,7 +625,7 @@ module.exports = class entitiesHelper {
                 }, {
                     entityType: 1,
                     groups: 1
-                }).lean()
+                }).lean();
 
 
                 if (childEntity.entityType) {
@@ -517,19 +634,19 @@ module.exports = class entitiesHelper {
                         _id: ObjectId(parentEntityId)
                     }
                     if (parentEntityProgramId) {
-                        parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId)
+                        parentEntityQueryObject["metaInformation.createdByProgramId"] = ObjectId(parentEntityProgramId);
                     }
 
-                    let updateQuery = {}
-                    updateQuery["$addToSet"] = {}
-                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+                    let updateQuery = {};
+                    updateQuery["$addToSet"] = {};
+                    updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id;
 
                     if (!_.isEmpty(childEntity.groups)) {
                         Object.keys(childEntity.groups).forEach(eachChildEntity => {
 
                             if (childEntity.groups[eachChildEntity].length > 0) {
-                                updateQuery["$addToSet"][`groups.${eachChildEntity}`] = {}
-                                updateQuery["$addToSet"][`groups.${eachChildEntity}`]["$each"] = childEntity.groups[eachChildEntity]
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`] = {};
+                                updateQuery["$addToSet"][`groups.${eachChildEntity}`]["$each"] = childEntity.groups[eachChildEntity];
                             }
 
                         })
@@ -547,37 +664,48 @@ module.exports = class entitiesHelper {
                         projectedData
                     );
 
-                    await this.mappedParentEntities(updatedParentEntity, childEntity)
+                    await this.mappedParentEntities(updatedParentEntity, childEntity);
                 }
 
                 return resolve();
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
     }
+
+    /**
+   * Search entity.
+   * @method 
+   * @name search
+   * @param {String} entityTypeId - Entity type id.
+   * @param {String} searchText - Text to be search.
+   * @param {Number} pageSize - total page size.
+   * @param {Number} pageNo - Page no.
+   * @param {Array} [entityIds = false] - Array of entity ids.
+   */
 
     static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let queryObject = {}
+                let queryObject = {};
 
-                queryObject["$match"] = {}
+                queryObject["$match"] = {};
 
                 if (entityIds && entityIds.length > 0) {
-                    queryObject["$match"]["_id"] = {}
-                    queryObject["$match"]["_id"]["$in"] = entityIds
+                    queryObject["$match"]["_id"] = {};
+                    queryObject["$match"]["_id"]["$in"] = entityIds;
                 }
 
-                queryObject["$match"]["entityTypeId"] = entityTypeId
+                queryObject["$match"]["entityTypeId"] = entityTypeId;
 
                 queryObject["$match"]["$or"] = [
                     { "metaInformation.name": new RegExp(searchText, 'i') },
                     { "metaInformation.externalId": new RegExp("^" + searchText, 'm') },
                     { "metaInformation.addressLine1": new RegExp(searchText, 'i') },
                     { "metaInformation.addressLine2": new RegExp(searchText, 'i') }
-                ]
+                ];
 
                 let entityDocuments = await database.models.entities.aggregate([
                     queryObject,
@@ -609,13 +737,21 @@ module.exports = class entitiesHelper {
                     }
                 ]);
 
-                return resolve(entityDocuments)
+                return resolve(entityDocuments);
 
             } catch (error) {
                 return reject(error);
             }
         })
     }
+
+    /**
+   * validate entities.
+   * @method 
+   * @name validateEntities
+   * @param {String} entityTypeId - Entity type id.
+   * @param {Array} entityIds - Array of entity ids.
+   */
 
     static validateEntities(entityIds, entityTypeId) {
         return new Promise(async (resolve, reject) => {
@@ -633,12 +769,12 @@ module.exports = class entitiesHelper {
                 ).lean();
 
                 if (entitiesDocuments.length > 0) {
-                    ids = entitiesDocuments.map(entityId => entityId._id)
+                    ids = entitiesDocuments.map(entityId => entityId._id);
                 }
 
                 return resolve({
                     entityIds: ids
-                })
+                });
 
 
             } catch (error) {
@@ -647,13 +783,26 @@ module.exports = class entitiesHelper {
         })
     }
 
+    /**
+   * Implement find query for entity
+   * @method
+   * @name entityDocuments
+   * @param {Object} [findQuery = "all"] - filter query object if not provide 
+   * it will load all the document.
+   * @param {Array} [fields = "all"] - All the projected field. If not provided
+   * returns all the field
+   * @param {Number} [limitingValue = ""] - total data to limit.
+   * @param {Number} [skippingValue = ""] - total data to skip.
+   * @returns {Array} - returns an array of entities data.
+   */
+
     static entityDocuments(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};
 
                 if (findQuery != "all") {
-                    queryObject = findQuery
+                    queryObject = findQuery;
                 }
 
                 let projectionObject = {};
@@ -681,32 +830,43 @@ module.exports = class entitiesHelper {
         });
     }
 
+    /**
+   * All the related entities for the given entities.
+   * @method
+   * @name relatedEntities
+   * @param {String} entityId - entity id.
+   * @param {String} entityTypeId - entity type id.
+   * @param {String} entityType - entity type.
+   * @param {Array} [projection = "all"] - total fields to be projected.
+   * @returns {Array} - returns an array of related entities data.
+   */
+
     static relatedEntities(entityId, entityTypeId, entityType, projection = "all") {
         return new Promise(async (resolve, reject) => {
             try {
 
                 if(this.entityMapProccessData && this.entityMapProccessData.relatedEntities[entityId.toString()]) {
-                    return resolve(this.entityMapProccessData.relatedEntities[entityId.toString()])
+                    return resolve(this.entityMapProccessData.relatedEntities[entityId.toString()]);
                 }
 
-                let relatedEntitiesQuery = {}
+                let relatedEntitiesQuery = {};
 
                 if (entityTypeId && entityId && entityType) {
-                    relatedEntitiesQuery[`groups.${entityType}`] = entityId
-                    relatedEntitiesQuery["entityTypeId"] = {}
-                    relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId
+                    relatedEntitiesQuery[`groups.${entityType}`] = entityId;
+                    relatedEntitiesQuery["entityTypeId"] = {};
+                    relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId;
                 } else {
                     throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
                 }
 
-                let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection)
-                relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : []
+                let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection);
+                relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : [];
 
                 if(this.entityMapProccessData) {
-                    this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument
+                    this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
                 }
 
-                return resolve(relatedEntitiesDocument)
+                return resolve(relatedEntitiesDocument);
 
 
             } catch (error) {
@@ -718,17 +878,29 @@ module.exports = class entitiesHelper {
         })
     }
 
+      /**
+   * Map parent entities
+   * @method
+   * @name mappedParentEntities
+   * @param {Object} parentEntity
+   * @param {String} parentEntity.entityType - entity type of the parent.
+   * @param {String} parentEntity._id - parentEntity id.
+   * @param {Object} childEntity 
+   * @param {String} childEntity.entityType - entity type of the child.
+   * @param {String} childEntity._id - childEntity id.
+   */
+
     static mappedParentEntities(parentEntity, childEntity) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let updateParentHierarchy = false
+                let updateParentHierarchy = false;
 
                 if(this.entityMapProccessData) {
                     
                     if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType]) {
                         if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
-                            updateParentHierarchy = true
+                            updateParentHierarchy = true;
                         }
                     } else {
 
@@ -736,15 +908,15 @@ module.exports = class entitiesHelper {
                             name: parentEntity.entityType
                         }, {
                             toBeMappedToParentEntities: 1
-                        }).lean()
+                        }).lean();
                         
                         if(checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
-                            updateParentHierarchy = true
+                            updateParentHierarchy = true;
                         }
                         
                         this.entityMapProccessData.entityTypeMap[parentEntity.entityType] = {
                             updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
-                        }
+                        };
 
                     }
 
@@ -754,38 +926,38 @@ module.exports = class entitiesHelper {
                         name: parentEntity.entityType
                     }, {
                         toBeMappedToParentEntities: 1
-                    }).lean()
+                    }).lean();
                     
                     if(checkParentEntitiesMappedValue.toBeMappedToParentEntities) {
-                        updateParentHierarchy = true
+                        updateParentHierarchy = true;
                     }
                 }
 
 
 
                 if (updateParentHierarchy) {
-                    let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"])
+                    let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"]);
 
                     if (relatedEntities.length > 0) {
                         if(this.entityMapProccessData) {
                             relatedEntities.forEach(eachRelatedEntities => {
                                 if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()] = {}
+                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
                                 }
                                 if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array
+                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
                                 }
-                                this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id)
+                                this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
                             })
                         } else {
-                            let updateQuery = {}
-                            updateQuery["$addToSet"] = {}
-                            updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id
+                            let updateQuery = {};
+                            updateQuery["$addToSet"] = {};
+                            updateQuery["$addToSet"][`groups.${childEntity.entityType}`] = childEntity._id;
     
-                            let allEntities = []
+                            let allEntities = [];
     
                             relatedEntities.forEach(eachRelatedEntities => {
-                                allEntities.push(eachRelatedEntities._id)
+                                allEntities.push(eachRelatedEntities._id);
                             })
     
                             await database.models.entities.updateMany(
@@ -796,7 +968,7 @@ module.exports = class entitiesHelper {
                     }
                 }
 
-                return resolve()
+                return resolve();
             } catch (error) {
                 return reject({
                     status: error.status || 500,
@@ -806,11 +978,19 @@ module.exports = class entitiesHelper {
         })
     }
 
+     /**
+   * Create index for entityType in entities collection.
+   * @method 
+   * @name createGroupEntityTypeIndex
+   * @param {String} entityType - create index for the given entity type.
+   * @returns {String} message of index created successfully. 
+   */
+
     static createGroupEntityTypeIndex(entityType) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                const entityIndexes = await database.models.entities.listIndexes()
+                const entityIndexes = await database.models.entities.listIndexes();
 
                 if (_.findIndex(entityIndexes, { name: 'groups.' + entityType + "_1" }) >= 0) {
                     return resolve("Index successfully created.");
@@ -819,12 +999,12 @@ module.exports = class entitiesHelper {
                 const newIndexCreation = await database.models.entities.db.collection('entities').createIndex(
                     { ["groups." + entityType]: 1 },
                     { partialFilterExpression: { ["groups." + entityType]: { $exists: true } }, background: 1 }
-                )
+                );
 
                 if (newIndexCreation == "groups." + entityType + "_1") {
                     return resolve("Index successfully created.");
                 } else {
-                    throw "Something went wrong! Couldn't create the index."
+                    throw "Something went wrong! Couldn't create the index.";
                 }
 
             } catch (error) {

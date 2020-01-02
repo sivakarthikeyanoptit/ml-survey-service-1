@@ -1,5 +1,24 @@
+/**
+ * name : solutions/helper.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Solution related helper functionality.
+ */
 
-module.exports = class solutionsHelper {
+/**
+    * SolutionsHelper
+    * @class
+*/
+module.exports = class SolutionsHelper {
+
+    /**
+   * find solutions
+   * @method
+   * @name details
+   * @param {Array} [solutionIds = "all"] - solution ids.
+   * @param {Array} [fields = "all"] - projected fields.
+   * @returns {Array} List of solutions. 
+   */
   
   static solutionDocuments(solutionFilter = "all", fieldsArray = "all") {
     return new Promise(async (resolve, reject) => {
@@ -24,6 +43,16 @@ module.exports = class solutionsHelper {
         }
     });
   }
+
+
+    /**
+   * Check if the solution is rubric driven i.e isRubricDriven flag as true is present
+   * in solution or not 
+   * @method
+   * @name checkIfSolutionIsRubricDriven
+   * @param {String} solutionId - solution id.
+   * @returns {JSON} Solution document. 
+   */
 
   static checkIfSolutionIsRubricDriven(solutionId) {
     return new Promise(async (resolve, reject) => {
@@ -51,6 +80,15 @@ module.exports = class solutionsHelper {
     });
   }
 
+   /**
+   * Get entity profile fields from solution. 
+   * @method
+   * @name getEntityProfileFields
+   * @param {Object} entityProfileFieldsPerEntityTypes - entity profile fields
+   * from solution.
+   * @returns {Array} entity fields. 
+   */
+
   static getEntityProfileFields(entityProfileFieldsPerEntityTypes) {
     let entityFieldArray = [];
 
@@ -63,6 +101,15 @@ module.exports = class solutionsHelper {
     );
     return entityFieldArray;
   }
+
+   /**
+   * Get all sub entity that exists in single parent entity. 
+   * @method
+   * @name allSubGroupEntityIdsByGroupName
+   * @param {String} [solutionExternalId = ""] - solution external id.
+   * @param {String} [groupName = ""] - entity type name.
+   * @returns {Object} all subEntity present in single parent entity . 
+   */
 
   static allSubGroupEntityIdsByGroupName(solutionExternalId = "", groupName = "") {
     return new Promise(async (resolve, reject) => {
@@ -104,15 +151,16 @@ module.exports = class solutionsHelper {
           )
           .lean();
 
-        entitiyDocuments.forEach(entitiyDocument => {
-          entitiyDocument.groups[groupName].forEach(eachSubEntity => {
+        entitiyDocuments.forEach(entityDocument => {
+          entityDocument.groups[groupName].forEach(eachSubEntity => {
             allSubGroupEntityIdToParentMap[eachSubEntity.toString()] = {
-              parentEntityId: eachSubEntity._id.toString(),
-              parentEntityName: entitiyDocument.metaInformation.name
-                ? entitiyDocument.metaInformation.name
+              parentEntityId: eachSubEntity._id.toString(), 
+              // parentEntityId: should be entityDocuments._id
+              parentEntityName: entityDocument.metaInformation.name
+                ? entityDocument.metaInformation.name
                 : "",
-              parentEntityExternalId: entitiyDocument.metaInformation.externalId
-                ? entitiyDocument.metaInformation.externalId
+              parentEntityExternalId: entityDocument.metaInformation.externalId
+                ? entityDocument.metaInformation.externalId
                 : ""
             };
           });
@@ -271,27 +319,38 @@ module.exports = class solutionsHelper {
     });
   }
 
+
+   /**
+   * Set theme rubric expression. 
+   * @method
+   * @name setThemeRubricExpressions
+   * @param {Object} currentSolutionThemeStructure
+   * @param {Object} themeRubricExpressionData
+   * @param {Array} solutionLevelKeys
+   * @returns {Object} 
+   */
+
   static setThemeRubricExpressions(currentSolutionThemeStructure, themeRubricExpressionData, solutionLevelKeys) {
     return new Promise(async (resolve, reject) => {
       try {
 
         themeRubricExpressionData = themeRubricExpressionData.map(function(themeRow) {
-          themeRow = gen.utils.valueParser(themeRow)
+          themeRow = gen.utils.valueParser(themeRow);
           themeRow.status = "Failed to find a matching theme or sub-theme with the same external id and name.";
           return themeRow;
         })
 
         const getThemeExpressions = function (externalId, name) {
-          return _.find(themeRubricExpressionData, { 'externalId': externalId, 'name': name })
+          return _.find(themeRubricExpressionData, { 'externalId': externalId, 'name': name });
         }
 
 
         const updateThemeRubricExpressionData = function (themeRow) {
           
-          const themeIndex = themeRubricExpressionData.findIndex(row => row.externalId === themeRow.externalId && row.name === themeRow.name)
+          const themeIndex = themeRubricExpressionData.findIndex(row => row.externalId === themeRow.externalId && row.name === themeRow.name);
 
           if(themeIndex >= 0) {
-            themeRubricExpressionData[themeIndex] = themeRow
+            themeRubricExpressionData[themeIndex] = themeRow;
           }
 
         }
@@ -300,7 +359,7 @@ module.exports = class solutionsHelper {
 
           themes.forEach(theme => {
 
-            const checkIfThemeIsToBeUpdated = getThemeExpressions(theme.externalId, theme.name)
+            const checkIfThemeIsToBeUpdated = getThemeExpressions(theme.externalId, theme.name);
             
             if(checkIfThemeIsToBeUpdated) {
               
@@ -309,16 +368,16 @@ module.exports = class solutionsHelper {
                   SCORE : `${theme.externalId}.sumOfPointsOfAllChildren()`
                 },
                 levels : {}
-              }
+              };
               solutionLevelKeys.forEach(level => {
-                theme.rubric.levels[level] = {expression : `(${checkIfThemeIsToBeUpdated[level]})`}
+                theme.rubric.levels[level] = {expression : `(${checkIfThemeIsToBeUpdated[level]})`};
               })
               
-              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? Number(Number.parseFloat(checkIfThemeIsToBeUpdated.weightage).toFixed(2)) : 0
+              theme.weightage = (checkIfThemeIsToBeUpdated.hasOwnProperty('weightage')) ? Number(Number.parseFloat(checkIfThemeIsToBeUpdated.weightage).toFixed(2)) : 0;
 
-              checkIfThemeIsToBeUpdated.status = "Success"
+              checkIfThemeIsToBeUpdated.status = "Success";
 
-              updateThemeRubricExpressionData(checkIfThemeIsToBeUpdated)
+              updateThemeRubricExpressionData(checkIfThemeIsToBeUpdated);
             } 
             // else if(!theme.criteria) {
             //   let someRandomValue = themeRubricExpressionData[Math.floor(Math.random()*themeRubricExpressionData.length)];
@@ -338,16 +397,16 @@ module.exports = class solutionsHelper {
             // }
 
             if(theme.children && theme.children.length >0) {
-              parseAllThemes(theme.children)
+              parseAllThemes(theme.children);
             }
 
           })
 
         }
         
-        parseAllThemes(currentSolutionThemeStructure)
+        parseAllThemes(currentSolutionThemeStructure);
 
-        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure);
 
         return resolve({
           themes: currentSolutionThemeStructure,
@@ -361,6 +420,15 @@ module.exports = class solutionsHelper {
     });
   }
 
+   /**
+   * Update criteria weightage in themes. 
+   * @method
+   * @name updateCriteriaWeightageInThemes
+   * @param {Object} currentSolutionThemeStructure
+   * @param {Array} criteriaWeightageArray
+   * @returns {Object} 
+   */
+
   static updateCriteriaWeightageInThemes(currentSolutionThemeStructure, criteriaWeightageArray) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -370,12 +438,12 @@ module.exports = class solutionsHelper {
           return criteria;
         })
 
-        const cirteriaWeightToUpdateCount = criteriaWeightageArray.length
+        const cirteriaWeightToUpdateCount = criteriaWeightageArray.length;
 
-        let criteriaWeightageUpdatedCount = 0
+        let criteriaWeightageUpdatedCount = 0;
 
         const getCriteriaWeightElement = function (criteriaId) {
-          return _.find(criteriaWeightageArray, { 'criteriaId': criteriaId.toString()})
+          return _.find(criteriaWeightageArray, { 'criteriaId': criteriaId.toString()});
         }
 
         const parseAllThemes = function (themes) {
@@ -385,28 +453,28 @@ module.exports = class solutionsHelper {
             if(theme.criteria && theme.criteria.length > 0) {
               for (let pointerToCriteriaArray = 0; pointerToCriteriaArray < theme.criteria.length; pointerToCriteriaArray ++) {
                 let eachCriteria = theme.criteria[pointerToCriteriaArray];
-                const checkIfCriteriaIsToBeUpdated = getCriteriaWeightElement(eachCriteria.criteriaId)
+                const checkIfCriteriaIsToBeUpdated = getCriteriaWeightElement(eachCriteria.criteriaId);
                 if(checkIfCriteriaIsToBeUpdated) {
                   theme.criteria[pointerToCriteriaArray] = {
                     criteriaId : ObjectId(checkIfCriteriaIsToBeUpdated.criteriaId),
                     weightage : Number(Number.parseFloat(checkIfCriteriaIsToBeUpdated.weightage).toFixed(2))
-                  }
-                  criteriaWeightageUpdatedCount += 1
+                  };
+                  criteriaWeightageUpdatedCount += 1;
                 }
               }
             }
 
             if(theme.children && theme.children.length > 0) {
-              parseAllThemes(theme.children)
+              parseAllThemes(theme.children);
             }
 
           })
 
         }
         
-        parseAllThemes(currentSolutionThemeStructure)
+        parseAllThemes(currentSolutionThemeStructure);
 
-        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure)
+        const flatThemes = await this.generateFlatThemeRubricStructure(currentSolutionThemeStructure);
 
         if(criteriaWeightageUpdatedCount == cirteriaWeightToUpdateCount) {
           return resolve({
@@ -415,7 +483,7 @@ module.exports = class solutionsHelper {
             success : true
           });
         } else {
-          throw new Error("Something went wrong! Not all criteira weightage were updated.")
+          throw new Error("Something went wrong! Not all criteira weightage were updated.");
         }
 
       } catch (error) {
@@ -423,6 +491,14 @@ module.exports = class solutionsHelper {
       }
     });
   }
+
+    /**
+   * Generate flat themes rubric structure. 
+   * @method
+   * @name generateFlatThemeRubricStructure
+   * @param {Object} solutionThemeStructure
+   * @returns {Array} 
+   */
 
   static generateFlatThemeRubricStructure(solutionThemeStructure) {
 
@@ -433,69 +509,79 @@ module.exports = class solutionsHelper {
         
         if (theme.children) {
 
-          theme.hierarchyLevel = hierarchyLevel
-          theme.hierarchyTrack = hierarchyTrack
+          theme.hierarchyLevel = hierarchyLevel;
+          theme.hierarchyTrack = hierarchyTrack;
 
-          let hierarchyTrackToUpdate = [...hierarchyTrack]
-          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+          let hierarchyTrackToUpdate = [...hierarchyTrack];
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]));
 
-          flattenThemes(theme.children,hierarchyLevel+1,hierarchyTrackToUpdate,flatThemes)
+          flattenThemes(theme.children,hierarchyLevel+1,hierarchyTrackToUpdate,flatThemes);
           
-          if(!theme.criteria) theme.criteria = new Array
-          if(!theme.immediateChildren) theme.immediateChildren = new Array
+          if(!theme.criteria) theme.criteria = new Array;
+          if(!theme.immediateChildren) theme.immediateChildren = new Array;
 
           theme.children.forEach(childTheme => {
             if(childTheme.criteria) {
               childTheme.criteria.forEach(criteria => {
-                theme.criteria.push(criteria)
+                theme.criteria.push(criteria);
               })
             }
-            theme.immediateChildren.push(_.omit(childTheme,["children","rubric","criteria","hierarchyLevel","hierarchyTrack"]))
+            theme.immediateChildren.push(_.omit(childTheme,["children","rubric","criteria","hierarchyLevel","hierarchyTrack"]));
           })
 
-          flatThemes.push(_.omit(theme,["children"]))
+          flatThemes.push(_.omit(theme,["children"]));
 
         } else {
 
-          theme.hierarchyLevel = hierarchyLevel
-          theme.hierarchyTrack = hierarchyTrack
+          theme.hierarchyLevel = hierarchyLevel;
+          theme.hierarchyTrack = hierarchyTrack;
 
-          let hierarchyTrackToUpdate = [...hierarchyTrack]
-          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]))
+          let hierarchyTrackToUpdate = [...hierarchyTrack];
+          hierarchyTrackToUpdate.push(_.pick(theme,["type","label","externalId","name"]));
 
-          let themeCriteriaArray = new Array
+          let themeCriteriaArray = new Array;
 
           theme.criteria.forEach(criteria => {
             themeCriteriaArray.push({
                 criteriaId : criteria.criteriaId,
                 weightage : criteria.weightage
-            })
+            });
           })
 
-          theme.criteria = themeCriteriaArray
+          theme.criteria = themeCriteriaArray;
 
-          flatThemes.push(theme)
+          flatThemes.push(theme);
 
         }
 
       })
 
-      return flatThemes
+      return flatThemes;
     }
     
-    let flatThemeStructure = flattenThemes(_.cloneDeep(solutionThemeStructure))
+    let flatThemeStructure = flattenThemes(_.cloneDeep(solutionThemeStructure));
     
-    return flatThemeStructure
+    return flatThemeStructure;
 
   }
+
+  /**
+   * Search solutions.
+   * @method
+   * @name search
+   * @param {Object} filteredData - Search solutions from filtered data.
+   * @param {Number} pageSize - page limit.
+   * @param {Number} pageNo - No of the page. 
+   * @returns {Array} List of solutions document. 
+   */
 
   static search(filteredData, pageSize, pageNo) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let solutionDocument = []
+        let solutionDocument = [];
 
-        let projection1 = {}
+        let projection1 = {};
         projection1["$project"] = {
           name: 1,
           description: 1,
@@ -505,37 +591,44 @@ module.exports = class solutionsHelper {
           entityTypeId: 1
         };
 
-        let facetQuery = {}
-        facetQuery["$facet"] = {}
+        let facetQuery = {};
+        facetQuery["$facet"] = {};
 
         facetQuery["$facet"]["totalCount"] = [
           { "$count": "count" }
-        ]
+        ];
 
         facetQuery["$facet"]["data"] = [
           { $skip: pageSize * (pageNo - 1) },
           { $limit: pageSize }
-        ]
+        ];
 
-        let projection2 = {}
+        let projection2 = {};
         projection2["$project"] = {
           "data": 1,
           "count": {
             $arrayElemAt: ["$totalCount.count", 0]
           }
-        }
+        };
 
-        solutionDocument.push(filteredData, projection1, facetQuery, projection2)
+        solutionDocument.push(filteredData, projection1, facetQuery, projection2);
 
-        let solutionDocuments = await database.models.solutions.aggregate(solutionDocument)
+        let solutionDocuments = await database.models.solutions.aggregate(solutionDocument);
 
-        return resolve(solutionDocuments)
+        return resolve(solutionDocuments);
 
       } catch (error) {
         return reject(error);
       }
     })
   }
+
+  /**
+   * Mandatory data for solutions.Required when updating the solutions.
+   * @method
+   * @name mandatoryField 
+   * @returns {Object} Mandatory fields data. 
+   */
 
   static mandatoryField() {
 
@@ -598,7 +691,7 @@ module.exports = class solutionsHelper {
 
     }
 
-    return mandatoryFields
+    return mandatoryFields;
 
   }
 };

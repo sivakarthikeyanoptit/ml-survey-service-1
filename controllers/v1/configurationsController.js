@@ -1,3 +1,14 @@
+/**
+ * name : configurationsController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : App configurations.
+ */
+
+ /**
+    * Configurations
+    * @class
+*/
 module.exports = class Configurations extends Abstract {
     constructor() {
         super(configurationsSchema);
@@ -38,6 +49,16 @@ module.exports = class Configurations extends Abstract {
     * }
     ]
     */
+
+      /**
+      * App navigation links.
+      * @method
+      * @name navigation
+      * @param {Object} req - All requested Data.
+      * @param {Array} req.userDetails.allRoles - Array of loggedin useer roles
+      * @returns {JSON} returns a navigation action required for samiksha app.
+     */
+
     async navigation(req) {
         return new Promise(async (resolve, reject) => {
             try {

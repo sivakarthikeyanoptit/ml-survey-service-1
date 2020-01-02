@@ -1,8 +1,20 @@
+/**
+ * name : userExtensionController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : User extension related functionality.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 
+/**
+    * UserExtension
+    * @class
+*/
 module.exports = class UserExtension extends Abstract {
   constructor() {
     super(userExtensionSchema);
@@ -49,6 +61,15 @@ module.exports = class UserExtension extends Abstract {
   * }
   */
 
+  /**
+   * Get profile of user.
+   * @method
+   * @name getProfile
+   * @param {Object} req - request data.
+   * @param {String} req.params._id - user id.
+   * @returns {JSON} User profile data. 
+   */
+
   getProfile(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -90,6 +111,15 @@ module.exports = class UserExtension extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * Bulk upload user.
+   * @method
+   * @name bulkUpload
+   * @param {Object} req - request data.
+   * @param {Array} req.files.userRoles - userRoles data.
+   * @returns {CSV} user uploaded data.
+   */
+
   bulkUpload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -97,7 +127,9 @@ module.exports = class UserExtension extends Abstract {
 
         let userRolesCSVData = await csv().fromString(req.files.userRoles.data.toString());
 
-        if (!userRolesCSVData || userRolesCSVData.length < 1) throw "File or data is missing."
+        if (!userRolesCSVData || userRolesCSVData.length < 1) {
+          throw "File or data is missing.";
+        }
 
         let newUserRoleData = await userExtensionHelper.bulkCreateOrUpdate(userRolesCSVData, req.userDetails);
 
@@ -116,13 +148,13 @@ module.exports = class UserExtension extends Abstract {
           }());
 
           await Promise.all(newUserRoleData.map(async userRole => {
-            input.push(userRole)
-          }))
+            input.push(userRole);
+          }));
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw "Something went wrong!";
         }
 
       } catch (error) {
@@ -131,7 +163,7 @@ module.exports = class UserExtension extends Abstract {
           status: error.status || 500,
           message: error.message || "Oops! something went wrong.",
           errorObject: error
-        })
+        });
 
       }
 
@@ -167,41 +199,50 @@ module.exports = class UserExtension extends Abstract {
     "count": 1
    */
 
+    /**
+   * Entities in user extension.
+   * @method
+   * @name entities
+   * @param {Object} req - request data.
+   * @param {String} req.params._id - user id.
+   * @returns {JSON} List of entities in user extension.
+   */
+
   entities(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let allEntities = []
+        let allEntities = [];
 
-        let userId = req.params._id ? req.params._id : req.userDetails.id
+        let userId = req.params._id ? req.params._id : req.userDetails.id;
         let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityType = req.query.entityType ? req.query.entityType : "school"
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"];
+        let entityType = req.query.entityType ? req.query.entityType : "school";
 
         let entitiesFound = await entitiesHelper.entityDocuments({
           _id: { $in: userExtensionEntities },
           entityType: entityType
-        }, ["_id"])
+        }, ["_id"]);
 
 
         if (entitiesFound.length > 0) {
           entitiesFound.forEach(eachEntityData => {
-            allEntities.push(eachEntityData._id)
-          })
+            allEntities.push(eachEntityData._id);
+          });
         }
 
         let findQuery = {
           _id: { $in: userExtensionEntities },
           entityType: { $ne: entityType }
-        }
+        };
 
-        findQuery[`groups.${entityType}`] = { $exists: true }
+        findQuery[`groups.${entityType}`] = { $exists: true };
 
-        let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`])
+        let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`]);
 
         if (remainingEntities.length > 0) {
           remainingEntities.forEach(eachEntityNotFound => {
-            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType])
+            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType]);
           })
         }
 
@@ -209,9 +250,9 @@ module.exports = class UserExtension extends Abstract {
           throw { status: 400, message: "No entities were found for given userId" };
         }
 
-        let skippingValue = req.pageSize * (req.pageNo - 1)
+        let skippingValue = req.pageSize * (req.pageNo - 1);
 
-        let queryObject = {}
+        let queryObject = {};
 
         if(req.searchText && req.searchText != "") {
           queryObject = {
@@ -230,20 +271,20 @@ module.exports = class UserExtension extends Abstract {
                       ]
                   } 
               ]
-          }
+          };
       } else {
           queryObject = {
               _id: { $in: allEntities }
-          }
+          };
       }
 
-        let result = await entitiesHelper.entityDocuments(queryObject, projection, req.pageSize, skippingValue)
+        let result = await entitiesHelper.entityDocuments(queryObject, projection, req.pageSize, skippingValue);
 
         return resolve({
           message: "User Extension entities fetched successfully",
           result: result,
           count: allEntities.length
-        })
+        });
 
       } catch (error) {
 
@@ -251,7 +292,7 @@ module.exports = class UserExtension extends Abstract {
           status: error.status || 500,
           message: error.message || "Oops! something went wrong.",
           errorObject: error
-        })
+        });
 
       }
 

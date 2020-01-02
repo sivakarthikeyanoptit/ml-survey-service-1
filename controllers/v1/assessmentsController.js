@@ -1,6 +1,20 @@
-const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
-const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
+/**
+ * name : assessments.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Institutional Assessments.
+ */
 
+
+// Dependencies.
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+
+
+/**
+    * Assessments
+    * @class
+*/
 module.exports = class Assessments {
 
     constructor() {
@@ -97,6 +111,15 @@ module.exports = class Assessments {
                 }
     */
 
+     /**
+      * Assessment details.
+      * @method
+      * @name details
+      * @param {Request} req 
+      * - request consists of programId,solutionId and entityId.
+      * @returns {JSON} returns assessment details response.
+     */
+
     async details(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -133,7 +156,7 @@ module.exports = class Assessments {
 
                 if (!entityAssessorDocument) {
                     let responseMessage = 'Unauthorized.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
                 const isRequestForOncallOrOnField = req.query.oncall && req.query.oncall == 1 ? "oncall" : "onfield";
@@ -150,7 +173,7 @@ module.exports = class Assessments {
 
                 if (!entityDocument) {
                     let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
                 let solutionQueryObject = {
@@ -170,10 +193,10 @@ module.exports = class Assessments {
 
                 if (!solutionDocument) {
                     let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
-                let currentUserAssessmentRole = await assessmentsHelper.getUserRole([entityAssessorDocument.role])
+                let currentUserAssessmentRole = await assessmentsHelper.getUserRole([entityAssessorDocument.role]);
                 let profileFieldAccessibility = (solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : {};
 
                 let entityProfileForm = await database.models.entityTypes.findOne(
@@ -185,29 +208,29 @@ module.exports = class Assessments {
 
                 if (!entityProfileForm) {
                     let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    return resolve({ status: 400, message: responseMessage });
                 }
 
                 let form = [];
                 let entityDocumentTypes = (entityDocument.metaInformation.types) ? entityDocument.metaInformation.types : ["A1"];
                 let entityDocumentQuestionGroup = (entityDocument.metaInformation.questionGroup) ? entityDocument.metaInformation.questionGroup : ["A1"];
-                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes
+                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes;
                 let filteredFieldsToBeShown = [];
 
                 if (entityProfileFieldsPerEntityTypes) {
                     entityDocumentTypes.forEach(entityType => {
                         if (entityProfileFieldsPerEntityTypes[entityType]) {
-                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType])
+                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType]);
                         }
                     })
                 }
 
                 entityProfileForm.profileForm.forEach(profileFormField => {
                     if (filteredFieldsToBeShown.includes(profileFormField.field)) {
-                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : ""
-                        profileFormField.visible = profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1
-                        profileFormField.editable = profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1
-                        form.push(profileFormField)
+                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : "";
+                        profileFormField.visible = profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1;
+                        profileFormField.editable = profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1;
+                        form.push(profileFormField);
                     }
                 })
 
@@ -253,15 +276,15 @@ module.exports = class Assessments {
                 assessment.description = solutionDocument.description;
                 assessment.externalId = solutionDocument.externalId;
 
-                let criteriaId = new Array
-                let criteriaObject = {}
+                let criteriaId = new Array;
+                let criteriaObject = {};
                 let criteriaIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
                 criteriaIdArray.forEach(eachCriteriaId => {
-                    criteriaId.push(eachCriteriaId.criteriaId)
+                    criteriaId.push(eachCriteriaId.criteriaId);
                     criteriaObject[eachCriteriaId.criteriaId.toString()] = {
                         weightage: eachCriteriaId.weightage
-                    }
+                    };
                 })
 
                 let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
@@ -281,19 +304,19 @@ module.exports = class Assessments {
 
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
                     if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
-                        solutionDocument.evidenceMethods[solutionEcm].startTime = ""
-                        solutionDocument.evidenceMethods[solutionEcm].endTime = ""
-                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
-                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                        solutionDocument.evidenceMethods[solutionEcm].startTime = "";
+                        solutionDocument.evidenceMethods[solutionEcm].endTime = "";
+                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false;
+                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array;
                     } else {
-                        delete solutionDocument.evidenceMethods[solutionEcm]
+                        delete solutionDocument.evidenceMethods[solutionEcm];
                     }
                 })
-                submissionDocumentEvidences = solutionDocument.evidenceMethods
+                submissionDocumentEvidences = solutionDocument.evidenceMethods;
 
                 criteriaQuestionDocument.forEach(criteria => {
 
-                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage
+                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage;
 
                     submissionDocumentCriterias.push(
                         _.omit(criteria, [
@@ -309,8 +332,8 @@ module.exports = class Assessments {
 
                                 evidenceMethod.sections.forEach(ecmSection => {
                                     ecmSection.name = solutionDocument.sections[ecmSection.code]
-                                })
-                                _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code])
+                                });
+                                _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code]);
                                 evidenceMethodArray[evidenceMethod.code] = evidenceMethod;
 
                             } else {
@@ -333,7 +356,7 @@ module.exports = class Assessments {
                                     });
 
                                     if (!sectionExisitsInEvidenceMethod) {
-                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code]
+                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code];
                                         evidenceMethodArray[evidenceMethod.code].sections.push(evidenceMethodSection);
                                     } else {
                                         evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {

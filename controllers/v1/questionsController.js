@@ -1,7 +1,19 @@
+/**
+ * name : questionsController.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : All questions related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+/**
+    * Questions
+    * @class
+*/
 module.exports = class Questions extends Abstract {
   constructor() {
     super(questionsSchema);
@@ -21,7 +33,17 @@ module.exports = class Questions extends Abstract {
    * @apiUse errorBody
    */
 
-  bulkCreate(req) {
+  /**
+   * Bulk create questions.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.questions - questions csv data. 
+   * @returns {CSV} - Same existing csv with extra field _SYSTEM_ID to indicate 
+   * whether the question is created or not . If created question id will be provided. 
+   */
+
+  bulkCreate(req){
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.questions) {
@@ -148,7 +170,7 @@ module.exports = class Questions extends Abstract {
             question[parsedQuestionData["parentQuestionId"]] =
               questionCollection[parsedQuestionData["parentQuestionId"]];
           }
-          return question
+          return question;
         }
 
         // Create question
@@ -161,7 +183,7 @@ module.exports = class Questions extends Abstract {
             section
           );
 
-          return resultFromCreateQuestions
+          return resultFromCreateQuestions;
         }
 
         for (
@@ -185,7 +207,7 @@ module.exports = class Questions extends Abstract {
           criteria[parsedQuestion.criteriaExternalId] =
             criteriaObject[parsedQuestion.criteriaExternalId];
 
-          let section
+          let section;
 
           if (solutionDocument.sections[parsedQuestion.section]) {
             section = parsedQuestion.section;
@@ -204,9 +226,9 @@ module.exports = class Questions extends Abstract {
             });
           } else {
 
-            let question = questionInCsv(parsedQuestion)
+            let question = questionInCsv(parsedQuestion);
 
-            let resultFromCreateQuestions = await createQuestion(parsedQuestion, question, criteria, ecm, section)
+            let resultFromCreateQuestions = await createQuestion(parsedQuestion, question, criteria, ecm, section);
 
             if (resultFromCreateQuestions.result) {
               questionCollection[resultFromCreateQuestions.result.externalId] =
@@ -223,11 +245,11 @@ module.exports = class Questions extends Abstract {
             pointerToPendingData++
           ) {
 
-            let eachPendingItem = pendingItems[pointerToPendingData]
+            let eachPendingItem = pendingItems[pointerToPendingData];
 
-            let question = questionInCsv(eachPendingItem)
+            let question = questionInCsv(eachPendingItem);
 
-            let csvQuestionData = await createQuestion(eachPendingItem.parsedQuestion, question, eachPendingItem.criteriaToBeSent, eachPendingItem.evaluationFrameworkMethod, eachPendingItem.section)
+            let csvQuestionData = await createQuestion(eachPendingItem.parsedQuestion, question, eachPendingItem.criteriaToBeSent, eachPendingItem.evaluationFrameworkMethod, eachPendingItem.section);
 
             input.push(csvQuestionData.total[0]);
           }
@@ -251,6 +273,18 @@ module.exports = class Questions extends Abstract {
    * @apiUse successBody
    * @apiUse errorBody
    */
+
+  /**
+   * Questions bulk update.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.questions - bulk create questions csv 
+   * consisting of SYSTEM_ID. 
+   * @returns {CSV} - same csv with extra field UPDATE_STATUS to indicate 
+   * whether the question is updated or not.  
+   */
+
   bulkUpdate(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -276,7 +310,7 @@ module.exports = class Questions extends Abstract {
         );
 
         if (criteriasIdArray.length < 1) {
-          throw "No criteria found for the given solution"
+          throw "No criteria found for the given solution";
         }
 
         let allCriteriaDocument = await database.models.criteria
@@ -284,7 +318,7 @@ module.exports = class Questions extends Abstract {
           .lean();
 
         if (allCriteriaDocument.length < 1) {
-          throw "No criteria found for the given solution"
+          throw "No criteria found for the given solution";
         }
 
         let currentQuestionMap = {};
@@ -293,7 +327,7 @@ module.exports = class Questions extends Abstract {
 
         allCriteriaDocument.forEach(eachCriteria => {
 
-          criteriaMap[eachCriteria.externalId] = eachCriteria._id.toString()
+          criteriaMap[eachCriteria.externalId] = eachCriteria._id.toString();
 
           eachCriteria.evidences.forEach(eachEvidence => {
             eachEvidence.sections.forEach(eachSection => {
@@ -304,7 +338,7 @@ module.exports = class Questions extends Abstract {
                   evidenceMethodCode: eachEvidence.code,
                   criteriaId: eachCriteria._id.toString(),
                   criteriaExternalId: eachCriteria.externalId
-                }
+                };
               })
             })
           })
@@ -322,19 +356,19 @@ module.exports = class Questions extends Abstract {
           .lean();
 
         if (allQuestionsDocument.length < 1) {
-          throw "No question found for the given solution"
+          throw "No question found for the given solution";
         }
 
         let questionExternalToInternalIdMap = {};
         allQuestionsDocument.forEach(eachQuestion => {
 
-          currentQuestionMap[eachQuestion._id.toString()].externalId = eachQuestion.externalId
-          questionExternalToInternalIdMap[eachQuestion.externalId] = eachQuestion._id.toString()
+          currentQuestionMap[eachQuestion._id.toString()].externalId = eachQuestion.externalId;
+          questionExternalToInternalIdMap[eachQuestion.externalId] = eachQuestion._id.toString();
 
           if (eachQuestion.children && eachQuestion.children.length > 0) {
             eachQuestion.children.forEach(childQuestion => {
               if (currentQuestionMap[childQuestion.toString()]) {
-                currentQuestionMap[childQuestion.toString()].parent = eachQuestion._id.toString()
+                currentQuestionMap[childQuestion.toString()].parent = eachQuestion._id.toString();
               }
             })
           }
@@ -342,7 +376,7 @@ module.exports = class Questions extends Abstract {
           if (eachQuestion.instanceQuestions && eachQuestion.instanceQuestions.length > 0) {
             eachQuestion.instanceQuestions.forEach(instanceChildQuestion => {
               if (currentQuestionMap[instanceChildQuestion.toString()]) {
-                currentQuestionMap[instanceChildQuestion.toString()].instanceParent = eachQuestion._id.toString()
+                currentQuestionMap[instanceChildQuestion.toString()].instanceParent = eachQuestion._id.toString();
               }
             })
           }
@@ -374,58 +408,58 @@ module.exports = class Questions extends Abstract {
           );
 
           if (!parsedQuestion["_SYSTEM_ID"] || parsedQuestion["_SYSTEM_ID"] == "" || !currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]) {
-            parsedQuestion["UPDATE_STATUS"] = "Invalid Question Internal ID"
+            parsedQuestion["UPDATE_STATUS"] = "Invalid Question Internal ID";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-            continue
+            continue;
           }
 
           if (!parsedQuestion["criteriaExternalId"] || parsedQuestion["criteriaExternalId"] == "" || !criteriaMap[parsedQuestion["criteriaExternalId"]]) {
-            parsedQuestion["UPDATE_STATUS"] = "Invalid Criteria External ID"
+            parsedQuestion["UPDATE_STATUS"] = "Invalid Criteria External ID";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-            continue
+            continue;
           } else {
-            parsedQuestion["_criteriaInternalId"] = criteriaMap[parsedQuestion["criteriaExternalId"]]
+            parsedQuestion["_criteriaInternalId"] = criteriaMap[parsedQuestion["criteriaExternalId"]];
           }
 
-          let ecm = (solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]] && solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId) ? solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId : ""
+          let ecm = (solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]] && solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId) ? solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId : "";
           if (ecm == "") {
-            parsedQuestion["UPDATE_STATUS"] = "Invalid Evidence Method Code"
+            parsedQuestion["UPDATE_STATUS"] = "Invalid Evidence Method Code";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-            continue
+            continue;
           } else {
-            parsedQuestion["_evidenceMethodCode"] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId
+            parsedQuestion["_evidenceMethodCode"] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId;
           }
 
-          let section = (solutionDocument.sections[parsedQuestion.section]) ? solutionDocument.sections[parsedQuestion.section] : ""
+          let section = (solutionDocument.sections[parsedQuestion.section]) ? solutionDocument.sections[parsedQuestion.section] : "";
           if (section == "") {
-            parsedQuestion["UPDATE_STATUS"] = "Invalid Section Method Code"
-            input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }))
-            continue
+            parsedQuestion["UPDATE_STATUS"] = "Invalid Section Method Code";
+            input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
+            continue;
           } else {
-            parsedQuestion["_sectionCode"] = parsedQuestion.section
+            parsedQuestion["_sectionCode"] = parsedQuestion.section;
           }
 
           // Parent question CSV data validation begins.
-          parsedQuestion["hasAParentQuestion"] = parsedQuestion["hasAParentQuestion"].toUpperCase()
+          parsedQuestion["hasAParentQuestion"] = parsedQuestion["hasAParentQuestion"].toUpperCase();
 
           if (parsedQuestion["hasAParentQuestion"] != "YES" && parsedQuestion["hasAParentQuestion"] != "NO") {
 
-            parsedQuestion["UPDATE_STATUS"] = "Invalid value for column hasAParentQuestion"
+            parsedQuestion["UPDATE_STATUS"] = "Invalid value for column hasAParentQuestion";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-            continue
+            continue;
 
           } else if (parsedQuestion["hasAParentQuestion"] == "YES") {
 
             if (parsedQuestion["parentQuestionId"] == "" || !currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]]) {
-              parsedQuestion["UPDATE_STATUS"] = "Invalid Parent Question ID"
+              parsedQuestion["UPDATE_STATUS"] = "Invalid Parent Question ID";
               input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-              continue
+              continue;
             } else {
-              parsedQuestion["_parentQuestionId"] = questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]]
+              parsedQuestion["_parentQuestionId"] = questionExternalToInternalIdMap[parsedQuestion["parentQuestionId"]];
             }
 
           } else if (parsedQuestion["hasAParentQuestion"] == "NO") {
-            parsedQuestion["_parentQuestionId"] = ""
+            parsedQuestion["_parentQuestionId"] = "";
           }
           // Parent question CSV data validation ends.
 
@@ -434,28 +468,28 @@ module.exports = class Questions extends Abstract {
           parsedQuestion["instanceParentQuestionId"] = parsedQuestion["instanceParentQuestionId"].toUpperCase()
           if (parsedQuestion["instanceParentQuestionId"] == "") {
 
-            parsedQuestion["UPDATE_STATUS"] = "Invalid value for column instanceParentQuestionId"
+            parsedQuestion["UPDATE_STATUS"] = "Invalid value for column instanceParentQuestionId";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-            continue
+            continue;
 
           } else if (parsedQuestion["instanceParentQuestionId"] == "NA") {
 
-            parsedQuestion["_instanceParentQuestionId"] = ""
+            parsedQuestion["_instanceParentQuestionId"] = "";
 
           } else {
 
             if (currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]] && currentQuestionMap[questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]] != "") {
-              parsedQuestion["_instanceParentQuestionId"] = questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]]
+              parsedQuestion["_instanceParentQuestionId"] = questionExternalToInternalIdMap[parsedQuestion["instanceParentQuestionId"]];
             } else {
-              parsedQuestion["UPDATE_STATUS"] = "Invalid Instance Parent Question ID"
+              parsedQuestion["UPDATE_STATUS"] = "Invalid Instance Parent Question ID";
               input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
-              continue
+              continue;
             }
 
           }
           // Instance Parent question CSV data validation ends.
 
-          let currentQuestion = currentQuestionMap[parsedQuestion["_SYSTEM_ID"]]
+          let currentQuestion = currentQuestionMap[parsedQuestion["_SYSTEM_ID"]];
 
           if (currentQuestion.criteriaId != parsedQuestion["_criteriaInternalId"] || currentQuestion.sectionCode != parsedQuestion["_sectionCode"] || currentQuestion.evidenceMethodCode != parsedQuestion["_evidenceMethodCode"]) {
             // remove question from criteria (qid,criteiaid, ecm, section)
@@ -466,19 +500,19 @@ module.exports = class Questions extends Abstract {
               {
                 evidences: 1
               }
-            )
+            );
 
             criteriaToUpdate.evidences.forEach(eachEvidence => {
               if (eachEvidence.code == currentQuestion.evidenceMethodCode) {
                 eachEvidence.sections.forEach(eachSection => {
                   if (eachSection.code == currentQuestion.sectionCode) {
-                    let newSectionQuestions = new Array
+                    let newSectionQuestions = new Array;
                     for (let questionObjectPointer = 0; questionObjectPointer < eachSection.questions.length; questionObjectPointer++) {
                       if (eachSection.questions[questionObjectPointer].toString() != currentQuestion.qid) {
-                        newSectionQuestions.push(eachSection.questions[questionObjectPointer])
+                        newSectionQuestions.push(eachSection.questions[questionObjectPointer]);
                       }
                     }
-                    eachSection.questions = newSectionQuestions
+                    eachSection.questions = newSectionQuestions;
                   }
                 })
               }
@@ -486,19 +520,19 @@ module.exports = class Questions extends Abstract {
 
             let queryCriteriaObject = {
               _id: criteriaToUpdate._id
-            }
+            };
 
-            let updateCriteriaObject = {}
+            let updateCriteriaObject = {};
             updateCriteriaObject.$set = {
               ["evidences"]: criteriaToUpdate.evidences
-            }
+            };
 
             await database.models.criteria.findOneAndUpdate(
               queryCriteriaObject,
               updateCriteriaObject
-            )
+            );
 
-            parsedQuestion["_setQuestionInCriteria"] = true
+            parsedQuestion["_setQuestionInCriteria"] = true;
           }
 
           if (currentQuestion.instanceParent && currentQuestion.instanceParent != "" && currentQuestion.instanceParent != parsedQuestion["_instanceParentQuestionId"]) {
@@ -546,7 +580,7 @@ module.exports = class Questions extends Abstract {
             parsedQuestion
           );
 
-          input.push(_.omitBy(updateQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }))
+          input.push(_.omitBy(updateQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
         }
 
         input.push(null);

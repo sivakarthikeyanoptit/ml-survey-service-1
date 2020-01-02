@@ -1,5 +1,19 @@
+/**
+ * name : exportController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : export program,solution,framework,criteria,questions so that later on
+ * we can import it.
+ */
+
+// Dependencies
 const filesHelper = require(MODULES_BASE_PATH + "/files/helper")
 
+
+/**
+    * Export
+    * @class
+*/
 module.exports = class Export {
 
     constructor() {
@@ -20,10 +34,19 @@ module.exports = class Export {
     * @apiUse errorBody
     */
 
+      /**
+    * Export program.
+    * @method
+    * @name program
+    * @param {Object} req - request data.
+    * @param {String} req.params._id - program id.
+    * @returns {JSON} export into json file.
+    */
+
     program(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let programId = req.params._id
+                let programId = req.params._id;
                 let programDocument = await database.models.programs.findOne({ externalId: programId });
                 if (!programDocument) {
                     return resolve({
@@ -55,6 +78,15 @@ module.exports = class Export {
     * @apiSampleRequest /assessment/api/v1/export/solution/EF-DCPCR-2018-001
     * @apiUse successBody
     * @apiUse errorBody
+    */
+
+      /**
+    * Export solution.
+    * @method
+    * @name solution
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
     */
 
     solution(req) {
@@ -92,6 +124,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+      /**
+    * Export framework.
+    * @method
+    * @name framework
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - framework external id.
+    * @returns {JSON} export into json file. 
+    */
+
     framework(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -127,6 +169,15 @@ module.exports = class Export {
     * @apiSampleRequest /assessment/api/v1/export/frameworkCriteria/EF-DCPCR-2018-001
     * @apiUse successBody
     * @apiUse errorBody
+    */
+
+    /**
+    * Export framework criteria.
+    * @method
+    * @name frameworkCriteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - framework external id.
+    * @returns {JSON} export into json file. 
     */
 
     frameworkCriteria(req) {
@@ -167,6 +218,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+    /**
+    * Export solutionCriteria.
+    * @method
+    * @name solutionCriteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
+    */
+
     solutionCriteria(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -205,6 +266,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+      /**
+    * Export questions.
+    * @method
+    * @name questions
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
+    */
+
     questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -220,14 +291,14 @@ module.exports = class Export {
                 let filePath = await filesHelper.createFileWithName(`QuestionInSolution_${req.params._id}`);
                 let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-                let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: { $in: criteriaIds } })
+                let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: { $in: criteriaIds } });
 
                 let allQuestions = [];
                 allCriteriaQuestionDocuments.forEach(singleCriteria => {
                     singleCriteria.evidences.forEach(singleEvidence => {
                         singleEvidence.sections.forEach(section => {
                             section.questions.forEach(question => {
-                                allQuestions.push(question)
+                                allQuestions.push(question);
                             })
                         })
                     })

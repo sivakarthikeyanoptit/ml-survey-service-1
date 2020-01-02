@@ -1,4 +1,16 @@
+/**
+ * name : sharedLinksController.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Shared links related information.
+ */
+
+// Dependencies
 const uuid = require('uuid/v1');
+/**
+    * SharedLink
+    * @class
+*/
 module.exports = class SharedLink extends Abstract {
 
   constructor() {
@@ -18,11 +30,24 @@ module.exports = class SharedLink extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * Generate links that can be shared.
+   * @method
+   * @name generate
+   * @param {Object} req - requested data.
+   * @param {String} req.body.privateURL - private url.
+   * @param {String} req.body.publicURL - public url.
+   * @param {String} req.body.reportName - name of the report.
+   * @returns {JSON} - consists of link id.
+   */
+
   generate(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.body.privateURL || !req.body.publicURL || !req.body.reportName) throw { status: 400, message: "Bad request." }
+        if (!req.body.privateURL || !req.body.publicURL || !req.body.reportName) {
+          throw { status: 400, message: "Bad request." };
+        }
 
         let shareableData;
 
@@ -35,7 +60,7 @@ module.exports = class SharedLink extends Abstract {
           queryParams: queryParams,
           "userDetails.id": req.userDetails.id,
           isActive: true
-        })
+        });
 
         if (!shareableData) {
 
@@ -45,7 +70,7 @@ module.exports = class SharedLink extends Abstract {
             ip: req.headers["x-real-ip"],
             userAgent: req.headers["user-agent"],
             createdAt: new Date
-          }
+          };
 
           let dataObject = {
             privateURL: req.body.privateURL,
@@ -57,9 +82,9 @@ module.exports = class SharedLink extends Abstract {
             accessedCount: 0,
             userDetails: _.pick(req.userDetails, ['id', 'accessiblePrograms', 'allRoles', 'firstName', 'lastName', 'email']),
             linkViews: [linkViews]
-          }
+          };
 
-          shareableData = await database.models.sharedLink.create(dataObject)
+          shareableData = await database.models.sharedLink.create(dataObject);
 
         }
 
@@ -68,7 +93,7 @@ module.exports = class SharedLink extends Abstract {
           result: {
             linkId: shareableData.linkId,
           }
-        })
+        });
 
 
       } catch (error) {
@@ -92,13 +117,24 @@ module.exports = class SharedLink extends Abstract {
     * @apiUse errorBody
     */
 
+    /**
+   * Generate links that can be shared.
+   * @method
+   * @name verify
+   * @param {Object} req - requested data.
+   * @param {String} req.headers.linkid - link id
+   * @returns {JSON} - consists of private url,public url and link id.
+   */
+
   verify(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let linkId = req.headers.linkid;
 
-        if (!linkId) throw { status: 400, message: "Bad request." };
+        if (!linkId) {
+          throw { status: 400, message: "Bad request." };
+        }
 
         let shareableData;
 
@@ -108,11 +144,17 @@ module.exports = class SharedLink extends Abstract {
 
         let isChanged = false;
 
-        shareableData.linkViews.forEach(user => { if (user.ip == req.headers["x-real-ip"]) isChanged = true })
+        shareableData.linkViews.forEach(user => { if (user.ip == req.headers["x-real-ip"]) {
+          isChanged = true;
+        }
+        }
+        )
 
-        if (isChanged == false) shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date })
+        if (isChanged == false) {
+          shareableData.linkViews.push({ ip: req.headers["x-real-ip"], userAgent: req.headers["user-agent"], createdAt: new Date });
+        }
 
-        let updateObject = _.omit(shareableData, ['createdAt'])
+        let updateObject = _.omit(shareableData, ['createdAt']);
 
         if (isChanged == true) {
 
@@ -128,7 +170,7 @@ module.exports = class SharedLink extends Abstract {
 
         }
 
-        let publicURL = shareableData.publicURL + ((shareableData.publicURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`
+        let publicURL = shareableData.publicURL + ((shareableData.publicURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`;
 
         return resolve({
           status: 200,
@@ -137,7 +179,7 @@ module.exports = class SharedLink extends Abstract {
             publicURL: publicURL,
             linkId: shareableData.linkId
           }
-        })
+        });
 
       } catch (error) {
 

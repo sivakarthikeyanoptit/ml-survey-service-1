@@ -1,3 +1,14 @@
+/**
+ * name : feedbackController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Feedback for app.
+ */
+
+/**
+    * Feedback
+    * @class
+*/
 module.exports = class Feedback extends Abstract {
 
   constructor() {
@@ -7,6 +18,14 @@ module.exports = class Feedback extends Abstract {
   static get name() {
     return "feedback";
   }
+
+   /**
+   * Feedback form.
+   * @method
+   * @name form
+   * @param {Object} req - request Data.
+   * @returns {JSON} - Feedback form information.
+   */
 
   async form(req) {
     return new Promise(async function(resolve, reject) {
@@ -196,9 +215,9 @@ module.exports = class Feedback extends Abstract {
             required: true
           }
         }
-      ]
+      ];
 
-      let responseMessage = "Feedback from fetched successfully."
+      let responseMessage = "Feedback from fetched successfully.";
 
       let response = { message: responseMessage, result: result };
       return resolve(response);

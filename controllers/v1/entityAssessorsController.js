@@ -1,6 +1,17 @@
+/**
+ * name : entityAssessorsController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All Entity Assessors related information.
+ */
+
+// Dependencies
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 
-
+/**
+    * EntityAssessors
+    * @class
+*/
 module.exports = class EntityAssessors extends Abstract {
   constructor() {
     super(entityAssessorsSchema);
@@ -54,6 +65,19 @@ module.exports = class EntityAssessors extends Abstract {
 ]
  */
 
+  /**
+   * Get all the entities for particular assessor.
+   * @method
+   * @name entities
+   * @param {Object} req - All requested Data.
+   * @param {String} req.userDetails.userId - Logged in user id.
+   * @param {String} req.query.programId - requested programId.
+   * @param {String} req.query.solutionId - requested solutionId.
+   * @param {String} req.query.type - requested entity type.
+   * @param {String} req.query.subType - requested entity subType. 
+   * @returns {JSON} - Entities details information.
+   */
+
   async entities(req) {
 
     return new Promise(async (resolve, reject) => {
@@ -93,18 +117,22 @@ module.exports = class EntityAssessors extends Abstract {
           }
         ];
 
-        if (req.query.programId) assessorEntitiesQueryObject[0]["$match"]["programId"] = ObjectId(req.query.programId);
-        if (req.query.solutionId) assessorEntitiesQueryObject[0]["$match"]["solutionId"] = ObjectId(req.query.solutionId);
+        if (req.query.programId) {
+          assessorEntitiesQueryObject[0]["$match"]["programId"] = ObjectId(req.query.programId);
+        }
+        if (req.query.solutionId) {
+          assessorEntitiesQueryObject[0]["$match"]["solutionId"] = ObjectId(req.query.solutionId);
+        }
 
-        const assessorsDocument = await database.models.entityAssessors.aggregate(assessorEntitiesQueryObject)
+        const assessorsDocument = await database.models.entityAssessors.aggregate(assessorEntitiesQueryObject);
 
-        let assessor
+        let assessor;
         let solutionQueryObject = {};
         let programQueryObject = {};
         let program = {};
         let solution = {};
-        let submissions
-        let entityPAISubmissionStatus = new Array
+        let submissions;
+        let entityPAISubmissionStatus = new Array;
 
         for (let pointerToAssessorDocumentArray = 0; pointerToAssessorDocumentArray < assessorsDocument.length; pointerToAssessorDocumentArray++) {
 
@@ -115,7 +143,7 @@ module.exports = class EntityAssessors extends Abstract {
           solutionQueryObject["type"] = req.query.type;
           solutionQueryObject["subType"] = req.query.subType;
           solutionQueryObject["status"] = "active";
-          solutionQueryObject["isDeleted"] = false
+          solutionQueryObject["isDeleted"] = false;
 
           solution = await database.models.solutions.findOne(
             solutionQueryObject,
@@ -126,12 +154,12 @@ module.exports = class EntityAssessors extends Abstract {
               type: 1,
               subType: 1
             }
-          ).lean()
+          ).lean();
 
 
           programQueryObject["_id"] = assessor.programId;
           programQueryObject["status"] = "active";
-          programQueryObject["isDeleted"] = false
+          programQueryObject["isDeleted"] = false;
 
           program = await database.models.programs.findOne(
             programQueryObject,
@@ -142,7 +170,7 @@ module.exports = class EntityAssessors extends Abstract {
               startDate: 1,
               endDate: 1
             }
-          ).lean()
+          ).lean();
 
 
           if (solution && program) {
@@ -159,7 +187,7 @@ module.exports = class EntityAssessors extends Abstract {
                 "status": 1,
                 "evidences.PAI.isSubmitted": 1
               }
-            )
+            );
 
             entityPAISubmissionStatus = submissions.reduce(
               (ac, entitySubmission) => ({
@@ -169,11 +197,11 @@ module.exports = class EntityAssessors extends Abstract {
                   submissionId: entitySubmission._id,
                   submissionStatus: (entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"
                 }
-              }), {})
+              }), {});
 
-            let programDocument = program
-            programDocument.solutions = new Array
-            solution.entities = new Array
+            let programDocument = program;
+            programDocument.solutions = new Array;
+            solution.entities = new Array;
             assessor.entityDocuments.forEach(assessorEntity => {
               solution.entities.push({
                 _id: assessorEntity._id,
@@ -181,15 +209,15 @@ module.exports = class EntityAssessors extends Abstract {
                 submissionId: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionId"] : "",
                 submissionStatus: (entityPAISubmissionStatus[assessorEntity._id.toString()]) ? entityPAISubmissionStatus[assessorEntity._id.toString()]["submissionStatus"] : "pending",
                 ...assessorEntity.metaInformation
-              })
+              });
             })
-            programDocument.solutions.push(solution)
-            programs.push(programDocument)
+            programDocument.solutions.push(solution);
+            programs.push(programDocument);
           }
 
         }
 
-        responseMessage = "Entity list fetched successfully"
+        responseMessage = "Entity list fetched successfully";
 
         return resolve({
           message: responseMessage,
@@ -218,6 +246,18 @@ module.exports = class EntityAssessors extends Abstract {
 * @apiUse successBody
 * @apiUse errorBody
 */
+
+  /**
+   * Upload entity assessors via csv.
+   * @method
+   * @name upload
+   * @param {Object} req - All requested Data.
+   * @param {String} req.userDetails.userId - Logged in user id.
+   * @param {Object} req.files - requested files.
+   * @param {String} req.rspObj.userToken - requested user token.
+   * @returns {JSON} - message indicating entity assessors created.
+   */
+
   async upload(req) {
 
     return new Promise(async (resolve, reject) => {
@@ -228,7 +268,7 @@ module.exports = class EntityAssessors extends Abstract {
 
         let response = { message: "Assessor record created successfully." };
 
-        return resolve(response)
+        return resolve(response);
 
       } catch (error) {
 
@@ -254,6 +294,19 @@ module.exports = class EntityAssessors extends Abstract {
 * @apiUse successBody
 * @apiUse errorBody
 */
+
+/**
+   * Upload entity assessors via csv in portal.
+   * @method
+   * @name uploadForPortal
+   * @param {Object} req - All requested Data.
+   * @param {String} req.userDetails.userId - Logged in user id.
+   * @param {String} req.query.programId - program id.
+   * @param {String} req.query.solutionId - solution id. 
+   * @param {Object} req.files - requested files.
+   * @param {String} req.rspObj.userToken - requested user token.
+   * @returns {JSON} - message indicating entity assessors created.
+  */
 
   async uploadForPortal(req) {
 
@@ -307,6 +360,12 @@ module.exports = class EntityAssessors extends Abstract {
   }
 */
 
+/**
+   * Pending Assessments.
+   * @method
+   * @name pendingAssessments
+   * @returns {JSON} - List of pending assessments.
+  */
 
   async pendingAssessments() {
     return new Promise(async (resolve, reject) => {
@@ -314,9 +373,9 @@ module.exports = class EntityAssessors extends Abstract {
 
         let status = {
           pending: true,
-        }
+        };
 
-        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
+        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status);
 
         return resolve({
           message: "Pending Assessments",
@@ -359,6 +418,13 @@ module.exports = class EntityAssessors extends Abstract {
       ]
 }
 */
+
+/**
+   * Completed Assessments.
+   * @method
+   * @name completedAssessments
+   * @returns {JSON} - List of completed assessments.
+  */
 
   async completedAssessments() {
     return new Promise(async (resolve, reject) => {
