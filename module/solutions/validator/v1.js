@@ -13,6 +13,13 @@ module.exports = (req) => {
         details: function () {
             req.checkParams('_id').exists().withMessage("required solution id");
         },
+        importFromSolution: function () {
+            req.checkQuery('solutionId').exists().withMessage("required solution externalId");
+            req.checkBody('externalId').exists().withMessage("required new solution externalId")
+            req.checkBody('name').exists().withMessage("required new solution name")
+            req.checkBody('description').exists().withMessage("required new solution description")
+            req.checkBody('programExternalId').exists().withMessage("required programExternalId")
+        }
     }
 
     if (solutionValidator[req.params.method]) solutionValidator[req.params.method]();

@@ -926,6 +926,15 @@ module.exports = class Solutions extends Abstract {
     }
   */
 
+  /**
+   * List of questions.
+   * @method
+   * @name questionList
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON} List of questions in a solution.
+  */
+
   async questionList(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -940,37 +949,39 @@ module.exports = class Solutions extends Abstract {
               "observation"
             ]
           }
-        }
+        };
 
         let projectionFields = [
           "name",
           "themes",
           "evidenceMethods",
           "questionSequenceByEcm"
-        ]
+        ];
 
-        let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projectionFields)
+        let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projectionFields);
 
-        solutionDocument = solutionDocument[0]
+        solutionDocument = solutionDocument[0];
 
         if (!solutionDocument) {
             throw new Error('No solution found.');
         }
 
-        let activeECMCodes = new Array
-        let activeECMs = new Array
-        let checkEcmSequenceExists = true
+        let activeECMCodes = new Array;
+        let activeECMs = new Array;
+        let checkEcmSequenceExists = true;
 
         Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
           if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
-            activeECMCodes.push(solutionEcm) 
-            activeECMs.push(solutionDocument.evidenceMethods[solutionEcm])
-            if(solutionEcm["sequenceNo"] == undefined) checkEcmSequenceExists = false
+            activeECMCodes.push(solutionEcm); 
+            activeECMs.push(solutionDocument.evidenceMethods[solutionEcm]);
+            if(solutionEcm["sequenceNo"] == undefined) {
+              checkEcmSequenceExists = false;
+            }
           }
         })
 
         if (checkEcmSequenceExists) {
-          activeECMs = _.sortBy(activeECMs, "sequenceNo")
+          activeECMs = _.sortBy(activeECMs, "sequenceNo");
         } else {
           activeECMs.sort((a, b) => (a.name > b.name ? 1 : b.name > a.name ? -1 : 0));
         }
@@ -980,15 +991,15 @@ module.exports = class Solutions extends Abstract {
         let criteriaFindQuery = {
           _id: { $in: criteriasIdArray},
           evidences : { $elemMatch: { code: { $in: activeECMCodes } } }
-        }
+        };
 
         let criteriaProjectionArray = [
           "name",
           "externalId",
           { evidences : { $elemMatch: { code: { $in: activeECMCodes } } } }
-        ]
+        ];
 
-        let allCriteriaDocument = await criteriaHelper.criteriaDocument(criteriaFindQuery,criteriaProjectionArray)
+        let allCriteriaDocument = await criteriaHelper.criteriaDocument(criteriaFindQuery,criteriaProjectionArray);
 
         if (allCriteriaDocument.length < 1) {
           throw new Error('No criteria found.');
@@ -1006,45 +1017,47 @@ module.exports = class Solutions extends Abstract {
           throw new Error('No question found.');
         }
         
-        let matrixQuestions = new Array
-        let questionMapOfExternalIdToInternalId = {}
-        let questionMapByInternalId = {}
+        let matrixQuestions = new Array;
+        let questionMapOfExternalIdToInternalId = {};
+        let questionMapByInternalId = {};
 
         allQuestionDocuments.forEach(question => {
 
           // Remove weightage of each question from being sent to client.
-          if(question.weightage) delete question["weightage"]
+          if(question.weightage) {
+            delete question["weightage"];
+          }
 
           // Remove score from each option from being sent to client.
           if (question.options && question.options.length > 0) {
             question.options.forEach(option => {
                 if (option.score) {
-                    delete option.score
+                    delete option.score;
                 }
             });
           }
 
           if (question.responseType === "matrix") {
-              matrixQuestions.push(question)
+              matrixQuestions.push(question);
           }
 
-          questionMapOfExternalIdToInternalId[question.externalId] = question._id.toString()
-          questionMapByInternalId[question._id.toString()] = question
+          questionMapOfExternalIdToInternalId[question.externalId] = question._id.toString();
+          questionMapByInternalId[question._id.toString()] = question;
 
         });
 
         matrixQuestions.forEach(matrixQuestion => {
           for (let pointerToInstanceQuestionsArray = 0; pointerToInstanceQuestionsArray < matrixQuestion.instanceQuestions.length; pointerToInstanceQuestionsArray++) {
-            const instanceChildQuestionId = matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray].toString()
+            const instanceChildQuestionId = matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray].toString();
             if(questionMapByInternalId[instanceChildQuestionId]) {
-              matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray] = _.cloneDeep(questionMapByInternalId[instanceChildQuestionId])
-              delete questionMapByInternalId[instanceChildQuestionId]
+              matrixQuestion.instanceQuestions[pointerToInstanceQuestionsArray] = _.cloneDeep(questionMapByInternalId[instanceChildQuestionId]);
+              delete questionMapByInternalId[instanceChildQuestionId];
             }
           }
-          questionMapByInternalId[matrixQuestion._id.toString()] = matrixQuestion
+          questionMapByInternalId[matrixQuestion._id.toString()] = matrixQuestion;
         })
 
-        let questionList = new Array
+        let questionList = new Array;
 
         if(solutionDocument.questionSequenceByEcm) {
           for (let pointerToActiveECMs = 0; pointerToActiveECMs < activeECMs.length; pointerToActiveECMs++) {
@@ -1054,8 +1067,8 @@ module.exports = class Solutions extends Abstract {
                 for (let pointerToSectionQuestions = 0; pointerToSectionQuestions < sectionQuestionIds.length; pointerToSectionQuestions++) {
                   const externalId = sectionQuestionIds[pointerToSectionQuestions];
                   if(questionMapOfExternalIdToInternalId[externalId] && questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]]) {
-                    questionList.push(questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]])
-                    delete questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]]
+                    questionList.push(questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]]);
+                    delete questionMapByInternalId[questionMapOfExternalIdToInternalId[externalId]];
                   }
                 }
               }
@@ -1082,5 +1095,117 @@ module.exports = class Solutions extends Abstract {
     });
   }
 
+  /**
+   * @api {post} /assessment/api/v1/solutions/importFromSolution?solutionId:solutionExternalId 
+   * Create duplicate solution.
+   * @apiVersion 0.0.1
+   * @apiName Create duplicate solution.
+   * @apiGroup Solutions
+   * @apiHeader {String} X-authenticated-user-token Authenticity token
+   * @apiParam {String} solutionId Solution External ID.
+   * @apiParamExample {json} Request-Body:
+   * {
+   * "externalId": ""
+   * "name": "",
+   * "description": ""
+   * "programExternalId": ""
+   * }
+   * @apiSampleRequest /assessment/api/v1/solutions/importFromSolution?solutionId=Mantra-STL-2019-001
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+  /**
+   * Import duplicate solution.
+   * @method
+   * @name importFromSolution
+   * @param {Object} req - requested data.
+   * @param {String} req.query.solutionId - solution external id.
+   * @param {String} req.body.programExternalId - program external id.
+   * @param {String} req.body.externalId - Duplicate solution external id.
+   * @param {String} req.body.name - Duplicate solution name.
+   * @param {String} req.body.description - Duplicate solution description.
+   * @param {String} req.userDetails.id - logged in user id.
+   * @returns {JSON} Solution imported data.
+  */
+
+  async importFromSolution(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!(req.body)) {
+          let responseMessage = "Body should not be empty.";
+          return resolve({ status: 400, message: responseMessage });
+        }
+
+        let solutionDocument = await database.models.solutions.findOne({
+          externalId: req.query.solutionId
+        }).lean();
+
+        if (!solutionDocument._id) {
+          throw "Solution is not present";
+        }
+
+        let programDocument = await database.models.programs.findOne({
+          externalId: req.body.programExternalId
+        }, {
+            _id: 1,
+            externalId: 1,
+            name: 1,
+            description: 1
+          }).lean();
+
+        if (!programDocument._id) {
+          throw "program is not present";
+        }
+
+
+        let newSolutionDocument = _.cloneDeep(solutionDocument);
+        let startDate = new Date();
+        let endDate = new Date();
+        endDate.setFullYear(endDate.getFullYear() + 1);
+
+        newSolutionDocument.externalId = req.body.externalId;
+        newSolutionDocument.name = req.body.name;
+        newSolutionDocument.description = req.body.description;
+        newSolutionDocument.programId = programDocument._id;
+        newSolutionDocument.programExternalId = programDocument.externalId;
+        newSolutionDocument.programName = programDocument.name;
+        newSolutionDocument.programDescription = programDocument.description;
+        newSolutionDocument.author = req.userDetails.id ? req.userDetails.id : process.env.DEFAULT_USER_ID;
+        newSolutionDocument.createdBy = req.userDetails.id ? req.userDetails.id : process.env.DEFAULT_USER_ID;
+        newSolutionDocument.entities = [];
+        newSolutionDocument.parentSolutionId = solutionDocument._id;
+        newSolutionDocument.startDate = startDate;
+        newSolutionDocument.endDate = endDate;
+        newSolutionDocument.createdAt = startDate;
+        newSolutionDocument.updatedAt = startDate;
+
+        let duplicateSolutionDocument = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
+
+        if (duplicateSolutionDocument._id) {
+
+          await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: duplicateSolutionDocument._id } });
+
+          let response = {
+            message: "Duplicate Solution generated.",
+            result: duplicateSolutionDocument._id
+          };
+
+          return resolve(response);
+
+        } else {
+          throw "Some error while creating duplicate solution."
+        }
+
+      } catch (error) {
+        return reject({
+          status: 500,
+          message: error,
+          errorObject: error
+        });
+      }
+    });
+  }
 
 };

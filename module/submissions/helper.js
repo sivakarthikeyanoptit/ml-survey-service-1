@@ -911,13 +911,13 @@ module.exports = class SubmissionsHelper {
                                                     };
 
                                                 } catch (error) {
-                                                    console.log("---------------Some exception caught begins---------------");
-                                                    console.log(error);
-                                                    console.log(criteria.name);
-                                                    console.log(criteria.rubric.levels[level].expression);
-                                                    console.log(expressionVariables);
-                                                    console.log(criteria.rubric.expressionVariables);
-                                                    console.log("---------------Some exception caught ends---------------");
+                                                    log.error("---------------Some exception caught begins---------------")
+                                                    log.error("%o",error)
+                                                    log.error("%s",criteria.name)
+                                                    log.error("%s",criteria.rubric.levels[level].expression)
+                                                    log.error("%s",expressionVariables)
+                                                    log.error("%s",criteria.rubric.expressionVariables)
+                                                    log.error("---------------Some exception caught ends---------------")
 
                                                     expressionResult[level] = {
                                                         expressionParsed: criteria.rubric.levels[level].expression
@@ -1297,13 +1297,13 @@ module.exports = class SubmissionsHelper {
                                                         };
     
                                                     } catch (error) {
-                                                        console.log("---------------Some exception caught begins---------------");
-                                                        console.log(error);
-                                                        console.log(theme.name);
-                                                        console.log(theme.rubric.levels[level].expression);
-                                                        console.log(expressionVariables);
-                                                        console.log(theme.rubric.expressionVariables);
-                                                        console.log("---------------Some exception caught ends---------------");
+                                                        log.error("---------------Some exception caught begins---------------")
+                                                        log.error("%o",error)
+                                                        log.error("%s",theme.name)
+                                                        log.error("%s",theme.rubric.levels[level].expression)
+                                                        log.error("%s",expressionVariables)
+                                                        log.error("%s",theme.rubric.expressionVariables)
+                                                        log.error("---------------Some exception caught ends---------------")
     
                                                         expressionResult[level] = {
                                                             expressionParsed: theme.rubric.levels[level].expression

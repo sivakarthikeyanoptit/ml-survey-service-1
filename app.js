@@ -3,6 +3,13 @@ require("dotenv").config();
 global.config = require("./config");
 require("./config/globalVariable")();
 
+let environmentData = require("./envVariables")();
+
+if(!environmentData.success) {
+  log.warning("Server could not start . Not all environment variable is provided");
+  process.exit();
+}
+
 let router = require("./routes");
 
 //express
@@ -39,9 +46,9 @@ const serviceBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/";
 const observationSubmissionsHtmlPath = process.env.OBSERVATION_SUBMISSIONS_HTML_PATH ? process.env.OBSERVATION_SUBMISSIONS_HTML_PATH : "observationSubmissions"
 app.use(express.static(observationSubmissionsHtmlPath));
 app.get(serviceBaseUrl+observationSubmissionsHtmlPath+"/*", (req, res) => {
-      let urlArray = req.path.split("/")
-      urlArray.splice(0,3)
-      res.sendFile(path.join(__dirname, "/public/"+observationSubmissionsHtmlPath+"/"+urlArray.join("/")));
+  let urlArray = req.path.split("/")
+  urlArray.splice(0,3)
+  res.sendFile(path.join(__dirname, "/public/"+observationSubmissionsHtmlPath+"/"+urlArray.join("/")));
 });
 
 //API documentation (apidoc)
@@ -60,15 +67,16 @@ if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == "local") {
   }
 }
 
-// app.get(serviceBaseUrl+"web/*", function(req, res) {
-//   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
-// });
+  // app.get(serviceBaseUrl+"web/*", function(req, res) {
+  //   res.sendFile(path.join(__dirname, "/public/assessment/web/index.html"));
+  // });
 
 app.get(serviceBaseUrl + "web2/*", function (req, res) {
   res.sendFile(path.join(__dirname, "/public" + serviceBaseUrl + "web2/index.html"));
 });
 
 var bunyan = require("bunyan");
+
 global.loggerObj = bunyan.createLogger({
   name: "foo",
   streams: [
@@ -80,6 +88,7 @@ global.loggerObj = bunyan.createLogger({
     }
   ]
 });
+
 global.loggerExceptionObj = bunyan.createLogger({
   name: "exceptionLogs",
   streams: [
@@ -102,19 +111,20 @@ app.all("*", (req, res, next) => {
     });
   }
 
-  if(ENABLE_CONSOLE_LOGGING === "ON") {
-    console.log("-------Request log starts here------------------");
-    console.log(
-      "%s %s on %s from ",
-      req.method,
-      req.url,
-      new Date(),
-      req.headers["user-agent"]
-    );
-    console.log("Request Headers: ", req.headers);
-    console.log("Request Body: ", req.body);
-    console.log("Request Files: ", req.files);
-    console.log("-------Request log ends here------------------");
+  log.info("-------Request log starts here------------------");
+  log.info(
+    "%s %s on %s from ",
+    req.method,
+    req.url,
+    new Date(),
+    req.headers["user-agent"]
+  );
+
+  if(ENABLE_DEBUG_LOGGING === "ON"){
+    log.info("Request Headers: ", req.headers);
+    log.info("Request Body: ", req.body);
+    log.info("Request Files: ", req.files);
+    log.info("-------Request log ends here------------------");
   }
   next();
 });
@@ -134,3 +144,4 @@ app.listen(config.port, () => {
   log.info("Application is running on the port:" + config.port);
 
 });
+
