@@ -81,17 +81,42 @@ module.exports = class UserExtensionHelper {
                 ];
 
                 let userExtensionData = await database.models.userExtension.aggregate(queryObject);
+                let relatedEntities = [];
 
                 if (userExtensionData[0]) {
 
                     let roleMap = {};
 
-                    if (userExtensionData[0].roleDocuments.length > 0) {
+                    if( userExtensionData[0].entityDocuments && userExtensionData[0].entityDocuments.length >0 ) {
+                        
+                        let projection = [
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".externalId", 
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".name", 
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".addressLine1",
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".addressLine2",
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".administration",
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".city",
+                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".country",
+                            entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID,
+                            entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                        ];
+
+                        relatedEntities = 
+                        await entitiesHelper.relatedEntities(
+                        userExtensionData[0].entityDocuments[0]._id, 
+                        userExtensionData[0].entityDocuments[0].entityTypeId, 
+                        userExtensionData[0].entityDocuments[0].entityType, 
+                        projection
+                        );
+                    }
+
+                    if ( userExtensionData[0].roleDocuments && userExtensionData[0].roleDocuments.length > 0 ) {
 
                         userExtensionData[0].roleDocuments.forEach(role => {
                             roleMap[role._id.toString()] = role;
                         })
                         let entityMap = {};
+                        
                         userExtensionData[0].entityDocuments.forEach(entity => {
                             entity.metaInformation.childrenCount = 0;
                             entity.metaInformation.entityType = entity.entityType;
@@ -124,7 +149,17 @@ module.exports = class UserExtensionHelper {
                         }
                     }
 
-                    return resolve(_.merge(_.omit(userExtensionData[0], ["roles", "entityDocuments", "roleDocuments"]), { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) }));
+                    return resolve(
+                        _.merge(_.omit(
+                            userExtensionData[0], 
+                            [
+                            this.userExtensionSchemaData().USER_EXTENSION_ROLE,
+                            this.userExtensionSchemaData().USER_EXTENSION_ENTITY_DOCUMENTS,
+                            this.userExtensionSchemaData().USER_EXTENSION_ROLE_DOCUMENTS 
+                            ]), 
+                        { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) },
+                        { relatedEntities : relatedEntities })
+                    );
                 } else {
                     return resolve({});
                 }
@@ -136,7 +171,7 @@ module.exports = class UserExtensionHelper {
 
     }
 
-      /**
+    /**
    * Bulk create or update user.
    * @method
    * @name bulkCreateOrUpdate
@@ -341,7 +376,7 @@ module.exports = class UserExtensionHelper {
 
     }
 
-      /**
+    /**
    * Get entities for logged in user.
    * @method
    * @name getUserEntities
@@ -379,7 +414,7 @@ module.exports = class UserExtensionHelper {
         })
     }
 
-      /**
+    /**
    * Get user entity universe by entity type.
    * @method
    * @name getUserEntitiyUniverseByEntityType
@@ -391,19 +426,19 @@ module.exports = class UserExtensionHelper {
     static getUserEntitiyUniverseByEntityType(userId = false, entityType = false) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!userId) {
-                    throw "User ID is required.";
+                if ( !userId ) {
+                    throw customMessage.USER_ID_REQUIRED_CHECK;
                 }
 
-                if (!entityType) {
-                    throw "User ID is required.";
+                if ( !entityType ) {
+                    throw customMessage.ENTITY_ID_REQUIRED_CHECK;
                 }
 
                 let allEntities = new Array;
 
                 let userExtensionEntities = await this.getUserEntities(userId);
 
-                if (!userExtensionEntities.length > 0) {
+                if ( !userExtensionEntities.length > 0 ) {
                     resolve(allEntities);
                 } else {
                     allEntities = userExtensionEntities;
@@ -413,10 +448,10 @@ module.exports = class UserExtensionHelper {
                 let entitiesFound = await entitiesHelper.entityDocuments({
                     _id: { $in: allEntities },
                     entityType: entityType
-                }, ["_id"]);
+                }, [entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_OBJECT_ID]);
 
 
-                if (entitiesFound.length > 0) {
+                if ( entitiesFound.length > 0 ) {
                     entitiesFound.forEach(eachEntityData => {
                         allEntities.push(eachEntityData._id);
                     });
@@ -427,9 +462,10 @@ module.exports = class UserExtensionHelper {
                     entityType: { $ne: entityType }
                 };
 
-                findQuery[`groups.${entityType}`] = { $exists: true };
+                let groups = entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP;
+                findQuery[`${groups}.${entityType}`] = { $exists: true };
 
-                let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`]);
+                let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`${groups}.${entityType}`]);
 
                 if (remainingEntities.length > 0) {
                     remainingEntities.forEach(eachEntityNotFound => {
@@ -444,4 +480,20 @@ module.exports = class UserExtensionHelper {
             }
         })
     }
+
+    /**
+   * Default user extension schemas value.
+   * @method
+   * @name userExtensionSchemaData
+   * @returns {JSON} List of default schemas. 
+   */
+
+  static userExtensionSchemaData() {
+    return {
+        "USER_EXTENSION_ROLE" : "roles",
+        "USER_EXTENSION_ENTITY_DOCUMENTS" : "entityDocuments", 
+        "USER_EXTENSION_ROLE_DOCUMENTS" : "roleDocuments"
+    }
+  }
+
 };

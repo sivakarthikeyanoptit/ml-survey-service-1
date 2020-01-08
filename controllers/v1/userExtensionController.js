@@ -82,15 +82,15 @@ module.exports = class UserExtension extends Abstract {
         });
 
         return resolve({
-          message: "User profile fetched successfully.",
+          message: customMessage.USER_EXTENSION_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 

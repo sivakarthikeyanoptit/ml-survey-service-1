@@ -21,13 +21,15 @@ const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 module.exports = class Observations extends v1Observation {
 
 
+    // TODO :: url string is too long.
+    
     /**
-     * @api {get} /assessment/api/v2/observations/searchEntities?solutionId=:solutionId&search=:searchText&limit=1&page=1 Search Entities based on observationId or solutionId
+     * @api {get} /assessment/api/v2/observations/searchEntities?solutionId=:solutionId&search=:searchText&limit=1&page=1&parentEntityId=:parentEntityId Search Entities based on observationId or solutionId
      * @apiVersion 2.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/searchEntities?observationId=5d4bdcab44277a08145d7258&search=a&limit=10&page=1
+     * @apiSampleRequest /assessment/api/v1/observations/searchEntities?observationId=5d4bdcab44277a08145d7258&search=a&limit=10&page=1&parentEntityId=5beaa888af0065f0e0a10515
      * @apiParamExample {json} Response:
      "result": [
         {
@@ -71,22 +73,31 @@ module.exports = class Observations extends v1Observation {
 
                 let projection = [];
 
-                if (req.query.observationId) {
+                if ( req.query.observationId ) {
                     let findObject = {};
-                    findObject["_id"] = req.query.observationId;
-                    findObject["createdBy"] = userId;
+                    findObject[entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_OBJECT_ID] = req.query.observationId;
+                    findObject[entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_CREATED_BY] = userId;
 
-                    projection.push("entityTypeId", "entities", "entityType");
+                    projection.push(
+                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID, 
+                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITIES, 
+                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                    );
 
-                    let observationDocument = await observationsHelper.observationDocuments(findObject, projection);
+                    let observationDocument = 
+                    await observationsHelper.observationDocuments(findObject, projection);
                     result = observationDocument[0];
                 }
 
-                if (req.query.solutionId) {
+                if ( req.query.solutionId ) {
                     let findQuery = {
                         _id: ObjectId(req.query.solutionId)
                     };
-                    projection.push("entityTypeId", "entityType")
+
+                    projection.push(
+                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID, 
+                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                    );
 
                     let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection);
                     result = _.merge(solutionDocument[0]);
@@ -100,10 +111,25 @@ module.exports = class Observations extends v1Observation {
                     userAllowedEntities = [];
                 }
 
+                if( !(userAllowedEntities.length > 0) && req.query.parentEntityId ) {
+
+                    let entityType = entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_GROUP+"."+result.entityType;
+
+                    let entitiesData = await entitiesHelper.entityDocuments({
+                        _id:req.query.parentEntityId
+                      }, [
+                        entityType
+                      ]);
+
+                    if( entitiesData.length > 0 ) {
+                        userAllowedEntities = 
+                        entitiesData[0][entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_GROUP][result.entityType];
+                    }
+                }
 
                 let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
 
-                if (result.entities && result.entities.length > 0) {
+                if ( result.entities && result.entities.length > 0 ) {
                     let observationEntityIds = result.entities.map(entity => entity.toString());
 
                     entityDocuments[0].data.forEach(eachMetaData => {
@@ -111,10 +137,10 @@ module.exports = class Observations extends v1Observation {
                     })
                 }
 
-                let messageData = "Entities fetched successfully";
-                if (!entityDocuments[0].count) {
+                let messageData = customMessage.ENTITY_FETCHED;
+                if ( !(entityDocuments[0].count) ) {
                     entityDocuments[0].count = 0;
-                    messageData = "No entity found";
+                    messageData = customMessage.ENTITY_NOT_FOUND;
                 }
                 response.result = entityDocuments;
                 response["message"] = messageData;
@@ -123,8 +149,8 @@ module.exports = class Observations extends v1Observation {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

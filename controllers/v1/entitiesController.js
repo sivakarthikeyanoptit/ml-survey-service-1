@@ -691,4 +691,80 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+   /**
+  * @api {get} /assessment/api/v1/entities/listByEntityType/:entityType 
+  * Get all the entities in the particular entity types.
+  * @apiVersion 1.0.0
+  * @apiName Get Related Entities
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/listByEntityType/state
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+ 
+  */
+
+    /**
+   * List of entities by entityType.
+   * @method
+   * @name listByEntityType
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - requested entity type.         
+   * @returns {JSON} - Array of entities.
+   */
+
+  listByEntityType(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        let schemaMetaInformation = 
+        entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION;
+
+        let projection = [
+          schemaMetaInformation+".externalId",
+          schemaMetaInformation+".name"
+        ];
+        
+        let skippingValue = req.pageSize * (req.pageNo - 1);
+
+        let entityDocuments =  await entitiesHelper.entityDocuments({ 
+          entityType : req.params._id
+        }, projection,req.pageSize, skippingValue);
+
+        if ( entityDocuments.length < 0 ) {
+          throw { 
+            status: httpStatusCode.not_found.status, 
+            message: customMessage.ENTITY_NOT_FOUND
+          };
+        }
+
+        entityDocuments = entityDocuments.map(entityDocument =>{
+          return {
+            externalId : entityDocument.metaInformation.externalId,
+            name : entityDocument.metaInformation.name,
+            _id : entityDocument._id
+          }
+        })
+
+        return resolve({
+          message: customMessage.ENTITY_FETCHED,
+          result: entityDocuments
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+  
 };

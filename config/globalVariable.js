@@ -27,7 +27,12 @@ module.exports = function () {
   gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
   global.config = require(".");
 
-  global.ENABLE_CONSOLE_LOGGING = process.env.ENABLE_CONSOLE_LOGGING || "ON";
+  global.customMessage = require(ROOT_PATH +"/generics/helpers/customMessage");
+
+  global.httpStatusCode = 
+  require(ROOT_PATH + "/generics/httpStatusCodes");
+
+  global.ENABLE_DEBUG_LOGGING = process.env.ENABLE_DEBUG_LOGGING || "ON";
   global.ENABLE_BUNYAN_LOGGING = process.env.ENABLE_BUNYAN_LOGGING || "ON";
 
 

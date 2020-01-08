@@ -1014,4 +1014,23 @@ module.exports = class EntitiesHelper {
 
     }
 
+    /**
+   * Default entities schema value.
+   * @method 
+   * @name entitiesSchemaData
+   * @returns {JSON} List of entities schema. 
+   */
+
+    static entitiesSchemaData() {
+        return {
+            "SCHEMA_ENTITY_OBJECT_ID" : "_id",
+            "SCHEMA_ENTITY_TYPE_ID" : "entityTypeId",
+            "SCHEMA_ENTITIES" : "entities",
+            "SCHEMA_ENTITY_TYPE" : "entityType",
+            "SCHEMA_ENTITY_GROUP" : "groups",
+            "SCHEMA_METAINFORMATION" : "metaInformation",
+            "SCHEMA_ENTITY_CREATED_BY" : "createdBy"
+        }
+    }
+
 };

@@ -3,60 +3,214 @@ let table = require("cli-table");
 let tableData = new table();
 
 let enviromentVariables = {
-"HOST" : "Required host name",
-"PORT" : "Required port no",
-"LOG" : "Required logger type",
-"NODE_ENV" : 'Required node environment',
-"ENABLE_BUNYAN_LOGGING" : "Enable or disable bunyan logging",
-"REQUEST_TIMEOUT_FOR_REPORTS" : "Required Reports request timeout",
-"APPLICATION_BASE_URL" : "Required Application base url",
-"APPLICATION_BASE_HOST" : "Required Base host",
-"AUTHORIZATION" : "Required Server authorization code",
-"CLOUD_STORAGE" : "Required cloud storage provider",
-"GCP_PATH" : "Required path for google cloud platform",
-"GCP_BUCKET_NAME" : "Required gcp bucket name",
-"AWS_ACCESS_KEY_ID" : "Required aws access key id",
-"AWS_SECRET_ACCESS_KEY" : "Required aws secret access key",
-"AWS_BUCKET_NAME" : "Required aws bucket name",
-"AWS_BUCKET_REGION" : "Required aws bucket region",
-"AWS_BUCKET_ENDPOINT" : "Required aws bucket endpoint",
-"MONGODB_URL" : "Required mongodb url",
-"SHIKSHALOKAM_BASE_HOST" : "Required shikshalokam base host",
-"DB" : "Required database",
-"INTERNAL_ACCESS_TOKEN" : "Required internal access token",
-"sunbird_keycloak_auth_server_url" : "Required sunbird keycloak auth server url",
-"sunbird_keycloak_realm" : "Required sunbird keycloak realm",
-"sunbird_keycloak_client_id" : "Required sunbird keycloak client id",
-"sunbird_keycloak_public" : "Required sunbird keycloak public",
-"sunbird_cache_store" : "Required sunbird cache store",
-"sunbird_cache_ttl" : "Required sunbird cache ttl",
-"MIGRATION_COLLECTION" : "Required migrations collection name",
-"MIGRATION_DIR" : "Required migrations directory name",
-"SLACK_COMMUNICATIONS_ON_OFF" : "Enable/Disable slack communications",
-"SLACK_EXCEPTION_LOG_URL" : "Enable/Disable slack exception log url",
-"SLACK_TOKEN" : "Required slack token",
-"RUBRIC_ERROR_MESSAGES_TO_SLACK" : "Enable/Disable rubric error message",
-"CSV_REPORTS_PATH" : "Required csv reports path",
-"DISABLE_TOKEN_CHECK_ON_OFF" : "",
-"DISABLE_TOKEN_CHECK_FOR_API" : "Required Api endpoint for disabling token check",
-"DISABLE_TOKEN_endpoint1_USERS" : "Required comma-seperated-userIds-for-multiple-values",
-"DISABLE_TOKEN_endpoint2_USERS" : "Required comma-seperated-userIds-for-multiple-values",
-"DISABLE_TOKEN_DEFAULT_USERID" : "Required",
-"DISABLE_TOKEN_DEFAULT_USER_ROLE" : "ASSESSOR",
-"DISABLE_TOKEN_DEFAULT_USER_NAME" : "DISABLE_TOKEN_CHECK_DEFAULT_USER_NAME",
-"DISABLE_TOKEN_DEFAULT_USER_EMAIL" : "DISABLE_TOKEN_CHECK_DEFAULT_USER_EMAIL",
-"DISABLE_LEARNER_SERVICE_ON_OFF" : "Disable learner service",
-"KAFKA_COMMUNICATIONS_ON_OFF" : "Enable/Disable kafka communications",
-"KAFKA_URL" : "Required kafka url",
-"SUBMISSION_TOPIC" : "Required submission topic for kafka",
-"SUBMISSION_RATING_QUEUE_TOPIC" : "OFF/TOPIC_NAME",
-"OBSERVATION_SUBMISSION_TOPIC" : "OFF/TOPIC_NAME",
-"NOTIFICATIONS_TOPIC" : "OFF/TOPIC_NAME",
-"KAFKA_ERROR_MESSAGES_TO_SLACK" : "ON/OFF",
-"EMAIL_COMMUNICATIONS_ON_OFF" : "ON/OFF",
-"EMAIL_SERVICE_BASE_URL" : "Required email service url",
-"EMAIL_SERVICE_TOKEN" : "Required email service token",
-"SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS" : "Required email recipients for submission rating"
+"HOST" : {
+  "message":"Required host name",
+  "optional": false
+},
+"PORT" : {
+  "message" : "Required port no",
+  "optional" : false
+},
+"LOG" : {
+  "message" : "Required logger type",
+  "optional" : false
+},
+"NODE_ENV" : {
+  "message" : "Required node environment",
+  "optional" : false
+},
+"ENABLE_BUNYAN_LOGGING" : {
+  "message" : "Enable or disable bunyan logging",
+  "optional" : false
+},
+"REQUEST_TIMEOUT_FOR_REPORTS" : {
+  "message" : "Required Reports request timeout",
+  "optional" : false
+},
+"APPLICATION_BASE_URL" : {
+  "message" : "Required Application base url",
+  "optional" : false
+},
+"APPLICATION_BASE_HOST" : {
+  "message" : "Required Base host",
+  "optional" : false
+},
+"AUTHORIZATION" : {
+  "message" : "Required Server authorization code",
+  "optional" : false
+},
+"CLOUD_STORAGE" : {
+  "message" : "Required cloud storage provider",
+  "optional" : false
+},
+"GCP_PATH" : {
+  "message" : "Optional google cloud platform path",
+  "optional" : true
+},
+"GCP_BUCKET_NAME" : {
+  "message" : "Optional gcp bucket name",
+  "optional" : true
+},
+"AWS_ACCESS_KEY_ID" : {
+  "message" : "Optional aws access key id",
+  "optional" : true
+},
+"AWS_SECRET_ACCESS_KEY" : {
+  "message" : "Optional aws secret access key",
+  "optional" : true
+},
+"AWS_BUCKET_NAME" : {
+  "message" : "Optional aws bucket name",
+  "optional" : true
+},
+"AWS_BUCKET_REGION" : {
+  "message" : "Optional aws bucket region",
+  "optional" : true
+},
+"AWS_BUCKET_ENDPOINT" : {
+  "message" : "Optional aws bucket endpoint",
+  "optional" : true
+},
+"MONGODB_URL" : {
+  "message" : "Required mongodb url",
+  "optional" : false
+},
+"SHIKSHALOKAM_BASE_HOST" : {
+  "message" : "Required shikshalokam base host",
+  "optional" : false
+},
+"DB" : {
+  "message" : "Required database",
+  "optional" : false
+},
+"INTERNAL_ACCESS_TOKEN" : {
+  "message" : "Required internal access token",
+  "optional" : false
+},
+"sunbird_keycloak_auth_server_url" : {
+  "message" : "Required sunbird keycloak auth server url",
+  "optional" : false
+},
+"sunbird_keycloak_realm" : {
+  "message" : "Required sunbird keycloak realm",
+  "optional" : false
+},
+"sunbird_keycloak_client_id" : {
+  "message" : "Required sunbird keycloak client id",
+  "optional" : false
+},
+"sunbird_keycloak_public" : {
+  "message" : "Required sunbird keycloak public",
+  "optional" : false
+},
+"sunbird_cache_store" : {
+  "message" : "Required sunbird cache store",
+  "optional" : false
+},
+"sunbird_cache_ttl" : {
+  "message" : "Required sunbird cache ttl",
+  "optional" : false
+},
+"MIGRATION_COLLECTION" : {
+  "message" : "Required migrations collection name",
+  "optional" : false
+},
+"MIGRATION_DIR" : {
+  "message" : "Required migrations directory name",
+  "optional" : false
+},
+"SLACK_COMMUNICATIONS_ON_OFF" : {
+  "message" : "Enable/Disable slack communications",
+  "optional" : false
+},
+"SLACK_EXCEPTION_LOG_URL" : {
+  "message" : "Enable/Disable slack exception log url",
+  "optional" : false
+},
+"SLACK_TOKEN" : {
+  "message" : "Required slack token",
+  "optional" : false
+},
+"RUBRIC_ERROR_MESSAGES_TO_SLACK" : {
+  "message" : "Enable/Disable rubric error message",
+  "optional" : false
+},
+"CSV_REPORTS_PATH" : {
+  "message" : "Required csv reports path",
+  "optional" : false
+},
+"DISABLE_TOKEN_CHECK_ON_OFF" : {
+  "message" : "",
+  "optional" : false
+},
+"DISABLE_TOKEN_CHECK_FOR_API" : {
+  "message" : "Required Api endpoint for disabling token check",
+  "optional" : false
+},
+"DISABLE_TOKEN_DEFAULT_USERID" : {
+  "message" : "Required",
+  "optional" : false
+},
+"DISABLE_TOKEN_DEFAULT_USER_ROLE" : {
+  "message" : "ASSESSOR",
+  "optional" : false
+},
+"DISABLE_TOKEN_DEFAULT_USER_NAME" : {
+  "message" : "DISABLE_TOKEN_CHECK_DEFAULT_USER_NAME",
+  "optional" : false
+},
+"DISABLE_TOKEN_DEFAULT_USER_EMAIL" : {
+  "message" : "DISABLE_TOKEN_CHECK_DEFAULT_USER_EMAIL",
+  "optional" : false
+},
+"DISABLE_LEARNER_SERVICE_ON_OFF" : {
+  "message" : "Disable learner service",
+  "optional" : false
+},
+"KAFKA_COMMUNICATIONS_ON_OFF" : {
+  "message" : "Enable/Disable kafka communications",
+  "optional" : false
+},
+"KAFKA_URL" : {
+  "message" : "Required kafka url",
+  "optional" : false
+},
+"SUBMISSION_TOPIC" : {
+  "message" : "Required submission topic for kafka",
+  "optional" : false
+},
+"SUBMISSION_RATING_QUEUE_TOPIC" : {
+  "message" : "OFF/TOPIC_NAME",
+  "optional" : false
+},
+"OBSERVATION_SUBMISSION_TOPIC" : {
+  "message" : "OFF/TOPIC_NAME",
+  "optional" : false
+},
+"NOTIFICATIONS_TOPIC" : {
+  "message" : "OFF/TOPIC_NAME",
+  "optional" : false
+},
+"KAFKA_ERROR_MESSAGES_TO_SLACK" : {
+  "message" : "ON/OFF",
+  "optional" : false
+},
+"EMAIL_COMMUNICATIONS_ON_OFF" : {
+  "message" : "ON/OFF",
+  "optional" : false
+},
+"EMAIL_SERVICE_BASE_URL" : {
+  "message" : "Required email service url",
+  "optional" : false
+},
+"EMAIL_SERVICE_TOKEN" : {
+  "message" : "Required email service token",
+  "optional" : false
+},
+"SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS" : {
+  "message" : "Required email recipients for submission rating",
+  "optional" : false
+}
 }
 
 let success = true;
@@ -68,17 +222,22 @@ module.exports = function() {
       [eachEnvironmentVariable] : ""
     };
   
-    if(!process.env[eachEnvironmentVariable]) {
+    if( !(process.env[eachEnvironmentVariable]) && !(enviromentVariables[eachEnvironmentVariable].optional)) {
       success = false;
 
-      if(enviromentVariables[eachEnvironmentVariable] && enviromentVariables[eachEnvironmentVariable] !== "") {
+      if(enviromentVariables[eachEnvironmentVariable] && enviromentVariables[eachEnvironmentVariable].message !== "") {
         tableObj[eachEnvironmentVariable] = 
-        enviromentVariables[eachEnvironmentVariable];
+        enviromentVariables[eachEnvironmentVariable].message;
       } else {
         tableObj[eachEnvironmentVariable] = "required";
       }
     } else {
+
       tableObj[eachEnvironmentVariable] = "success";
+      if(enviromentVariables[eachEnvironmentVariable].optional) {
+        tableObj[eachEnvironmentVariable] = enviromentVariables[eachEnvironmentVariable].message;
+      }
+      
     }
 
     tableData.push(tableObj);
