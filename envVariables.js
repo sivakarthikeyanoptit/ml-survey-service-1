@@ -139,7 +139,7 @@ let enviromentVariables = {
   "message" : "Required csv reports path",
   "optional" : false
 },
-"DISABLE_TOKEN_CHECK_ON_OFF" : {
+"DISABLE_TOKEN_ON_OFF" : {
   "message" : "",
   "optional" : false
 },

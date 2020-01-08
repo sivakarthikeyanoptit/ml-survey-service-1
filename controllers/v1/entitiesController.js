@@ -702,7 +702,17 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
- 
+  * {
+    "message": "Entities fetched successfull",
+    "status": 200,
+    "result": [
+      {
+        "externalId": "1",
+        "name": "North",
+        "_id": "5d660a3d81a57a6173a79e7b"
+      }
+    ]
+  }
   */
 
     /**
@@ -720,7 +730,7 @@ module.exports = class Entities extends Abstract {
       try {
         
         let schemaMetaInformation = 
-        entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION;
+        entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION;
 
         let projection = [
           schemaMetaInformation+".externalId",

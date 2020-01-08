@@ -90,15 +90,15 @@ module.exports = class UserExtensionHelper {
                     if( userExtensionData[0].entityDocuments && userExtensionData[0].entityDocuments.length >0 ) {
                         
                         let projection = [
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".externalId", 
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".name", 
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".addressLine1",
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".addressLine2",
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".administration",
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".city",
-                            entitiesHelper.entitiesSchemaData.SCHEMA_METAINFORMATION+".country",
-                            entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID,
-                            entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".externalId", 
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".name", 
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".addressLine1",
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".addressLine2",
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".administration",
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".city",
+                            entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".country",
+                            entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE_ID,
+                            entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE
                         ];
 
                         relatedEntities = 

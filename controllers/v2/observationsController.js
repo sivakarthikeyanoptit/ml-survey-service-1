@@ -75,13 +75,13 @@ module.exports = class Observations extends v1Observation {
 
                 if ( req.query.observationId ) {
                     let findObject = {};
-                    findObject[entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_OBJECT_ID] = req.query.observationId;
-                    findObject[entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_CREATED_BY] = userId;
+                    findObject[entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_OBJECT_ID] = req.query.observationId;
+                    findObject[entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_CREATED_BY] = userId;
 
                     projection.push(
-                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID, 
-                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITIES, 
-                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                        entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE_ID, 
+                        entitiesHelper.entitiesSchemaData().SCHEMA_ENTITIES, 
+                        entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE
                     );
 
                     let observationDocument = 
@@ -95,8 +95,8 @@ module.exports = class Observations extends v1Observation {
                     };
 
                     projection.push(
-                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE_ID, 
-                        entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_TYPE
+                        entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE_ID, 
+                        entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_TYPE
                     );
 
                     let solutionDocument = await solutionsHelper.solutionDocuments(findQuery, projection);
@@ -113,7 +113,7 @@ module.exports = class Observations extends v1Observation {
 
                 if( !(userAllowedEntities.length > 0) && req.query.parentEntityId ) {
 
-                    let entityType = entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_GROUP+"."+result.entityType;
+                    let entityType = entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP+"."+result.entityType;
 
                     let entitiesData = await entitiesHelper.entityDocuments({
                         _id:req.query.parentEntityId
@@ -123,7 +123,7 @@ module.exports = class Observations extends v1Observation {
 
                     if( entitiesData.length > 0 ) {
                         userAllowedEntities = 
-                        entitiesData[0][entitiesHelper.entitiesSchemaData.SCHEMA_ENTITY_GROUP][result.entityType];
+                        entitiesData[0][entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP][result.entityType];
                     }
                 }
 
