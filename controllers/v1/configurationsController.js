@@ -66,25 +66,25 @@ module.exports = class Configurations extends Abstract {
                 const userRole = req.userDetails.allRoles[0];
                 if (!userRole) {
                     return resolve({
-                        status: 400,
-                        message: "Bad request."
+                        status: httpStatusCode.bad_request.status,
+                        message: httpStatusCode.bad_request.message
                     });
                 }
                 let tabControlsDocument = await database.models.configurations.findOne({ name: 'navigation' }).lean();
                 if (!tabControlsDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No configurations available for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.CONFIGURATIONS_NOT_FOUND
                     });
                 }
                 return resolve({
-                    message: "Configurations fetched successfully.",
+                    message: messageConstants.apiResponses.CONFIGURATIONS_FETCHED,
                     result: tabControlsDocument.result.tabGroups[userRole] ? tabControlsDocument.result.tabGroups[userRole] : tabControlsDocument.result.tabGroups["DEFAULT"]
                 });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

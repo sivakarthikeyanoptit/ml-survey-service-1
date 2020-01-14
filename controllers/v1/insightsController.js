@@ -54,8 +54,8 @@ module.exports = class Insights extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -104,7 +104,7 @@ module.exports = class Insights extends Abstract {
         );
 
         if (!insights) {
-          throw "No insights found for this entity";
+          throw messageConstants.apiResponses.INSIGHTS_NOT_FOUND;
         }
 
         let insightResult = {};
@@ -379,15 +379,15 @@ module.exports = class Insights extends Abstract {
         responseObject.sections = _.concat(responseObject.sections, ...themeSummary);
 
         let response = {
-          message: "Insights report fetched successfully.",
+          message: messageConstants.apiResponses.INSIGHTS_FETCHED,
           result: responseObject
         };
 
         return resolve(response);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -436,7 +436,7 @@ module.exports = class Insights extends Abstract {
         );
 
         if (!insights) {
-          throw "No insights found for this entity";
+          throw messageConstants.apiResponses.INSIGHTS_NOT_FOUND;
         }
 
         let insightResult = {};
@@ -713,15 +713,15 @@ module.exports = class Insights extends Abstract {
         })
 
         let response = {
-          message: "High Level Insights report fetched successfully.",
+          message: messageConstants.apiResponses.HIGH_LEVEL_INSIGHTS,
           result: responseObject
         };
 
         return resolve(response);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -780,7 +780,7 @@ module.exports = class Insights extends Abstract {
         );
 
         if (!insights) {
-          throw "No insights found for given entities";
+          throw messageConstants.apiResponses.INSIGHTS_NOT_FOUND;
         }
 
         let insightResult = {};
@@ -891,7 +891,7 @@ module.exports = class Insights extends Abstract {
 
 
         let response = {
-          message: "Insights report fetched successfully.",
+          message: messageConstants.apiResponses.INSIGHTS_FETCHED,
           result: responseObject
         };
 
@@ -899,8 +899,8 @@ module.exports = class Insights extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -959,7 +959,7 @@ module.exports = class Insights extends Abstract {
         );
 
         if (!insights) {
-          throw "No insights found for given entities";
+          throw messageConstants.apiResponses.INSIGHTS_NOT_FOUND;
         }
 
         let insightResult = {};
@@ -1159,16 +1159,16 @@ module.exports = class Insights extends Abstract {
         }
 
         let response = {
-          message: "Insights report fetched successfully.",
-          result: responseObject
+          message : messageConstants.apiResponses.INSIGHTS_FETCHED,
+          result : responseObject
         };
 
         return resolve(response);
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

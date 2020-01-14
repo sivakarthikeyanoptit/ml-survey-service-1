@@ -51,7 +51,7 @@ module.exports = class SolutionDetails {
       try {
 
         if (!req.query.programId || req.query.programId == "" || !req.query.solutionId || req.query.solutionId == "") {
-          throw "Invalid parameters."
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let findQuery = {
@@ -71,8 +71,8 @@ module.exports = class SolutionDetails {
 
         if (!entities.length) {
           return resolve({
-            status: 404,
-            message: "No entities found."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
           });
         } else {
 
@@ -117,8 +117,8 @@ module.exports = class SolutionDetails {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -195,8 +195,8 @@ module.exports = class SolutionDetails {
       }
       catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -458,8 +458,8 @@ module.exports = class SolutionDetails {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

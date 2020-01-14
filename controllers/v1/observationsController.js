@@ -92,11 +92,11 @@ module.exports = class Observations extends Abstract {
                 let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo);
 
 
-                messageData = "Solutions fetched successfully";
+                messageData = messageConstants.apiResponses.SOLUTION_FETCHED;
 
                 if (!solutionDocument[0].count) {
                     solutionDocument[0].count = 0;
-                    messageData = "Solution is not found";
+                    messageData = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
                 }
 
                 response.result = solutionDocument;
@@ -106,8 +106,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -164,21 +164,24 @@ module.exports = class Observations extends Abstract {
 
 
                 if (!solutionsData._id) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = httpStatusCode.bad_request.message;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let observationsMetaForm = await database.models.forms.findOne({ "name": (solutionsData.observationMetaFormKey && solutionsData.observationMetaFormKey != "") ? solutionsData.observationMetaFormKey : "defaultObservationMetaForm" }, { value: 1 }).lean();
 
                 return resolve({
-                    message: "Observation meta fetched successfully.",
+                    message: messageConstants.apiResponses.OBSERVATION_META_FETCHED,
                     result: observationsMetaForm.value
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -224,15 +227,15 @@ module.exports = class Observations extends Abstract {
                 let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
 
                 return resolve({
-                    message: "Observation created successfully.",
+                    message: messageConstants.apiResponses.OBSERVATION_CREATED,
                     result: result
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! something went wrong.",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -305,7 +308,7 @@ module.exports = class Observations extends Abstract {
 
                 observations = await observationsHelper.list(req.userDetails.userId);
                 
-                let responseMessage = "Observation list fetched successfully";
+                let responseMessage = messageConstants.apiResponses.OBSERVATION_LIST;
 
                 return resolve({
                     message: responseMessage,
@@ -314,8 +317,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -368,8 +371,9 @@ module.exports = class Observations extends Abstract {
 
                 if (observationDocument.status != "published") {
                     return resolve({
-                        status: 400,
-                        message: "Observation already completed or not published."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
+                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
                     });
                 }
 
@@ -388,7 +392,7 @@ module.exports = class Observations extends Abstract {
 
 
                 if (entitiesToAdd.entityIds.length != req.body.data.length) {
-                    responseMessage = "Not all entities are updated.";
+                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
                 }
 
                 return resolve({
@@ -398,8 +402,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -451,14 +455,14 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Entity Removed successfully."
+                    message: messageConstants.apiResponses.ENTITY_REMOVED
                 })
 
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -528,7 +532,12 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean();
 
-                if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
+                if (!observationDocument) {
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND 
+                    }
+                }
 
                 let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
 
@@ -538,10 +547,10 @@ module.exports = class Observations extends Abstract {
                     eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                 })
 
-                let messageData = "Entities fetched successfully";
+                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if (!entityDocuments[0].count) {
                     entityDocuments[0].count = 0;
-                    messageData = "No entities found";
+                    messageData = messageConstants.apiResponses.ENTITY_NOT_FOUND;
                 }
                 response.result = entityDocuments;
                 response["message"] = messageData;
@@ -551,8 +560,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -593,14 +602,17 @@ module.exports = class Observations extends Abstract {
             try {
 
                 let response = {
-                    message: "Assessment fetched successfully",
-                    result: {}
+                    message : messageConstants.apiResponses.ASSESSMENT_FETCHED,
+                    result : {}
                 };
 
                 let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: { $ne: "inactive" }, entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) {
-                    return resolve({ status: 400, message: 'No observation found.' });
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND 
+                    });
                 }
 
 
@@ -615,8 +627,11 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!entityDocument) {
-                    let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
@@ -634,8 +649,11 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!solutionDocument) {
-                    let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+                    return resolve({ 
+                        status:  httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
@@ -649,8 +667,11 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!entityProfileForm) {
-                    let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let form = [];
@@ -840,8 +861,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -891,13 +912,13 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Observation marked as completed."
+                    message: messageConstants.apiResponses.OBSERVATION_MARKED_COMPLETE
                 })
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -934,7 +955,7 @@ module.exports = class Observations extends Abstract {
             try {
 
                 if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-                    throw "Invalid parameters.";
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let frameworkDocument = await database.models.frameworks.findOne({
@@ -942,7 +963,7 @@ module.exports = class Observations extends Abstract {
                 }).lean();
 
                 if (!frameworkDocument._id) {
-                    throw "Invalid parameters.";
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({
@@ -954,7 +975,7 @@ module.exports = class Observations extends Abstract {
                     }).lean();
 
                 if (!entityTypeDocument._id) {
-                    throw "Invalid parameters.";
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
@@ -1013,20 +1034,20 @@ module.exports = class Observations extends Abstract {
                 if (newSolutionId._id) {
 
                     let response = {
-                        message: "Observation Solution generated.",
+                        message: messageConstants.apiResponses.OBSERVATION_SOLUTION,
                         result: newSolutionId._id
                     };
 
                     return resolve(response);
 
                 } else {
-                    throw "Some error while creating observation solution.";
+                    throw messageConstants.apiResponses.ERROR_CREATING_OBSERVATION;
                 }
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1058,8 +1079,11 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!req.files || !req.files.observation) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = httpStatusCode.bad_request.message;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const fileName = `Observation-Upload-Result`;
@@ -1154,7 +1178,7 @@ module.exports = class Observations extends Abstract {
                     } else {
 
                         if (userIdByExternalId[currentData.user] === "") {
-                            throw { status: 400, message: "Keycloak id for user is not present" };
+                            throw { status: httpStatusCode.bad_request.status, message: "Keycloak id for user is not present" };
                         }
 
                         userId = userIdByExternalId[currentData.user]
@@ -1171,7 +1195,7 @@ module.exports = class Observations extends Abstract {
                         observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
                         status = observationHelperData.status;
                     } else {
-                        status = "Entity Id or User or solution is not present";
+                        status = messageConstants.apiResponses.ENTITY_SOLUTION_USER_NOT_FOUND;
                     }
 
                     csvResult["status"] = status;
@@ -1180,8 +1204,8 @@ module.exports = class Observations extends Abstract {
                 input.push(null);
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops Something Went Wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1234,18 +1258,18 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!observationDocument) {
-                    throw "Observation is not found";
+                    throw messageConstants.apiResponses.OBSERVATION_NOT_FOUND;
                 }
 
                 return resolve({
-                    message: "Observation successfully updated.",
+                    message: messageConstants.apiResponses.OBSERVATION_UPDATED,
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message
                 });
 
             }
@@ -1293,13 +1317,13 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Observation deleted successfully."
+                    message: messageConstants.apiResponses.OBSERVATION_DELETED
                 })
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1353,15 +1377,15 @@ module.exports = class Observations extends Abstract {
                 let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
 
                 return resolve({
-                    message: "Pending Observations",
+                    message: messageConstants.apiResponses.PENDING_OBSERVATION,
                     result: pendingObservationDocuments
                 });
 
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1412,14 +1436,14 @@ module.exports = class Observations extends Abstract {
                 let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
 
                 return resolve({
-                    message: "Completed Observations",
+                    message: messageConstants.apiResponses.COMPLETED_OBSERVATION,
                     result: completedObservationDocuments
                 });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1514,14 +1538,14 @@ module.exports = class Observations extends Abstract {
                 let observationDetails = await observationsHelper.details(req.params._id);
 
                 return resolve({
-                    message: "Observation details fetched successfully",
+                    message: messageConstants.apiResponses.OBSERVATION_FETCHED,
                     result: observationDetails
                 });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

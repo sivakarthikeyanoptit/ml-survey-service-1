@@ -31,7 +31,7 @@ module.exports = function (app) {
         let validationError = req.validationErrors();
 
         if (validationError.length)
-          throw { status: 400, message: validationError }
+          throw { status: httpStatusCode.bad_request.status, message: validationError }
 
         var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
@@ -48,8 +48,8 @@ module.exports = function (app) {
             } else {
 
               throw {
-                status: 500,
-                message: "Oops! Something went wrong!"
+                status: httpStatusCode.internal_server_error.status,
+                message: httpStatusCode.internal_server_error.message
               };
 
             }
@@ -57,9 +57,9 @@ module.exports = function (app) {
           });
 
         } else {
-          res.status(result.status ? result.status : 200).json({
+          res.status(result.status ? result.status : httpStatusCode.ok.status).json({
             message: result.message,
-            status: result.status ? result.status : 200,
+            status: result.status ? result.status : httpStatusCode.ok.status,
             result: result.data,
             result: result.result,
             additionalDetails: result.additionalDetails,
@@ -81,8 +81,8 @@ module.exports = function (app) {
         }
       }
       catch (error) {
-        res.status(error.status ? error.status : 400).json({
-          status: error.status ? error.status : 400,
+        res.status(error.status ? error.status : httpStatusCode.bad_request.status).json({
+          status: error.status ? error.status : httpStatusCode.bad_request.status,
           message: error.message
         });
 
@@ -121,7 +121,7 @@ module.exports = function (app) {
   app.all(applicationBaseUrl + "api/:version/:controller/:method/:_id", inputValidator, router);
 
   app.use((req, res, next) => {
-    res.status(404).send("Not found!");
+    res.status(httpStatusCode.not_found.status).send(messageConstants.apiResponses.NOT_FOUND);
   });
 };
 

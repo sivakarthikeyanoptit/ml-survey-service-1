@@ -4,20 +4,22 @@ module.exports = class criteriaHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 
-                let expressionVariables = {}
-                let expressionVariablesArray = criteriaRubricData.expressionVariables.split("###")
+                let expressionVariables = {};
+                let expressionVariablesArray = criteriaRubricData.expressionVariables.split("###");
                 
                 expressionVariablesArray.forEach(expressionVariable => {
-                    let tempExpressionVariableArray = expressionVariable.split("=")
-                    let expressionVariableArray = new Array
-                    expressionVariableArray.push(tempExpressionVariableArray.shift())
-                    expressionVariableArray.push(tempExpressionVariableArray.join('='))
-                    let defaultVariableArray = expressionVariableArray[0].split("-")
+                    let tempExpressionVariableArray = expressionVariable.split("=");
+                    let expressionVariableArray = new Array;
+                    expressionVariableArray.push(tempExpressionVariableArray.shift());
+                    expressionVariableArray.push(tempExpressionVariableArray.join('='));
+                    let defaultVariableArray = expressionVariableArray[0].split("-");
                     if (defaultVariableArray.length > 1) {
-                        if (!expressionVariables.default) expressionVariables.default = {};
-                        expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1]
+                        if (!expressionVariables.default) {
+                            expressionVariables.default = {};
+                        }
+                        expressionVariables.default[defaultVariableArray[0]] = expressionVariableArray[1];
                     } else {
-                        expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1]
+                        expressionVariables[expressionVariableArray[0]] = expressionVariableArray[1];
                     }
                 })
 
@@ -27,14 +29,14 @@ module.exports = class criteriaHelper {
                     type: existingCriteria.criteriaType,
                     expressionVariables: expressionVariables,
                     levels: {}
-                }
+                };
 
-                let existingCriteriaRubricLevels
+                let existingCriteriaRubricLevels;
 
                 if (Array.isArray(existingCriteria.rubric.levels)) {
-                    existingCriteriaRubricLevels = existingCriteria.rubric.levels
+                    existingCriteriaRubricLevels = existingCriteria.rubric.levels;
                 } else {
-                    existingCriteriaRubricLevels = Object.values(existingCriteria.rubric.levels)
+                    existingCriteriaRubricLevels = Object.values(existingCriteria.rubric.levels);
                 }
 
                 existingCriteriaRubricLevels.forEach(levelObject => {
@@ -43,7 +45,7 @@ module.exports = class criteriaHelper {
                         label: levelObject.label,
                         description: levelObject.description,
                         expression: criteriaRubricData[levelObject.level]
-                    }
+                    };
                 })
 
                  await database.models.criteria.findOneAndUpdate(
@@ -56,7 +58,7 @@ module.exports = class criteriaHelper {
 
                 return resolve({
                     success: true,
-                    message : "Criteria rubric updated successfully."
+                    message : messageConstants.apiResponses.CRITERIA_RUBRIC_UPDATE
                 });
 
             } catch (error) {
@@ -73,7 +75,7 @@ module.exports = class criteriaHelper {
                 let queryObject = (criteriaFilter != "all") ? criteriaFilter : {};
         
         
-                let projectionObject = {}
+                let projectionObject = {};
         
                 if (fieldsArray != "all") {
                     fieldsArray.forEach(field => {
@@ -82,7 +84,7 @@ module.exports = class criteriaHelper {
                         } else {
                             if(Object.keys(field).length >0) {
                                 for (let [key, value] of Object.entries(field)) {
-                                    projectionObject[key] = value
+                                    projectionObject[key] = value;
                               }
                             }
                         }

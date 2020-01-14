@@ -47,7 +47,7 @@ module.exports = class Criteria extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.criteria) {
-          throw "Csv file for criterias should be selected";
+          throw messageConstants.apiResponses.CRITERIA_FILE_NOT_FOUND;
         }
 
         let criteriaData = await csv().fromString(req.files.criteria.data.toString());
@@ -191,8 +191,8 @@ module.exports = class Criteria extends Abstract {
       }
       catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

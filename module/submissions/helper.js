@@ -87,7 +87,7 @@ module.exports = class SubmissionsHelper {
                 }
 
                 return resolve({
-                    message: "Submission found",
+                    message: messageConstants.apiResponses.SUBMISSION_FOUND,
                     result: submissionDocument
                 });
 
@@ -160,14 +160,14 @@ module.exports = class SubmissionsHelper {
                             // If inactive methods are allowed in submission put this condition.
                             // if(!(evidencesArray[iterator].isActive === false)) {
                                 result.ratingsEnabled = false;
-                                result.responseMessage = "Sorry! All evidence methods have to be completed to enable ratings.";
+                                result.responseMessage = messageConstants.apiResponses.ALL_ECM_NOT_COMPLETED;
                                 break;
                             //}
                         }
                     }
                 } else {
                     result.ratingsEnabled = false;
-                    result.responseMessage = "Sorry! This could be because the assessment has been blocked. Resolve conflicts to proceed further.";
+                    result.responseMessage = messageConstants.apiResponses.ASSESSMENT_BLOCK_FOR_RATING;
                 }
 
                 return resolve(result);
@@ -349,7 +349,7 @@ module.exports = class SubmissionsHelper {
             try {
 
                 req.body = req.body || {};
-                let message = "Submission completed successfully";
+                let message = messageConstants.apiResponses.SUBMISSION_COMPLETED;
                 let runUpdateQuery = false;
 
                 let queryObject = {
@@ -470,7 +470,7 @@ module.exports = class SubmissionsHelper {
                             status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
                         };
 
-                        message = "Duplicate evidence method submission detected.";
+                        message = messageConstants.apiResponses.DUPLICATE_ECM_SUBMISSION;
                     }
 
                 }
@@ -530,8 +530,8 @@ module.exports = class SubmissionsHelper {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1079,7 +1079,7 @@ module.exports = class SubmissionsHelper {
 
                         }
 
-                        let message = "Crtieria rating completed successfully";
+                        let message = messageConstants.apiResponses.CRITERIA_RATING;
 
                         if (sourceApiHelp == "singleRateApi") {
                             return resolve({
@@ -1097,14 +1097,14 @@ module.exports = class SubmissionsHelper {
 
                         if (sourceApiHelp == "singleRateApi") {
                             return resolve({
-                                status: 404,
-                                message: "All ECM are not submitted"
+                                status: httpStatusCode.not_found.status,
+                                message: messageConstants.apiResponses.ALL_ECM_NOT_SUBMITTED
                             });
                         }
 
                         resultingArray.push({
                             entityId: eachSubmissionDocument.entityExternalId,
-                            message: "All ECM are not submitted"
+                            message: messageConstants.apiResponses.ALL_ECM_NOT_SUBMITTED
                         });
 
                     }
@@ -1432,7 +1432,7 @@ module.exports = class SubmissionsHelper {
             try {
 
                 if (submissionId == "") {
-                    throw "No submission id found";
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
                 }
 
                 if(typeof submissionId == "string") {
@@ -1445,7 +1445,7 @@ module.exports = class SubmissionsHelper {
                 }).lean();
 
                 if (!submissionsDocument) {
-                    throw "No submission found or submission status is not completed";
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND + "or" +SUBMISSION_STATUS_NOT_COMPLETE;
                 }
 
 
@@ -1483,7 +1483,7 @@ module.exports = class SubmissionsHelper {
             try {
 
                 if (submissionId == "") {
-                    throw "No submission id found";
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
                 }
                 if(typeof submissionId !== "string") {
                     submissionId = submissionId.toString();
@@ -1525,7 +1525,7 @@ module.exports = class SubmissionsHelper {
             try {
 
                 if (submissionId == "") {
-                    throw new Error("No submission id found");
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND);
                 }
 
                 let submissionDocument = await database.models.submissions.findOne(
@@ -1534,7 +1534,7 @@ module.exports = class SubmissionsHelper {
                 ).lean();
         
                 if (!submissionDocument._id) {
-                    throw new Error("Couldn't find the submission document");
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
                 }
                
                 let solutionDocument = await database.models.solutions.findOne({
@@ -1542,7 +1542,7 @@ module.exports = class SubmissionsHelper {
                 }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, sendSubmissionRatingEmailsTo : 1 }).lean();
 
                 if (!solutionDocument) {
-                    throw new Error("Couldn't find the solution document");
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
                 }
 
                 if(solutionDocument.sendSubmissionRatingEmailsTo && solutionDocument.sendSubmissionRatingEmailsTo != "") {
@@ -1638,15 +1638,15 @@ module.exports = class SubmissionsHelper {
                         }
                     );
                     await this.pushCompletedSubmissionForReporting(submissionId);
-                    emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Successful - "+submissionId,JSON.stringify(resultingArray));
-                    return resolve("Submission rating completed successfully.");
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_SUCCESS+submissionId,JSON.stringify(resultingArray));
+                    return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
                 } else {
-                    emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Failed - "+submissionId,JSON.stringify(resultingArray));
-                    return resolve("Submission rating completed successfully.");
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
+                    return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
                 }
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,"Submission Auto Rating Failed - "+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,error.message);
                 return reject(error);
             }
         })

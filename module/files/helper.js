@@ -94,11 +94,11 @@ module.exports = class FilesHelper {
             try {
 
                 if(cloudStorage == "") {
-                    throw new Error("Cloud storage provider not given.");
+                    throw new Error(messageConstants.apiResponses.MISSING_CLOUD_STORAGE_PROVIDER);
                 }
 
                 if(cloudStorage != "GC" && cloudStorage != "AWS") {
-                    throw new Error("Invalid Cloud storage provider.");
+                    throw new Error(messageConstants.apiResponses.INVALID_CLOUD_STORAGE_PROVIDER);
                 }
 
                 let fileBaseUrl = "";
@@ -138,11 +138,11 @@ module.exports = class FilesHelper {
                 }
 
                 if(cloudStorage == "") {
-                    throw new Error("Cloud storage provider not given.");
+                    throw new Error(messageConstants.apiResponses.MISSING_CLOUD_STORAGE_PROVIDER);
                 }
 
                 if(cloudStorage != "GC" && cloudStorage != "AWS") {
-                    throw new Error("Invalid Cloud storage provider.")
+                    throw new Error(messageConstants.apiResponses.INVALID_CLOUD_STORAGE_PROVIDER);
                 }
 
                 let signedUrls = new Array;
@@ -170,13 +170,13 @@ module.exports = class FilesHelper {
                 if(signedUrls.length == fileNames.length) {
                     return resolve({
                         success : true,
-                        message : "URLs generated successfully.",
+                        message : messageConstants.apiResponses.URL_GENERATED,
                         files : signedUrls
                     });
                 } else {
                     return resolve({
                         success : false,
-                        message : "Failed to generate pre signed URLs.",
+                        message : messageConstants.apiResponses.FAILED_PRE_SIGNED_URL,
                         files : signedUrls
                     });
                 }
@@ -202,7 +202,7 @@ module.exports = class FilesHelper {
             try {
 
                 if(folderPath == "" || fileName == "") {
-                    throw new Error("Bad request.");
+                    throw new Error(httpStatusCode.bad_request.status);
                 }
 
                 let noOfMinutes = 30;
@@ -221,14 +221,14 @@ module.exports = class FilesHelper {
                 if(signedUrl[0] && signedUrl[0] != "") {
                     return resolve({
                         success : true,
-                        message : "Signed URL generated successfully.",
+                        message : messageConstants.apiResponses.URL_GENERATED+"Signed.",
                         url : signedUrl[0],
                         name : gcpFile.name
                     });
                 } else {
                     return resolve({
                         success : false,
-                        message : "Failed to generated Signed URL.",
+                        message : messageConstants.apiResponses.FAILED_SIGNED_URL,
                         response : signedUrl
                     });
                 }
@@ -254,7 +254,7 @@ module.exports = class FilesHelper {
             try {
 
                 if(folderPath == "" || fileName == "") {
-                    throw new Error("Bad request.");
+                    throw new Error(httpStatusCode.bad_request.status);
                 }
 
                 let noOfMinutes = 30;
@@ -269,14 +269,14 @@ module.exports = class FilesHelper {
                     if(url && url != "") {
                         return resolve({
                             success : true,
-                            message : "Signed URL generated successfully.",
+                            message : messageConstants.apiResponses.URL_GENERATED+"Signed.",
                             url : url,
                             name : folderPath + fileName
                         });
                     } else {
                         return resolve({
                             success : false,
-                            message : "Failed to generated Signed URL.",
+                            message : messageConstants.apiResponses.FAILED_SIGNED_URL,
                             response : url
                         });
                     }

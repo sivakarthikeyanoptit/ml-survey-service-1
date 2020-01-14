@@ -47,8 +47,11 @@ module.exports = class Questions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.questions) {
-          let responseMessage = "Bad request.";
-          return resolve({ status: 400, message: responseMessage });
+          let responseMessage = httpStatusCode.bad_request.message;
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: responseMessage 
+          });
         }
 
         let questionData = await csv().fromString(
@@ -109,7 +112,7 @@ module.exports = class Questions extends Abstract {
           .lean();
 
         if (!criteriaDocument.length > 0) {
-          throw "Criteria is not found";
+          throw messageConstants.apiResponses.CRITERIA_NOT_FOUND;
         }
 
         criteriaDocument.forEach(eachCriteriaDocument => {
@@ -290,8 +293,11 @@ module.exports = class Questions extends Abstract {
       try {
 
         if (!req.files || !req.files.questions) {
-          let responseMessage = "Bad request.";
-          return resolve({ status: 400, message: responseMessage });
+          let responseMessage = httpStatusCode.bad_request.message;
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: responseMessage 
+          });
         }
 
         let questionData = await csv().fromString(
@@ -310,7 +316,7 @@ module.exports = class Questions extends Abstract {
         );
 
         if (criteriasIdArray.length < 1) {
-          throw "No criteria found for the given solution";
+          throw messageConstants.apiResponses.CRITERIA_NOT_FOUND;
         }
 
         let allCriteriaDocument = await database.models.criteria
@@ -318,7 +324,7 @@ module.exports = class Questions extends Abstract {
           .lean();
 
         if (allCriteriaDocument.length < 1) {
-          throw "No criteria found for the given solution";
+          throw messageConstants.apiResponses.CRITERIA_NOT_FOUND;
         }
 
         let currentQuestionMap = {};
@@ -356,7 +362,7 @@ module.exports = class Questions extends Abstract {
           .lean();
 
         if (allQuestionsDocument.length < 1) {
-          throw "No question found for the given solution";
+          throw messageConstants.apiResponses.QUESTION_NOT_FOUND;
         }
 
         let questionExternalToInternalIdMap = {};

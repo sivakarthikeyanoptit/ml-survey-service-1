@@ -32,7 +32,7 @@ module.exports = class EntitiesHelper {
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: queryParams.type }, { _id: 1 }).lean();
 
                 if (!entityTypeDocument){
-                    throw "No entity type found for given params";
+                    throw messageConstants.apiResponses.ENTITY_NOT_FOUND;
                 }
 
                 let entityDocuments = data.map(singleEntity => {
@@ -60,7 +60,7 @@ module.exports = class EntitiesHelper {
                 }
 
                 if (entityData.length != data.length) {
-                    throw "Some entity information was not inserted!";
+                    throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
 
                 return resolve(entityData);
@@ -282,7 +282,7 @@ module.exports = class EntitiesHelper {
                 ).lean();
 
                 if (!parentDocument) {
-                    throw "No such parent found";
+                    throw messageConstants.apiResponses.PARENT_NOT_FOUND;
                 }
 
                 let updateSubmissionDocument = false;
@@ -425,7 +425,7 @@ module.exports = class EntitiesHelper {
                 let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
 
                 if (!entityTypeDocument) {
-                    throw "Invalid entity type id.";
+                    throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
                 }
 
                 const entityUploadedData = await Promise.all(
@@ -462,7 +462,7 @@ module.exports = class EntitiesHelper {
                 )
 
                 if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated.";
+                    throw messageConstants.apiResponses.SOMETHING_WRONG_INSERTED_UPDATED;
                 }
 
                 solutionsData && await Promise.all(
@@ -534,7 +534,7 @@ module.exports = class EntitiesHelper {
                 }))
 
                 if (entityUploadedData.findIndex(entity => entity === undefined) >= 0) {
-                    throw "Something went wrong, not all records were inserted/updated.";
+                    throw messageConstants.apiResponses.SOMETHING_WRONG_INSERTED_UPDATED;
                 }
 
                 return resolve(entityUploadedData);
@@ -559,7 +559,7 @@ module.exports = class EntitiesHelper {
             try {
 
                 if(mappingData.length < 1) {
-                    throw new Error("Invalid mapping data");
+                    throw new Error(messageConstants.apiResponses.INVALID_MAPPING_DATA);
                 }
 
                 this.entityMapProccessData = {
@@ -597,7 +597,7 @@ module.exports = class EntitiesHelper {
                 
                 return resolve({
                     success : true,
-                    message: "Information updated successfully."
+                    message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE
                 });
 
             } catch (error) {
@@ -822,8 +822,8 @@ module.exports = class EntitiesHelper {
                 return resolve(entitiesDocuments);
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -856,7 +856,10 @@ module.exports = class EntitiesHelper {
                     relatedEntitiesQuery["entityTypeId"] = {};
                     relatedEntitiesQuery["entityTypeId"]["$ne"] = entityTypeId;
                 } else {
-                    throw { status: 400, message: "EntityTypeId or entityType or entityId is not found" };
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.MISSING_ENTITYID_ENTITYTYPE_ENTITYTYPEID 
+                    };
                 }
 
                 let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection);
@@ -871,8 +874,8 @@ module.exports = class EntitiesHelper {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message
                 });
             }
         })
@@ -971,8 +974,8 @@ module.exports = class EntitiesHelper {
                 return resolve();
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message
                 });
             }
         })
@@ -993,7 +996,7 @@ module.exports = class EntitiesHelper {
                 const entityIndexes = await database.models.entities.listIndexes();
 
                 if (_.findIndex(entityIndexes, { name: 'groups.' + entityType + "_1" }) >= 0) {
-                    return resolve("Index successfully created.");
+                    return resolve(messageConstants.apiResponses.CREATE_INDEX);
                 }
 
                 const newIndexCreation = await database.models.entities.db.collection('entities').createIndex(
@@ -1002,9 +1005,9 @@ module.exports = class EntitiesHelper {
                 );
 
                 if (newIndexCreation == "groups." + entityType + "_1") {
-                    return resolve("Index successfully created.");
+                    return resolve(messageConstants.apiResponses.CREATE_INDEX);
                 } else {
-                    throw "Something went wrong! Couldn't create the index.";
+                    throw messageConstants.apiResponses.INDEX_NOT_CREATED;
                 }
 
             } catch (error) {

@@ -150,7 +150,7 @@ module.exports = class Assessments {
                 req.body = req.body || {};
 
                 let response = {
-                    message: "Assessment fetched successfully",
+                    message: messageConstants.apiResponses.ASSESSMENT_FETCHED,
                     result: {}
                 };
 
@@ -163,8 +163,11 @@ module.exports = class Assessments {
 
 
                 if (!programDocument) {
-                    let responseMessage = 'No program found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let entityAssessorObject = {
@@ -178,8 +181,11 @@ module.exports = class Assessments {
                 ).lean();
 
                 if (!entityAssessorDocument) {
-                    let responseMessage = 'Unauthorized.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.UNAUTHORIZED;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const isRequestForOncallOrOnField = req.query.oncall && req.query.oncall == 1 ? "oncall" : "onfield";
@@ -195,8 +201,11 @@ module.exports = class Assessments {
                 ).lean();
 
                 if (!entityDocument) {
-                    let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let solutionQueryObject = {
@@ -215,8 +224,11 @@ module.exports = class Assessments {
 
 
                 if (!solutionDocument) {
-                    let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole([entityAssessorDocument.role]);
@@ -230,8 +242,11 @@ module.exports = class Assessments {
                 ).lean();
 
                 if (!entityProfileForm) {
-                    let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let form = [];
@@ -431,8 +446,8 @@ module.exports = class Assessments {
                 return resolve(response);
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

@@ -50,20 +50,20 @@ module.exports = class Import {
 
                 if (programDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Program already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.ROGRAM_EXISTS
                     });
                 }
 
                 programDocument = await database.models.programs.create(programData);
                 return resolve({
-                    status: 200,
-                    message: "Program imported successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.PROGRAM_IMPORTED
                 });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -102,22 +102,22 @@ module.exports = class Import {
 
                 if (solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Solution already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_EXISTS
                     });
                 }
 
                 solutionDocument = await database.models.solutions.create(evaluationFrameworkData);
 
                 return resolve({
-                    status: 200,
-                    message: "Solution imported successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.SOLUTION_IMPORTED
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -157,22 +157,22 @@ module.exports = class Import {
 
                 if (frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Framework already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_EXISTS
                     });
                 }
 
                 frameworkDocument = await database.models.frameworks.create(frameworkData);
 
                 return resolve({
-                    status: 200,
-                    message: "Framework inserted successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.FRAMEWORK_INSERTED
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -205,12 +205,15 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.criteria.create(criteriaData);
 
-                let responseMessage = `Criterias inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage });
+                let responseMessage = messageConstants.apiResponses.CRITERIA_INSERTED;
+                return resolve({ 
+                    status: httpStatusCode.ok.status, 
+                    message: responseMessage 
+                });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -244,13 +247,16 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.questions.create(questionData);
 
-                let responseMessage = `Questions inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage });
+                let responseMessage = messageConstants.apiResponses.QUESTION_INSERTED;
+                return resolve({ 
+                    status: httpStatusCode.ok.status, 
+                    message: responseMessage 
+                });
             }
             catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

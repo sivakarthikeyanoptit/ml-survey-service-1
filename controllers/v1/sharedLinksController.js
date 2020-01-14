@@ -46,7 +46,7 @@ module.exports = class SharedLink extends Abstract {
       try {
 
         if (!req.body.privateURL || !req.body.publicURL || !req.body.reportName) {
-          throw { status: 400, message: "Bad request." };
+          throw { status: httpStatusCode.bad_request.status, message: httpStatusCode.bad_request.message };
         }
 
         let shareableData;
@@ -89,7 +89,7 @@ module.exports = class SharedLink extends Abstract {
         }
 
         return resolve({
-          status: 200,
+          status: httpStatusCode.ok.status,
           result: {
             linkId: shareableData.linkId,
           }
@@ -99,8 +99,8 @@ module.exports = class SharedLink extends Abstract {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 
@@ -133,14 +133,19 @@ module.exports = class SharedLink extends Abstract {
         let linkId = req.headers.linkid;
 
         if (!linkId) {
-          throw { status: 400, message: "Bad request." };
+          throw { status: httpStatusCode.bad_request.status, message: httpStatusCode.bad_request.message };
         }
 
         let shareableData;
 
         shareableData = await database.models.sharedLink.findOne({ linkId: linkId, isActive: true }).lean();
 
-        if (!shareableData) throw { status: 400, message: "No data found for given params." };
+        if (!shareableData) {
+          throw { 
+            status: httpStatusCode.bad_request.status, 
+            message: messageConstants.apiResponses.NO_DATA_FOUND 
+          };
+        }
 
         let isChanged = false;
 
@@ -173,7 +178,7 @@ module.exports = class SharedLink extends Abstract {
         let publicURL = shareableData.publicURL + ((shareableData.publicURL.includes("?")) ? "&" : "?") + `linkId=${shareableData.linkId}`;
 
         return resolve({
-          status: 200,
+          status: httpStatusCode.ok.status,
           result: {
             privateURL: shareableData.privateURL,
             publicURL: publicURL,
@@ -184,8 +189,8 @@ module.exports = class SharedLink extends Abstract {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 

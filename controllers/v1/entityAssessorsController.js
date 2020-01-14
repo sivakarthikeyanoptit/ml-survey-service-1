@@ -85,7 +85,7 @@ module.exports = class EntityAssessors extends Abstract {
       try {
 
         let programs = new Array;
-        let responseMessage = "Not authorized to fetch entities for this user";
+        let responseMessage = messageConstants.apiResponses.UNAUTHORIZED;
 
         let assessorEntitiesQueryObject = [
           {
@@ -217,7 +217,7 @@ module.exports = class EntityAssessors extends Abstract {
 
         }
 
-        responseMessage = "Entity list fetched successfully";
+        responseMessage = messageConstants.apiResponses.ENTITY_FETCHED;
 
         return resolve({
           message: responseMessage,
@@ -226,8 +226,8 @@ module.exports = class EntityAssessors extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -266,15 +266,15 @@ module.exports = class EntityAssessors extends Abstract {
 
         await entityAssessorsHelper.upload(req.files, null, null, req.userDetails.userId, req.rspObj.userToken);
 
-        let response = { message: "Assessor record created successfully." };
+        let response = { message : messageConstants.apiResponses.ASSESSOR_CREATED };
 
         return resolve(response);
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 
@@ -319,14 +319,14 @@ module.exports = class EntityAssessors extends Abstract {
 
         await entityAssessorsHelper.upload(req.files, programId, solutionId, req.userDetails.userId, req.rspObj.userToken);
 
-        let response = { message: "Assessor record created successfully." };
+        let response = { message: messageConstants.apiResponses.ASSESSOR_CREATED };
 
         return resolve(response);
 
       } catch (error) {
         return reject({
-          status: error.status || 500,
-          message: error.message || error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -378,14 +378,14 @@ module.exports = class EntityAssessors extends Abstract {
         let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status);
 
         return resolve({
-          message: "Pending Assessments",
+          message: messageConstants.apiResponses.PENDING_ASSESSMENT,
           result: pendingAssessmentDocument
         });
 
       } catch (error) {
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -437,19 +437,18 @@ module.exports = class EntityAssessors extends Abstract {
         let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
 
         return resolve({
-          message: "Completed Assessments",
+          message: messageConstants.apiResponses.COMPLETED_ASSESSMENT,
           result: completedAssessmentDocument
         });
 
       } catch (error) {
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
     });
   }
-
 
 };

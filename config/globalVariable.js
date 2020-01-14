@@ -27,8 +27,6 @@ module.exports = function () {
   gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
   global.config = require(".");
 
-  global.customMessage = require(ROOT_PATH +"/generics/helpers/customMessage");
-
   global.httpStatusCode = 
   require(ROOT_PATH + "/generics/httpStatusCodes");
 
@@ -80,6 +78,18 @@ module.exports = function () {
       else return new Controller();
     }
   });
+
+    // Load all message constants
+    global.messageConstants = {};
+    
+    fs.readdirSync(ROOT_PATH + "/generics/messageConstants")
+    .forEach(function (file) {
+      if (file.match(/\.js$/) !== null) {
+        let name = file.replace('.js', '');
+        global.messageConstants[name] = 
+        require(ROOT_PATH + "/generics/messageConstants/" + file);
+      }
+    });
 
 
   // Load all kafka consumer files

@@ -48,7 +48,7 @@ module.exports = class FileUpload {
       try {
 
         if(!Array.isArray(req.body.files) || req.body.files.length < 1) {
-          throw new Error("File names not given.");
+          throw new Error(messageConstants.apiResponses.FILES_NAME_NOT_GIVEN);
         }
 
         const folderPath = req.body.submissionId + "/" + req.userDetails.userId + "/";
@@ -57,7 +57,7 @@ module.exports = class FileUpload {
 
         if(signedUrl.success) {
           return resolve({
-            message: "URLs generated successfully.",
+            message: messageConstants.apiResponses.URL_GENERATED,
             result: signedUrl.files
           });
         } else {
@@ -67,8 +67,8 @@ module.exports = class FileUpload {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 

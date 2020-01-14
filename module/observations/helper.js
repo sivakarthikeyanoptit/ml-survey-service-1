@@ -80,7 +80,7 @@ module.exports = class ObservationsHelper {
                     }).lean();
 
                 if (!solutionDocument) {
-                    throw "No solution id found.";
+                    throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
                 }
 
                 if (data.entities) {
@@ -127,7 +127,7 @@ module.exports = class ObservationsHelper {
             try {
 
                 if(userId == "") {
-                    throw new Error("Invalid userId");
+                    throw new Error(messageConstants.apiResponses.INVALID_USER_ID);
                 }
 
                 let observations = new Array;
@@ -262,7 +262,7 @@ module.exports = class ObservationsHelper {
                 }
 
                 return resolve({
-                    message: "Submission found",
+                    message: messageConstants.apiResponses.FOUND_SUBMISSION,
                     result: submissionDocument
                 });
 
@@ -291,7 +291,7 @@ module.exports = class ObservationsHelper {
             try {
 
                 if(observationId == "" || entityId == "") {
-                    throw new Error("Invalid observation or entity id.");
+                    throw new Error(messageConstants.apiResponses.INVALID_OBSERVATION_ENTITY_ID);
                 }
 
                 if(typeof observationId == "string") {
@@ -313,7 +313,7 @@ module.exports = class ObservationsHelper {
 
                 return resolve({
                     success: true,
-                    message: "Submission Number fetched successfully.",
+                    message: messageConstants.apiResponses.SUBMISSION_NUMBER_FETCHED,
                     result: (submissionDocument[0] && submissionDocument[0].submissionNumber) ? submissionDocument[0].submissionNumber : 0 
                 });
 
@@ -427,7 +427,7 @@ module.exports = class ObservationsHelper {
             try {
 
                 if (userId == "") {
-                    throw new Error("Invalid user id.")
+                    throw new Error(messageConstants.apiResponses.INVALID_USER_ID)
                 }
 
                 const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
@@ -459,7 +459,7 @@ module.exports = class ObservationsHelper {
 
                 return resolve({
                     success: true,
-                    message: "Notification successfully pushed to Kafka."
+                    message: messageConstants.apiResponses.NOTIFICATION_PUSHED_TO_KAFKA
                 })
 
             } catch (error) {
@@ -497,7 +497,7 @@ module.exports = class ObservationsHelper {
                 }).lean();
 
                 if (!observationDocuments.length > 0) {
-                    throw "No Pending or Completed Observations found";
+                    throw messageConstants.apiResponses.NO_PENDING_COMPLETED_OBSERVATIONS;
                 }
 
                 let lengthOfObservationSubmissionsChunk = 500;
@@ -560,7 +560,7 @@ module.exports = class ObservationsHelper {
                 });
 
                 if(!observationDocument[0]) {
-                    throw new Error("No Observation found.");
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_NOT_FOUND);
                 }
 
                 if(observationDocument[0].entities.length>0) {

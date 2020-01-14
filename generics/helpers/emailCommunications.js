@@ -10,7 +10,9 @@ const pushMailToEmailService = function(recipients = "",subject = "", text = "")
 
           if(emailCommunicationsOnOff != "ON" || emailServiceBaseUrl == "" || emailServiceToken == "") throw new Error("Email Configuration missing.")
 
-          if(recipients == "") throw new Error("Email Recipients Missing.")
+          if(recipients == "") {
+            throw new Error("Email Recipients Missing.")
+          }
 
           let reqObj = new Request()
 

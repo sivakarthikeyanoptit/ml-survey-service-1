@@ -137,10 +137,10 @@ module.exports = class Observations extends v1Observation {
                     })
                 }
 
-                let messageData = customMessage.ENTITY_FETCHED;
+                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if ( !(entityDocuments[0].count) ) {
                     entityDocuments[0].count = 0;
-                    messageData = customMessage.ENTITY_NOT_FOUND;
+                    messageData = messageConstants.apiResponses.ENTITY_NOT_FOUND;
                 }
                 response.result = entityDocuments;
                 response["message"] = messageData;
@@ -365,14 +365,17 @@ module.exports = class Observations extends v1Observation {
             try {
 
                 let response = {
-                    message: "Assessment fetched successfully",
+                    message: messageConstants.apiResponses.ASSESSMENT_FETCHED,
                     result: {}
                 };
 
                 let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: {$ne:"inactive"},entities: ObjectId(req.query.entityId) }).lean();
 
                 if (!observationDocument) {
-                    return resolve({ status: 400, message: 'No observation found.' });
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND
+                    });
                 }
 
                 let entityQueryObject = { _id: req.query.entityId, entityType: observationDocument.entityType };
@@ -386,8 +389,11 @@ module.exports = class Observations extends v1Observation {
                 ).lean();
 
                 if (!entityDocument) {
-                    let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
@@ -405,8 +411,11 @@ module.exports = class Observations extends v1Observation {
                 ).lean();
 
                 if (!solutionDocument) {
-                    let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
@@ -420,8 +429,11 @@ module.exports = class Observations extends v1Observation {
                 ).lean();
 
                 if (!entityProfileForm) {
-                    let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let form = [];
@@ -608,8 +620,8 @@ module.exports = class Observations extends v1Observation {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

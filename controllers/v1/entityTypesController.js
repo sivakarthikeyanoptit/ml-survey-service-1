@@ -61,15 +61,15 @@ module.exports = class EntityTypes extends Abstract {
         let result = await entitiyTypesHelper.list({ isObservable: true }, { name: 1 });
 
         return resolve({
-          message: "Entity type fetched successfully.",
-          result: result
+          message : messageConstants.apiResponses.ENTITY_FETCHED,
+          result : result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 
@@ -107,8 +107,8 @@ module.exports = class EntityTypes extends Abstract {
         const result = await entitiyTypesHelper.list({}, { name: 1 });
 
         let indexResult = await Promise.all(result.map(async entityType => {
-          const indexCreation = await entitiesHelper.createGroupEntityTypeIndex(entityType.name)
-          return "Index successfully created for entity type - " + entityType.name
+          const indexCreation = await entitiesHelper.createGroupEntityTypeIndex(entityType.name);
+          return "Index successfully created for entity type - " + entityType.name;
         }))
 
         if (
@@ -116,19 +116,19 @@ module.exports = class EntityTypes extends Abstract {
             index => index === undefined || index === null
           ) >= 0
         ) {
-          throw "Something went wrong, entity group index was not created.";
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG +"entity group index was not created.";
         }
 
         return resolve({
-          message: "Entity type index created successfully.",
+          message: messageConstants.apiResponses.ENTITY_TYPE_INDEX,
           result: indexResult
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -175,7 +175,7 @@ module.exports = class EntityTypes extends Abstract {
         let result = await entitiyTypesHelper.list("all", { name: 1 });
 
         return resolve({
-          message: customMessage.ENTITY_TYPES_FETCHED,
+          message: messageConstants.apiResponses.ENTITY_TYPES_FETCHED,
           result: result
         });
 

@@ -46,7 +46,7 @@ module.exports = class ObservationSubmissionsHelper {
                 }).lean();
 
                 if (!observationSubmissionsDocument) {
-                    throw "No submission found or submission status is not completed";
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND+"or"+messageConstants.apiResponses.SUBMISSION_STATUS_NOT_COMPLETE;
                 }
 
                 const kafkaMessage = await kafkaClient.pushCompletedObservationSubmissionToKafka(observationSubmissionsDocument);
@@ -82,7 +82,7 @@ module.exports = class ObservationSubmissionsHelper {
             try {
 
                 if (observationSubmissionId == "") {
-                    throw "No observation submission id found";
+                    throw messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND;
                 }
 
 
@@ -126,7 +126,7 @@ module.exports = class ObservationSubmissionsHelper {
                 let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
 
                 if (submissionId == "") {
-                    throw new Error("No observation submission id found");
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
                 }
 
                 let submissionDocument = await database.models.observationSubmissions.findOne(
@@ -135,7 +135,7 @@ module.exports = class ObservationSubmissionsHelper {
                 ).lean();
         
                 if (!submissionDocument._id) {
-                    throw new Error("Couldn't find the observation submission document");
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND);
                 }
 
                 let solutionDocument = await database.models.solutions.findOne({
@@ -145,7 +145,7 @@ module.exports = class ObservationSubmissionsHelper {
                 }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, sendSubmissionRatingEmailsTo : 1}).lean();
 
                 if (!solutionDocument) {
-                    throw new Error("Couldn't find the solution document");
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
                 }
 
                 if(solutionDocument.sendSubmissionRatingEmailsTo && solutionDocument.sendSubmissionRatingEmailsTo != "") {
@@ -238,15 +238,15 @@ module.exports = class ObservationSubmissionsHelper {
                         }
                     );
                     await this.pushCompletedObservationSubmissionForReporting(submissionId);
-                    emailClient.pushMailToEmailService(emailRecipients,"Observation Auto Rating Successful - "+submissionId,JSON.stringify(resultingArray));
-                    return resolve("Observation rating completed successfully.");
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_SUCCESS+submissionId,JSON.stringify(resultingArray));
+                    return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 } else {
-                    emailClient.pushMailToEmailService(emailRecipients,"Observation Auto Rating Failed - "+submissionId,JSON.stringify(resultingArray));
-                    return resolve("Observation rating completed successfully.");
+                    emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
+                    return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 }
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,"Observation Auto Rating Failed - "+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
                 return reject(error);
             }
         })

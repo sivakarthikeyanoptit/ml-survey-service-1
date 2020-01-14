@@ -98,7 +98,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         });
 
         if (!observationDocument[0]) {
-          return resolve({ status: 400, message: 'No observation found.' });
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND
+           });
         }
 
         observationDocument = observationDocument[0];
@@ -113,7 +116,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         ]);
 
         if (!entityDocument[0]) {
-          return resolve({ status: 400, message: 'No entity found.' });
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
+          });
         }
         
         entityDocument = entityDocument[0];
@@ -132,7 +138,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         ]);
 
         if (!solutionDocument[0]) {
-          return resolve({ status: 400, message: 'No solution found.' });
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          });
         }
 
         solutionDocument = solutionDocument[0];
@@ -145,7 +154,9 @@ module.exports = class ObservationSubmissions extends Abstract {
         ).lean();
 
         if (!entityProfileForm) {
-          return resolve({ status: 400, message: 'No entity profile form found.' });
+          return resolve({ 
+            status: httpStatusCode.bad_request.status,
+             message: messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND });
         }
 
         let lastSubmissionNumber = 0;
@@ -242,7 +253,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       observations = await observationsHelper.list(req.userDetails.userId);
       
-      let responseMessage = "Observation submission created successfully";
+      let responseMessage = messageConstants.apiResponses.OBSERVATION_SUBMISSION_CREATED;
 
       return resolve({
           message: responseMessage,
@@ -251,8 +262,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -456,8 +467,8 @@ module.exports = class ObservationSubmissions extends Abstract {
       } catch (error) {
 
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 
@@ -501,7 +512,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           allowed: true
         };
 
-        let message = "Observation submission check completed successfully";
+        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_CHECK;
 
         let submissionDocument = await database.models.observationSubmissions.findOne(
           { "_id": req.params._id },
@@ -512,7 +523,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         );
 
         if (!submissionDocument || !submissionDocument._id) {
-          throw "Couldn't find the submission document";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         } else {
           if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
             submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
@@ -532,8 +543,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -564,7 +575,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
-        let message = "Observation submission deleted successfully";
+        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_DELETED;
 
         let submissionDocument = await database.models.observationSubmissions.deleteOne(
           {
@@ -575,7 +586,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         );
 
         if (!submissionDocument.n) {
-          throw "Couldn't find the submission document";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
         }
 
         let response = {
@@ -586,8 +597,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -629,8 +640,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         });
       }
     })
@@ -667,7 +678,7 @@ module.exports = class ObservationSubmissions extends Abstract {
       try {
 
         req.body = req.body || {};
-        let message = "Crtieria rating completed successfully";
+        let message = messageConstants.apiResponses.CRITERIA_RATING;
 
         let createdBy = req.query.createdBy;
         let solutionId = req.query.solutionId;
@@ -675,15 +686,15 @@ module.exports = class ObservationSubmissions extends Abstract {
         let submissionNumber = (req.query.submissionNumber) ? parseInt(req.query.submissionNumber) : 1;
 
         if (!createdBy) {
-          throw "Created by is not found";
+          throw messageConstants.apiResponses.CREATED_BY_NOT_FOUND;
         }
 
         if (!solutionId) {
-          throw "Solution Id is not found";
+          throw messageConstants.apiResponses.SOLUTION_ID_NOT_FOUND;
         }
 
         if (!entityId) {
-          throw "Entity Id is not found";
+          throw messageConstants.apiResponses.ENTITY_ID_NOT_FOUND;
         }
 
 
@@ -695,8 +706,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 400,
-            message: "Solution does not exist"
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -713,7 +724,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         ).lean();
 
         if (!submissionDocument._id) {
-          throw "Couldn't find the submission document"
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND
         }
 
         submissionDocument.submissionCollection = "observationSubmissions"
@@ -800,8 +811,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -841,7 +852,7 @@ module.exports = class ObservationSubmissions extends Abstract {
       try {
 
         req.body = req.body || {};
-        let message = "Crtieria rating completed successfully";
+        let message = messageConstants.apiResponses.CRITERIA_RATING;
 
         let createdBy = req.query.createdBy;
         let solutionId = req.query.solutionId;
@@ -849,15 +860,15 @@ module.exports = class ObservationSubmissions extends Abstract {
         let entityId = req.query.entityId.split(",");
 
         if (!createdBy) {
-          throw "Created by is not found";
+          throw messageConstants.apiResponses.CREATED_BY_NOT_FOUND;
         }
 
         if (!solutionId) {
-          throw "Solution Id is not found";
+          throw messageConstants.apiResponses.SOLUTION_ID_NOT_FOUND;
         }
 
         if (!req.query.entityId || !(req.query.entityId.length >= 1)) {
-          throw "Entity Id is not found";
+          throw messageConstants.apiResponses.ENTITY_ID_NOT_FOUND;
         }
 
         let solutionDocument = await database.models.solutions.findOne({
@@ -868,8 +879,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 400,
-            message: "Solution does not exist"
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -889,7 +900,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         ).lean();
 
         if (!submissionDocuments) {
-          throw "Couldn't find the submission document";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         }
 
         let commonSolutionDocumentParameters = {

@@ -99,11 +99,16 @@ module.exports = class ProgramOperations {
 
                 if (!solutionsDocuments.length) {
 
-                    response = { status: 404, message: "No programs data found for given params." };
+                    response = { 
+                        status: httpStatusCode.not_found.status, 
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND 
+                    };
 
                 } else {
 
-                    response = { message: "Program information list fetched successfully.", result: solutionsDocuments };
+                    response = { 
+                        message: messageConstants.apiResponses.PROGRAM_LIST, 
+                    result: solutionsDocuments };
 
                 }
 
@@ -112,8 +117,8 @@ module.exports = class ProgramOperations {
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! something went wrong",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -196,14 +201,14 @@ module.exports = class ProgramOperations {
                 });
 
                 return resolve({
-                    message: 'Reports filter fetched successfully.',
+                    message: messageConstants.apiResponses.REPORTS_FILTER,
                     result: result
                 });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -297,15 +302,15 @@ module.exports = class ProgramOperations {
                 ];
 
                 return resolve({
-                    message: 'Manager profile fetched successfully.',
+                    message: messageConstants.apiResponses.MANAGER_PROFILE,
                     result: result
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -384,15 +389,15 @@ module.exports = class ProgramOperations {
                 resultArray[3]["value"] = averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "";
 
                 return resolve({
-                    message: 'School details fetched successfully.',
+                    message: messageConstants.apiResponses.ENTITY_FETCHED,
                     result: resultArray
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -427,7 +432,10 @@ module.exports = class ProgramOperations {
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
 
                 if (!programDocument.length) {
-                    throw { status: 400, message: "bad request" };
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message 
+                    };
                 }
 
                 programDocument = programDocument[0];
@@ -525,8 +533,8 @@ module.exports = class ProgramOperations {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -560,7 +568,10 @@ module.exports = class ProgramOperations {
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
 
                 if (!programDocument.length) {
-                    throw { status: 400, message: "bad request" };
+                    throw {  
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message
+                    };
                 }
 
                 programDocument = programDocument[0];
@@ -646,8 +657,8 @@ module.exports = class ProgramOperations {
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -683,7 +694,10 @@ module.exports = class ProgramOperations {
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities"]);
 
                 if (!programDocument.length) {
-                    throw { status: 400, message: "bad request" };
+                    throw {
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message
+                    };
                 }
 
                 programDocument = programDocument[0];
@@ -705,14 +719,14 @@ module.exports = class ProgramOperations {
                 })
 
                 return resolve({
-                    status: 200,
+                    status: httpStatusCode.ok.status,
                     result: entityIdAndName
                 });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

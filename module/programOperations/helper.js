@@ -134,8 +134,8 @@ module.exports = class ProgramOperationsHelper {
 
       } catch (error) {
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

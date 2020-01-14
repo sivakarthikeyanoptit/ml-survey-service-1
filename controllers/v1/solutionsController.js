@@ -171,8 +171,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -211,7 +211,7 @@ module.exports = class Solutions extends Abstract {
       try {
 
         if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-          throw "Invalid parameters.";
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let frameworkDocument = await database.models.frameworks.findOne({
@@ -219,7 +219,7 @@ module.exports = class Solutions extends Abstract {
         }).lean();
 
         if (!frameworkDocument._id) {
-          throw "Invalid parameters.";
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let programDocument = await database.models.programs.findOne({
@@ -232,7 +232,7 @@ module.exports = class Solutions extends Abstract {
           }).lean();
 
         if (!programDocument._id) {
-          throw "Invalid parameters.";
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let entityTypeDocument = await database.models.entityTypes.findOne({
@@ -243,7 +243,7 @@ module.exports = class Solutions extends Abstract {
           }).lean();
 
         if (!entityTypeDocument._id) {
-          throw "Invalid parameters.";
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
@@ -316,7 +316,7 @@ module.exports = class Solutions extends Abstract {
         }
 
         let response = {
-          message: "Solution generated and mapped to the program.",
+          message: messageConstants.apiResponses.MAP_SOLUTION_TO_PROGRAM,
           result: newSolutionId._id
         };
 
@@ -324,8 +324,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -358,7 +358,7 @@ module.exports = class Solutions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let responseMessage = "Entities updated successfully.";
+        let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
 
         let entityIdsFromCSV = await csv().fromString(req.files.entities.data.toString());
 
@@ -370,7 +370,7 @@ module.exports = class Solutions extends Abstract {
 
         let entityIds = entitiesDocument.map(entity => entity._id);
 
-        if (entityIdsFromCSV.length != entityIds.length) responseMessage = "Not all entities are updated.";
+        if (entityIdsFromCSV.length != entityIds.length) responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
 
         await database.models.solutions.updateOne(
           { externalId: req.params._id },
@@ -381,8 +381,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -435,8 +435,8 @@ module.exports = class Solutions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 404,
-            message: "No solution found."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -454,8 +454,8 @@ module.exports = class Solutions extends Abstract {
       }
       catch (error) {
         reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
       }
@@ -499,8 +499,8 @@ module.exports = class Solutions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 400,
-            message: "Solution doesnot exist"
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -521,14 +521,14 @@ module.exports = class Solutions extends Abstract {
         }, updateObject)
 
         return resolve({
-          status: 200,
-          message: "Solution updated successfully."
+          status: httpStatusCode.ok.status,
+          message: messageConstants.apiResponses.SOLUTION_UPDATED
         });
       }
       catch (error) {
         reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
       }
@@ -569,8 +569,8 @@ module.exports = class Solutions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 400,
-            message: "Solution does not exist"
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -611,7 +611,7 @@ module.exports = class Solutions extends Abstract {
         })();
 
         if(!themesWithRubricDetails.csvData) {
-          throw new Error("Something went wrong! No CSV Data found.");
+          throw new Error(messageConstants.apiResponses.SOMETHING_WENT_WRONG +"No CSV Data found.");
         }
 
         for (let pointerToThemeRow = 0; pointerToThemeRow < themesWithRubricDetails.csvData.length; pointerToThemeRow++) {
@@ -622,8 +622,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -664,8 +664,8 @@ module.exports = class Solutions extends Abstract {
 
         if (!solutionDocument) {
           return resolve({
-            status: 400,
-            message: "Solution does not exist"
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
           });
         }
 
@@ -702,7 +702,7 @@ module.exports = class Solutions extends Abstract {
 
         if (!allCriteriaDocuments || allCriteriaDocuments.length < 1) {
           criteriaData = criteriaData.map(function(criteriaRow) {
-            criteriaRow.status = "No criteria found for the solution.";
+            criteriaRow.status = messageConstants.apiResponses.CRITERIA_NOT_FOUND;
             return criteriaRow;
           })
         } else {
@@ -722,7 +722,7 @@ module.exports = class Solutions extends Abstract {
             criteriaRow = gen.utils.valueParser(criteriaRow);
             
             if(!allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]) {
-              criteriaRow.status = "Invalid criteria external ID.";
+              criteriaRow.status = messageConstants.apiResponses.INVALID_CRITERIA_ID;
               allCriteriaRubricUpdatedSuccessfully = false;
               return criteriaRow;
             }
@@ -844,8 +844,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -963,7 +963,7 @@ module.exports = class Solutions extends Abstract {
         solutionDocument = solutionDocument[0];
 
         if (!solutionDocument) {
-            throw new Error('No solution found.');
+            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
         }
 
         let activeECMCodes = new Array;
@@ -1002,19 +1002,19 @@ module.exports = class Solutions extends Abstract {
         let allCriteriaDocument = await criteriaHelper.criteriaDocument(criteriaFindQuery,criteriaProjectionArray);
 
         if (allCriteriaDocument.length < 1) {
-          throw new Error('No criteria found.');
+          throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND);
         }
 
         let allQuestionIdsInCrtieria = gen.utils.getAllQuestionId(allCriteriaDocument);
 
         if (allQuestionIdsInCrtieria.length < 1) {
-          throw new Error('No criteria question found.');
+          throw new Error(messageConstants.apiResponses.CRITERIA_QUESTION_NOT_FOUND);
         }
 
         let allQuestionDocuments = await questionsHelper.questionDocument({ _id: { $in: allQuestionIdsInCrtieria } });
 
         if (allQuestionDocuments.length < 1) {
-          throw new Error('No question found.');
+          throw new Error(messageConstants.apiResponses.QUESTION_NOT_FOUND);
         }
         
         let matrixQuestions = new Array;
@@ -1087,8 +1087,8 @@ module.exports = class Solutions extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -1134,8 +1134,11 @@ module.exports = class Solutions extends Abstract {
       try {
 
         if (!(req.body)) {
-          let responseMessage = "Body should not be empty.";
-          return resolve({ status: 400, message: responseMessage });
+          let responseMessage = messageConstants.apiResponses.BODY_NOT_EMPTY;
+          return resolve({ 
+            status: httpStatusCode.bad_request.status, 
+            message: responseMessage 
+          });
         }
 
         let solutionDocument = await database.models.solutions.findOne({
@@ -1143,7 +1146,7 @@ module.exports = class Solutions extends Abstract {
         }).lean();
 
         if (!solutionDocument._id) {
-          throw "Solution is not present";
+          throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
         }
 
         let programDocument = await database.models.programs.findOne({
@@ -1156,7 +1159,7 @@ module.exports = class Solutions extends Abstract {
           }).lean();
 
         if (!programDocument._id) {
-          throw "program is not present";
+          throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
         }
 
 
@@ -1188,20 +1191,20 @@ module.exports = class Solutions extends Abstract {
           await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: duplicateSolutionDocument._id } });
 
           let response = {
-            message: "Duplicate Solution generated.",
+            message: messageConstants.apiResponses.DUPLICATE_SOLUTION,
             result: duplicateSolutionDocument._id
           };
 
           return resolve(response);
 
         } else {
-          throw "Some error while creating duplicate solution."
+          throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
         }
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

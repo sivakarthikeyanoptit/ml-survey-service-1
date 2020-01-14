@@ -106,7 +106,10 @@ module.exports = class EntityAssessorHelper {
 
                 } else {
 
-                    throw { status: 400, message: 'wrong action' };
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.WRONG_ACTION
+                    };
 
                 }
 
@@ -184,8 +187,8 @@ module.exports = class EntityAssessorHelper {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -206,7 +209,12 @@ module.exports = class EntityAssessorHelper {
     static upload(files, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!files || !files.assessors) throw { status: 400, message: "Bad request." };
+                if (!files || !files.assessors) {
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message
+                    };
+                }
 
                 let assessorData = await csv().fromString(files.assessors.data.toString());
 
@@ -402,8 +410,8 @@ module.exports = class EntityAssessorHelper {
 
                 })).catch(error => {
                     return reject({
-                        status: error.status || 500,
-                        message: error.message || "Oops! Something went wrong!",
+                        status: error.status || httpStatusCode.internal_server_error.status,
+                        message: error.message || httpStatusCode.internal_server_error.message,
                         errorObject: error
                     });
                 });
@@ -412,8 +420,8 @@ module.exports = class EntityAssessorHelper {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -477,7 +485,7 @@ module.exports = class EntityAssessorHelper {
             try {
 
                 if (userId == "") {
-                    throw new Error("Invalid user id.");
+                    throw new Error(messageConstants.apiResponses.INVALID_USER_ID);
                 }
 
                 const kafakResponses = await Promise.all(entities.map(async entity => {
@@ -515,12 +523,12 @@ module.exports = class EntityAssessorHelper {
                 }));
 
                 if (kafakResponses.findIndex(response => response === undefined || response === null) >= 0) {
-                    throw new Error("Something went wrong, not all notifications were pushed.");
+                    throw new Error(messageConstants.apiResponses.SOMETHING_WENT_WRONG +"not all notifications were pushed.");
                 }
 
                 return resolve({
                     success: true,
-                    message: "All notifications pushed to Kafka."
+                    message: messageConstants.apiResponses.NOTIFICATIONS_PUSHED_TO_KAFKA
                 });
 
             } catch (error) {
@@ -548,7 +556,7 @@ module.exports = class EntityAssessorHelper {
                 }, { _id: 1 }).lean();
 
                 if (!entityAssessorsDocument.length > 0) {
-                    throw { message: "No LEAD_ASSESSOR or ASSESSOR Found" };
+                    throw { message: messageConstants.apiResponses.MISSING_ASSESSOR_LEAD_ASSESSOR };
                 }
 
                 let entityAssessorChunkLength = 500;

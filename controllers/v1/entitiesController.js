@@ -151,15 +151,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.add(queryParams, req.body.data, req.userDetails);
 
         return resolve({
-          message: "Entity information added successfully.",
+          message: messageConstants.apiResponses.ENTITY_ADDED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -199,7 +199,7 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.list(req.query.type, req.params._id, req.pageSize, req.pageSize * (req.pageNo - 1));
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result.entityData,
           count: result.count
         });
@@ -207,8 +207,8 @@ module.exports = class Entities extends Abstract {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -246,15 +246,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.form(req.query.type);
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -292,15 +292,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.fetch(req.query.type, req.params._id);
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -354,15 +354,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.update(req.query.type, req.params._id, req.body);
 
         return resolve({
-          message: "Information updated successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -424,14 +424,14 @@ module.exports = class Entities extends Abstract {
           input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -493,14 +493,14 @@ module.exports = class Entities extends Abstract {
           input.push(null);
 
         } else {
-          throw new Error("Something went wrong while doing entity bulk update!")
+          throw new Error(messageConstants.apiResponses.SOMETHING_WENT_WRONG);
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -540,18 +540,18 @@ module.exports = class Entities extends Abstract {
 
         let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData);
         if(!entityMappingUploadResponse.success) {
-          throw new Error ("Something went wrong while doing entity mapping upload.");
+          throw new Error (messageConstants.apiResponses.SOMETHING_WENT_WRONG);
         }
 
         return resolve({
-          message: "Information updated successfully."
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -589,14 +589,14 @@ module.exports = class Entities extends Abstract {
         await entitiesHelper.bulkCreate(req.query.type, req.query.programId, req.query.solutionId, req.userDetails, entityCsvData);
 
         return resolve({
-          message: "Information updated successfully."
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -665,7 +665,10 @@ module.exports = class Entities extends Abstract {
         let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection);
 
         if (entityDocument.length < 0) {
-          throw { status: 404, message: "No entitiy found" };
+          throw { 
+            status: httpStatusCode.not_found.status, 
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND 
+          };
         }
 
         let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection);
@@ -674,15 +677,15 @@ module.exports = class Entities extends Abstract {
         result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : [];
 
         return resolve({
-          message: "Fetched Entities details",
+          message: messageConstants.apiResponses.ENTITY_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -746,7 +749,7 @@ module.exports = class Entities extends Abstract {
         if ( entityDocuments.length < 0 ) {
           throw { 
             status: httpStatusCode.not_found.status, 
-            message: customMessage.ENTITY_NOT_FOUND
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
           };
         }
 
@@ -759,7 +762,7 @@ module.exports = class Entities extends Abstract {
         })
 
         return resolve({
-          message: customMessage.ENTITY_FETCHED,
+          message: messageConstants.apiResponses.ENTITY_FETCHED,
           result: entityDocuments
         });
 

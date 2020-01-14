@@ -50,8 +50,8 @@ module.exports = class Export {
                 let programDocument = await database.models.programs.findOne({ externalId: programId });
                 if (!programDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No programs found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.PROGRAM_NOT_FOUND
                     });
                 }
 
@@ -61,8 +61,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -95,8 +95,8 @@ module.exports = class Export {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
@@ -106,8 +106,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -141,8 +141,8 @@ module.exports = class Export {
                 let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id });
                 if (!frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
                     });
                 }
 
@@ -152,8 +152,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -187,8 +187,8 @@ module.exports = class Export {
                 let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
                     });
                 }
 
@@ -200,8 +200,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -235,8 +235,8 @@ module.exports = class Export {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No solution found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
@@ -248,8 +248,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -283,8 +283,8 @@ module.exports = class Export {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No solution found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
@@ -308,8 +308,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

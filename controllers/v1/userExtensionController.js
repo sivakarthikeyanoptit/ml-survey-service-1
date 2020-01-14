@@ -82,7 +82,7 @@ module.exports = class UserExtension extends Abstract {
         });
 
         return resolve({
-          message: customMessage.USER_EXTENSION_FETCHED,
+          message: messageConstants.apiResponses.USER_EXTENSION_FETCHED,
           result: result
         });
 
@@ -128,7 +128,7 @@ module.exports = class UserExtension extends Abstract {
         let userRolesCSVData = await csv().fromString(req.files.userRoles.data.toString());
 
         if (!userRolesCSVData || userRolesCSVData.length < 1) {
-          throw "File or data is missing.";
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
         }
 
         let newUserRoleData = await userExtensionHelper.bulkCreateOrUpdate(userRolesCSVData, req.userDetails);
@@ -154,14 +154,14 @@ module.exports = class UserExtension extends Abstract {
           input.push(null);
 
         } else {
-          throw "Something went wrong!";
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message, 
           errorObject: error
         });
 
@@ -247,7 +247,10 @@ module.exports = class UserExtension extends Abstract {
         }
 
         if (!allEntities.length > 0) {
-          throw { status: 400, message: "No entities were found for given userId" };
+          throw { 
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
+          };
         }
 
         let skippingValue = req.pageSize * (req.pageNo - 1);
@@ -281,7 +284,7 @@ module.exports = class UserExtension extends Abstract {
         let result = await entitiesHelper.entityDocuments(queryObject, projection, req.pageSize, skippingValue);
 
         return resolve({
-          message: "User Extension entities fetched successfully",
+          message: messageConstants.apiResponses.USER_EXTENSION_ENTITIES_FETCHED,
           result: result,
           count: allEntities.length
         });
@@ -289,8 +292,8 @@ module.exports = class UserExtension extends Abstract {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
 

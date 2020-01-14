@@ -217,7 +217,7 @@ module.exports = class Feedback extends Abstract {
         }
       ];
 
-      let responseMessage = "Feedback from fetched successfully.";
+      let responseMessage = messageConstants.apiResponses.FEEDBACK_FORM_FETCHED;
 
       let response = { message: responseMessage, result: result };
       return resolve(response);

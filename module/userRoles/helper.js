@@ -74,7 +74,7 @@ module.exports = class UserRolesHelper {
                                     if(entityTypeNameToEntityTypeMap[entityType]) {
                                         userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType]);
                                     } else {
-                                        throw "Invalid entity type";
+                                        throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
                                     }
                                 })
                             } else {
@@ -153,7 +153,7 @@ module.exports = class UserRolesHelper {
                                     if(entityTypeNameToEntityTypeMap[entityType]) {
                                         userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType]);
                                     } else {
-                                        throw "Invalid entity type";
+                                        throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
                                     }
                                 })
                             } else {

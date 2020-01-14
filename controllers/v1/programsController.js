@@ -89,12 +89,12 @@ module.exports = class Programs extends Abstract {
 
         if (!programDocument) {
           return reject({
-            status: 404,
-            message: "No programs data"
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.PROGRAM_NOT_FOUND
           });
         }
 
-        let response = { message: "Program information list fetched successfully.", result: programDocument };
+        let response = { message: messageConstants.apiResponses.PROGRAM_LIST, result: programDocument };
 
         return resolve(response);
 
@@ -183,12 +183,12 @@ module.exports = class Programs extends Abstract {
           }
         });
 
-        return resolve({ message: "List of entities fetched successfully", result: result });
+        return resolve({ message: messageConstants.apiResponses.ENTITY_LIST, result: result });
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message
         })
       }
     })
@@ -301,7 +301,7 @@ module.exports = class Programs extends Abstract {
 
 
         return resolve({
-          message: "Entity list fetched successfully",
+          message: messageConstants.apiResponses.ENTITY_LIST,
           result: {
             entities: assessorsDocument[0].entityDocuments
           }
@@ -309,8 +309,8 @@ module.exports = class Programs extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -437,15 +437,15 @@ module.exports = class Programs extends Abstract {
         result["assessorInformation"] = solutionDocument[0].assessorInformationData.map(eachAssessor => eachAssessor.assessorInformation);
 
         return resolve({
-          message: "List of assessors fetched successfully",
+          message: messageConstants.apiResponses.ASSESSOR_LIST,
           result: result
         });
 
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         });
       }
     })
@@ -498,7 +498,7 @@ module.exports = class Programs extends Abstract {
         }).lean();
 
         if (!solutionDocument) {
-          throw "Bad request";
+          throw httpStatusCode.bad_request.message;
         }
 
         let distinctEntityBlocks = await database.models.entities.distinct('metaInformation.blockId', { _id: { $in: solutionDocument.entities } }).lean();
@@ -513,15 +513,15 @@ module.exports = class Programs extends Abstract {
         })
 
         return resolve({
-          message: "List of zones fetched successfully",
+          message: messageConstants.apiResponses.ZONE_LIST,
           result: result
         });
 
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         })
       }
     })
@@ -578,7 +578,7 @@ module.exports = class Programs extends Abstract {
         }).lean();
 
         if (!solutionDocument) {
-          throw "Bad request";
+          throw httpStatusCode.bad_request.message;
         }
 
         let entitiesInBlock = await database.models.entities.aggregate([
@@ -634,8 +634,8 @@ module.exports = class Programs extends Abstract {
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         })
       }
     })

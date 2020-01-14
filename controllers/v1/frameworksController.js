@@ -66,8 +66,8 @@ module.exports = class Frameworks extends Abstract {
 
         if (!frameworkDocument) {
           return resolve({
-            status: 404,
-            message: "No framework found."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
           });
         }
 
@@ -84,8 +84,8 @@ module.exports = class Frameworks extends Abstract {
       }
       catch (error) {
         reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -120,18 +120,18 @@ module.exports = class Frameworks extends Abstract {
         let frameworkData = JSON.parse(req.files.framework.data.toString());
 
         if (!frameworkData.externalId) {
-          throw "External Id for framework is required";
+          throw messageConstants.apiResponses.REQUIRED_FRAMEWORK_EXTERNALID;
         }
 
         if (!frameworkData.name) {
-          throw "Name for framework is required";
+          throw messageConstants.apiResponses.REQUIRED_FRAMEWORK_NAME;
         }
 
         if (!frameworkData.description) {
-          throw "Description for framework is required";
+          throw messageConstants.apiResponses.REQUIRED_FRAMEWORK_DESCRIPTION;
         }
         if (!frameworkData.entityType) {
-          throw "Entity Type for framework is required";
+          throw messageConstants.apiResponses.REQUIRED_ENTITY_TYPE_FOR_FRAMEWORK;
         }
 
         let entityDocument = await database.models.entityTypes.findOne({
@@ -152,7 +152,7 @@ module.exports = class Frameworks extends Abstract {
 
 
         if (frameworkDocument) {
-          throw "Framework already exists";
+          throw messageConstants.apiResponses.FRAMEWORK_EXISTS;
         }
 
         Object.keys(frameworkMandatoryFields).forEach(eachMandatoryField => {
@@ -168,14 +168,14 @@ module.exports = class Frameworks extends Abstract {
         frameworkDocument = await database.models.frameworks.create(frameworkData);
 
         return resolve({
-          status: 200,
-          message: "Framework inserted successfully."
+          status: httpStatusCode.ok.status,
+          message: messageConstants.apiResponses.FRAMEWORK_INSERTED
         });
       }
       catch (error) {
         reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
       }
@@ -218,8 +218,8 @@ module.exports = class Frameworks extends Abstract {
 
         if (!frameworkDocument) {
           return resolve({
-            status: 400,
-            message: "Framework doesnot exist"
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
           });
         }
 
@@ -231,14 +231,14 @@ module.exports = class Frameworks extends Abstract {
         }, updateObject);
 
         return resolve({
-          status: 200,
-          message: "Framework updated successfully."
+          status : httpStatusCode.ok.status,
+          message : messageConstants.apiResponses.FRAMEWORK_UPDATED
         });
       }
       catch (error) {
         reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

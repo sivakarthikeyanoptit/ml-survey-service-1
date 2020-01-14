@@ -115,7 +115,7 @@ module.exports = class SolutionsHelper {
     return new Promise(async (resolve, reject) => {
       try {
         if (solutionExternalId == "" || groupName == "") {
-          throw "Invalid paramters";
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let solutionEntities = await database.models.solutions.findOne(
@@ -182,41 +182,41 @@ module.exports = class SolutionsHelper {
           { _id: 1 }
         ).lean();
 
-        let criteriaArray = allCriteriaDocument.map(eachCriteria => eachCriteria._id.toString())
+        let criteriaArray = allCriteriaDocument.map(eachCriteria => eachCriteria._id.toString());
 
-        let modifiedThemes = []
-        let themeObject = {}
-        let csvArray = []
+        let modifiedThemes = [];
+        let themeObject = {};
+        let csvArray = [];
 
 
         // get Array of object with splitted value
         for (let pointerToTheme = 0; pointerToTheme < themes.length; pointerToTheme++) {
 
-          let result = {}
-          let csvObject = {}
+          let result = {};
+          let csvObject = {};
 
-          csvObject = { ...themes[pointerToTheme] }
-          csvObject["status"] = ""
-          let themesKey = Object.keys(themes[pointerToTheme])
-          let firstThemeKey = themesKey[0]
+          csvObject = { ...themes[pointerToTheme] };
+          csvObject["status"] = "";
+          let themesKey = Object.keys(themes[pointerToTheme]);
+          let firstThemeKey = themesKey[0];
 
           themesKey.forEach(themeKey => {
 
             if (themes[pointerToTheme][themeKey] !== "") {
 
-              let themesSplittedArray = themes[pointerToTheme][themeKey].split("###")
+              let themesSplittedArray = themes[pointerToTheme][themeKey].split("###");
 
 
               if (themeKey !== "criteriaInternalId") {
                 if (themesSplittedArray.length < 2) {
-                  csvObject["status"] = "Name or externalId is missing "
+                  csvObject["status"] = messageConstants.apiResponses.MISSING_NAME_EXTERNALID;
 
                 } else {
-                  let name = themesSplittedArray[0] ? themesSplittedArray[0] : ""
+                  let name = themesSplittedArray[0] ? themesSplittedArray[0] : "";
 
                   result[themeKey] = {
                     name: name
-                  }
+                  };
 
                   themeObject[themesSplittedArray[0]] = {
                     name: name,
@@ -224,7 +224,7 @@ module.exports = class SolutionsHelper {
                     type: firstThemeKey === themeKey ? "theme" : "subtheme",
                     externalId: themesSplittedArray[1],
                     weightage: themesSplittedArray[2] ? parseInt(themesSplittedArray[2]) : 0
-                  }
+                  };
                 }
               } else {
 
@@ -232,9 +232,9 @@ module.exports = class SolutionsHelper {
                   result[themeKey] = {
                     criteriaId: ObjectId(themesSplittedArray[0]),
                     weightage: themesSplittedArray[1] ? parseInt(themesSplittedArray[1]) : 0,
-                  }
+                  };
                 } else {
-                  csvObject["status"] = "Criteria is not Present"
+                  csvObject["status"] = "Criteria is not Present";
 
                 }
 
@@ -242,8 +242,8 @@ module.exports = class SolutionsHelper {
 
             }
           })
-          csvArray.push(csvObject)
-          modifiedThemes.push(result)
+          csvArray.push(csvObject);
+          modifiedThemes.push(result);
         }
 
         function generateNestedThemes(nestedThemes, headerData) {
@@ -252,16 +252,16 @@ module.exports = class SolutionsHelper {
               if (index === headerData.length - 1) {
                 if (!parent["criteriaId"]) {
                   parent["criteriaId"] = []
-                }
-                parent.criteriaId.push(eachFrameworkData.criteriaInternalId)
+                };
+                parent.criteriaId.push(eachFrameworkData.criteriaInternalId);
 
               } else {
                 if (eachFrameworkData[headerKey] !== undefined) {
                   parent[eachFrameworkData[headerKey].name] = parent[eachFrameworkData[headerKey].name] ||
-                    {}
-                  return parent[eachFrameworkData[headerKey].name]
+                    {};
+                  return parent[eachFrameworkData[headerKey].name];
                 } else {
-                  return parent
+                  return parent;
                 }
               }
 
@@ -273,35 +273,35 @@ module.exports = class SolutionsHelper {
         function themeArray(data) {
 
           return Object.keys(data).map(function (eachDataKey) {
-            let eachData = {}
+            let eachData = {};
 
             if (eachDataKey !== "criteriaId") {
-              eachData["name"] = themeObject[eachDataKey].name
-              eachData["type"] = themeObject[eachDataKey].type
-              eachData["label"] = themeObject[eachDataKey].label
-              eachData["externalId"] = themeObject[eachDataKey].externalId
-              eachData["weightage"] = themeObject[eachDataKey].weightage
+              eachData["name"] = themeObject[eachDataKey].name;
+              eachData["type"] = themeObject[eachDataKey].type;
+              eachData["label"] = themeObject[eachDataKey].label;
+              eachData["externalId"] = themeObject[eachDataKey].externalId;
+              eachData["weightage"] = themeObject[eachDataKey].weightage;
             }
 
-            if (data[eachDataKey].criteriaId) eachData["criteria"] = data[eachDataKey].criteriaId
+            if (data[eachDataKey].criteriaId) eachData["criteria"] = data[eachDataKey].criteriaId;
             if (eachDataKey !== "criteriaId" && _.isObject(data[eachDataKey])) {
               return _.merge(eachData, data[eachDataKey].criteriaId ? {} : { children: themeArray(data[eachDataKey]) });
             }
           });
         }
 
-        let checkCsvArray = csvArray.every(csvData => csvData.status === "")
+        let checkCsvArray = csvArray.every(csvData => csvData.status === "");
 
         if (checkCsvArray) {
 
           csvArray = csvArray.map(csvData => {
             csvData.status = "success"
             return csvData
-          })
+          });
 
-          let nestedThemeObject = generateNestedThemes(modifiedThemes, headerSequence)
+          let nestedThemeObject = generateNestedThemes(modifiedThemes, headerSequence);
 
-          let themesData = themeArray(nestedThemeObject)
+          let themesData = themeArray(nestedThemeObject);
 
           await database.models[modelName].findOneAndUpdate({
             _id: modelId
@@ -309,7 +309,7 @@ module.exports = class SolutionsHelper {
               $set: {
                 themes: themesData
               }
-            })
+            });
         }
 
         return resolve(csvArray);
@@ -336,7 +336,7 @@ module.exports = class SolutionsHelper {
 
         themeRubricExpressionData = themeRubricExpressionData.map(function(themeRow) {
           themeRow = gen.utils.valueParser(themeRow);
-          themeRow.status = "Failed to find a matching theme or sub-theme with the same external id and name.";
+          themeRow.status = messageConstants.apiResponses.THEME_SUBTHEME_FAILED;
           return themeRow;
         })
 
@@ -483,7 +483,7 @@ module.exports = class SolutionsHelper {
             success : true
           });
         } else {
-          throw new Error("Something went wrong! Not all criteira weightage were updated.");
+          throw new Error(messageConstants.apiResponses.CRITERIA_WEIGHTAGE_NOT_UPDATED);
         }
 
       } catch (error) {
