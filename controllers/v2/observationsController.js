@@ -125,6 +125,14 @@ module.exports = class Observations extends v1Observation {
                     if( entitiesData.length > 0 ) {
                         userAllowedEntities = 
                         entitiesData[0][entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP][result.entityType];
+                    } else {
+                        response["message"] = 
+                        messageConstants.apiResponses.ENTITY_NOT_FOUND;
+
+                        response.result["count"] = 0;
+                        response.result["data"] = [];
+
+                        return resolve(response);
                     }
                 }
 
