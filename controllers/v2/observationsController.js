@@ -129,8 +129,11 @@ module.exports = class Observations extends v1Observation {
                         response["message"] = 
                         messageConstants.apiResponses.ENTITY_NOT_FOUND;
 
-                        response.result["count"] = 0;
-                        response.result["data"] = [];
+                        response.result = [];
+                        response.result.push({
+                            "count":0,
+                            "data" : []
+                        });  
 
                         return resolve(response);
                     }
