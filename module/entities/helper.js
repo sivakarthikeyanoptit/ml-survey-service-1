@@ -796,7 +796,7 @@ module.exports = class EntitiesHelper {
    * @returns {Array} - returns an array of entities data.
    */
 
-    static entityDocuments(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "") {
+    static entityDocuments(findQuery = "all", fields = "all", limitingValue = "", skippingValue = "",sortedData = "") {
         return new Promise(async (resolve, reject) => {
             try {
                 let queryObject = {};
@@ -813,11 +813,23 @@ module.exports = class EntitiesHelper {
                     });
                 }
 
-                let entitiesDocuments = await database.models.entities
+                let entitiesDocuments;
+                
+                if( sortedData !== "" ) {
+                entitiesDocuments = await database.models.entities
+                    .find(queryObject, projectionObject)
+                    .sort(sortedData)
+                    .limit(limitingValue)
+                    .skip(skippingValue)
+                    .lean();
+                } else {
+                    entitiesDocuments = await database.models.entities
                     .find(queryObject, projectionObject)
                     .limit(limitingValue)
                     .skip(skippingValue)
                     .lean();
+                }
+                
 
                 return resolve(entitiesDocuments);
             } catch (error) {

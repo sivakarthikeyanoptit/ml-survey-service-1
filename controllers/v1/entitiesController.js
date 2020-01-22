@@ -744,7 +744,14 @@ module.exports = class Entities extends Abstract {
 
         let entityDocuments =  await entitiesHelper.entityDocuments({ 
           entityType : req.params._id
-        }, projection,req.pageSize, skippingValue);
+        }, 
+        projection,
+        req.pageSize, 
+        skippingValue,
+        {
+          [schemaMetaInformation+".name"] : 1
+        }
+        );
 
         if ( entityDocuments.length < 0 ) {
           throw { 
