@@ -50,6 +50,8 @@ module.exports = {
 "CRITERIA_NOT_FOUND" : "Criteria is not found",
 "INVALID_CRITERIA_ID" : "Invalid criteria external ID.",
 "CRITERIA_QUESTION_NOT_FOUND" : "No criteria question found.",
+"CRITERIA_UPDATED" : "Criteria updated successfully",
+
 
 
 "QUESTION_INSERTED" : "Questions inserted successfully.",
@@ -213,5 +215,7 @@ module.exports = {
 "MISSING_EMAIL_RECIPIENTS" : "Email Recipients Missing.",
 
 "NOT_FOUND" : "Not found!",
+
+
 
 }

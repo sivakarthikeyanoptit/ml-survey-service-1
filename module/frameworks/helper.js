@@ -33,4 +33,24 @@ module.exports = class FrameworksHelper {
         return mandatoryFields
 
     }
+
+     /**
+    * Create framework
+    * @method
+    * @name create
+    * @param {Object} frameworkData - framework data to insert 
+    * @returns {Array} - returns created framework.
+    */
+
+    static create(frameworkData) {
+        return new Promise(async (resolve, reject) => {
+          try {
+              let frameworkDocument = await database.models.frameworks.create(frameworkData);
+              return resolve(frameworkDocument);
+          } catch (error) {
+            return reject(error)
+          }
+        })
+    }
+
 }

@@ -535,6 +535,74 @@ module.exports = class Solutions extends Abstract {
     })
   }
 
+   /**
+  * @api {post} /assessment/api/v1/solutions/updateSolutions?solutionExternalId={solutionExternalId} Update Solutions
+  * @apiVersion 1.0.0
+  * @apiName updateSolutions Solutions
+  * @apiGroup Solutions
+  * @apiSampleRequest /assessment/api/v1/solutions/updateSolutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Update solution.
+   * @method
+   * @name updateSolutions
+   * @param {Object} req - requested data.
+   * @param {String} req.query.solutionExternalId -  solution external id.
+   * @returns {JSON}
+   */
+
+  async updateSolutions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let queryObject = {
+          externalId: req.query.solutionExternalId
+        };
+
+        let solutionDocument = await database.models.solutions.findOne(queryObject, { _id : 1 }).lean();
+
+        if (!solutionDocument) {
+          return resolve({
+            status: httpStatusCode.bad_request.status,
+            message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          });
+        }
+
+        let updateObject = {
+          "$set" : {}
+        };
+
+        let solutionUpdateData = req.body;
+
+        Object.keys(solutionUpdateData).forEach(solutionData=>{
+          updateObject["$set"][solutionData] = solutionUpdateData[solutionData];
+        })
+
+        updateObject["$set"]["updatedBy"] = req.userDetails.id;
+
+        await database.models.solutions.findOneAndUpdate({
+          _id: solutionDocument._id
+        }, updateObject)
+
+        return resolve({
+          status: httpStatusCode.ok.status,
+          message: messageConstants.apiResponses.SOLUTION_UPDATED
+        });
+      }
+      catch (error) {
+        reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+      }
+    })
+  } 
+
   /**
   * @api {post} /assessment/api/v1/solutions/uploadThemesRubricExpressions/{{solutionsExternalID}} Upload Rubric For Themes Of Solutions
   * @apiVersion 1.0.0
