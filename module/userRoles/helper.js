@@ -1,6 +1,28 @@
-const entityTypesHelper = require(ROOT_PATH + "/module/entityTypes/helper");
+/**
+ * name : userRoles/helper.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : User roles related information.
+ */
 
-module.exports = class userRolesHelper {
+// Dependencies
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+
+/**
+    * UserRolesHelper
+    * @class
+*/
+
+module.exports = class UserRolesHelper {
+
+      /**
+   * list user roles.
+   * @method
+   * @name list
+   * @param {Object} filterQueryObject -filtered data.
+   * @param {Object} projectionQueryObject -projected field. 
+   * @returns {Object} list of user roles. 
+   */
 
     static list(filterQueryObject, projectionQueryObject) {
         return new Promise(async (resolve, reject) => {
@@ -18,35 +40,45 @@ module.exports = class userRolesHelper {
 
     }
 
+    /**
+   * Upload user roles via csv.
+   * @method
+   * @name bulkCreate
+   * @param {Array} userRolesCSVData
+   * @param {Object} userDetails -logged in user data.
+   * @param {String} userDetails.id -logged in user id.   
+   * @returns {Object} consists of SYSTEM_ID
+   */
+
     static bulkCreate(userRolesCSVData,userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let entityTypeNameToEntityTypeMap = await this.getEntityTypeToIdMap()
+                let entityTypeNameToEntityTypeMap = await this.getEntityTypeToIdMap();
 
                 const userRolesUploadedData = await Promise.all(
                     userRolesCSVData.map(async userRole => {
 
                         try {
                             
-                            userRole = gen.utils.valueParser(userRole)
+                            userRole = gen.utils.valueParser(userRole);
 
                             if(userRole.entityTypes != "") {
-                                let roleEntityTypes = userRole.entityTypes.split(",")
-                                roleEntityTypes = _.uniq(roleEntityTypes)
+                                let roleEntityTypes = userRole.entityTypes.split(",");
+                                roleEntityTypes = _.uniq(roleEntityTypes);
 
-                                userRole.entityTypes = new Array
+                                userRole.entityTypes = new Array;
 
                                 roleEntityTypes.forEach(entityType => {
                                     if(entityTypeNameToEntityTypeMap[entityType]) {
-                                        userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType])
+                                        userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType]);
                                     } else {
-                                        throw "Invalid entity type"
+                                        throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
                                     }
                                 })
                             } else {
-                                delete userRole.entityTypes
+                                delete userRole.entityTypes;
                             }
 
                             let newRole = await database.models.userRoles.create(
@@ -57,23 +89,23 @@ module.exports = class userRolesHelper {
                                 },userRole)
                             );
 
-                            delete userRole.entityTypes
+                            delete userRole.entityTypes;
 
                             if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id 
-                                userRole.status = "Success"
+                                userRole["_SYSTEM_ID"] = newRole._id; 
+                                userRole.status = "Success";
                             } else {
-                                userRole["_SYSTEM_ID"] = ""
-                                userRole.status = "Failed"
+                                userRole["_SYSTEM_ID"] = "";
+                                userRole.status = "Failed";
                             }
 
                         } catch (error) {
-                            userRole["_SYSTEM_ID"] = ""
-                            userRole.status = (error && error.message) ? error.message : error
+                            userRole["_SYSTEM_ID"] = "";
+                            userRole.status = (error && error.message) ? error.message : error;
                         }
 
 
-                        return userRole
+                        return userRole;
                     })
                 )
 
@@ -81,42 +113,51 @@ module.exports = class userRolesHelper {
                 return resolve(userRolesUploadedData);
 
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
 
     }
 
+    /**
+   * Update user roles via csv.
+   * @method
+   * @name bulkUpdate
+   * @param {Array} userRolesCSVData
+   * @param {Object} userDetails -logged in user data.
+   * @param {String} userDetails.id -logged in user id.   
+   * @returns {Object} consists of SYSTEM_ID
+   */
 
     static bulkUpdate(userRolesCSVData,userDetails) {
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let entityTypeNameToEntityTypeMap = await this.getEntityTypeToIdMap()
+                let entityTypeNameToEntityTypeMap = await this.getEntityTypeToIdMap();
 
                 const userRolesUploadedData = await Promise.all(
                     userRolesCSVData.map(async userRole => {
 
                         try {
                             
-                            userRole = gen.utils.valueParser(userRole)
+                            userRole = gen.utils.valueParser(userRole);
 
                             if(userRole.entityTypes != "") {
-                                let roleEntityTypes = userRole.entityTypes.split(",")
-                                roleEntityTypes = _.uniq(roleEntityTypes)
+                                let roleEntityTypes = userRole.entityTypes.split(",");
+                                roleEntityTypes = _.uniq(roleEntityTypes);
     
-                                userRole.entityTypes = new Array
+                                userRole.entityTypes = new Array;
     
                                 roleEntityTypes.forEach(entityType => {
                                     if(entityTypeNameToEntityTypeMap[entityType]) {
-                                        userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType])
+                                        userRole.entityTypes.push(entityTypeNameToEntityTypeMap[entityType]);
                                     } else {
-                                        throw "Invalid entity type"
+                                        throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
                                     }
                                 })
                             } else {
-                                delete userRole.entityTypes
+                                delete userRole.entityTypes;
                             }
 
                             let updateRole = await database.models.userRoles.findOneAndUpdate(
@@ -128,23 +169,23 @@ module.exports = class userRolesHelper {
                                 },userRole)
                             );
 
-                            delete userRole.entityTypes
+                            delete userRole.entityTypes;
                             
                             if (updateRole._id) {
-                                userRole["_SYSTEM_ID"] = updateRole._id 
-                                userRole.status = "Success"
+                                userRole["_SYSTEM_ID"] = updateRole._id; 
+                                userRole.status = "Success";
                             } else {
-                                userRole["_SYSTEM_ID"] = ""
-                                userRole.status = "Failed"
+                                userRole["_SYSTEM_ID"] = "";
+                                userRole.status = "Failed";
                             }
 
                         } catch (error) {
-                            userRole["_SYSTEM_ID"] = ""
-                            userRole.status = (error && error.message) ? error.message : error
+                            userRole["_SYSTEM_ID"] = "";
+                            userRole.status = (error && error.message) ? error.message : error;
                         }
 
 
-                        return userRole
+                        return userRole;
                     })
                 )
 
@@ -152,26 +193,34 @@ module.exports = class userRolesHelper {
                 return resolve(userRolesUploadedData);
 
             } catch (error) {
-                return reject(error)
+                return reject(error);
             }
         })
 
     }
+
+
+    /**
+   * Entity type to id.
+   * @method
+   * @name getEntityTypeToIdMap   
+   * @returns {Object}
+   */
 
     static getEntityTypeToIdMap() {
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let entityTypeList = await entityTypesHelper.list({},{name:1})
+                let entityTypeList = await entityTypesHelper.list({},{name:1});
             
-                let entityTypeNameToEntityTypeMap = {}
+                let entityTypeNameToEntityTypeMap = {};
             
                 entityTypeList.forEach(entityType => {
                     entityTypeNameToEntityTypeMap[entityType.name] = {
                         entityTypeId: entityType._id,
                         entityType:entityType.name
-                    }
+                    };
                 });
                 
                 return resolve(entityTypeNameToEntityTypeMap);
@@ -182,6 +231,5 @@ module.exports = class userRolesHelper {
         })
 
     }
-
 
 };

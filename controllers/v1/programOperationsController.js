@@ -1,8 +1,21 @@
+/**
+ * name : programOperationsController.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : Program operations related information.
+ */
+
+// Dependencies
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const opsHelper = require(ROOT_PATH + "/module/programOperations/helper");
-const solutionHelper = require(ROOT_PATH + "/module/solutions/helper");
-const submissionHelper = require(ROOT_PATH + "/module/submissions/helper");
+const opsHelper = require(MODULES_BASE_PATH + "/programOperations/helper");
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const submissionHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+
+/**
+    * ProgramOperations
+    * @class
+*/
 module.exports = class ProgramOperations {
 
     /**
@@ -30,6 +43,16 @@ module.exports = class ProgramOperations {
         }
     ]
     */
+
+     /**
+   * List program operations.
+   * @method
+   * @name listByUser
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.userDetails.userId - logged in user id.
+   * @returns {JSON}
+   */
 
     async listByUser(req) {
         return new Promise(async (resolve, reject) => {
@@ -70,17 +93,22 @@ module.exports = class ProgramOperations {
                         }
                     },
                 ]
-                )
+                );
 
                 let response;
 
                 if (!solutionsDocuments.length) {
 
-                    response = { status: 404, message: "No programs data found for given params." };
+                    response = { 
+                        status: httpStatusCode.not_found.status, 
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND 
+                    };
 
                 } else {
 
-                    response = { message: "Program information list fetched successfully.", result: solutionsDocuments };
+                    response = { 
+                        message: messageConstants.apiResponses.PROGRAM_LIST, 
+                    result: solutionsDocuments };
 
                 }
 
@@ -89,8 +117,8 @@ module.exports = class ProgramOperations {
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! something went wrong",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -123,6 +151,16 @@ module.exports = class ProgramOperations {
     ]
     */
 
+    /**
+   * report filters
+   * @method
+   * @name reportFilters
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
+
     async reportFilters(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
@@ -139,7 +177,7 @@ module.exports = class ProgramOperations {
                         label: administrationType,
                         value: administrationType
                     }
-                })
+                });
 
                 let reportsFilterForm = await database.models.forms.findOne({ "name": "reportsFilter" }, { value: 1 }).lean();
 
@@ -147,26 +185,30 @@ module.exports = class ProgramOperations {
 
                 result.forEach(formField => {
                     if (formField.field == "fromDate") {
-                        formField.min = new Date(0)
-                        formField.max = new Date()
+                        formField.min = new Date(0);
+                        formField.max = new Date();
                     };
                     if (formField.field == "toDate") {
-                        formField.min = new Date(0)
-                        formField.max = new Date()
+                        formField.min = new Date(0);
+                        formField.max = new Date();
                     };
-                    if (formField.field == "entityTypes") formField.options = entityTypeDocument.types;
-                    if (formField.field == "administration") formField.options = administrationTypes;
+                    if (formField.field == "entityTypes") {
+                        formField.options = entityTypeDocument.types;
+                    }
+                    if (formField.field == "administration") {
+                        formField.options = administrationTypes;
+                    }
                 });
 
                 return resolve({
-                    message: 'Reports filter fetched successfully.',
+                    message: messageConstants.apiResponses.REPORTS_FILTER,
                     result: result
-                })
+                });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -209,6 +251,16 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
+     /**
+   * User profile information.
+   * @method
+   * @name userProfile
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
+
     async userProfile(req) {
 
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
@@ -247,18 +299,18 @@ module.exports = class ProgramOperations {
                         label: "email",
                         value: req.userDetails.email || "",
                     }
-                ]
+                ];
 
                 return resolve({
-                    message: 'Manager profile fetched successfully.',
+                    message: messageConstants.apiResponses.MANAGER_PROFILE,
                     result: result
-                })
+                });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -274,6 +326,16 @@ module.exports = class ProgramOperations {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+     /**
+   * Entity Summary
+   * @method
+   * @name entitySummary
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
 
     async entitySummary(req) {
 
@@ -303,10 +365,11 @@ module.exports = class ProgramOperations {
 
                 let entityObjects = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, false, [], req.params._id);
 
-                if (!entityObjects || !entityObjects.result || !entityObjects.result.length)
+                if (!entityObjects || !entityObjects.result || !entityObjects.result.length) {
                     return resolve({
                         result: resultArray
-                    })
+                    });
+                }
 
                 let entityDocuments = entityObjects.result;
 
@@ -326,15 +389,15 @@ module.exports = class ProgramOperations {
                 resultArray[3]["value"] = averageTimeTaken ? (parseFloat(averageTimeTaken.toFixed(2)) || "") : "";
 
                 return resolve({
-                    message: 'School details fetched successfully.',
+                    message: messageConstants.apiResponses.ENTITY_FETCHED,
                     result: resultArray
-                })
+                });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -351,6 +414,16 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
+    /**
+   * Assessor Report
+   * @method
+   * @name assessorReport
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
+
     async assessorReport(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
@@ -358,7 +431,12 @@ module.exports = class ProgramOperations {
 
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
 
-                if (!programDocument.length) throw { status: 400, message: "bad request" }
+                if (!programDocument.length) {
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message 
+                    };
+                }
 
                 programDocument = programDocument[0];
 
@@ -400,7 +478,7 @@ module.exports = class ProgramOperations {
 
                 let totalCount = database.models.entityAssessors.countDocuments(assessorQueryObject).exec();
 
-                [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount])
+                [assessorDetails, totalCount] = await Promise.all([assessorDetails, totalCount]);
 
                 let assessorEntityIds = _.flattenDeep(assessorDetails.map(entity => entity.entities));
 
@@ -425,7 +503,7 @@ module.exports = class ProgramOperations {
                 let assessorsReports = [];
                 assessorDetails.forEach(async (assessor) => {
                     let entityByAssessor = opsHelper.getSubmissionByAssessor(assessor.userId, entitySubmissionMap, assessorEntityMap);
-                    let entityData = _.countBy(entityByAssessor, 'status')
+                    let entityData = _.countBy(entityByAssessor, 'status');
                     let entityAssigned = entityByAssessor.length;
                     let assessorResult = {
                         name: assessor.name || "",
@@ -433,14 +511,14 @@ module.exports = class ProgramOperations {
                         entitiesCompleted: entityData.completed || "",
                         entitiesCompletedPercent: parseFloat(((entityData.completed / entityAssigned) * 100).toFixed(2)) || "",
                         averageTimeTaken: opsHelper.getAverageTimeTaken(entityByAssessor)
-                    }
-                    assessorsReports.push(assessorResult)
+                    };
+                    assessorsReports.push(assessorResult);
                     if (req.query.csv && req.query.csv == "true") {
-                        input.push(assessorResult)
+                        input.push(assessorResult);
 
                         if (input.readableBuffer && input.readableBuffer.length) {
                             while (input.readableBuffer.length > 20000) {
-                                await opsHelper.sleep(2000)
+                                await opsHelper.sleep(2000);
                             }
                         }
 
@@ -450,13 +528,13 @@ module.exports = class ProgramOperations {
                     input.push(null);
                 } else {
                     let result = await opsHelper.constructResultObject('programOperationAssessorReports', assessorsReports, totalCount, req.userDetails, programDocument.name, req.query);
-                    return resolve({ result: result })
+                    return resolve({ result: result });
                 }
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -472,6 +550,16 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
+     /**
+   * Entity Report
+   * @method
+   * @name entityReport
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
+
     async entityReport(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
         return new Promise(async (resolve, reject) => {
@@ -479,7 +567,12 @@ module.exports = class ProgramOperations {
 
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities", "programId", "programName", "programExternalId"]);
 
-                if (!programDocument.length) throw { status: 400, message: "bad request" }
+                if (!programDocument.length) {
+                    throw {  
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message
+                    };
+                }
 
                 programDocument = programDocument[0];
 
@@ -488,24 +581,25 @@ module.exports = class ProgramOperations {
                 let isCSV = req.query.csv;
                 let entityDocuments = await opsHelper.getEntities(req.userDetails, req.query, req.pageSize, req.pageNo, (!isCSV || isCSV == "false") ? true : false, [], req.params._id);
 
-                if (!entityDocuments)
-                    return resolve(noDataFound())
+                if (!entityDocuments) {
+                    return resolve(noDataFound());
+                }
 
                 let entityObjects = entityDocuments.result;
 
                 let totalCount = entityDocuments.totalCount;
 
                 if (!entityObjects || !entityObjects.length) {
-                    return resolve(noDataFound())
+                    return resolve(noDataFound());
                 }
 
                 async function noDataFound() {
                     let result = await opsHelper.constructResultObject('programOperationEntityReports', [], totalCount, req.userDetails, programDocument.programName, req.query);
-                    return { result: result }
+                    return { result: result };
                 }
 
                 let submissionQueryObject = {};
-                let entityObjectIds = entityObjects.map(entity => entity.id)
+                let entityObjectIds = entityObjects.map(entity => entity.id);
                 submissionQueryObject.entityId = { $in: entityObjectIds };
                 submissionQueryObject.programExternalId = programExternalId;
 
@@ -526,7 +620,7 @@ module.exports = class ProgramOperations {
 
                 let submissionDocuments = await database.models.submissions.find(submissionQueryObject, { status: 1, createdAt: 1, completedDate: 1, 'evidencesStatus.isSubmitted': 1, entityExternalId: 1 }).lean();
 
-                submissionDocuments = _.keyBy(submissionDocuments, 'entityExternalId')
+                submissionDocuments = _.keyBy(submissionDocuments, 'entityExternalId');
 
                 let result = {};
 
@@ -540,31 +634,31 @@ module.exports = class ProgramOperations {
                     resultObject.assessmentCompletionPercent = submissionDetails ? opsHelper.getAssessmentCompletionPercentage(submissionDetails.evidencesStatus) : "";
 
                     if (isCSV == "true") {
-                        input.push(resultObject)
+                        input.push(resultObject);
 
                         if (input.readableBuffer && input.readableBuffer.length) {
                             while (input.readableBuffer.length > 20000) {
-                                await opsHelper.sleep(2000)
+                                await opsHelper.sleep(2000);
                             }
                         }
                     } else {
-                        result.entitiesReport.push(resultObject)
+                        result.entitiesReport.push(resultObject);
                     }
 
                 })
 
                 if (isCSV == "true") {
-                    input.push(null)
+                    input.push(null);
                 } else {
-                    result = await opsHelper.constructResultObject('programOperationEntityReports', result.entitiesReport, totalCount, req.userDetails, programDocument.programName, req.query)
-                    return resolve({ result: result })
+                    result = await opsHelper.constructResultObject('programOperationEntityReports', result.entitiesReport, totalCount, req.userDetails, programDocument.programName, req.query);
+                    return resolve({ result: result });
                 }
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
 
@@ -581,6 +675,16 @@ module.exports = class ProgramOperations {
     * @apiUse errorBody
     */
 
+     /**
+   * Search Entity
+   * @method
+   * @name searchEntity
+   * @param {Object} req -request data.
+   * @param {Object} req.userDetails -Logged in user data. 
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON}
+   */
+
     //program operation search entity autocomplete API
     async searchEntity(req) {
         opsHelper.checkUserAuthorization(req.userDetails, req.params._id);
@@ -589,7 +693,12 @@ module.exports = class ProgramOperations {
 
                 let programDocument = await solutionHelper.solutionDocument(ObjectId(req.params._id), ["_id", "entities"]);
 
-                if (!programDocument.length) throw { status: 400, message: "bad request" }
+                if (!programDocument.length) {
+                    throw {
+                        status: httpStatusCode.bad_request.status, 
+                        message: httpStatusCode.bad_request.message
+                    };
+                }
 
                 programDocument = programDocument[0];
 
@@ -610,14 +719,14 @@ module.exports = class ProgramOperations {
                 })
 
                 return resolve({
-                    status: 200,
+                    status: httpStatusCode.ok.status,
                     result: entityIdAndName
-                })
+                });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

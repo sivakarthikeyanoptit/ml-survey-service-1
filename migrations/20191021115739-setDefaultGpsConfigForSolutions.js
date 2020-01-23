@@ -1,5 +1,6 @@
 module.exports = {
   async up(db) {
+
     global.migrationMsg = "Set captureGpsLocationAtQuestionLevel false for all solutions."
 
     return await db.collection('solutions').updateMany({

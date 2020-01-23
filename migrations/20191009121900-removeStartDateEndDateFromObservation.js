@@ -1,17 +1,20 @@
 module.exports = {
   async up(db) {
 
-    global.migrationMsg = "Remove start date and end date from default observation creation form."
-
     let defaultObservation = await db.collection('forms').find({"name" : "defaultObservationMetaForm"}).project({ name: 1, value :1 }).toArray();
+    global.migrationMsg = "Migrated up removeStartDateEndDateFomObservation file";
 
-    defaultObservation[0].value = _.pullAllBy(defaultObservation[0].value, [{ "field" : "startDate" }, { "field" : "endDate" }], 'field');
+    if(defaultObservation.length >0) {
+
+      global.migrationMsg = "Remove start date and end date from default observation creation form."
+      defaultObservation[0].value = _.pullAllBy(defaultObservation[0].value, [{ "field" : "startDate" }, { "field" : "endDate" }], 'field');
     
-    return await db.collection('forms').updateOne(
-      { "name" : "defaultObservationMetaForm" },
-      { $set: { "value": defaultObservation[0].value } }
-    )
+      return await db.collection('forms').updateOne(
+        { "name" : "defaultObservationMetaForm" },
+        { $set: { "value": defaultObservation[0].value } }
+      )
 
+    }
   },
 
   async down(db) {

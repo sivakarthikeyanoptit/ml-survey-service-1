@@ -1,9 +1,12 @@
 module.exports = {
   async up(db) {
-    global.migrationMsg = "Add immediate children entity types."
 
     let entityTypeDocuments = await db.collection('entityTypes').find({}).project({ name: 1 }).toArray();
+    global.migrationMsg = "Migrated up addImmediateChildrenEntityType file";
 
+    if(entityTypeDocuments.length >0) {
+    global.migrationMsg = "Add immediate children entity types."
+    
     let childrenEntityTypes = {
       "cluster":"school",
       "block":"cluster",
@@ -19,7 +22,7 @@ module.exports = {
     }));
 
     return
-  },
+  }},
 
   async down(db) {
     // return await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});

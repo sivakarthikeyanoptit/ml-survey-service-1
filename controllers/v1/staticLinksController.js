@@ -1,7 +1,19 @@
+/**
+ * name : staticLinksController.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Static links related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
-const staticLinksHelper = require(ROOT_PATH + "/module/staticLinks/helper")
+const staticLinksHelper = require(MODULES_BASE_PATH + "/staticLinks/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+/**
+    * StaticLinks
+    * @class
+*/
 module.exports = class StaticLinks extends Abstract {
   constructor() {
     super(staticLinksSchema);
@@ -37,7 +49,14 @@ module.exports = class StaticLinks extends Abstract {
   * @apiUse errorBody
   */
 
-  list(req) {
+    /**
+   * List static links.
+   * @method
+   * @name list
+   * @returns {Array} List of all static links. 
+   */
+
+  list() {
     return new Promise(async (resolve, reject) => {
 
       try {
@@ -55,15 +74,15 @@ module.exports = class StaticLinks extends Abstract {
           });
 
         return resolve({
-          message: "Static Links fetched successfully.",
+          message: messageConstants.apiResponses.STATIC_LINKS_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -84,6 +103,15 @@ module.exports = class StaticLinks extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * Create bulk static links via csv.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - request data.
+   * @param {CSV} req.files.staticLinks - static links data. 
+   * @returns {CSV} 
+   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -91,7 +119,9 @@ module.exports = class StaticLinks extends Abstract {
 
         let staticLinksCSVData = await csv().fromString(req.files.staticLinks.data.toString());
 
-        if (!staticLinksCSVData || staticLinksCSVData.length < 1) throw "File or data is missing."
+        if (!staticLinksCSVData || staticLinksCSVData.length < 1) {
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
+        }
 
         let newStaticLinkData = await staticLinksHelper.bulkCreate(staticLinksCSVData, req.userDetails);
 
@@ -110,20 +140,20 @@ module.exports = class StaticLinks extends Abstract {
           }());
 
           await Promise.all(newStaticLinkData.map(async staticLink => {
-            input.push(staticLink)
+            input.push(staticLink);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -143,6 +173,16 @@ module.exports = class StaticLinks extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * Upsate bulk static links via csv.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} req - request data.
+   * @param {CSV} req.files.staticLinks - static links data. 
+   * @returns {CSV} 
+   */
+
   bulkUpdate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -150,7 +190,9 @@ module.exports = class StaticLinks extends Abstract {
 
         let staticLinksCSVData = await csv().fromString(req.files.staticLinks.data.toString());
 
-        if (!staticLinksCSVData || staticLinksCSVData.length < 1) throw "File or data is missing."
+        if (!staticLinksCSVData || staticLinksCSVData.length < 1) {
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
+        }
 
         let newStaticLinkData = await staticLinksHelper.bulkUpdate(staticLinksCSVData, req.userDetails);
 
@@ -169,20 +211,20 @@ module.exports = class StaticLinks extends Abstract {
           }());
 
           await Promise.all(newStaticLinkData.map(async staticLink => {
-            input.push(staticLink)
+            input.push(staticLink);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 

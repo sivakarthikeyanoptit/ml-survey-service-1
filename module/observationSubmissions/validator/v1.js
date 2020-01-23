@@ -11,6 +11,11 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required observation submission id")
         },
 
+        create: function () {
+            req.checkParams('_id').exists().withMessage("required observation id")
+            req.checkQuery('entityId').exists().withMessage("required entity id")
+        }
+
     }
 
     if (observationSubmissionValidator[req.params.method]) observationSubmissionValidator[req.params.method]();

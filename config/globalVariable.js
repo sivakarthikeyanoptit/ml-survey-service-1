@@ -20,12 +20,17 @@ module.exports = function () {
   // let readStream = fs.createReadStream(__dirname +'/../logs/'+process.env.NODE_ENV + '/logs.log');
   global.async = require("async");
   global.ROOT_PATH = path.join(__dirname, '..')
+  global.GENERIC_HELPERS_PATH = ROOT_PATH + "/generics/helpers"
+  global.MODULES_BASE_PATH = ROOT_PATH + "/module"
   global.log = new Log(global.config.log);
   global._ = require("lodash");
   gen.utils = require(ROOT_PATH + "/generics/helpers/utils");
   global.config = require(".");
 
-  global.ENABLE_CONSOLE_LOGGING = process.env.ENABLE_CONSOLE_LOGGING || "ON";
+  global.httpStatusCode = 
+  require(ROOT_PATH + "/generics/httpStatusCodes");
+
+  global.ENABLE_DEBUG_LOGGING = process.env.ENABLE_DEBUG_LOGGING || "ON";
   global.ENABLE_BUNYAN_LOGGING = process.env.ENABLE_BUNYAN_LOGGING || "ON";
 
 
@@ -73,6 +78,28 @@ module.exports = function () {
       else return new Controller();
     }
   });
+
+    // Load all message constants
+    global.messageConstants = {};
+    
+    fs.readdirSync(ROOT_PATH + "/generics/messageConstants")
+    .forEach(function (file) {
+      if (file.match(/\.js$/) !== null) {
+        let name = file.replace('.js', '');
+        global.messageConstants[name] = 
+        require(ROOT_PATH + "/generics/messageConstants/" + file);
+      }
+    });
+
+
+  // Load all kafka consumer files
+  fs.readdirSync(ROOT_PATH + '/generics/kafkaConsumers/').forEach(function (file) {
+    if (file.match(/\.js$/) !== null) {
+      var name = file.replace('Consumer.js', '');
+      global[name + 'Consumer'] = require(ROOT_PATH + '/generics/kafkaConsumers/' + file);
+    }
+  });
+
 };
 
 function mkdirp(dir, exist = "", state = 1) {

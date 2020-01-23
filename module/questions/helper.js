@@ -1,15 +1,40 @@
+/**
+ * name : questions/helper.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : All questions related helper functionality.
+ */
 
-module.exports = class questionsHelper {
+// Dependencies
+
+/**
+    * Questions
+    * @class
+*/
+module.exports = class QuestionsHelper {
+
+  /**
+   * create questions.
+   * @method
+   * @name createQuestions
+   * @param {Object} parsedQuestion -parsed question.
+   * @param {Object} questionCollection - question data if it exists in the database.
+   * @param {Object} criteriaObject - question criteria.
+   * @param {Object} evidenceCollectionMethodObject - question evidence method
+   * @param {Object} questionSection - question section          
+   * @returns {Object} consisting of SYSTEM_ID(if question is created than SYSTEM_ID
+   * will have value else error message will be present in SYSTEM_ID)  
+   */
 
   static createQuestions(parsedQuestion, questionCollection, criteriaObject, evidenceCollectionMethodObject, questionSection) {
 
-    let csvArray = new Array
+    let csvArray = new Array;
 
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        let questionDataModel = Object.keys(questionsSchema.schema)
+        let questionDataModel = Object.keys(questionsSchema.schema);
 
         let includeFieldByDefault = {
           "remarks": "",
@@ -20,130 +45,130 @@ module.exports = class questionsHelper {
           "canBeNotApplicable": "false",
           "isCompleted": false,
           "value": ""
-        }
+        };
 
-        let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"]
+        let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"];
 
-        let resultQuestion
+        let resultQuestion;
 
-        let csvResult = {}
+        let csvResult = {};
 
         if (questionCollection && questionCollection[parsedQuestion["externalId"]]) {
-          csvResult["internal id"] = "Question already exists"
+          csvResult["internal id"] = "Question already exists";
         } else {
 
-          let allValues = {}
+          let allValues = {};
 
           Object.keys(includeFieldByDefault).forEach(eachFieldToBeIncluded => {
-            allValues[eachFieldToBeIncluded] = includeFieldByDefault[eachFieldToBeIncluded]
+            allValues[eachFieldToBeIncluded] = includeFieldByDefault[eachFieldToBeIncluded];
           })
 
-          allValues["visibleIf"] = new Array
-          allValues["question"] = new Array
+          allValues["visibleIf"] = new Array;
+          allValues["question"] = new Array;
 
-          let evidenceMethod = parsedQuestion["evidenceMethod"]
+          let evidenceMethod = parsedQuestion["evidenceMethod"];
 
           if (parsedQuestion["hasAParentQuestion"] !== "YES") {
-            allValues.visibleIf = ""
+            allValues.visibleIf = "";
           } else {
 
-            let operator = parsedQuestion["parentQuestionOperator"] == "EQUALS" ? parsedQuestion["parentQuestionOperator"] = "===" : parsedQuestion["parentQuestionOperator"]
+            let operator = parsedQuestion["parentQuestionOperator"] == "EQUALS" ? parsedQuestion["parentQuestionOperator"] = "===" : parsedQuestion["parentQuestionOperator"];
 
             allValues.visibleIf.push({
               operator: operator,
               value: parsedQuestion.parentQuestionValue,
               _id: questionCollection[parsedQuestion["parentQuestionId"]]._id
-            })
+            });
 
           }
 
           allValues.question.push(
             parsedQuestion["question0"],
             parsedQuestion["question1"]
-          )
+          );
 
           // Generate Validation
           if (parsedQuestion["responseType"] !== "") {
-            allValues["validation"] = {}
-            allValues["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]))
+            allValues["validation"] = {};
+            allValues["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]));
 
             if (parsedQuestion["responseType"] == "matrix") {
-              allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
+              allValues["instanceIdentifier"] = parsedQuestion["instanceIdentifier"];
             }
             if (parsedQuestion["responseType"] == "date") {
-              allValues["dateFormat"] = parsedQuestion.dateFormat
-              allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture)
-              allValues["validation"]["max"] = parsedQuestion.validationMax
-              allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = ""
+              allValues["dateFormat"] = parsedQuestion.dateFormat;
+              allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture);
+              allValues["validation"]["max"] = parsedQuestion.validationMax;
+              allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = "";
             }
 
             if (parsedQuestion["responseType"] == "number") {
 
-              allValues["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["validationIsNumber"])
+              allValues["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["validationIsNumber"]);
 
               if (parsedQuestion["validationRegex"] == "IsNumber") {
-                allValues["validation"]["regex"] = "^[0-9s]*$"
+                allValues["validation"]["regex"] = "^[0-9s]*$";
               }
 
             }
 
             if (parsedQuestion["responseType"] == "slider") {
               if (parsedQuestion["validationRegex"] == "IsNumber") {
-                allValues["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$"
+                allValues["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$";
               }
-              allValues["validation"]["max"] = parsedQuestion.validationMax
-              allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = ""
+              allValues["validation"]["max"] = parsedQuestion.validationMax;
+              allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = "";
             }
 
           }
 
-          allValues["fileName"] = []
-          allValues["file"] = {}
+          allValues["fileName"] = [];
+          allValues["file"] = {};
 
           if (parsedQuestion["file"] != "NA") {
 
-            allValues.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]))
-            allValues.file["type"] = new Array
-            let allowedFileUploads = this.allowedFileUploads()
+            allValues.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]));
+            allValues.file["type"] = new Array;
+            let allowedFileUploads = this.allowedFileUploads();
             parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
               if (allowedFileUploads[fileType] && allowedFileUploads[fileType] != "") {
-                allValues.file.type.push(allowedFileUploads[fileType])
+                allValues.file.type.push(allowedFileUploads[fileType]);
               }
             })
-            allValues.file["minCount"] = parseInt(parsedQuestion["minFileCount"])
-            allValues.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"])
-            allValues.file["caption"] = parsedQuestion["caption"]
+            allValues.file["minCount"] = parseInt(parsedQuestion["minFileCount"]);
+            allValues.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"]);
+            allValues.file["caption"] = parsedQuestion["caption"];
           }
 
-          allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',')
+          allValues["questionGroup"] = parsedQuestion["questionGroup"].split(',');
           
-          let allowedBlankValueCount = 10
-          let blankValueCount = 0
+          let allowedBlankValueCount = 10;
+          let blankValueCount = 0;
 
-          allValues["options"] = new Array
+          allValues["options"] = new Array;
 
           // Adding data in options field
           for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
-            let optionValue = "R" + pointerToResponseCount
-            let optionHint = "R" + pointerToResponseCount + "-hint"
-            let optionScore = "R" + pointerToResponseCount + "-score"
+            let optionValue = "R" + pointerToResponseCount;
+            let optionHint = "R" + pointerToResponseCount + "-hint";
+            let optionScore = "R" + pointerToResponseCount + "-score";
 
             if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
               let eachOption = {
                 value: optionValue,
                 label: parsedQuestion[optionValue]
-              }
+              };
               if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
-                eachOption.hint = parsedQuestion[optionHint]
+                eachOption.hint = parsedQuestion[optionHint];
               }
 
               if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
-                eachOption.score = Math.round(parsedQuestion[optionScore])
+                eachOption.score = Math.round(parsedQuestion[optionScore]);
               }
 
-              allValues.options.push(eachOption)
+              allValues.options.push(eachOption);
             } else {
-              blankValueCount += 1
+              blankValueCount += 1;
               if(blankValueCount >= allowedBlankValueCount) {
                 break;
               }
@@ -151,24 +176,24 @@ module.exports = class questionsHelper {
           }
 
 
-          allValues["sliderOptions"] = new Array
-          blankValueCount = 0
+          allValues["sliderOptions"] = new Array;
+          blankValueCount = 0;
           // Adding data in slider options field
           for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
-            let optionValue = "slider-value-" + pointerToResponseCount
-            let optionScore = "slider-value-" + pointerToResponseCount + "-score"
+            let optionValue = "slider-value-" + pointerToResponseCount;
+            let optionScore = "slider-value-" + pointerToResponseCount + "-score";
 
             if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
               let eachOption = {
                 value: parseFloat(parsedQuestion[optionValue])
-              }
+              };
               if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
-                eachOption.score = Math.round(parsedQuestion[optionScore])
+                eachOption.score = Math.round(parsedQuestion[optionScore]);
               }
 
-              allValues.sliderOptions.push(eachOption)
+              allValues.sliderOptions.push(eachOption);
             } else {
-              blankValueCount += 1
+              blankValueCount += 1;
               if(blankValueCount >= allowedBlankValueCount) {
                 break;
               }
@@ -178,57 +203,57 @@ module.exports = class questionsHelper {
           Object.keys(parsedQuestion).forEach(parsedQuestionData => {
             if (!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)) {
               if (this.booleanData().includes(parsedQuestionData)) {
-                allValues[parsedQuestionData] = this.convertStringToBoolean(parsedQuestion[parsedQuestionData])
+                allValues[parsedQuestionData] = this.convertStringToBoolean(parsedQuestion[parsedQuestionData]);
               } else {
-                allValues[parsedQuestionData] = parsedQuestion[parsedQuestionData]
+                allValues[parsedQuestionData] = parsedQuestion[parsedQuestionData];
               }
             }
           })
 
           let createQuestion = await database.models.questions.create(
             allValues
-          )
+          );
 
           if (!createQuestion._id) {
-            csvResult["_SYSTEM_ID"] = "Not Created"
+            csvResult["_SYSTEM_ID"] = "Not Created";
           } else {
             resultQuestion = createQuestion
-            csvResult["_SYSTEM_ID"] = createQuestion._id
+            csvResult["_SYSTEM_ID"] = createQuestion._id;
 
             if (parsedQuestion["parentQuestionId"] != "") {
 
               let queryParentQuestionObject = {
                 _id: questionCollection[parsedQuestion["parentQuestionId"]]._id
-              }
+              };
 
-              let updateParentQuestionObject = {}
+              let updateParentQuestionObject = {};
 
               updateParentQuestionObject.$push = {
                 ["children"]: createQuestion._id
-              }
+              };
 
               await database.models.questions.findOneAndUpdate(
                 queryParentQuestionObject,
                 updateParentQuestionObject
-              )
+              );
             }
 
             if (parsedQuestion["instanceParentQuestionId"] != "NA") {
 
               let queryInstanceParentQuestionObject = {
                 _id: questionCollection[parsedQuestion["instanceParentQuestionId"]]._id
-              }
+              };
 
-              let updateInstanceParentQuestionObject = {}
+              let updateInstanceParentQuestionObject = {};
 
               updateInstanceParentQuestionObject.$push = {
                 ["instanceQuestions"]: createQuestion._id
-              }
+              };
 
               await database.models.questions.findOneAndUpdate(
                 queryInstanceParentQuestionObject,
                 updateInstanceParentQuestionObject
-              )
+              );
 
             }
 
@@ -239,52 +264,52 @@ module.exports = class questionsHelper {
               {
                 evidences: 1
               }
-            )
+            );
 
-            let criteriaEvidences = newCriteria.evidences
+            let criteriaEvidences = newCriteria.evidences;
             let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.code === evidenceMethod);
 
             if (indexOfEvidenceMethodInCriteria < 0) {
-              evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array
-              criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod])
-              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+              evidenceCollectionMethodObject[evidenceMethod]["sections"] = new Array;
+              criteriaEvidences.push(evidenceCollectionMethodObject[evidenceMethod]);
+              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1;
             }
 
-            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.code === questionSection)
+            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.code === questionSection);
 
             if (indexOfSectionInEvidenceMethod < 0) {
-              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ code: questionSection, questions: new Array })
-              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ code: questionSection, questions: new Array });
+              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1;
             }
 
-            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id)
+            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(createQuestion._id);
 
             let queryCriteriaObject = {
               _id: newCriteria._id
-            }
+            };
 
-            let updateCriteriaObject = {}
+            let updateCriteriaObject = {};
             updateCriteriaObject.$set = {
               ["evidences"]: criteriaEvidences
-            }
+            };
 
             await database.models.criteria.findOneAndUpdate(
               queryCriteriaObject,
               updateCriteriaObject
-            )
+            );
 
           }
 
         }
 
-        csvResult["Question External Id"] = parsedQuestion["externalId"]
-        csvResult["Question Name"] = parsedQuestion["question0"]
-        csvArray.push(csvResult)
+        csvResult["Question External Id"] = parsedQuestion["externalId"];
+        csvResult["Question Name"] = parsedQuestion["question0"];
+        csvArray.push(csvResult);
 
         return resolve({
           total: csvArray,
           result: resultQuestion
-        })
+        });
 
       } catch (error) {
         return reject(error);
@@ -293,6 +318,13 @@ module.exports = class questionsHelper {
 
   }
 
+  /**
+   * update questions.
+   * @method
+   * @name updateQuestion
+   * @param {Object} parsedQuestion -parsed question.         
+   * @returns {Object} consisting of UPDATE_STATUS  
+   */
 
   static updateQuestion(parsedQuestion) {
 
@@ -300,7 +332,7 @@ module.exports = class questionsHelper {
 
       try {
 
-        let questionDataModel = Object.keys(questionsSchema.schema)
+        let questionDataModel = Object.keys(questionsSchema.schema);
 
         let existingQuestion = await database.models.questions
           .findOne(
@@ -312,27 +344,27 @@ module.exports = class questionsHelper {
           .lean();
 
         if (parsedQuestion["_parentQuestionId"] == "") {
-          existingQuestion.visibleIf = ""
+          existingQuestion.visibleIf = "";
         } else {
 
-          let operator = parsedQuestion["parentQuestionOperator"] == "EQUALS" ? parsedQuestion["parentQuestionOperator"] = "===" : parsedQuestion["parentQuestionOperator"]
+          let operator = parsedQuestion["parentQuestionOperator"] == "EQUALS" ? parsedQuestion["parentQuestionOperator"] = "===" : parsedQuestion["parentQuestionOperator"];
 
-          existingQuestion.visibleIf = new Array
+          existingQuestion.visibleIf = new Array;
 
           existingQuestion.visibleIf.push({
             operator: operator,
             value: parsedQuestion.parentQuestionValue,
             _id: ObjectId(parsedQuestion["_parentQuestionId"])
-          })
+          });
 
         }
 
         if (parsedQuestion["question0"]) {
-          existingQuestion.question[0] = parsedQuestion["question0"]
+          existingQuestion.question[0] = parsedQuestion["question0"];
         }
 
         if (parsedQuestion["question1"]) {
-          existingQuestion.question[1] = parsedQuestion["question1"]
+          existingQuestion.question[1] = parsedQuestion["question1"];
         }
 
         // if (parsedQuestion["isAGeneralQuestion"] && (parsedQuestion["isAGeneralQuestion"] == "true" || parsedQuestion["isAGeneralQuestion"] == "TRUE")) {
@@ -343,63 +375,63 @@ module.exports = class questionsHelper {
 
         if (parsedQuestion["responseType"] !== "") {
 
-          existingQuestion["responseType"] = parsedQuestion["responseType"]
-          existingQuestion["validation"] = {}
-          existingQuestion["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]))
+          existingQuestion["responseType"] = parsedQuestion["responseType"];
+          existingQuestion["validation"] = {};
+          existingQuestion["validation"]["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["validation"]));
 
           if (parsedQuestion["responseType"] == "matrix") {
-            existingQuestion["instanceIdentifier"] = parsedQuestion["instanceIdentifier"]
+            existingQuestion["instanceIdentifier"] = parsedQuestion["instanceIdentifier"];
           }
 
           if (parsedQuestion["responseType"] == "date") {
-            existingQuestion["dateFormat"] = parsedQuestion.dateFormat
-            existingQuestion["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture)
-            existingQuestion["validation"]["max"] = parsedQuestion.validationMax
-            existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = ""
+            existingQuestion["dateFormat"] = parsedQuestion.dateFormat;
+            existingQuestion["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture);
+            existingQuestion["validation"]["max"] = parsedQuestion.validationMax;
+            existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = "";
           }
 
           if (parsedQuestion["responseType"] == "number") {
 
-            existingQuestion["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["validationIsNumber"])
+            existingQuestion["validation"]["IsNumber"] = gen.utils.lowerCase(parsedQuestion["validationIsNumber"]);
 
             if (parsedQuestion["validationRegex"] == "IsNumber") {
-              existingQuestion["validation"]["regex"] = "^[0-9s]*$"
+              existingQuestion["validation"]["regex"] = "^[0-9s]*$";
             }
 
           }
 
           if (parsedQuestion["responseType"] == "slider") {
             if (parsedQuestion["validationRegex"] == "IsNumber") {
-              existingQuestion["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$"
+              existingQuestion["validation"]["regex"] = "^[+-]?\d+(\.\d+)?$";
             }
-            existingQuestion["validation"]["max"] = parsedQuestion.validationMax
-            existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : ""
+            existingQuestion["validation"]["max"] = parsedQuestion.validationMax;
+            existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : "";
           }
 
-          delete parsedQuestion["validation"]
+          delete parsedQuestion["validation"];
 
         }
 
-        existingQuestion["fileName"] = new Array
-        existingQuestion["file"] = {}
+        existingQuestion["fileName"] = new Array;
+        existingQuestion["file"] = {};
 
         if (parsedQuestion["file"] != "NA") {
 
-          existingQuestion.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]))
-          existingQuestion.file["type"] = new Array
-          let allowedFileUploads = this.allowedFileUploads()
+          existingQuestion.file["required"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion["fileIsRequired"]));
+          existingQuestion.file["type"] = new Array;
+          let allowedFileUploads = this.allowedFileUploads();
           parsedQuestion["fileUploadType"].split(",").forEach(fileType => {
             if (allowedFileUploads[fileType] && allowedFileUploads[fileType] != "") {
-              existingQuestion.file.type.push(allowedFileUploads[fileType])
+              existingQuestion.file.type.push(allowedFileUploads[fileType]);
             }
           })
-          existingQuestion.file["minCount"] = parseInt(parsedQuestion["minFileCount"])
-          existingQuestion.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"])
-          existingQuestion.file["caption"] = parsedQuestion["caption"]
+          existingQuestion.file["minCount"] = parseInt(parsedQuestion["minFileCount"]);
+          existingQuestion.file["maxCount"] = parseInt(parsedQuestion["maxFileCount"]);
+          existingQuestion.file["caption"] = parsedQuestion["caption"];
 
-          parsedQuestion["file"] = existingQuestion.file
+          parsedQuestion["file"] = existingQuestion.file;
         } else {
-          existingQuestion["file"] = parsedQuestion["file"] = {}
+          existingQuestion["file"] = parsedQuestion["file"] = {};
         }
 
         // if (parsedQuestion["showRemarks"] && (parsedQuestion["showRemarks"] == "true" || parsedQuestion["showRemarks"] == "TRUE")) {
@@ -410,34 +442,34 @@ module.exports = class questionsHelper {
 
 
         if (parsedQuestion["questionGroup"]) {
-          existingQuestion["questionGroup"] = parsedQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',')
+          existingQuestion["questionGroup"] = parsedQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',');
         }
 
-        let allowedBlankValueCount = 10
-        let blankValueCount = 0
+        let allowedBlankValueCount = 10;
+        let blankValueCount = 0;
 
-        existingQuestion["options"] = new Array
+        existingQuestion["options"] = new Array;
         
         // Adding data in options field
         for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
-          let optionValue = "R" + pointerToResponseCount
-          let optionHint = "R" + pointerToResponseCount + "-hint"
-          let optionScore = "R" + pointerToResponseCount + "-score"
+          let optionValue = "R" + pointerToResponseCount;
+          let optionHint = "R" + pointerToResponseCount + "-hint";
+          let optionScore = "R" + pointerToResponseCount + "-score";
 
           if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
             let eachOption = {
               value: optionValue,
               label: parsedQuestion[optionValue]
-            }
+            };
             if (parsedQuestion[optionHint] && parsedQuestion[optionHint] != "") {
-              eachOption.hint = parsedQuestion[optionHint]
+              eachOption.hint = parsedQuestion[optionHint];
             }
             if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
-              eachOption.score = Math.round(parsedQuestion[optionScore])
+              eachOption.score = Math.round(parsedQuestion[optionScore]);
             }
-            existingQuestion.options.push(eachOption)
+            existingQuestion.options.push(eachOption);
           } else {
-            blankValueCount += 1
+            blankValueCount += 1;
             if(blankValueCount >= allowedBlankValueCount) {
               break;
             }
@@ -446,24 +478,24 @@ module.exports = class questionsHelper {
         }
 
 
-        existingQuestion["sliderOptions"] = new Array
+        existingQuestion["sliderOptions"] = new Array;
         
-        blankValueCount = 0
+        blankValueCount = 0;
         // Adding data in slider options field
         for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
-          let optionValue = "slider-value-" + pointerToResponseCount
-          let optionScore = "slider-value-" + pointerToResponseCount + "-score"
+          let optionValue = "slider-value-" + pointerToResponseCount;
+          let optionScore = "slider-value-" + pointerToResponseCount + "-score";
 
           if (parsedQuestion[optionValue] && parsedQuestion[optionValue] != "") {
             let eachOption = {
               value: parseFloat(parsedQuestion[optionValue])
-            }
+            };
             if (parsedQuestion[optionScore] && !isNaN(Math.round(parsedQuestion[optionScore]))) {
-              eachOption.score = Math.round(parsedQuestion[optionScore])
+              eachOption.score = Math.round(parsedQuestion[optionScore]);
             }
-            existingQuestion.sliderOptions.push(eachOption)
+            existingQuestion.sliderOptions.push(eachOption);
           } else {
-            blankValueCount += 1
+            blankValueCount += 1;
             if(blankValueCount >= allowedBlankValueCount) {
               break;
             }
@@ -473,9 +505,9 @@ module.exports = class questionsHelper {
         Object.keys(parsedQuestion).forEach(parsedQuestionData => {
           if (!_.startsWith(parsedQuestionData, "_") && questionDataModel.includes(parsedQuestionData)) {
             if (this.booleanData().includes(parsedQuestionData)) {
-              existingQuestion[parsedQuestionData] = this.convertStringToBoolean(parsedQuestion[parsedQuestionData])
+              existingQuestion[parsedQuestionData] = this.convertStringToBoolean(parsedQuestion[parsedQuestionData]);
             } else {
-              existingQuestion[parsedQuestionData] = parsedQuestion[parsedQuestionData]
+              existingQuestion[parsedQuestionData] = parsedQuestion[parsedQuestionData];
             }
             // existingQuestion[parsedQuestionData] = parsedQuestion[parsedQuestionData]
           }
@@ -485,13 +517,13 @@ module.exports = class questionsHelper {
           { _id: existingQuestion._id },
           existingQuestion,
           { _id: 1 }
-        )
+        );
 
         if (!updateQuestion._id) {
-          parsedQuestion["UPDATE_STATUS"] = "Question Not Updated"
+          parsedQuestion["UPDATE_STATUS"] = "Question Not Updated";
         } else {
 
-          parsedQuestion["UPDATE_STATUS"] = "Success"
+          parsedQuestion["UPDATE_STATUS"] = "Success";
 
           if (parsedQuestion["_parentQuestionId"] != "") {
 
@@ -538,52 +570,52 @@ module.exports = class questionsHelper {
               {
                 evidences: 1
               }
-            )
+            );
 
-            let evidenceMethod = parsedQuestion["_evidenceMethodCode"]
+            let evidenceMethod = parsedQuestion["_evidenceMethodCode"];
 
-            let criteriaEvidences = criteriaToUpdate.evidences
+            let criteriaEvidences = criteriaToUpdate.evidences;
             let indexOfEvidenceMethodInCriteria = criteriaEvidences.findIndex(evidence => evidence.code === evidenceMethod);
 
             if (indexOfEvidenceMethodInCriteria < 0) {
               criteriaEvidences.push({
                 code: evidenceMethod,
                 sections: new Array
-              })
-              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1
+              });
+              indexOfEvidenceMethodInCriteria = criteriaEvidences.length - 1;
             }
 
-            let questionSection = parsedQuestion["_sectionCode"]
+            let questionSection = parsedQuestion["_sectionCode"];
 
-            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.code === questionSection)
+            let indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.findIndex(section => section.code === questionSection);
 
             if (indexOfSectionInEvidenceMethod < 0) {
-              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ code: questionSection, questions: new Array })
-              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1
+              criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.push({ code: questionSection, questions: new Array });
+              indexOfSectionInEvidenceMethod = criteriaEvidences[indexOfEvidenceMethodInCriteria].sections.length - 1;
             }
 
-            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(updateQuestion._id)
+            criteriaEvidences[indexOfEvidenceMethodInCriteria].sections[indexOfSectionInEvidenceMethod].questions.push(updateQuestion._id);
 
             let queryCriteriaObject = {
               _id: criteriaToUpdate._id
-            }
+            };
 
-            let updateCriteriaObject = {}
+            let updateCriteriaObject = {};
             updateCriteriaObject.$set = {
               ["evidences"]: criteriaEvidences
-            }
+            };
 
             await database.models.criteria.findOneAndUpdate(
               queryCriteriaObject,
               updateCriteriaObject
-            )
+            );
 
           }
 
 
         }
 
-        return resolve(parsedQuestion)
+        return resolve(parsedQuestion);
 
       } catch (error) {
         return reject(error);
@@ -592,15 +624,38 @@ module.exports = class questionsHelper {
 
   }
 
+  /**
+   * Default boolean data needed for creating question.
+   * @method
+   * @name booleanData         
+   * @returns {Array} Boolean data.
+   */
+
   static booleanData() {
-    let booleanData = ["allowAudioRecording", "showRemarks", "isAGeneralQuestion"]
-    return booleanData
+    let booleanData = ["allowAudioRecording", "showRemarks", "isAGeneralQuestion"];
+    return booleanData;
   }
 
+   /**
+   * Convert string to boolean.
+   * @method
+   * @name convertStringToBoolean
+   * @param {String} stringData -String data.         
+   * @returns {Boolean}  
+   */
+
   static convertStringToBoolean(stringData) {
-    let stringToBoolean = (stringData === "TRUE" || stringData === "true")
-    return stringToBoolean
+    let stringToBoolean = (stringData === "TRUE" || stringData === "true");
+    return stringToBoolean;
   }
+
+   /**
+   * Default file types.
+   * @method
+   * @name allowedFileUploads
+   * @param {String} stringData -String data.         
+   * @returns {Oject} all file types  
+   */
 
   static allowedFileUploads() {
 
@@ -639,6 +694,15 @@ module.exports = class questionsHelper {
 
   }
 
+   /**
+   * Question data from database.
+   * @method
+   * @name questionDocument
+   * @param {String} [questionFilter = "all"] -filter query.
+   * @param {Array} [fieldsArray = "all"] -projected fields.          
+   * @returns {Array} question data.  
+   */
+
   static questionDocument(questionFilter = "all", fieldsArray = "all") {
     return new Promise(async (resolve, reject) => {
       try {
@@ -646,7 +710,7 @@ module.exports = class questionsHelper {
         let queryObject = (questionFilter != "all") ? questionFilter : {};
 
 
-        let projectionObject = {}
+        let projectionObject = {};
 
         if (fieldsArray != "all") {
           fieldsArray.forEach(field => {
@@ -663,6 +727,5 @@ module.exports = class questionsHelper {
       }
     });
   }
-
 
 };
