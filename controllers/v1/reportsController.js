@@ -1,3 +1,11 @@
+/**
+ * name : reportsController.js
+ * author : Aman
+ * created-date : 22-Dec-2018
+ * Description : Reports related information.
+ */
+
+// Dependencies
 const moment = require("moment-timezone");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
@@ -7,6 +15,10 @@ let imageBaseUrl = ""
   // (process.env.NODE_ENV == "production" ? "prod" : "dev") +
   // "-storage/";
 
+/**
+    * Reports
+    * @class
+*/
 module.exports = class Reports {
 
   constructor() { 
@@ -24,6 +36,18 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * submission status.
+   * @method
+   * @name status
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consist of entity id, entity name,programId,programName,
+   * status,each evidence external id field(like BL,Lw,etc),
+   * each evidence external id duplicate field if conflict is there(eg:BL-duplication),
+   * each evidence external id gpsLocation
    */
 
   async status(req) {
@@ -53,8 +77,8 @@ module.exports = class Reports {
 
         if (!submissionsIds.length) {
           return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
           });
         } else {
           let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10);
@@ -159,8 +183,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message : error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -174,6 +198,16 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * Entities in assessor.
+   * @method
+   * @name assessorEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of assessorId,assessorUserId,parentId,
+   * assessorName,assessorEmail,assessorRole,solutionId,entityId,entityName
    */
 
   async assessorEntities(req) {
@@ -203,8 +237,8 @@ module.exports = class Reports {
         })();
         if (!assessorDocument.length) {
           return resolve({
-            status: 404,
-            message: "No assessor found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.ASSESSOR_NOT_FOUND
           });
         } else {
           let chunkOfAssessorDocument = _.chunk(assessorDocument, 10);
@@ -278,8 +312,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message : error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -293,6 +327,16 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+     /**
+   * Assessors in entity.
+   * @method
+   * @name entityAssessors
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of assessor entity id,assessor entity name,
+   * assessor userId,assessorId,assessorName,assessorEmail,parentId,assessorRole,
+   * solutionId
    */
 
   async entityAssessors(req) {
@@ -322,8 +366,8 @@ module.exports = class Reports {
         })();
         if (!assessorDocument.length) {
           return resolve({
-            status: 404,
-            message: "No assessor found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.ASSESSOR_NOT_FOUND
           });
         } else {
           let chunkOfAssessorDocument = _.chunk(assessorDocument, 10);
@@ -399,8 +443,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message : error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -414,6 +458,16 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+    /**
+   * All solution entities status.
+   * @method
+   * @name solutionEntityStatus
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of status,completedDate,submission count,
+   * createdAt.
    */
 
   async solutionEntityStatus(req) {
@@ -515,8 +569,8 @@ module.exports = class Reports {
               !submissionDataWithEvidencesCount.length
             ) {
               return resolve({
-                status: 404,
-                message: "No data found for given params."
+                status: httpStatusCode.not_found.status,
+                message: messageConstants.apiResponses.NO_DATA_FOUND
               });
             } else {
               entityDocument.forEach(entity => {
@@ -554,8 +608,8 @@ module.exports = class Reports {
         );
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -570,6 +624,16 @@ module.exports = class Reports {
    * @apiParam {String} evidenceId Evidence ID.
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+    /**
+   * Status of the solutions submission.
+   * @method
+   * @name solutionsSubmissionStatus
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of entity name,entity id,question,question id,
+   * answers,remarks,start time,end time,files and submission date
    */
 
   async solutionsSubmissionStatus(req) {
@@ -636,8 +700,8 @@ module.exports = class Reports {
 
         if (!submissionDocumentIdsToProcess.length) {
           return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
           });
         } else {
           const chunkOfSubmissionIds = _.chunk(
@@ -972,8 +1036,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -988,6 +1052,16 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+    /**
+   * Entity submission criteria details reports.
+   * @method
+   * @name generateCriteriaByEntityId
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of entityId,pathToCriteria
+   * (theme->subTheme->aoi->criteria),criteria name and score.
    */
 
   async generateCriteriaByEntityId(req) {
@@ -1008,8 +1082,8 @@ module.exports = class Reports {
 
         if (!submissionDocument) {
           return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
           });
         }
 
@@ -1138,8 +1212,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -1154,6 +1228,18 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+    /**
+   * Level mapping reports.
+   * @method
+   * @name generateSubmissionReportsByEntityId
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @param {Array} req.query.entityId - entity ids. 
+   * @returns {CSV} - csv consists of entityId,criteriaId,criteriaName,
+   * questionId,questionName,answers,question rubric levels,score,option values,
+   * option,remarks,files
    */
 
   async generateSubmissionReportsByEntityId(req) {
@@ -1301,8 +1387,8 @@ module.exports = class Reports {
 
               if (!Object.values(singleEntitySubmission.answers).length) {
                 return resolve({
-                  status: 404,
-                  message: "No submissions found for given params."
+                  status: httpStatusCode.not_found.status,
+                  message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
                 });
               } else {
                 Object.values(singleEntitySubmission.answers).forEach(
@@ -1898,8 +1984,8 @@ module.exports = class Reports {
         );
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -1917,6 +2003,16 @@ module.exports = class Reports {
    * @apiParam {String} type registry type
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * Registry details. Type can be teacher,parent,etc
+   * @method
+   * @name registryDetails
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of solution external id,entity type,
+   * parent entity external id,parent entity name,createdAt,updatedAt.
    */
 
   async registryDetails(req) {
@@ -2045,12 +2141,12 @@ module.exports = class Reports {
 
           input.push(null);
         } else {
-          throw "Type is invalid";
+          throw messageConstants.apiResponses.INVALID_TYPE;
         }
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -2064,6 +2160,16 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * Entity profile information.
+   * @method
+   * @name entityProfileInformation
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id .
+   * @returns {CSV} - csv consists of entity external id, program external id,
+   * all the fields based on entity types.
    */
 
   async entityProfileInformation(req) {
@@ -2107,8 +2213,8 @@ module.exports = class Reports {
 
         if (!submissionIds.length) {
           return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
           });
         } else {
           let chunkOfSubmissionIds = _.chunk(submissionIds, 10);
@@ -2171,8 +2277,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,          
           errorObject: error
         });
       }
@@ -2189,6 +2295,17 @@ module.exports = class Reports {
    * @apiParam {String} entityId Comma separated external entity Ids
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+     /**
+   * Generate ECM report by date.
+   * @method
+   * @name generateEcmReportByDate
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {Array} req.query.entityId - entity ids. 
+   * @returns {CSV} -entityId,entityName,questionId,questionName,answers,question,
+   * score,assessor id,remarks,ECM,submission date,files
    */
 
   async generateEcmReportByDate(req) {
@@ -2279,8 +2396,8 @@ module.exports = class Reports {
 
         if (!submissionDocumentIdsToProcess.length) {
           return resolve({
-            status: 404,
-            message: "No submissions found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND
           });
         } else {
           const chunkOfSubmissionIds = _.chunk(
@@ -2647,8 +2764,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,          
           errorObject: error
         });
       }
@@ -2664,6 +2781,18 @@ module.exports = class Reports {
    * @apiParam {String} toDate To Date
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+    /**
+   * feedback of the submission
+   * @method
+   * @name submissionFeedback
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {String} req.query.fromDate - from date.
+   * @param {String} req.query.toDate - to date. 
+   * @returns {CSV} csv consists of - Q1,Q2,Q3,Q4,entity id,entity name,program id,
+   * user id, submission date.
    */
 
   async submissionFeedback(req) {
@@ -2697,7 +2826,7 @@ module.exports = class Reports {
         })();
 
         if (!submissionsIds.length) {
-          throw "No submission found for given params";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         } else {
           let chunkOfSubmissionsIdsDocument = _.chunk(submissionsIds, 10);
           let submissionId;
@@ -2757,8 +2886,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message : error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -2775,6 +2904,20 @@ module.exports = class Reports {
    * @apiUse successBody
    * @apiUse errorBody
    */
+
+   /**
+   * Datewise ecm report.
+   * @method
+   * @name ecmSubmissionByDate
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {String} req.query.fromDate - from date.
+   * @param {String} req.query.toDate - to date. 
+   * @param {Array} req.query.entityId - entity ids. 
+   * @returns {CSV} csv consists of - entityExternalId,entityName,ecmName,ecmExternalId,
+   * submissionDate
+   */
+
   async ecmSubmissionByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -2831,8 +2974,8 @@ module.exports = class Reports {
 
         if (!entityProfileSubmissionDocuments.length) {
           return resolve({
-            status: 200,
-            message: "No data found for given params."
+            status: httpStatusCode.ok.status,
+            message: messageConstants.apiResponses.NO_DATA_FOUND
           });
         }
 
@@ -2870,8 +3013,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -2887,6 +3030,16 @@ module.exports = class Reports {
    * @apiParam {String} toDate To Date
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * Datewise completed parent interview report.
+   * @method
+   * @name completedParentInterviewsByDate
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV} csv consists of - entityId,entityName,
+   * entity(SDMC, EDMC, DOE, NDMC, North DMC, DCB, Private),Date and parentType.
    */
 
   async completedParentInterviewsByDate(req) {
@@ -2934,7 +3087,7 @@ module.exports = class Reports {
         })();
 
         if (!submissionDocumentIdsToProcess) {
-          throw "No submissions found";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         } else {
           const chunkOfSubmissionIds = _.chunk(
             submissionDocumentIdsToProcess,
@@ -3031,7 +3184,9 @@ module.exports = class Reports {
                     }
                   }
                 );
-                if (result["Date"] && result["Date"] != "") input.push(result);
+                if (result["Date"] && result["Date"] != "") {
+                  input.push(result);
+                }
               })
             );
           }
@@ -3039,8 +3194,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -3058,6 +3213,18 @@ module.exports = class Reports {
    * @apiUse errorBody
    */
 
+    /**
+   * List of parents who did not pick up call.
+   * @method
+   * @name parentInterviewCallDidNotPickupReportByDate
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {String} req.query.fromDate - from Date.
+   * @param {String} req.query.toDate - to Date. 
+   * @returns {CSV} csv consists of - parent name,parent id,parents name,
+   * Date and mobile number.
+   */
+
   async parentInterviewCallDidNotPickupReportByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -3069,8 +3236,8 @@ module.exports = class Reports {
 
         if (!Object.keys(allParentsInSolution).length) {
           return resolve({
-            status: 404,
-            message: "No parents found."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.PARENT_NOT_FOUND
           });
         }
 
@@ -3116,7 +3283,7 @@ module.exports = class Reports {
         })();
 
         if (!parentRegistryIdsArray) {
-          throw "No submissions found";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         } else {
           const chunkOfParentRegistryDocumentIds = _.chunk(
             parentRegistryIdsArray,
@@ -3178,8 +3345,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -3196,6 +3363,19 @@ module.exports = class Reports {
    * @apiUse successBody
    * @apiUse errorBody
    */
+
+
+    /**
+   * Number of call response by date.
+   * @method
+   * @name parentInterviewCallResponseByDate
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {String} req.query.fromDate - from Date.
+   * @param {String} req.query.toDate - to Date. 
+   * @returns {CSV} csv consists of - call response type and count per day.
+   */
+
   async parentInterviewCallResponseByDate(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -3206,8 +3386,8 @@ module.exports = class Reports {
 
         if (!Object.keys(allParentsInSolution).length) {
           return resolve({
-            status: 404,
-            message: "No parents found."
+            status: httpStatusCode.not_found.status,
+            message: customElements.PARENT_NOT_FOUND
           });
         }
 
@@ -3255,7 +3435,7 @@ module.exports = class Reports {
         })();
 
         if (!parentRegistryIdsArray) {
-          throw "No submissions found";
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         } else {
           let arrayOfDate = [];
 
@@ -3327,8 +3507,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -3343,6 +3523,16 @@ module.exports = class Reports {
    * @apiUse successBody
    * @apiUse errorBody
    */
+
+    /**
+   * List of entity.
+   * @method
+   * @name entityList
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV} csv consists of list of entities in solution and details of it.
+   */
+
   async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -3384,8 +3574,8 @@ module.exports = class Reports {
 
         if (!entityDocumentList.length) {
           return resolve({
-            status: 404,
-            message: "No entity found for given params."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
           });
         } else {
           let chunkOfEntityDocument = _.chunk(entityDocumentList, 10);
@@ -3439,8 +3629,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message : error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -3454,6 +3644,15 @@ module.exports = class Reports {
    * @apiGroup Report
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+   /**
+   * List of entity.
+   * @method
+   * @name frameworkDetails
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV} csv consists of list of framework details information.
    */
 
   async frameworkDetails(req) {
@@ -3528,8 +3727,8 @@ module.exports = class Reports {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status : error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

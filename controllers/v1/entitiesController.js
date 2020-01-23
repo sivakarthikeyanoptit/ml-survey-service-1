@@ -1,7 +1,19 @@
+/**
+ * name : entitiesController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : All Entities related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
-const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+ /**
+    * Entities
+    * @class
+*/
 module.exports = class Entities extends Abstract {
   constructor() {
     super(entitiesSchema);
@@ -116,6 +128,15 @@ module.exports = class Entities extends Abstract {
         }
     ]
   */
+  
+  /**
+   * Add entities.
+   * @method
+   * @name add
+   * @param {Object} req - All requested Data.
+   * @param {Object} req.files - requested files.
+   * @returns {JSON} - Added entities information.
+   */
 
   add(req) {
     return new Promise(async (resolve, reject) => {
@@ -126,19 +147,19 @@ module.exports = class Entities extends Abstract {
           programId: req.query.programId,
           solutionId: req.query.solutionId,
           parentEntityId: req.query.parentEntityId
-        }
+        };
         let result = await entitiesHelper.add(queryParams, req.body.data, req.userDetails);
 
         return resolve({
-          message: "Entity information added successfully.",
+          message: messageConstants.apiResponses.ENTITY_ADDED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -159,6 +180,17 @@ module.exports = class Entities extends Abstract {
   * @apiUse errorBody
   */
 
+    /**
+   * List entities.
+   * @method
+   * @name list
+   * @param {Object} req - requested entity information.
+   * @param {String} req.query.type - type of entity requested.
+   * @param {String} req.params._id - requested entity id. 
+   * @param {Number} req.pageSize - total size of the page.
+   * @returns {JSON} - Listed entity details.
+   */
+
   list(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -167,7 +199,7 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.list(req.query.type, req.params._id, req.pageSize, req.pageSize * (req.pageNo - 1));
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result.entityData,
           count: result.count
         });
@@ -175,8 +207,8 @@ module.exports = class Entities extends Abstract {
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -196,6 +228,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * Entities form.
+   * @method
+   * @name form
+   * @param {Object} req - requested entity information.
+   * @param {String} req.query.type - type of entity requested.
+   * @returns {JSON} - Listed entity details.
+   */
+
   form(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -204,15 +246,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.form(req.query.type);
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -231,6 +273,17 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Fetch entity details.
+   * @method
+   * @name fetch
+   * @param {Object} req - requested entity data.
+   * @param {String} req.query.type - entity type.
+   * @param {String} req.params._id - entity id.   
+   * @returns {JSON} - fetch entity details.
+   */
+
   fetch(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -239,15 +292,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.fetch(req.query.type, req.params._id);
 
         return resolve({
-          message: "Information fetched successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -281,6 +334,18 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+  /**
+   * Update entity information.
+   * @method
+   * @name update
+   * @param {Object} req - requested entity data.
+   * @param {String} req.query.type - entity type.
+   * @param {String} req.params._id - entity id.
+   * @param {Object} req.body - entity information that need to be updated.       
+   * @returns {JSON} - Updated entity information.
+   */
+
   update(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -289,15 +354,15 @@ module.exports = class Entities extends Abstract {
         let result = await entitiesHelper.update(req.query.type, req.params._id, req.body);
 
         return resolve({
-          message: "Information updated successfully.",
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -317,6 +382,19 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+     /**
+   * Bulk create entities.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - requested data.
+   * @param {String} req.query.type - requested entity type.
+   * @param {Object} req.userDetails - logged in user details.
+   * @param {Object} req.files.entities - entities data.         
+   * @returns {CSV} - A CSV with name Entity-Upload is saved inside the folder
+   * public/reports/currentDate
+   */
+
   bulkCreate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -340,20 +418,20 @@ module.exports = class Entities extends Abstract {
           }());
 
           await Promise.all(newEntityData.map(async newEntity => {
-            input.push(newEntity)
+            input.push(newEntity);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw "Something went wrong!"
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -373,6 +451,18 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+     /**
+   * Bulk update entities.
+   * @method
+   * @name bulkUpdate
+   * @param {Object} req - requested data.
+   * @param {Object} req.userDetails - logged in user details.
+   * @param {Object} req.files.entities - entities data.         
+   * @returns {CSV} - A CSV with name Entity-Upload is saved inside the folder
+   * public/reports/currentDate
+   */
+
   bulkUpdate(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -397,20 +487,20 @@ module.exports = class Entities extends Abstract {
           }());
 
           await Promise.all(newEntityData.map(async newEntity => {
-            input.push(newEntity)
+            input.push(newEntity);
           }))
 
-          input.push(null)
+          input.push(null);
 
         } else {
-          throw new Error("Something went wrong while doing entity bulk update!")
+          throw new Error(messageConstants.apiResponses.SOMETHING_WENT_WRONG);
         }
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -431,6 +521,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * Map parent entity to child entity.
+   * @method
+   * @name mappingUpload
+   * @param {Object} req - requested data.
+   * @param {Array} req.files.entityMap - Array of entityMap data.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   mappingUpload(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -438,20 +538,20 @@ module.exports = class Entities extends Abstract {
 
         let entityCSVData = await csv().fromString(req.files.entityMap.data.toString());
 
-        let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData)
+        let entityMappingUploadResponse = await entitiesHelper.processEntityMappingUploadData(entityCSVData);
         if(!entityMappingUploadResponse.success) {
-          throw new Error ("Something went wrong while doing entity mapping upload.")
+          throw new Error (messageConstants.apiResponses.SOMETHING_WENT_WRONG);
         }
 
         return resolve({
-          message: "Information updated successfully."
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -469,6 +569,16 @@ module.exports = class Entities extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+    /**
+   * upload entities for portal.
+   * @method
+   * @name uploadForPortal
+   * @param {Object} req - requested data.
+   * @param {Array} req.files.entities - Array of entities data.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   uploadForPortal(req) {
     return new Promise(async (resolve, reject) => {
 
@@ -479,14 +589,14 @@ module.exports = class Entities extends Abstract {
         await entitiesHelper.bulkCreate(req.query.type, req.query.programId, req.query.solutionId, req.userDetails, entityCsvData);
 
         return resolve({
-          message: "Information updated successfully."
+          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -536,34 +646,46 @@ module.exports = class Entities extends Abstract {
         ]
   */
 
+    /**
+   * Related entities of the given entity.
+   * @method
+   * @name relatedEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - requested entity id.         
+   * @returns {JSON} - Message of successfully updated.
+   */
+
   relatedEntities(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
         let result = {}
-        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"]
-        let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection)
+        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"];
+        let entityDocument = await entitiesHelper.entityDocuments({ _id: req.params._id }, projection);
 
         if (entityDocument.length < 0) {
-          throw { status: 404, message: "No entitiy found" };
+          throw { 
+            status: httpStatusCode.not_found.status, 
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND 
+          };
         }
 
-        let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection)
+        let relatedEntities = await entitiesHelper.relatedEntities(entityDocument[0]._id, entityDocument[0].entityTypeId, entityDocument[0].entityType, projection);
 
         _.merge(result, entityDocument[0])
-        result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : []
+        result["relatedEntities"] = (relatedEntities.length > 0) ? relatedEntities : [];
 
         return resolve({
-          message: "Fetched Entities details",
+          message: messageConstants.apiResponses.ENTITY_FETCHED,
           result: result
         });
 
       } catch (error) {
 
         return reject({
-          status: error.status || 500,
-          message: error.message || "Oops! something went wrong.",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
 
@@ -572,4 +694,97 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+   /**
+  * @api {get} /assessment/api/v1/entities/listByEntityType/:entityType 
+  * Get all the entities in the particular entity types.
+  * @apiVersion 1.0.0
+  * @apiName Get Related Entities
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/listByEntityType/state
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entities fetched successfull",
+    "status": 200,
+    "result": [
+      {
+        "externalId": "1",
+        "name": "North",
+        "_id": "5d660a3d81a57a6173a79e7b"
+      }
+    ]
+  }
+  */
+
+    /**
+   * List of entities by entityType.
+   * @method
+   * @name listByEntityType
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - requested entity type.         
+   * @returns {JSON} - Array of entities.
+   */
+
+  listByEntityType(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+        
+        let schemaMetaInformation = 
+        entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION;
+
+        let projection = [
+          schemaMetaInformation+".externalId",
+          schemaMetaInformation+".name"
+        ];
+        
+        let skippingValue = req.pageSize * (req.pageNo - 1);
+
+        let entityDocuments =  await entitiesHelper.entityDocuments({ 
+          entityType : req.params._id
+        }, 
+        projection,
+        req.pageSize, 
+        skippingValue,
+        {
+          [schemaMetaInformation+".name"] : 1
+        }
+        );
+
+        if ( entityDocuments.length < 0 ) {
+          throw { 
+            status: httpStatusCode.not_found.status, 
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
+          };
+        }
+
+        entityDocuments = entityDocuments.map(entityDocument =>{
+          return {
+            externalId : entityDocument.metaInformation.externalId,
+            name : entityDocument.metaInformation.name,
+            _id : entityDocument._id
+          }
+        })
+
+        return resolve({
+          message: messageConstants.apiResponses.ENTITY_FETCHED,
+          result: entityDocuments
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+  
 };

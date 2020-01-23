@@ -1,6 +1,18 @@
+/**
+ * name : solutionDetailsController.js
+ * author : Akash
+ * created-date : 22-feb-2019
+ * Description : Solution details related information.
+ */
+
+// Dependencies
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream")
 
+/**
+    * SolutionDetails
+    * @class
+*/
 module.exports = class SolutionDetails {
 
   static get name() {
@@ -8,7 +20,7 @@ module.exports = class SolutionDetails {
   }
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/entities?programId:programExternalId&solutionId:solutionExternalId&primary:primaryEntityFilter&type:subEntityType Framework & Rubric Details
+  * @api {get} /assessment/api/v1/solutionDetails/entities?programId:programExternalId&solutionId:solutionExternalId&primary:primaryEntityFilter&type:subEntityType All Entities of a Solution
   * @apiVersion 1.0.0
   * @apiName Entities of a Solution
   * @apiGroup Solution Entity Details
@@ -22,33 +34,45 @@ module.exports = class SolutionDetails {
   * @apiUse errorBody
   */
 
+  /**
+   * Entities
+   * @method
+   * @name entities
+   * @param {Object} req - requested data.
+   * @param {String} req.query.programId - program external id.
+   * @param {String} req.query.solutionId - solution external id.
+   * @param {String} req.query.primary
+   * @param {String} req.query.type - entity type name.
+   * @returns {CSV} 
+   */
+
   async entities(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
         if (!req.query.programId || req.query.programId == "" || !req.query.solutionId || req.query.solutionId == "") {
-          throw "Invalid parameters."
+          throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
         let findQuery = {
           externalId: req.query.solutionId,
           programExternalId: req.query.programId
-        }
+        };
 
-        let entities = new Array
+        let entities = new Array;
 
         if (req.query.primary == 0 && req.query.type != "") {
-          let allSubEntities = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.query.solutionId, req.query.type)
-          entities = Object.keys(allSubEntities)
+          let allSubEntities = await solutionsHelper.allSubGroupEntityIdsByGroupName(req.query.solutionId, req.query.type);
+          entities = Object.keys(allSubEntities);
         } else {
-          let solutionDocument = await database.models.solutions.findOne(findQuery, { entities: 1 }).lean()
-          entities = solutionDocument.entities
+          let solutionDocument = await database.models.solutions.findOne(findQuery, { entities: 1 }).lean();
+          entities = solutionDocument.entities;
         }
 
         if (!entities.length) {
           return resolve({
-            status: 404,
-            message: "No entities found."
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
           });
         } else {
 
@@ -64,8 +88,8 @@ module.exports = class SolutionDetails {
             });
           }());
 
-          let chunkOfEntityIds = _.chunk(entities, 10)
-          let entityDocuments
+          let chunkOfEntityIds = _.chunk(entities, 10);
+          let entityDocuments;
 
           for (let pointerToChunkOfEntityIds = 0; pointerToChunkOfEntityIds < chunkOfEntityIds.length; pointerToChunkOfEntityIds++) {
 
@@ -76,7 +100,7 @@ module.exports = class SolutionDetails {
                 }
               }, {
                 "metaInformation": 1
-              }).lean()
+              }).lean();
 
             await Promise.all(entityDocuments.map(async (entityDocument) => {
               if (entityDocument.metaInformation) {
@@ -93,8 +117,8 @@ module.exports = class SolutionDetails {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -103,7 +127,7 @@ module.exports = class SolutionDetails {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId
+  * @api {get} /assessment/api/v1/solutionDetails/criteria/:solutionsId All Criteria of a Solution
   * @apiVersion 1.0.0
   * @apiName Criterias of a Solution
   * @apiGroup Solution Entity Details
@@ -113,6 +137,15 @@ module.exports = class SolutionDetails {
   * @apiUse errorBody
   */
 
+   /**
+   * criteria
+   * @method
+   * @name criteria
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV} 
+   */
+
   async criteria(req) {
 
     return new Promise(async (resolve, reject) => {
@@ -120,13 +153,13 @@ module.exports = class SolutionDetails {
 
         let solutionDocument = await database.models.solutions.findOne({
           externalId: req.params._id
-        }, { themes: 1 }).lean()
+        }, { themes: 1 }).lean();
 
         let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
 
         let criteriaDocument = await database.models.criteria.find({
           _id: { $in: criteriaIds }
-        }, { name: 1, externalId: 1, rubric: 1, _id: 1 }).lean()
+        }, { name: 1, externalId: 1, rubric: 1, _id: 1 }).lean();
 
         const fileName = `Solution-Criteria`;
         let fileStream = new FileStream(fileName);
@@ -147,13 +180,13 @@ module.exports = class SolutionDetails {
             criteriaID: singleCriteria.externalId,
             criteriaInternalId: singleCriteria._id.toString(),
             criteriaName: singleCriteria.name
-          }
+          };
 
           Object.keys(singleCriteria.rubric.levels).forEach(eachRubricData => {
-            criteriaObject[eachRubricData] = singleCriteria.rubric.levels[eachRubricData].description
+            criteriaObject[eachRubricData] = singleCriteria.rubric.levels[eachRubricData].description;
           })
 
-          input.push(criteriaObject)
+          input.push(criteriaObject);
 
         }))
 
@@ -162,8 +195,8 @@ module.exports = class SolutionDetails {
       }
       catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -173,7 +206,7 @@ module.exports = class SolutionDetails {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutionDetails/questions/:solutionsId
+  * @api {get} /assessment/api/v1/solutionDetails/questions/:solutionsId All Questions of a Solution
   * @apiVersion 1.0.0
   * @apiName Questions of a Solution
   * @apiGroup Solution Entity Details
@@ -182,6 +215,15 @@ module.exports = class SolutionDetails {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * questions
+   * @method
+   * @name questions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @returns {CSV} 
+   */
 
   async questions(req) {
     return new Promise(async (resolve, reject) => {
@@ -416,8 +458,8 @@ module.exports = class SolutionDetails {
         input.push(null);
       } catch (error) {
         return reject({
-          status: 500,
-          message: "Oops! Something went wrong!",
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }

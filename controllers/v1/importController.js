@@ -1,3 +1,14 @@
+/**
+ * name : importController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : importing program,solution,framework,criteria,questions
+ */
+
+/**
+    * Import
+    * @class
+*/
 module.exports = class Import {
 
     constructor() {
@@ -17,6 +28,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import program.
+    * @method
+    * @name program
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.program - program data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     program(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -26,24 +46,24 @@ module.exports = class Import {
                     _id: ObjectId(programData._id)
                 };
 
-                let programDocument = await database.models.programs.findOne(queryObject, { _id: 1 })
+                let programDocument = await database.models.programs.findOne(queryObject, { _id: 1 });
 
                 if (programDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Program already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.ROGRAM_EXISTS
                     });
                 }
 
-                programDocument = await database.models.programs.create(programData)
+                programDocument = await database.models.programs.create(programData);
                 return resolve({
-                    status: 200,
-                    message: "Program imported successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.PROGRAM_IMPORTED
                 });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -60,6 +80,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import solution.
+    * @method
+    * @name solution
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.solution - solution data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     solution(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -69,26 +98,26 @@ module.exports = class Import {
                     _id: ObjectId(solutionData._id)
                 };
 
-                let solutionDocument = await database.models.solutions.findOne(queryObject, { _id: 1 })
+                let solutionDocument = await database.models.solutions.findOne(queryObject, { _id: 1 });
 
                 if (solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Solution already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_EXISTS
                     });
                 }
 
-                solutionDocument = await database.models.solutions.create(evaluationFrameworkData)
+                solutionDocument = await database.models.solutions.create(evaluationFrameworkData);
 
                 return resolve({
-                    status: 200,
-                    message: "Solution imported successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.SOLUTION_IMPORTED
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -105,6 +134,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+    /**
+    * Import framework.
+    * @method
+    * @name framework
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.framework - framework data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     framework(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -115,26 +153,26 @@ module.exports = class Import {
                     _id: ObjectId(frameworkData._id)
                 };
 
-                let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 })
+                let frameworkDocument = await database.models.frameworks.findOne(queryObject, { _id: 1 });
 
                 if (frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "Framework already exist"
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_EXISTS
                     });
                 }
 
-                frameworkDocument = await database.models.frameworks.create(frameworkData)
+                frameworkDocument = await database.models.frameworks.create(frameworkData);
 
                 return resolve({
-                    status: 200,
-                    message: "Framework inserted successfully."
+                    status: httpStatusCode.ok.status,
+                    message: messageConstants.apiResponses.FRAMEWORK_INSERTED
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -151,6 +189,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+     /**
+    * Import criteria.
+    * @method
+    * @name criteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.criteria - criteria data.
+    * @returns {JSON} consists of message and status. 
+    */
+   
     criteria(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -158,12 +205,15 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.criteria.create(criteriaData);
 
-                let responseMessage = `Criterias inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage })
+                let responseMessage = messageConstants.apiResponses.CRITERIA_INSERTED;
+                return resolve({ 
+                    status: httpStatusCode.ok.status, 
+                    message: responseMessage 
+                });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -181,6 +231,15 @@ module.exports = class Import {
     * @apiUse errorBody
     */
 
+    /**
+    * Import questions.
+    * @method
+    * @name questions
+    * @param {Object} req - request data.
+    * @param {JSON} req.files.questions - questions data.
+    * @returns {JSON} consists of message and status. 
+    */
+
     questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -188,13 +247,16 @@ module.exports = class Import {
                 //need to implement JOI to validate json
                 await database.models.questions.create(questionData);
 
-                let responseMessage = `Questions inserted successfully.`;
-                return resolve({ status: 200, message: responseMessage })
+                let responseMessage = messageConstants.apiResponses.QUESTION_INSERTED;
+                return resolve({ 
+                    status: httpStatusCode.ok.status, 
+                    message: responseMessage 
+                });
             }
             catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

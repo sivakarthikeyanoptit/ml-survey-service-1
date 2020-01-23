@@ -1,7 +1,27 @@
+/**
+ * name : reportsController.js
+ * author : Aman
+ * created-date : 22-Dec-2018
+ * Description : Reports related information.
+ */
+
+// Dependencies
 let moment = require("moment");
 const filesHelper = require(MODULES_BASE_PATH + "/files/helper");
 
-module.exports = class reportsHelper {
+/**
+    * ReportsHelper
+    * @class
+*/
+module.exports = class ReportsHelper {
+
+    /**
+   * Convert gmt to ist.
+   * @method
+   * @name gmtToIst
+   * @param {TimeRanges} gmtTime - gmtTime
+   * @returns {TimeRanges} - converted gmtTime to ist
+   */
 
     static gmtToIst(gmtTime) {
         try {
@@ -22,14 +42,20 @@ module.exports = class reportsHelper {
 
     }
 
+  /**
+   * Convert gmt to ist.
+   * @method
+   * @name getFilePublicBaseUrl
+   * @returns {String} - public base url
+   */
 
     static getFilePublicBaseUrl() {
         return new Promise(async (resolve, reject) => {
             try {
 
-            const url = filesHelper.getFilePublicBaseUrl()
+            const url = filesHelper.getFilePublicBaseUrl();
 
-            return resolve(url)
+            return resolve(url);
 
             } catch (error) {
                 return reject(error);

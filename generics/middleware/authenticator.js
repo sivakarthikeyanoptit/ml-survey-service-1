@@ -111,7 +111,7 @@ module.exports = async function (req, res, next) {
   if (req.path.includes("solutionDetails") && (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN)) {
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
     rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.unauthorized;
+    rspObj.responseCode = responseCode.unauthorized.status;
     return res.status(401).send(respUtil(rspObj));
   }
 
@@ -164,7 +164,7 @@ module.exports = async function (req, res, next) {
     console.error("Token Not Found!!");
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
     rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.unauthorized;
+    rspObj.responseCode = responseCode.unauthorized.status;
     return res.status(401).send(respUtil(rspObj));
   }
 
@@ -190,7 +190,7 @@ module.exports = async function (req, res, next) {
     if (err) {
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
-      rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
+      rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS.status;
       tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION WITH KEYCLOAK FAILED")
       return res.status(401).send(respUtil(rspObj));
     } else {
@@ -213,7 +213,7 @@ module.exports = async function (req, res, next) {
             tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION - FAILED TO GET USER DETAIL FROM LEARNER SERVICE")
             rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
             rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
-            rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
+            rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS.status;
             return res.status(401).send(respUtil(rspObj));
           }
         })

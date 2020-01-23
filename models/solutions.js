@@ -38,6 +38,7 @@ module.exports = {
     parentSolutionId: "ObjectId",
     noOfRatingLevels: Number,
     isRubricDriven: { type : Boolean, default: false },
+    enableQuestionReadOut: { type : Boolean, default: false },
     isReusable: Boolean,
     roles: Object,
     observationMetaFormKey: String,

@@ -1,6 +1,19 @@
+/**
+ * name : programsController.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : Programs related information
+ */
+
+// Dependencies
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 const insightsHelper = require(MODULES_BASE_PATH + "/insights/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+
+/**
+    * Programs
+    * @class
+*/
 module.exports = class Programs extends Abstract {
 
   constructor() {
@@ -41,6 +54,13 @@ module.exports = class Programs extends Abstract {
   * @apiUse errorBody
   */
 
+    /**
+   * List programs.
+   * @method
+   * @name list
+   * @returns {JSON} - List of programs
+   */
+
   async list(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -65,16 +85,16 @@ module.exports = class Programs extends Abstract {
               "assessments.description": 1
             }
           }
-        ])
+        ]);
 
         if (!programDocument) {
           return reject({
-            status: 404,
-            message: "No programs data"
-          })
+            status: httpStatusCode.not_found.status,
+            message: messageConstants.apiResponses.PROGRAM_NOT_FOUND
+          });
         }
 
-        let response = { message: "Program information list fetched successfully.", result: programDocument };
+        let response = { message: messageConstants.apiResponses.PROGRAM_LIST, result: programDocument };
 
         return resolve(response);
 
@@ -112,6 +132,15 @@ module.exports = class Programs extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * List of entity.
+   * @method
+   * @name entityList
+   * @param req - request data.
+   * @param req.query.solutionId -solutionId
+   * @returns {JSON} - Entity list.
+   */
+
   async entityList(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -120,7 +149,7 @@ module.exports = class Programs extends Abstract {
 
         let result = {};
 
-        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, { "entities": 1 }).lean()
+        let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, { "entities": 1 }).lean();
 
         let limitValue = (!req.pageSize) ? "" : req.pageSize;
         let skipValue = (!req.pageNo) ? "" : (req.pageSize * (req.pageNo - 1));
@@ -137,14 +166,14 @@ module.exports = class Programs extends Abstract {
 
         let totalCount = await database.models.entities.countDocuments(queryObject);
 
-        let submissionDocument = await database.models.submissions.find({ entityId: { $in: entityDocuments.map(entity => entity._id) } }, { status: 1, entityId: 1 }).lean()
+        let submissionDocument = await database.models.submissions.find({ entityId: { $in: entityDocuments.map(entity => entity._id) } }, { status: 1, entityId: 1 }).lean();
 
         let submissionEntityMap = _.keyBy(submissionDocument, 'entityId');
 
         result["totalCount"] = totalCount;
 
         result["entityInformation"] = entityDocuments.map(eachEntityDocument => {
-          let status = submissionEntityMap[eachEntityDocument._id.toString()] ? submissionEntityMap[eachEntityDocument._id.toString()].status : ""
+          let status = submissionEntityMap[eachEntityDocument._id.toString()] ? submissionEntityMap[eachEntityDocument._id.toString()].status : "";
           return {
             "externalId": eachEntityDocument.metaInformation.externalId,
             "addressLine1": eachEntityDocument.metaInformation.addressLine1,
@@ -152,14 +181,14 @@ module.exports = class Programs extends Abstract {
             "administration": eachEntityDocument.metaInformation.administration,
             "status": submissionsHelper.mapSubmissionStatus(status) || status
           }
-        })
+        });
 
-        return resolve({ message: "List of entities fetched successfully", result: result })
+        return resolve({ message: messageConstants.apiResponses.ENTITY_LIST, result: result });
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message
         })
       }
     })
@@ -192,6 +221,16 @@ module.exports = class Programs extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   */
+
+   /**
+   * List of entity assigned to logged in user.
+   * @method
+   * @name userEntityList
+   * @param req - request data.
+   * @param req.query.solutionId -solutionId
+   * @param req.userDetails.userId - logged in user id. 
+   * @returns {JSON} - Logged in user entity list.
+   */
 
   async userEntityList(req) {
     return new Promise(async (resolve, reject) => {
@@ -233,16 +272,16 @@ module.exports = class Programs extends Abstract {
           }
         ];
 
-        const assessorsDocument = await database.models.entityAssessors.aggregate(entityAssessorQueryObject)
+        const assessorsDocument = await database.models.entityAssessors.aggregate(entityAssessorQueryObject);
 
-        let entityIds = assessorsDocument[0].entityDocuments.map(eachEntityDocument => eachEntityDocument._id)
+        let entityIds = assessorsDocument[0].entityDocuments.map(eachEntityDocument => eachEntityDocument._id);
 
         let insightDocument = await insightsHelper.insightsDocument(solutionDocument.programExternalId, entityIds);
 
-        let singleEntityDrillDown
+        let singleEntityDrillDown;
 
         if (insightDocument.length > 0) {
-          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId)
+          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId);
 
           singleEntityDrillDown = solutionDocument ? true : false;
 
@@ -250,19 +289,19 @@ module.exports = class Programs extends Abstract {
 
         assessorsDocument[0].entityDocuments.forEach(eachEntityDocument => {
           if (insightDocument.length > 0 && insightDocument.some(eachInsight => eachInsight.entityId.toString() == eachEntityDocument._id.toString())) {
-            eachEntityDocument["isSingleEntityHighLevel"] = true
-            eachEntityDocument["isSingleEntityDrillDown"] = singleEntityDrillDown
+            eachEntityDocument["isSingleEntityHighLevel"] = true;
+            eachEntityDocument["isSingleEntityDrillDown"] = singleEntityDrillDown;
           } else {
-            eachEntityDocument["isSingleEntityHighLevel"] = false
-            eachEntityDocument["isSingleEntityDrillDown"] = false
+            eachEntityDocument["isSingleEntityHighLevel"] = false;
+            eachEntityDocument["isSingleEntityDrillDown"] = false;
           }
-          eachEntityDocument = _.merge(eachEntityDocument, { ...eachEntityDocument.metaInformation })
-          delete eachEntityDocument.metaInformation
+          eachEntityDocument = _.merge(eachEntityDocument, { ...eachEntityDocument.metaInformation });
+          delete eachEntityDocument.metaInformation;
         })
 
 
         return resolve({
-          message: "Entity list fetched successfully",
+          message: messageConstants.apiResponses.ENTITY_LIST,
           result: {
             entities: assessorsDocument[0].entityDocuments
           }
@@ -270,8 +309,8 @@ module.exports = class Programs extends Abstract {
 
       } catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
@@ -315,11 +354,23 @@ module.exports = class Programs extends Abstract {
   * @apiUse errorBody
   */
 
+   /**
+   * List of assessors.
+   * @method
+   * @name userList
+   * @param req - request data.
+   * @param req.query.solutionId -solution id
+   * @param req.searchText - searched text based on assessorName and assessorExternalId.
+   * @param req.pageSize - page size limit.  
+   * @param req.pageNo - page no.
+   * @returns {JSON} - Logged in user entity list.
+   */
+
   async userList(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let solutionId = req.query.solutionId
+        let solutionId = req.query.solutionId;
         let assessorName = {};
         let assessorExternalId = {};
 
@@ -373,27 +424,29 @@ module.exports = class Programs extends Abstract {
               ],
             }
           },
-        ])
+        ]);
 
-        if (!solutionDocument) throw "Bad request";
+        if (!solutionDocument) {
+          throw "Bad request";
+        }
 
         let result = {};
 
         result["totalCount"] = solutionDocument[0].totalCount[0].count;
 
-        result["assessorInformation"] = solutionDocument[0].assessorInformationData.map(eachAssessor => eachAssessor.assessorInformation)
+        result["assessorInformation"] = solutionDocument[0].assessorInformationData.map(eachAssessor => eachAssessor.assessorInformation);
 
         return resolve({
-          message: "List of assessors fetched successfully",
+          message: messageConstants.apiResponses.ASSESSOR_LIST,
           result: result
-        })
+        });
 
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
-        })
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+        });
       }
     })
   }
@@ -425,17 +478,28 @@ module.exports = class Programs extends Abstract {
   * @apiUse errorBody
   */
 
+    /**
+   * Entity associated with block.
+   * @method
+   * @name entityBlocks
+   * @param req - request data.
+   * @param req.query.solutionId -solution id
+   * @returns {JSON} - List of entity blocks.
+   */
+
   async entityBlocks(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let solutionId = req.query.solutionId
+        let solutionId = req.query.solutionId;
 
         let solutionDocument = await database.models.solutions.findOne({ _id: ObjectId(solutionId) }, {
           _id: 1, "entities": 1
         }).lean();
 
-        if (!solutionDocument) throw "Bad request"
+        if (!solutionDocument) {
+          throw httpStatusCode.bad_request.message;
+        }
 
         let distinctEntityBlocks = await database.models.entities.distinct('metaInformation.blockId', { _id: { $in: solutionDocument.entities } }).lean();
 
@@ -445,19 +509,19 @@ module.exports = class Programs extends Abstract {
           return {
             id: zoneId,
             label: 'Zone - ' + zoneId
-          }
+          };
         })
 
         return resolve({
-          message: "List of zones fetched successfully",
+          message: messageConstants.apiResponses.ZONE_LIST,
           result: result
-        })
+        });
 
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         })
       }
     })
@@ -492,6 +556,16 @@ module.exports = class Programs extends Abstract {
   * @apiUse errorBody
   */
 
+     /**
+   * List of entity in one particular block.
+   * @method
+   * @name blockEntity
+   * @param req - request data.
+   * @param req.query.solutionId -solution id
+   * @param req.query.blockId -block id 
+   * @returns {JSON} - List of entity blocks.
+   */
+
   async blockEntity(req) {
     return new Promise(async (resolve, reject) => {
       try {
@@ -503,7 +577,9 @@ module.exports = class Programs extends Abstract {
           _id: 1, "entities": 1, programExternalId: 1
         }).lean();
 
-        if (!solutionDocument) throw "Bad request"
+        if (!solutionDocument) {
+          throw httpStatusCode.bad_request.message;
+        }
 
         let entitiesInBlock = await database.models.entities.aggregate([
           {
@@ -525,14 +601,14 @@ module.exports = class Programs extends Abstract {
           }
         ])
 
-        let entitiesIdArray = entitiesInBlock.map(eachEntitiesInBlock => eachEntitiesInBlock._id)
+        let entitiesIdArray = entitiesInBlock.map(eachEntitiesInBlock => eachEntitiesInBlock._id);
 
         let insightDocument = await insightsHelper.insightsDocument(solutionDocument.programExternalId, entitiesIdArray);
 
-        let singleEntityDrillDown
+        let singleEntityDrillDown;
 
         if (insightDocument.length > 0) {
-          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId)
+          let solutionDocument = await solutionsHelper.checkIfSolutionIsRubricDriven(insightDocument[0].solutionId);
           singleEntityDrillDown = solutionDocument ? true : false;
         }
 
@@ -540,15 +616,15 @@ module.exports = class Programs extends Abstract {
 
         entitiesInBlock.forEach(eachEntityInBlock => {
           if (insightDocument.length > 0 && insightDocument.some(eachInsight => eachInsight.entityId.toString() == eachEntityInBlock._id.toString())) {
-            eachEntityInBlock["isSingleEntityHighLevel"] = true
-            eachEntityInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown
+            eachEntityInBlock["isSingleEntityHighLevel"] = true;
+            eachEntityInBlock["isSingleEntityDrillDown"] = singleEntityDrillDown;
           } else {
-            eachEntityInBlock["isSingleEntityHighLevel"] = false
-            eachEntityInBlock["isSingleEntityDrillDown"] = false
+            eachEntityInBlock["isSingleEntityHighLevel"] = false;
+            eachEntityInBlock["isSingleEntityDrillDown"] = false;
           }
         })
 
-        result["entities"] = entitiesInBlock
+        result["entities"] = entitiesInBlock;
 
         return resolve({
           message: "List of entities fetched successfully",
@@ -558,8 +634,8 @@ module.exports = class Programs extends Abstract {
       }
       catch (error) {
         return reject({
-          status: 400,
-          message: error
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
         })
       }
     })
