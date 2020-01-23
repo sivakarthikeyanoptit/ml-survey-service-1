@@ -24,6 +24,41 @@ module.exports = class Questions extends Abstract {
   }
 
   /**
+   * @api {post} /assessment/api/v1/questions/create Create Questions 
+   * @apiVersion 1.0.0
+   * @apiName Create Question
+   * @apiGroup Questions
+   * @apiUse successBody
+   * @apiUse errorBody
+   */
+
+  /**
+   * create questions.
+   * @method
+   * @name create
+   * @param {Object} req - requested data.
+   * @param {Object} req.body - requested question data. 
+   * @returns {Object} 
+   */
+
+  create(req){
+    return new Promise(async (resolve, reject) => {
+      try {
+        let questionDocuments = await questionsHelper.make(req.body);
+        return resolve({
+          result:questionDocuments
+        });
+
+      } catch (error) {
+        reject({
+          message: error
+        });
+      }
+    });
+  }
+
+
+  /**
    * @api {post} /assessment/api/v1/questions/bulkCreate Bulk Create Questions CSV
    * @apiVersion 1.0.0
    * @apiName Bulk Create Questions CSV
