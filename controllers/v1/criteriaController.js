@@ -1,6 +1,18 @@
+/**
+ * name : criteriaController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Criteria related information.
+ */
+
+// Dependencies
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 
+ /**
+    * Criteria
+    * @class
+*/
 module.exports = class Criteria extends Abstract {
 
   constructor() {
@@ -21,14 +33,24 @@ module.exports = class Criteria extends Abstract {
   * @apiUse errorBody
   */
 
+  /**
+   * Insert bulk criteria.
+   * @method
+   * @name upload
+   * @param {Object} req - All requested Data.
+   * @param {Object} req.files - requested files.
+   * @returns {CSV} A CSV with name Criteria-Upload is saved inside 
+   * public/reports/currentDate
+   */
+
   async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
         if (!req.files || !req.files.criteria) {
-          throw "Csv file for criterias should be selected"
+          throw messageConstants.apiResponses.CRITERIA_FILE_NOT_FOUND;
         }
 
-        let criteriaData = await csv().fromString(req.files.criteria.data.toString())
+        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
 
         const fileName = `Criteria-Upload`;
         let fileStream = new FileStream(fileName);
@@ -45,20 +67,20 @@ module.exports = class Criteria extends Abstract {
 
         await Promise.all(criteriaData.map(async criteria => {
 
-          let csvData = {}
-          let rubric = {}
-          let parsedCriteria = gen.utils.valueParser(criteria)
+          let csvData = {};
+          let rubric = {};
+          let parsedCriteria = gen.utils.valueParser(criteria);
 
-          rubric.name = parsedCriteria.criteriaName
-          rubric.description = parsedCriteria.criteriaName
-          rubric.type = parsedCriteria.type
-          rubric.expressionVariables = {}
+          rubric.name = parsedCriteria.criteriaName;
+          rubric.description = parsedCriteria.criteriaName;
+          rubric.type = parsedCriteria.type;
+          rubric.expressionVariables = {};
           rubric.levels = {};
           let countLabel = 1;
 
           Object.keys(parsedCriteria).forEach(eachCriteriaKey => {
 
-            let regExpForLevels = /^L+[0-9]/
+            let regExpForLevels = /^L+[0-9]/;
             if (regExpForLevels.test(eachCriteriaKey)) {
 
               let label = "Level " + countLabel++;
@@ -68,7 +90,7 @@ module.exports = class Criteria extends Abstract {
                 label: label,
                 description: parsedCriteria[eachCriteriaKey],
                 expression: ""
-              }
+              };
             }
           })
 
@@ -152,25 +174,25 @@ module.exports = class Criteria extends Abstract {
             criteriaStructure
           );
 
-          csvData["Criteria Name"] = parsedCriteria.criteriaName
-          csvData["Criteria External Id"] = parsedCriteria.criteriaID
+          csvData["Criteria Name"] = parsedCriteria.criteriaName;
+          csvData["Criteria External Id"] = parsedCriteria.criteriaID;
 
           if (criteriaDocuments._id) {
-            csvData["Criteria Internal Id"] = criteriaDocuments._id
+            csvData["Criteria Internal Id"] = criteriaDocuments._id;
           } else {
-            csvData["Criteria Internal Id"] = "Not inserted"
+            csvData["Criteria Internal Id"] = "Not inserted";
           }
 
-          input.push(csvData)
+          input.push(csvData);
         }))
 
-        input.push(null)
+        input.push(null);
 
       }
       catch (error) {
         return reject({
-          status: 500,
-          message: error,
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         });
       }
