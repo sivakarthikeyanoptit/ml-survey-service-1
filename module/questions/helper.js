@@ -728,4 +728,33 @@ module.exports = class QuestionsHelper {
     });
   }
 
+  /**
+   * Create Question data.
+   * @method
+   * @name create
+   * @param {Object} questionData -question documents         
+   * @returns {Array} question data.  
+   */
+
+  static make(questionData) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let createQuestion;
+        if( Array.isArray(questionData) && questionData.length > 0 ) {
+          let questions = await database.models.questions.insertMany(
+            questionData
+          );
+          createQuestion = questions;
+        } else {
+          createQuestion = await database.models.questions.create(
+            questionData
+          );
+        }
+        return resolve(createQuestion);
+      } catch(error) {
+        return reject(error);
+      }
+    }) 
+  }
+
 };

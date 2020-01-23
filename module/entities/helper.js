@@ -123,7 +123,7 @@ module.exports = class EntitiesHelper {
                     entity.metaInformation.entityTypeId = entity.entityTypeId;
                     entity.metaInformation.subEntityGroups = new Array;
 
-                    Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                    entity.groups && Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
                         if (entity.groups[immediateChildrenEntityType]) {
                             entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
                             entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
