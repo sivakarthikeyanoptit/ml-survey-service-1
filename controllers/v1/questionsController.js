@@ -24,13 +24,48 @@ module.exports = class Questions extends Abstract {
   }
 
   /**
-   * @api {post} /assessment/api/v1/questions/bulkCreate Bulk Create Questions CSV
+   * @api {post} /assessment/api/v1/questions/create Create Questions 
    * @apiVersion 1.0.0
-   * @apiName Bulk Create Questions CSV
+   * @apiName Create Question
    * @apiGroup Questions
-   * @apiParam {File} questions Mandatory questions file of type CSV.
    * @apiUse successBody
    * @apiUse errorBody
+   */
+
+  /**
+   * create questions.
+   * @method
+   * @name create
+   * @param {Object} req - requested data.
+   * @param {Object} req.body - requested question data. 
+   * @returns {Object} 
+   */
+
+  create(req){
+    return new Promise(async (resolve, reject) => {
+      try {
+        let questionDocuments = await questionsHelper.make(req.body);
+        return resolve({
+          result:questionDocuments
+        });
+
+      } catch (error) {
+        reject({
+          message: error
+        });
+      }
+    });
+  }
+
+
+  /**
+   * Bulk create questions.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.questions - questions csv data. 
+   * @returns {CSV} - Same existing csv with extra field _SYSTEM_ID to indicate 
+   * whether the question is created or not . If created question id will be provided. 
    */
 
   /**

@@ -101,4 +101,35 @@ module.exports = class criteriaHelper {
         });
     }
 
+     /**
+    * Create criteria
+    * @method
+    * @name create
+    * @param {Object} criteriaData - criteria data to insert 
+    * @returns {Array} - returns created criteria.
+    */
+
+    static create(criteriaData) {
+        return new Promise(async (resolve, reject) => {
+          try {
+            let criteriaDocuments;
+            if( Array.isArray(criteriaData) && criteriaData.length > 0 ) {
+              criteriaDocuments = await database.models.criteria.insertMany(
+                criteriaData
+              );
+
+            } else {
+              criteriaDocuments = await database.models.criteria.create(
+                criteriaData
+              );
+            }
+
+            return resolve(criteriaDocuments);
+            
+          } catch (error) {
+            return reject(error)
+          }
+        })
+    }
+
 };
