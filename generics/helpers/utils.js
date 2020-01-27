@@ -164,18 +164,33 @@ function arrayIdsTobjectIds(ids) {
   return ids.map(id => ObjectId(id));
 }
 
+function checkIfEnvDataExistsOrNot(data){
+  
+  let value;
+
+  if(process.env[data] && process.env[data] !== ""){
+    value  = process.env[data];
+  } else {
+    let defaultEnv = "DEFAULT_"+data;
+    value = process.env[defaultEnv];
+  }
+
+  return value;
+}
+
 module.exports = {
-  camelCaseToTitleCase: camelCaseToTitleCase,
-  lowerCase: lowerCase,
-  checkIfStringIsUrl: checkIfStringIsUrl,
-  generateRandomCharacters: generateRandomCharacters,
-  getCriteriaIds: getCriteriaIds,
-  getUserRole: getUserRole,
-  getReadableUserRole: getReadableUserRole,
-  mapUserRole: mapUserRole,
-  valueParser: valueParser,
-  getAllQuestionId: getAllQuestionId,
-  getCriteriaIdsAndWeightage: getCriteriaIdsAndWeightage,
-  assessmentRoles: assessmentRoles,
-  arrayIdsTobjectIds: arrayIdsTobjectIds
+  camelCaseToTitleCase : camelCaseToTitleCase,
+  lowerCase : lowerCase,
+  checkIfStringIsUrl : checkIfStringIsUrl,
+  generateRandomCharacters : generateRandomCharacters,
+  getCriteriaIds : getCriteriaIds,
+  getUserRole : getUserRole,
+  getReadableUserRole : getReadableUserRole,
+  mapUserRole : mapUserRole,
+  valueParser : valueParser,
+  getAllQuestionId : getAllQuestionId,
+  getCriteriaIdsAndWeightage : getCriteriaIdsAndWeightage,
+  assessmentRoles : assessmentRoles,
+  arrayIdsTobjectIds : arrayIdsTobjectIds,
+  checkIfEnvDataExistsOrNot : checkIfEnvDataExistsOrNot
 };

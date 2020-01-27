@@ -56,6 +56,9 @@ const configuration = {
   },
   Kafka_Config: {
     host: process.env.KAFKA_URL || "10.160.0.8:9092",
+    consumerTopics: {
+      submissionRatingQueueTopic: process.env.SUBMISSION_RATING_QUEUE_TOPIC || "sl-submissions-rating-dev"
+    }
   },
   version: "1.0.0",
   URLPrefix: "/api/v1",

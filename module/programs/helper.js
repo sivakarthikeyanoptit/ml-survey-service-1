@@ -1,7 +1,26 @@
+/**
+ * name : programs/helper.js
+ * author : Akash
+ * created-date : 20-Jan-2019
+ * Description : Programs helper functionality
+ */
 
-module.exports = class programsHelper {
+/**
+    * ProgramsHelper
+    * @class
+*/
+module.exports = class ProgramsHelper {
 
-
+   /**
+   * List of programs.
+   * @method
+   * @name programDocument
+   * @param {Array} [programIds = "all"] - list of programIds.
+   * @param {Array} [fields = "all"] -projected data
+   * @param {Array} [pageIndex = "all"] - all page index.
+   * @param {Array} [pageSize = "all"] - page limit.
+   * @returns {JSON} - program document list.
+   */
 
   static programDocument(programIds = "all", fields = "all", pageIndex = "all", pageSize = "all") {
 
@@ -9,21 +28,21 @@ module.exports = class programsHelper {
 
       try {
 
-        let queryObject = {}
+        let queryObject = {};
 
         if (programIds != "all") {
           queryObject = {
             _id: {
               $in: programIds
             }
-          }
+          };
         }
 
-        let projectionObject = {}
+        let projectionObject = {};
 
         if (fields != "all") {
           fields.forEach(element => {
-            projectionObject[element] = 1
+            projectionObject[element] = 1;
           });
         }
 
@@ -35,9 +54,9 @@ module.exports = class programsHelper {
           limitingValue = pageSize;
         }
 
-        let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue)
+        let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue);
 
-        return resolve(programDocuments)
+        return resolve(programDocuments);
 
       } catch (error) {
 

@@ -4,15 +4,15 @@ module.exports = {
     entityId: "ObjectId",
     programId: "ObjectId",
     assessors: Array,
-    status: "String",
+    status: String,
     evidencesStatus: Array,
     evidences: Object,
     criteria: Array,
     themes: Array,
     answers: Object,
-    entityExternalId: "String",
+    entityExternalId: String,
     entityInformation: Object,
-    programExternalId: "String",
+    programExternalId: String,
     programInformation: Object,
     entityProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
@@ -27,9 +27,9 @@ module.exports = {
     submissionsUpdatedHistory: Array,
     ratingCompletedAt: Date,
     entityTypeId: "ObjectId",
-    entityType: "String",
-    pointsBasedMaxScore : Number,
-    pointsBasedScoreAchieved : Number,
-    pointsBasedPercentageScore : Number
+    entityType: String,
+    pointsBasedMaxScore : { type : Number, default: 0 },
+    pointsBasedScoreAchieved : { type : Number, default: 0 },
+    pointsBasedPercentageScore : { type : Number, default: 0 }
   }
 };

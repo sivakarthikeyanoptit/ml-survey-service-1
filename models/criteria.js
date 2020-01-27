@@ -8,7 +8,7 @@ module.exports = {
     name: String,
     score: String,
     remarks: String,
-    showRemarks: "boolean",
+    showRemarks: Boolean,
     description: String,
     resourceType: [String],
     language: [String],
@@ -19,7 +19,7 @@ module.exports = {
     rubric: Object,
     evidences: ["json"],
     flag: Object,
-    criteriaType: String,
+    criteriaType: { type : String, default: "manual" },
     frameworkCriteriaId : "ObjectId"
   }
 };

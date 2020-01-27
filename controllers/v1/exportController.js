@@ -1,5 +1,19 @@
-const filesHelper = require(ROOT_PATH + "/module/files/helper")
+/**
+ * name : exportController.js
+ * author : Akash
+ * created-date : 01-feb-2019
+ * Description : export program,solution,framework,criteria,questions so that later on
+ * we can import it.
+ */
 
+// Dependencies
+const filesHelper = require(MODULES_BASE_PATH + "/files/helper")
+
+
+/**
+    * Export
+    * @class
+*/
 module.exports = class Export {
 
     constructor() {
@@ -20,15 +34,24 @@ module.exports = class Export {
     * @apiUse errorBody
     */
 
+      /**
+    * Export program.
+    * @method
+    * @name program
+    * @param {Object} req - request data.
+    * @param {String} req.params._id - program id.
+    * @returns {JSON} export into json file.
+    */
+
     program(req) {
         return new Promise(async (resolve, reject) => {
             try {
-                let programId = req.params._id
+                let programId = req.params._id;
                 let programDocument = await database.models.programs.findOne({ externalId: programId });
                 if (!programDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No programs found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.PROGRAM_NOT_FOUND
                     });
                 }
 
@@ -38,8 +61,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -57,14 +80,23 @@ module.exports = class Export {
     * @apiUse errorBody
     */
 
+      /**
+    * Export solution.
+    * @method
+    * @name solution
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
+    */
+
     solution(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
@@ -74,8 +106,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -92,6 +124,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+      /**
+    * Export framework.
+    * @method
+    * @name framework
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - framework external id.
+    * @returns {JSON} export into json file. 
+    */
+
     framework(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -99,8 +141,8 @@ module.exports = class Export {
                 let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id });
                 if (!frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
                     });
                 }
 
@@ -110,8 +152,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -129,6 +171,15 @@ module.exports = class Export {
     * @apiUse errorBody
     */
 
+    /**
+    * Export framework criteria.
+    * @method
+    * @name frameworkCriteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - framework external id.
+    * @returns {JSON} export into json file. 
+    */
+
     frameworkCriteria(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -136,8 +187,8 @@ module.exports = class Export {
                 let frameworkDocument = await database.models.frameworks.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!frameworkDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No evaluationFramework found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
                     });
                 }
 
@@ -149,8 +200,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -167,6 +218,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+    /**
+    * Export solutionCriteria.
+    * @method
+    * @name solutionCriteria
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
+    */
+
     solutionCriteria(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -174,8 +235,8 @@ module.exports = class Export {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No solution found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
@@ -187,8 +248,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -205,6 +266,16 @@ module.exports = class Export {
     * @apiUse successBody
     * @apiUse errorBody
     */
+
+      /**
+    * Export questions.
+    * @method
+    * @name questions
+    * @param {Object} req - request data.
+    * @param {JSON} req.params._id - solution external id.
+    * @returns {JSON} export into json file. 
+    */
+
     questions(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -212,22 +283,22 @@ module.exports = class Export {
                 let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { themes: 1 });
                 if (!solutionDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No solution found for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     });
                 }
 
                 let filePath = await filesHelper.createFileWithName(`QuestionInSolution_${req.params._id}`);
                 let criteriaIds = gen.utils.getCriteriaIds(solutionDocument.themes);
 
-                let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: { $in: criteriaIds } })
+                let allCriteriaQuestionDocuments = await database.models.criteriaQuestions.find({ _id: { $in: criteriaIds } });
 
                 let allQuestions = [];
                 allCriteriaQuestionDocuments.forEach(singleCriteria => {
                     singleCriteria.evidences.forEach(singleEvidence => {
                         singleEvidence.sections.forEach(section => {
                             section.questions.forEach(question => {
-                                allQuestions.push(question)
+                                allQuestions.push(question);
                             })
                         })
                     })
@@ -237,8 +308,8 @@ module.exports = class Export {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

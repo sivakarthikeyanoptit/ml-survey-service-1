@@ -1,11 +1,24 @@
-const observationsHelper = require(ROOT_PATH + "/module/observations/helper")
-const entitiesHelper = require(ROOT_PATH + "/module/entities/helper")
-const assessmentsHelper = require(ROOT_PATH + "/module/assessments/helper")
-const solutionsHelper = require(ROOT_PATH + "/module/solutions/helper")
+/**
+ * name : observationsController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : Observations information.
+ */
+
+// Dependencies
+
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const assessorsHelper = require(ROOT_PATH + "/module/entityAssessors/helper")
+const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper")
 
+/**
+    * Observations
+    * @class
+*/
 module.exports = class Observations extends Abstract {
 
     constructor() {
@@ -44,48 +57,57 @@ module.exports = class Observations extends Abstract {
     ]
     */
 
+     /**
+   * Observation solutions.
+   * @method
+   * @name solutions
+   * @param {Object} req -request Data.
+   * @param {String} req.params._id - entity type id.
+   * @returns {JSON} - Solution Details.
+   */
+
     async solutions(req) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                let response = {}
-                let messageData
-                let matchQuery = {}
+                let response = {};
+                let messageData;
+                let matchQuery = {};
 
-                matchQuery["$match"] = {}
+                matchQuery["$match"] = {};
 
                 if (req.params._id) {
                     matchQuery["$match"]["entityTypeId"] = ObjectId(req.params._id);
                 }
 
-                matchQuery["$match"]["type"] = "observation"
-                matchQuery["$match"]["isReusable"] = true
-                matchQuery["$match"]["status"] = "active"
+                matchQuery["$match"]["type"] = "observation";
+                matchQuery["$match"]["isReusable"] = true;
+                matchQuery["$match"]["status"] = "active";
 
-                matchQuery["$match"]["$or"] = []
-                matchQuery["$match"]["$or"].push({ "name": new RegExp(req.searchText, 'i') }, { "description": new RegExp(req.searchText, 'i') }, { "keywords": new RegExp(req.searchText, 'i') })
+                matchQuery["$match"]["$or"] = [];
+                matchQuery["$match"]["$or"].push({ "name": new RegExp(req.searchText, 'i') }, { "description": new RegExp(req.searchText, 'i') }, { "keywords": new RegExp(req.searchText, 'i') });
 
-                let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo)
+                let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo);
 
 
-                messageData = "Solutions fetched successfully"
+                messageData = messageConstants.apiResponses.SOLUTION_FETCHED;
 
                 if (!solutionDocument[0].count) {
-                    solutionDocument[0].count = 0
-                    messageData = "Solution is not found"
+                    solutionDocument[0].count = 0;
+                    messageData = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
                 }
 
-                response.result = solutionDocument
-                response["message"] = messageData
+                response.result = solutionDocument;
+                response["message"] = messageData;
 
                 return resolve(response);
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -119,6 +141,14 @@ module.exports = class Observations extends Abstract {
     ]
     */
 
+     /**
+   * Observation meta form.
+   * @method
+   * @name metaForm
+   * @param {Object} req -request Data.
+   * @returns {JSON} - Observation meta form.
+   */
+
     async metaForm(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -134,21 +164,24 @@ module.exports = class Observations extends Abstract {
 
 
                 if (!solutionsData._id) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage })
+                    let responseMessage = httpStatusCode.bad_request.message;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let observationsMetaForm = await database.models.forms.findOne({ "name": (solutionsData.observationMetaFormKey && solutionsData.observationMetaFormKey != "") ? solutionsData.observationMetaFormKey : "defaultObservationMetaForm" }, { value: 1 }).lean();
 
                 return resolve({
-                    message: "Observation meta fetched successfully.",
+                    message: messageConstants.apiResponses.OBSERVATION_META_FETCHED,
                     result: observationsMetaForm.value
                 });
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -177,6 +210,14 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+     
+    /**
+    * Create Observation.
+    * @method
+    * @name create
+    * @param {Object} req -request Data.
+    * @returns {JSON} - Created observation data.
+    */
 
     create(req) {
         return new Promise(async (resolve, reject) => {
@@ -186,17 +227,17 @@ module.exports = class Observations extends Abstract {
                 let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
 
                 return resolve({
-                    message: "Observation created successfully.",
+                    message: messageConstants.apiResponses.OBSERVATION_CREATED,
                     result: result
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! something went wrong.",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
-                })
+                });
 
             }
 
@@ -212,9 +253,50 @@ module.exports = class Observations extends Abstract {
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/observations/list
+     * @apiParamExample {json} Response:
+        "result": [
+            {
+                "_id": "5d09c34d1f7fd5a2391f7251",
+                "entities": [],
+                "name": "Observation 1",
+                "description": "Observation Description",
+                "status": "published",
+                "solutionId": "5b98fa069f664f7e1ae7498c"
+            },
+            {
+                "_id": "5d1070326f6ed50bc34aec2c",
+                "entities": [
+                    {
+                        "_id": "5cebbefe5943912f56cf8e16",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    },
+                    {
+                        "_id": "5cebbf275943912f56cf8e18",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    }
+                ],
+                "status": "published",
+                "endDate": "2019-06-24T00:00:00.000Z",
+                "name": "asdasd",
+                "description": "asdasdasd",
+                "solutionId": "5c6bd309af0065f0e0d4223b"
+            }
+        ]
      * @apiUse successBody
      * @apiUse errorBody
      */
+
+    /**
+    * List Observation.
+    * @method
+    * @name list
+    * @param {Object} req -request Data.
+    * @returns {JSON} - List observation data.
+    */
 
     async list(req) {
 
@@ -224,92 +306,9 @@ module.exports = class Observations extends Abstract {
 
                 let observations = new Array;
 
-                let assessorObservationsQueryObject = [
-                    {
-                        $match: {
-                            createdBy: req.userDetails.userId,
-                            status: { $ne: "inactive" }
-                        }
-                    },
-                    {
-                        $lookup: {
-                            from: "entities",
-                            localField: "entities",
-                            foreignField: "_id",
-                            as: "entityDocuments"
-                        }
-                    },
-                    {
-                        $project: {
-                            "name": 1,
-                            "description": 1,
-                            "entities": 1,
-                            "startDate": 1,
-                            "endDate": 1,
-                            "status": 1,
-                            "solutionId": 1,
-                            "entityDocuments._id": 1,
-                            "entityDocuments.metaInformation.externalId": 1,
-                            "entityDocuments.metaInformation.name": 1
-                        }
-                    }
-                ];
-
-                const userObservations = await database.models.observations.aggregate(assessorObservationsQueryObject)
-
-                let observation
-                let submissions
-                let entityObservationSubmissionStatus
-
-                for (let pointerToAssessorObservationArray = 0; pointerToAssessorObservationArray < userObservations.length; pointerToAssessorObservationArray++) {
-
-                    observation = userObservations[pointerToAssessorObservationArray];
-
-
-                    submissions = await database.models.observationSubmissions.find(
-                        {
-                            entityId: {
-                                $in: observation.entities
-                            },
-                            observationId: observation._id
-                        },
-                        {
-                            "criteria": 0,
-                            "evidences": 0,
-                            "answers": 0
-                        }
-                    )
-
-                    let observationEntitySubmissions = {}
-                    submissions.forEach(observationEntitySubmission => {
-                        if (!observationEntitySubmissions[observationEntitySubmission.entityId.toString()]) {
-                            observationEntitySubmissions[observationEntitySubmission.entityId.toString()] = {
-                                submissionStatus: "",
-                                submissions: new Array,
-                                entityId: observationEntitySubmission.entityId.toString()
-                            }
-                        }
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissionStatus = observationEntitySubmission.status
-                        observationEntitySubmissions[observationEntitySubmission.entityId.toString()].submissions.push(observationEntitySubmission)
-                    })
-
-                    // entityObservationSubmissionStatus = submissions.reduce(
-                    //     (ac, entitySubmission) => ({ ...ac, [entitySubmission.entityId.toString()]: {submissionStatus:(entitySubmission.entityId && entitySubmission.status) ? entitySubmission.status : "pending"} }), {})
-
-
-                    observation.entities = new Array
-                    observation.entityDocuments.forEach(observationEntity => {
-                        observation.entities.push({
-                            _id: observationEntity._id,
-                            submissionStatus: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissionStatus : "pending",
-                            submissions: (observationEntitySubmissions[observationEntity._id.toString()]) ? observationEntitySubmissions[observationEntity._id.toString()].submissions : new Array,
-                            ...observationEntity.metaInformation
-                        })
-                    })
-                    observations.push(_.omit(observation, ["entityDocuments"]))
-                }
-
-                let responseMessage = "Observation list fetched successfully"
+                observations = await observationsHelper.list(req.userDetails.userId);
+                
+                let responseMessage = messageConstants.apiResponses.OBSERVATION_LIST;
 
                 return resolve({
                     message: responseMessage,
@@ -318,8 +317,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -333,7 +332,7 @@ module.exports = class Observations extends Abstract {
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
      * @apiGroup Observations
-    * @apiParamExample {json} Request-Body:
+     * @apiParamExample {json} Request-Body:
      * {
      *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
      * }
@@ -341,6 +340,14 @@ module.exports = class Observations extends Abstract {
      * @apiUse errorBody
      */
 
+    /**
+    * Add entity to observation.
+    * @method
+    * @name addEntityToObservation
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -Observation id. 
+    * @returns {JSON} message - regarding either entity is added to observation or not.
+    */
 
     async addEntityToObservation(req) {
 
@@ -348,7 +355,7 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                let responseMessage = "Updated successfully."
+                let responseMessage = "Updated successfully.";
 
                 let observationDocument = await database.models.observations.findOne(
                     {
@@ -360,16 +367,17 @@ module.exports = class Observations extends Abstract {
                         entityTypeId: 1,
                         status: 1
                     }
-                ).lean()
+                ).lean();
 
                 if (observationDocument.status != "published") {
                     return resolve({
-                        status: 400,
-                        message: "Observation already completed or not published."
-                    })
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
+                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
+                    });
                 }
 
-                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId)
+                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId);
 
                 if (entitiesToAdd.entityIds.length > 0) {
                     await database.models.observations.updateOne(
@@ -384,18 +392,18 @@ module.exports = class Observations extends Abstract {
 
 
                 if (entitiesToAdd.entityIds.length != req.body.data.length) {
-                    responseMessage = "Not all entities are updated."
+                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
                 }
 
                 return resolve({
                     message: responseMessage
-                })
+                });
 
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -418,6 +426,15 @@ module.exports = class Observations extends Abstract {
      */
 
 
+    /**
+    * Remove entity from observation.
+    * @method
+    * @name removeEntityFromObservation
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @returns {JSON} observation remoevable message
+    */
+
     async removeEntityFromObservation(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -438,14 +455,14 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Entity Removed successfully."
+                    message: messageConstants.apiResponses.ENTITY_REMOVED
                 })
 
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -464,24 +481,33 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
-     * {
-        "message": "Entities fetched successfully",
-        "status": 200,
-        "result": [
-            {
-                "data": [
-                    {
-                        "_id": "5c5b1581e7e84d1d1be9175f",
-                        "name": "Vijaya krishna.T",
-                        "selected": false
-                    }
-                ],
-                "count": 435
-            }
-        ]
-    }
+        {
+            "message": "Entities fetched successfully",
+            "status": 200,
+            "result": [
+                {
+                    "data": [
+                        {
+                            "_id": "5c5b1581e7e84d1d1be9175f",
+                            "name": "Vijaya krishna.T",
+                            "selected": false
+                        }
+                    ],
+                    "count": 435
+                }
+            ]
+        }
      */
 
+
+    /**
+    * Search entities in observation.
+    * @method
+    * @name searchEntities
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @returns {JSON} List of entities in observations.
+    */
 
     async searchEntities(req) {
 
@@ -506,7 +532,12 @@ module.exports = class Observations extends Abstract {
                     }
                 ).lean();
 
-                if (!observationDocument) throw { status: 400, message: "Observation not found for given params." }
+                if (!observationDocument) {
+                    throw { 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND 
+                    }
+                }
 
                 let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
 
@@ -516,21 +547,21 @@ module.exports = class Observations extends Abstract {
                     eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                 })
 
-                let messageData = "Entities fetched successfully"
+                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if (!entityDocuments[0].count) {
-                    entityDocuments[0].count = 0
-                    messageData = "No entities found"
+                    entityDocuments[0].count = 0;
+                    messageData = messageConstants.apiResponses.ENTITY_NOT_FOUND;
                 }
-                response.result = entityDocuments
-                response["message"] = messageData
+                response.result = entityDocuments;
+                response["message"] = messageData;
 
                 return resolve(response);
 
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -552,6 +583,18 @@ module.exports = class Observations extends Abstract {
      * @apiUse successBody
      * @apiUse errorBody
      */
+
+     /**
+    * Assessment for observation.
+    * @method
+    * @name assessment
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @param {String} req.query.entityId - entity id.
+    * @param {String} req.query.submissionNumber - submission number 
+    * @returns {JSON} - Observation Assessment details.
+    */
+
     async assessment(req) {
 
         return new Promise(async (resolve, reject) => {
@@ -559,13 +602,18 @@ module.exports = class Observations extends Abstract {
             try {
 
                 let response = {
-                    message: "Assessment fetched successfully",
-                    result: {}
+                    message : messageConstants.apiResponses.ASSESSMENT_FETCHED,
+                    result : {}
                 };
 
                 let observationDocument = await database.models.observations.findOne({ _id: req.params._id, createdBy: req.userDetails.userId, status: { $ne: "inactive" }, entities: ObjectId(req.query.entityId) }).lean();
 
-                if (!observationDocument) return resolve({ status: 400, message: 'No observation found.' })
+                if (!observationDocument) {
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND 
+                    });
+                }
 
 
                 let entityQueryObject = { _id: req.query.entityId, entityType: observationDocument.entityType };
@@ -579,8 +627,11 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!entityDocument) {
-                    let responseMessage = 'No entity found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    let responseMessage = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
@@ -590,33 +641,22 @@ module.exports = class Observations extends Abstract {
                     status: "active",
                 };
 
+                let solutionDocumentProjectionFields = await observationsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
+
                 let solutionDocument = await database.models.solutions.findOne(
                     solutionQueryObject,
-                    {
-                        name: 1,
-                        externalId: 1,
-                        description: 1,
-                        themes: 1,
-                        entityProfileFieldsPerEntityTypes: 1,
-                        registry: 1,
-                        questionSequenceByEcm: 1,
-                        frameworkId: 1,
-                        frameworkExternalId: 1,
-                        roles: 1,
-                        evidenceMethods: 1,
-                        sections: 1,
-                        entityTypeId: 1,
-                        entityType: 1,
-                        captureGpsLocationAtQuestionLevel: 1
-                    }
+                    solutionDocumentProjectionFields
                 ).lean();
 
                 if (!solutionDocument) {
-                    let responseMessage = 'No solution found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    let responseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+                    return resolve({ 
+                        status:  httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
-                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles)
+                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
                 let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
 
                 let entityProfileForm = await database.models.entityTypes.findOne(
@@ -627,30 +667,33 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!entityProfileForm) {
-                    let responseMessage = 'No entity profile form found.';
-                    return resolve({ status: 400, message: responseMessage })
+                    let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 let form = [];
                 let entityDocumentTypes = (entityDocument.metaInformation.types) ? entityDocument.metaInformation.types : ["A1"];
                 let entityDocumentQuestionGroup = (entityDocument.metaInformation.questionGroup) ? entityDocument.metaInformation.questionGroup : ["A1"];
-                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes
+                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes;
                 let filteredFieldsToBeShown = [];
 
                 if (entityProfileFieldsPerEntityTypes) {
                     entityDocumentTypes.forEach(entityType => {
                         if (entityProfileFieldsPerEntityTypes[entityType]) {
-                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType])
+                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType]);
                         }
                     })
                 }
 
                 entityProfileForm.profileForm.forEach(profileFormField => {
                     if (filteredFieldsToBeShown.includes(profileFormField.field)) {
-                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : ""
+                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : "";
                         profileFormField.visible = profileFieldAccessibility ? (profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1) : true;
                         profileFormField.editable = profileFieldAccessibility ? (profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1) : true;
-                        form.push(profileFormField)
+                        form.push(profileFormField);
                     }
                 })
 
@@ -661,14 +704,9 @@ module.exports = class Observations extends Abstract {
                     form: form
                 };
 
-                response.result.solution = await _.pick(solutionDocument, [
-                    "_id",
-                    "externalId",
-                    "name",
-                    "description",
-                    "registry",
-                    "captureGpsLocationAtQuestionLevel"
-                ]);
+                let solutionDocumentFieldList = await observationsHelper.solutionDocumentFieldListInResponse()
+
+                response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
 
                 let submissionDocument = {
                     entityId: entityDocument._id,
@@ -696,15 +734,15 @@ module.exports = class Observations extends Abstract {
                 assessment.description = solutionDocument.description;
                 assessment.externalId = solutionDocument.externalId;
 
-                let criteriaId = new Array
-                let criteriaObject = {}
+                let criteriaId = new Array;
+                let criteriaObject = {};
                 let criteriaIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
 
                 criteriaIdArray.forEach(eachCriteriaId => {
-                    criteriaId.push(eachCriteriaId.criteriaId)
+                    criteriaId.push(eachCriteriaId.criteriaId);
                     criteriaObject[eachCriteriaId.criteriaId.toString()] = {
                         weightage: eachCriteriaId.weightage
-                    }
+                    };
                 })
 
                 let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
@@ -722,16 +760,20 @@ module.exports = class Observations extends Abstract {
                 let submissionDocumentEvidences = {};
                 let submissionDocumentCriterias = [];
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
-                    solutionDocument.evidenceMethods[solutionEcm].startTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].endTime = ""
-                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false
-                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array
+                    if(!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
+                        solutionDocument.evidenceMethods[solutionEcm].startTime = "";
+                        solutionDocument.evidenceMethods[solutionEcm].endTime = "";
+                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false;
+                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array;
+                    } else {
+                        delete solutionDocument.evidenceMethods[solutionEcm];
+                    }
                 })
-                submissionDocumentEvidences = solutionDocument.evidenceMethods
+                submissionDocumentEvidences = solutionDocument.evidenceMethods;
 
                 criteriaQuestionDocument.forEach(criteria => {
 
-                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage
+                    criteria.weightage = criteriaObject[criteria._id.toString()].weightage;
 
                     submissionDocumentCriterias.push(
                         _.omit(criteria, [
@@ -741,12 +783,12 @@ module.exports = class Observations extends Abstract {
 
                     criteria.evidences.forEach(evidenceMethod => {
 
-                        if (evidenceMethod.code) {
+                        if (submissionDocumentEvidences[evidenceMethod.code] && evidenceMethod.code) {
 
                             if (!evidenceMethodArray[evidenceMethod.code]) {
 
                                 evidenceMethod.sections.forEach(ecmSection => {
-                                    ecmSection.name = solutionDocument.sections[ecmSection.code]
+                                    ecmSection.name = solutionDocument.sections[ecmSection.code];
                                 })
                                 _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code])
                                 evidenceMethodArray[evidenceMethod.code] = evidenceMethod;
@@ -768,7 +810,7 @@ module.exports = class Observations extends Abstract {
                                     });
 
                                     if (!sectionExisitsInEvidenceMethod) {
-                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code]
+                                        evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code];
                                         evidenceMethodArray[evidenceMethod.code].sections.push(evidenceMethodSection);
                                     } else {
                                         evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {
@@ -819,8 +861,8 @@ module.exports = class Observations extends Abstract {
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -830,16 +872,25 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
-   * @apiVersion 1.0.0
-   * @apiName Mark As Completed
-   * @apiGroup Observations
-   * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiSampleRequest /assessment/api/v1/observations/complete/:observationId
-   * @apiUse successBody
-   * @apiUse errorBody
-   */
+     * @api {get} /assessment/api/v1/observations/complete/:observationId Mark As Completed
+     * @apiVersion 1.0.0
+     * @apiName Mark As Completed
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/complete/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
 
+
+      /**
+    * Observation mark as complete.
+    * @method
+    * @name complete
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @returns {JSON} 
+    */
 
     async complete(req) {
 
@@ -861,13 +912,13 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Observation marked as completed."
+                    message: messageConstants.apiResponses.OBSERVATION_MARKED_COMPLETE
                 })
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -889,20 +940,30 @@ module.exports = class Observations extends Abstract {
      * @apiUse errorBody
      */
 
+    /**
+    * Import observation from framework.
+    * @method
+    * @name importFromFramework
+    * @param {Object} req -request Data.
+    * @param {String} req.query.frameworkId -framework id.
+    * @param {String} req.query.entityType - entity type name.   
+    * @returns {JSON} 
+    */
+
     async importFromFramework(req) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
-                    throw "Invalid parameters."
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let frameworkDocument = await database.models.frameworks.findOne({
                     externalId: req.query.frameworkId
-                }).lean()
+                }).lean();
 
                 if (!frameworkDocument._id) {
-                    throw "Invalid parameters."
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({
@@ -911,82 +972,82 @@ module.exports = class Observations extends Abstract {
                 }, {
                         _id: 1,
                         name: 1
-                    }).lean()
+                    }).lean();
 
                 if (!entityTypeDocument._id) {
-                    throw "Invalid parameters."
+                    throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
                 let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
                 let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
 
-                let solutionCriteriaToFrameworkCriteriaMap = {}
+                let solutionCriteriaToFrameworkCriteriaMap = {};
 
                 await Promise.all(frameworkCriteria.map(async (criteria) => {
-                    criteria.frameworkCriteriaId = criteria._id
+                    criteria.frameworkCriteriaId = criteria._id;
 
-                    let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]))
+                    let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
 
                     if (newCriteriaId._id) {
-                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id
+                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
                     }
                 }))
 
 
                 let updateThemes = function (themes) {
                     themes.forEach(theme => {
-                        let criteriaIdArray = new Array
-                        let themeCriteriaToSet = new Array
+                        let criteriaIdArray = new Array;
+                        let themeCriteriaToSet = new Array;
                         if (theme.children) {
                             updateThemes(theme.children);
                         } else {
                             criteriaIdArray = theme.criteria;
                             criteriaIdArray.forEach(eachCriteria => {
-                                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId
-                                themeCriteriaToSet.push(eachCriteria)
+                                eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                                themeCriteriaToSet.push(eachCriteria);
                             })
-                            theme.criteria = themeCriteriaToSet
+                            theme.criteria = themeCriteriaToSet;
                         }
                     })
                     return true;
                 }
 
-                let newSolutionDocument = _.cloneDeep(frameworkDocument)
+                let newSolutionDocument = _.cloneDeep(frameworkDocument);
 
-                updateThemes(newSolutionDocument.themes)
+                updateThemes(newSolutionDocument.themes);
 
-                newSolutionDocument.type = "observation"
-                newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name
+                newSolutionDocument.type = "observation";
+                newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name;
 
-                newSolutionDocument.externalId = frameworkDocument.externalId + "-OBSERVATION-TEMPLATE"
+                newSolutionDocument.externalId = frameworkDocument.externalId + "-OBSERVATION-TEMPLATE";
 
-                newSolutionDocument.frameworkId = frameworkDocument._id
-                newSolutionDocument.frameworkExternalId = frameworkDocument.externalId
+                newSolutionDocument.frameworkId = frameworkDocument._id;
+                newSolutionDocument.frameworkExternalId = frameworkDocument.externalId;
 
-                newSolutionDocument.entityTypeId = entityTypeDocument._id
-                newSolutionDocument.entityType = entityTypeDocument.name
-                newSolutionDocument.isReusable = true
+                newSolutionDocument.entityTypeId = entityTypeDocument._id;
+                newSolutionDocument.entityType = entityTypeDocument.name;
+                newSolutionDocument.isReusable = true;
 
-                let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]))
+                let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
 
                 if (newSolutionId._id) {
 
                     let response = {
-                        message: "Observation Solution generated.",
+                        message: messageConstants.apiResponses.OBSERVATION_SOLUTION,
                         result: newSolutionId._id
                     };
 
                     return resolve(response);
 
                 } else {
-                    throw "Some error while creating observation solution."
+                    throw messageConstants.apiResponses.ERROR_CREATING_OBSERVATION;
                 }
 
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -995,21 +1056,34 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-     * @api {post} /assessment/api/v1/observations/bulkCreate bulkCreate Observations CSV
+     * @api {post} /assessment/api/v1/observations/bulkCreate Bulk Create Observations CSV
      * @apiVersion 1.0.0
-     * @apiName bulkCreate observations CSV
+     * @apiName Bulk Create Observations CSV
      * @apiGroup Observations
      * @apiParam {File} observation  Mandatory observation file of type CSV.
      * @apiUse successBody
      * @apiUse errorBody
      */
 
+    /**
+    * Upload bulk observations via csv.
+    * @method
+    * @name bulkCreate
+    * @param {Object} req -request Data.
+    * @param {CSV} req.files.observation -Observations csv data . 
+    * @returns {CSV} - Same uploaded csv with extra field status indicating the particular
+    * column is uploaded or not. 
+    */
+
     async bulkCreate(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!req.files || !req.files.observation) {
-                    let responseMessage = "Bad request.";
-                    return resolve({ status: 400, message: responseMessage });
+                    let responseMessage = httpStatusCode.bad_request.message;
+                    return resolve({ 
+                        status: httpStatusCode.bad_request.status, 
+                        message: responseMessage 
+                    });
                 }
 
                 const fileName = `Observation-Upload-Result`;
@@ -1024,21 +1098,21 @@ module.exports = class Observations extends Abstract {
                     });
                 })();
 
-                let observationData = await csv().fromString(req.files.observation.data.toString())
+                let observationData = await csv().fromString(req.files.observation.data.toString());
 
-                let users = []
-                let solutionExternalIds = []
-                let entityIds = []
+                let users = [];
+                let solutionExternalIds = [];
+                let entityIds = [];
 
                 observationData.forEach(eachObservationData => {
                     if (!eachObservationData["keycloak-userId"] && eachObservationData.user && !users.includes(eachObservationData.user)) {
-                        users.push(eachObservationData.user)
+                        users.push(eachObservationData.user);
                     }
-                    solutionExternalIds.push(eachObservationData.solutionExternalId)
-                    entityIds.push(ObjectId(eachObservationData.entityId))
+                    solutionExternalIds.push(eachObservationData.solutionExternalId);
+                    entityIds.push(ObjectId(eachObservationData.entityId));
                 })
 
-                let userIdByExternalId
+                let userIdByExternalId;
 
                 if (users.length > 0) {
                     userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
@@ -1048,13 +1122,13 @@ module.exports = class Observations extends Abstract {
                     _id: {
                         $in: entityIds
                     }
-                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean()
+                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean();
 
-                let entityObject = {}
+                let entityObject = {};
 
                 if (entityDocument.length > 0) {
                     entityDocument.forEach(eachEntityDocument => {
-                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument;
                     })
                 }
 
@@ -1074,64 +1148,64 @@ module.exports = class Observations extends Abstract {
                         description: 1,
                         type: 1,
                         subType: 1
-                    }).lean()
+                    }).lean();
 
-                let solutionObject = {}
+                let solutionObject = {};
 
                 if (solutionDocument.length > 0) {
                     solutionDocument.forEach(eachSolutionDocument => {
-                        solutionObject[eachSolutionDocument.externalId] = eachSolutionDocument
+                        solutionObject[eachSolutionDocument.externalId] = eachSolutionDocument;
                     })
                 }
 
 
                 for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
-                    let solution
-                    let entityDocument
-                    let observationHelperData
-                    let currentData = observationData[pointerToObservation]
-                    let csvResult = {}
-                    let status
+                    let solution;
+                    let entityDocument;
+                    let observationHelperData;
+                    let currentData = observationData[pointerToObservation];
+                    let csvResult = {};
+                    let status;
 
                     Object.keys(currentData).forEach(eachObservationData => {
-                        csvResult[eachObservationData] = currentData[eachObservationData]
+                        csvResult[eachObservationData] = currentData[eachObservationData];
                     })
 
                     let userId;
 
                     if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
-                        userId = currentData["keycloak-userId"]
+                        userId = currentData["keycloak-userId"];
                     } else {
 
                         if (userIdByExternalId[currentData.user] === "") {
-                            throw { status: 400, message: "Keycloak id for user is not present" };
+                            throw { status: httpStatusCode.bad_request.status, message: "Keycloak id for user is not present" };
                         }
 
                         userId = userIdByExternalId[currentData.user]
                     }
 
                     if (solutionObject[currentData.solutionExternalId] !== undefined) {
-                        solution = solutionObject[currentData.solutionExternalId]
+                        solution = solutionObject[currentData.solutionExternalId];
                     }
 
                     if (entityObject[currentData.entityId.toString()] !== undefined) {
-                        entityDocument = entityObject[currentData.entityId.toString()]
+                        entityDocument = entityObject[currentData.entityId.toString()];
                     }
                     if (entityDocument !== undefined && solution !== undefined && userId !== "") {
                         observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
-                        status = observationHelperData.status
+                        status = observationHelperData.status;
                     } else {
-                        status = "Entity Id or User or solution is not present"
+                        status = messageConstants.apiResponses.ENTITY_SOLUTION_USER_NOT_FOUND;
                     }
 
-                    csvResult["status"] = status
-                    input.push(csvResult)
+                    csvResult["status"] = status;
+                    input.push(csvResult);
                 }
                 input.push(null);
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops Something Went Wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1139,14 +1213,24 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-        * @api {post} /assessment/api/v1/observations/update/:observationId update name and description of Observations
-        * @apiVersion 1.0.0
-        * @apiName update observations
-        * @apiGroup Observations
-        * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
-        * @apiUse successBody
-        * @apiUse errorBody
-        */
+    * @api {post} /assessment/api/v1/observations/update/:observationId Update Observation Details
+    * @apiVersion 1.0.0
+    * @apiName Update Observation Details
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/update/5cd955487e100b4dded3ebb3
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+    * Update observations.
+    * @method
+    * @name update
+    * @param {Object} req -request Data.
+    * @param {String} req.body.name -name of the observation to update.
+    * @param {String} req.body.description -description of the observation to update.   
+    * @returns {JSON} message  
+    */
 
     async update(req) {
         return new Promise(async (resolve, reject) => {
@@ -1154,14 +1238,14 @@ module.exports = class Observations extends Abstract {
             try {
 
                 let updateQuery = {};
-                updateQuery["$set"] = {}
+                updateQuery["$set"] = {};
 
                 if (req.body.name) {
-                    updateQuery["$set"]["name"] = req.body.name
+                    updateQuery["$set"]["name"] = req.body.name;
                 }
 
                 if (req.body.description) {
-                    updateQuery["$set"]["description"] = req.body.description
+                    updateQuery["$set"]["description"] = req.body.description;
                 }
 
                 let observationDocument = await database.models.observations.findOneAndUpdate(
@@ -1174,19 +1258,19 @@ module.exports = class Observations extends Abstract {
                 ).lean();
 
                 if (!observationDocument) {
-                    throw "Observation is not found"
+                    throw messageConstants.apiResponses.OBSERVATION_NOT_FOUND;
                 }
 
                 return resolve({
-                    message: "Observation successfully updated.",
+                    message: messageConstants.apiResponses.OBSERVATION_UPDATED,
                 });
 
             } catch (error) {
 
                 return reject({
-                    status: 500,
-                    message: error,
-                })
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message
+                });
 
             }
 
@@ -1195,16 +1279,24 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-   * @api {get} /assessment/api/v1/observations/delete/:observationId Delete an Observation
-   * @apiVersion 1.0.0
-   * @apiName Delete an Observation
-   * @apiGroup Observations
-   * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiSampleRequest /assessment/api/v1/observations/delete/:observationId
-   * @apiUse successBody
-   * @apiUse errorBody
-   */
+     * @api {get} /assessment/api/v1/observations/delete/:observationId Delete an Observation
+     * @apiVersion 1.0.0
+     * @apiName Delete an Observation
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/delete/:observationId
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
 
+    /**
+    * Delete observations.
+    * @method
+    * @name delete
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id.  
+    * @returns {JSON} message   
+    */
 
     async delete(req) {
 
@@ -1225,13 +1317,13 @@ module.exports = class Observations extends Abstract {
                 );
 
                 return resolve({
-                    message: "Observation deleted successfully."
+                    message: messageConstants.apiResponses.OBSERVATION_DELETED
                 })
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1242,30 +1334,37 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-  * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
-  * @apiVersion 1.0.0
-  * @apiName Pending Observations
-  * @apiGroup Observations
-  * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
-  * @apiUse successBody
-  * @apiUse errorBody
-  * @apiParamExample {json} Response:
-  * {
-    "message": "Pending Observations",
-    "status": 200,
-    "result": [
+     * @api {get} /assessment/api/v1/observations/pendingObservations Pending Observations
+     * @apiVersion 1.0.0
+     * @apiName Pending Observations
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/pendingObservations
+     * @apiUse successBody
+     * @apiUse errorBody
+     * @apiParamExample {json} Response:
         {
-            "_id": "5d31a14dbff58d3d65ede344",
-            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
-            "solutionId": "5c6bd309af0065f0e0d4223b",
-            "createdAt": "2019-07-19T10:54:05.638Z",
-            "entityId": "5cebbefe5943912f56cf8e16",
-            "observationId": "5d1070326f6ed50bc34aec2c"
+            "message": "Pending Observations",
+            "status": 200,
+            "result": [
+                {
+                    "_id": "5d31a14dbff58d3d65ede344",
+                    "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+                    "solutionId": "5c6bd309af0065f0e0d4223b",
+                    "createdAt": "2019-07-19T10:54:05.638Z",
+                    "entityId": "5cebbefe5943912f56cf8e16",
+                    "observationId": "5d1070326f6ed50bc34aec2c"
+                }
+            ]
         }
-        ]
-    }
-  */
+    */
+
+      /**
+    * Observations status not equal to completed.
+    * @method
+    * @name pendingObservations 
+    * @returns {JSON} List of pending observations.   
+    */
 
     async pendingObservations() {
         return new Promise(async (resolve, reject) => {
@@ -1273,20 +1372,20 @@ module.exports = class Observations extends Abstract {
 
                 let status = {
                     pending: true
-                }
+                };
 
-                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
+                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
 
                 return resolve({
-                    message: "Pending Observations",
+                    message: messageConstants.apiResponses.PENDING_OBSERVATION,
                     result: pendingObservationDocuments
-                })
+                });
 
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
@@ -1294,30 +1393,37 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-* @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
-* @apiVersion 1.0.0
-* @apiName Completed Observations
-* @apiGroup Observations
-* @apiHeader {String} X-authenticated-user-token Authenticity token
-* @apiSampleRequest /assessment/api/v1/observations/completedObservations
-* @apiUse successBody
-* @apiUse errorBody
-* @apiParamExample {json} Response:
-{
-    "message": "Completed Observations",
-    "status": 200,
-    "result": [
+    * @api {get} /assessment/api/v1/observations/completedObservations Completed Observations
+    * @apiVersion 1.0.0
+    * @apiName Completed Observations
+    * @apiGroup Observations
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/observations/completedObservations
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
         {
-            "_id": "5d2702e60110594953c1614a",
-            "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
-            "solutionId": "5c6bd309af0065f0e0d4223b",
-            "createdAt": "2019-06-27T08:55:16.718Z",
-            "entityId": "5cebbefe5943912f56cf8e16",
-            "observationId": "5d1483c9869c433b0440c5dd"
+            "message": "Completed Observations",
+            "status": 200,
+            "result": [
+                {
+                    "_id": "5d2702e60110594953c1614a",
+                    "userId": "e97b5582-471c-4649-8401-3cc4249359bb",
+                    "solutionId": "5c6bd309af0065f0e0d4223b",
+                    "createdAt": "2019-06-27T08:55:16.718Z",
+                    "entityId": "5cebbefe5943912f56cf8e16",
+                    "observationId": "5d1483c9869c433b0440c5dd"
+                }
+            ]
         }
-    ]
-}
-*/
+    */
+
+     /**
+    * Observations status equal to completed.
+    * @method
+    * @name completedObservations 
+    * @returns {JSON} List of completed observations.   
+    */
 
     async completedObservations() {
         return new Promise(async (resolve, reject) => {
@@ -1325,19 +1431,121 @@ module.exports = class Observations extends Abstract {
 
                 let status = {
                     completed: true
-                }
+                };
 
-                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status)
+                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
 
                 return resolve({
-                    message: "Completed Observations",
+                    message: messageConstants.apiResponses.COMPLETED_OBSERVATION,
                     result: completedObservationDocuments
-                })
+                });
 
             } catch (error) {
                 return reject({
-                    status: error.status || 500,
-                    message: error.message || "Oops! Something went wrong!",
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        });
+    }
+
+           /**
+* @api {get} /assessment/api/v1/observations/details/:observationId 
+* Observations details.
+* @apiVersion 1.0.0
+* @apiGroup Observations
+* @apiHeader {String} X-authenticated-user-token Authenticity token
+* @apiSampleRequest /assessment/api/v1/observations/details/5de8a220c210d4700813e695
+* @apiUse successBody
+* @apiUse errorBody
+* @apiParamExample {json} Response:
+{
+    "message": "Observation details fetched successfully",
+    "status": 200,
+    "result": {
+        "_id": "5d282bbcc1e91c71b6c025ee",
+        "entities": [
+            {
+                "_id": "5d5bacc27b68e809c81f4994",
+                "deleted": false,
+                "entityTypeId": "5d28233dd772d270e55b4072",
+                "entityType": "school",
+                "metaInformation": {
+                    "externalId": "1355120",
+                    "districtId": "",
+                    "districtName": "",
+                    "zoneId": "NARELA",
+                    "name": "SHAHBAD DAIRY C-I",
+                    "types": [
+                        "A1"
+                    ],
+                    "addressLine1": "",
+                    "city": "New Delhi",
+                    "pincode": "",
+                    "state": "New Delhi",
+                    "country": "India"
+                },
+                "updatedBy": "7996ada6-4d46-4e77-b350-390dee883892",
+                "createdBy": "7996ada6-4d46-4e77-b350-390dee883892",
+                "updatedAt": "2019-08-20T08:18:10.985Z",
+                "createdAt": "2019-08-20T08:18:10.985Z",
+                "__v": 0
+            }
+        ],
+        "deleted": false,
+        "name": "CRO-2019 By",
+        "description": "CRO-2019m",
+        "status": "inactive",
+        "solutionId": "5d282bbcc1e91c71b6c025e6",
+        "solutionExternalId": "CRO-2019-TEMPLATE",
+        "frameworkId": "5d28233fd772d270e55b4199",
+        "frameworkExternalId": "CRO-2019",
+        "entityTypeId": "5d28233dd772d270e55b4072",
+        "entityType": "school",
+        "createdBy": "6e24b29b-8b81-4b70-b1b5-fa430488b1cf",
+        "updatedAt": "2019-10-16T06:34:54.224Z",
+        "createdAt": "2019-07-01T14:05:11.706Z",
+        "startDate": "2018-07-12T06:05:50.963Z",
+        "endDate": "2020-07-12T06:05:50.963Z",
+        "__v": 0,
+        "count": 11
+    }
+}
+*/
+      /**
+      *  Observation details.
+      * @method
+      * @name details
+      * @param  {Request} req request body.
+      * @returns {JSON} Response consists of message,status and result.
+      * Result will have the details of the observations including entities details.
+     */
+
+      /**
+    * Observation details.
+    * @method
+    * @name details 
+    * @param {Object} req request data
+    * @param {String} req.params._id observation id. 
+    * @returns {JSON} List of completed observations.   
+    */
+
+    async details(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observationDetails = await observationsHelper.details(req.params._id);
+
+                return resolve({
+                    message: messageConstants.apiResponses.OBSERVATION_FETCHED,
+                    result: observationDetails
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }

@@ -96,7 +96,7 @@ module.exports = {
       value: reportsFilter
     });
 
-  },
+},
 
   async down(db) {
 

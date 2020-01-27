@@ -1,3 +1,14 @@
+/**
+ * name : configurationsController.js
+ * author : Akash
+ * created-date : 22-Nov-2018
+ * Description : App configurations.
+ */
+
+ /**
+    * Configurations
+    * @class
+*/
 module.exports = class Configurations extends Abstract {
     constructor() {
         super(configurationsSchema);
@@ -38,6 +49,16 @@ module.exports = class Configurations extends Abstract {
     * }
     ]
     */
+
+      /**
+      * App navigation links.
+      * @method
+      * @name navigation
+      * @param {Object} req - All requested Data.
+      * @param {Array} req.userDetails.allRoles - Array of loggedin useer roles
+      * @returns {JSON} returns a navigation action required for samiksha app.
+     */
+
     async navigation(req) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -45,25 +66,25 @@ module.exports = class Configurations extends Abstract {
                 const userRole = req.userDetails.allRoles[0];
                 if (!userRole) {
                     return resolve({
-                        status: 400,
-                        message: "Bad request."
+                        status: httpStatusCode.bad_request.status,
+                        message: httpStatusCode.bad_request.message
                     });
                 }
                 let tabControlsDocument = await database.models.configurations.findOne({ name: 'navigation' }).lean();
                 if (!tabControlsDocument) {
                     return resolve({
-                        status: 400,
-                        message: "No configurations available for given params."
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.CONFIGURATIONS_NOT_FOUND
                     });
                 }
                 return resolve({
-                    message: "Configurations fetched successfully.",
+                    message: messageConstants.apiResponses.CONFIGURATIONS_FETCHED,
                     result: tabControlsDocument.result.tabGroups[userRole] ? tabControlsDocument.result.tabGroups[userRole] : tabControlsDocument.result.tabGroups["DEFAULT"]
                 });
             } catch (error) {
                 return reject({
-                    status: 500,
-                    message: error,
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
                     errorObject: error
                 });
             }
