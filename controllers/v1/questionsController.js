@@ -59,13 +59,13 @@ module.exports = class Questions extends Abstract {
 
 
   /**
-   * @api {post} /assessment/api/v1/questions/bulkCreate Bulk Create Questions CSV
-   * @apiVersion 1.0.0
-   * @apiName Bulk Create Questions CSV
-   * @apiGroup Questions
-   * @apiParam {File} questions Mandatory questions file of type CSV.
-   * @apiUse successBody
-   * @apiUse errorBody
+   * Bulk create questions.
+   * @method
+   * @name bulkCreate
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.questions - questions csv data. 
+   * @returns {CSV} - Same existing csv with extra field _SYSTEM_ID to indicate 
+   * whether the question is created or not . If created question id will be provided. 
    */
 
   /**
