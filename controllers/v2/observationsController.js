@@ -171,6 +171,88 @@ module.exports = class Observations extends v1Observation {
 
     }
 
+
+    /**
+     * @api {get} /assessment/api/v2/observations/list Observations list
+     * @apiVersion 1.0.0
+     * @apiName Observations list
+     * @apiGroup Observations
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/observations/list
+     * @apiParamExample {json} Response:
+        "result": [
+            {
+                "_id": "5d09c34d1f7fd5a2391f7251",
+                "entities": [],
+                "name": "Observation 1",
+                "description": "Observation Description",
+                "status": "published",
+                "solutionId": "5b98fa069f664f7e1ae7498c"
+            },
+            {
+                "_id": "5d1070326f6ed50bc34aec2c",
+                "entities": [
+                    {
+                        "_id": "5cebbefe5943912f56cf8e16",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    },
+                    {
+                        "_id": "5cebbf275943912f56cf8e18",
+                        "submissionStatus": "pending",
+                        "submissions": [],
+                        "name": "asd"
+                    }
+                ],
+                "status": "published",
+                "endDate": "2019-06-24T00:00:00.000Z",
+                "name": "asdasd",
+                "description": "asdasdasd",
+                "solutionId": "5c6bd309af0065f0e0d4223b"
+            }
+        ]
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    /**
+    * List Observation.
+    * @method
+    * @name list
+    * @param {Object} req -request Data.
+    * @returns {JSON} - List observation data.
+    */
+
+   async list(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let observations = new Array;
+
+                observations = await observationsHelper.listV2(req.userDetails.userId);
+                
+                let responseMessage = messageConstants.apiResponses.OBSERVATION_LIST;
+
+                return resolve({
+                    message: responseMessage,
+                    result: observations
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
     /**
      * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
      * @apiVersion 2.0.0

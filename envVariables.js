@@ -51,6 +51,18 @@ let enviromentVariables = {
   "message" : "Optional gcp bucket name",
   "optional" : true
 },
+"AZURE_ACCOUNT_NAME" : {
+  "message" : "Optional azure account name",
+  "optional" : true
+},
+"AZURE_ACCOUNT_KEY" : {
+  "message" : "Optional azure storage account key",
+  "optional" : true
+},
+"AZURE_STORAGE_CONTAINER" : {
+  "message" : "Optional azure storage container name",
+  "optional" : true
+},
 "AWS_ACCESS_KEY_ID" : {
   "message" : "Optional aws access key id",
   "optional" : true
