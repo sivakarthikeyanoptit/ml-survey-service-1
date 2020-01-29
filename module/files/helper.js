@@ -12,6 +12,7 @@ const moment = require("moment-timezone");
 const cloudStorage = (process.env.CLOUD_STORAGE && process.env.CLOUD_STORAGE != "") ? process.env.CLOUD_STORAGE : ""
 const gcp = require(ROOT_PATH + "/generics/helpers/gcpFileUpload");
 const aws = require(ROOT_PATH + "/generics/helpers/awsFileUpload");
+const azure = require(ROOT_PATH + "/generics/helpers/azureFileUpload");
 
 /**
     * FilesHelper
@@ -83,7 +84,7 @@ module.exports = class FilesHelper {
     }
 
     /**
-   * Get the url of the file present on google cloud or in aws.
+   * Get the url of the file present on google cloud, in aws or in azure.
    * @method
    * @name getFilePublicBaseUrl
    * @returns {String} - file url link. 
@@ -97,7 +98,7 @@ module.exports = class FilesHelper {
                     throw new Error(messageConstants.apiResponses.MISSING_CLOUD_STORAGE_PROVIDER);
                 }
 
-                if(cloudStorage != "GC" && cloudStorage != "AWS") {
+                if(cloudStorage != "GC" && cloudStorage != "AWS" && cloudStorage != "AZURE") {
                     throw new Error(messageConstants.apiResponses.INVALID_CLOUD_STORAGE_PROVIDER);
                 }
 
@@ -106,6 +107,8 @@ module.exports = class FilesHelper {
                     fileBaseUrl = await gcp.getFilePublicBaseUrl();
                 } else if (cloudStorage == "AWS") {
                     fileBaseUrl = await aws.getFilePublicBaseUrl();
+                } else if (cloudStorage == "AZURE") {
+                    fileBaseUrl = await azure.getFilePublicBaseUrl();
                 }
 
                 return resolve(fileBaseUrl);
@@ -141,7 +144,7 @@ module.exports = class FilesHelper {
                     throw new Error(messageConstants.apiResponses.MISSING_CLOUD_STORAGE_PROVIDER);
                 }
 
-                if(cloudStorage != "GC" && cloudStorage != "AWS") {
+                if(cloudStorage != "GC" && cloudStorage != "AWS" && cloudStorage != "AZURE") {
                     throw new Error(messageConstants.apiResponses.INVALID_CLOUD_STORAGE_PROVIDER);
                 }
 
@@ -155,13 +158,16 @@ module.exports = class FilesHelper {
                         signedUrlResponse = await this.getGCBSignedUrl(folderPath, file);
                     } else if (cloudStorage == "AWS") {
                         signedUrlResponse = await this.getS3SignedUrl(folderPath, file);
+                    } else if (cloudStorage == "AZURE") {
+                        signedUrlResponse = await this.getAzureSignedUrl(folderPath, file);
                     }
 
                     if(signedUrlResponse.success) {
                         signedUrls.push({
                             file: file,
                             url: signedUrlResponse.url,
-                            payload: { sourcePath: signedUrlResponse.name }
+                            payload: { sourcePath: signedUrlResponse.name },
+                            cloudStorage : process.env.CLOUD_STORAGE
                         });
                     }
 
@@ -188,14 +194,14 @@ module.exports = class FilesHelper {
         })
     }
 
-     /**
-   * Get google cloud all signed url.
-   * @method
-   * @name getGCBSignedUrl
-   * @param {String} [folderPath = ""] - link to the folder path.
-   * @param {Array} [fileName = ""] - name of the file. 
-   * @returns {Object} - signed url and gcp file name. 
-   */
+    /**
+     * Get google cloud signed url.
+     * @method
+     * @name getGCBSignedUrl
+     * @param {String} [folderPath = ""] - link to the folder path.
+     * @param {Array} [fileName = ""] - name of the file. 
+     * @returns {Object} - signed url and gcp file name. 
+     */
 
     static getGCBSignedUrl(folderPath = "", fileName = "") {
         return new Promise(async (resolve, reject) => {
@@ -240,14 +246,14 @@ module.exports = class FilesHelper {
         })
     }
 
-     /**
-   * Get google cloud all signed url.
-   * @method
-   * @name getS3SignedUrl
-   * @param {String} [folderPath = ""] - link to the folder path.
-   * @param {Array} [fileName = ""] - fileName. 
-   * @returns {Object} - signed url and s3 file name. 
-   */
+    /**
+     * Get aws s3 cloud signed url.
+     * @method
+     * @name getS3SignedUrl
+     * @param {String} [folderPath = ""] - link to the folder path.
+     * @param {Array} [fileName = ""] - fileName. 
+     * @returns {Object} - signed url and s3 file name. 
+     */
 
     static getS3SignedUrl(folderPath = "", fileName = "") {
         return new Promise(async (resolve, reject) => {
@@ -266,6 +272,64 @@ module.exports = class FilesHelper {
                         Key: folderPath + fileName,
                         Expires: expiry
                     });
+                    if(url && url != "") {
+                        return resolve({
+                            success : true,
+                            message : messageConstants.apiResponses.URL_GENERATED+"Signed.",
+                            url : url,
+                            name : folderPath + fileName
+                        });
+                    } else {
+                        return resolve({
+                            success : false,
+                            message : messageConstants.apiResponses.FAILED_SIGNED_URL,
+                            response : url
+                        });
+                    }
+                } catch (error) {
+                    return resolve({
+                        success : false,
+                        message : error.message,
+                        response : error
+                    });
+                }
+                
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Get azure cloud signed url.
+     * @method
+     * @name getAzureSignedUrl
+     * @param {String} [folderPath = ""] - link to the folder path.
+     * @param {Array} [fileName = ""] - fileName. 
+     * @returns {Object} - signed url and azure file name. 
+     */
+
+    static getAzureSignedUrl(folderPath = "", fileName = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(folderPath == "" || fileName == "") {
+                    throw new Error(httpStatusCode.bad_request.status);
+                }
+
+
+                // Create a SAS token that expires in an hour
+                // Set start time to five minutes ago to avoid clock skew.
+                let startDate = new Date();
+                startDate.setMinutes(startDate.getMinutes() - 5);
+                let expiryDate = new Date(startDate);
+                expiryDate.setMinutes(startDate.getMinutes() + 60);
+    
+                try {
+
+                    const url = await azure.getSignedUrl(folderPath + fileName, startDate, expiryDate);
+
                     if(url && url != "") {
                         return resolve({
                             success : true,

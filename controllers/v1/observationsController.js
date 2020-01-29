@@ -306,7 +306,7 @@ module.exports = class Observations extends Abstract {
 
                 let observations = new Array;
 
-                observations = await observationsHelper.list(req.userDetails.userId);
+                observations = await observationsHelper.listV1(req.userDetails.userId);
                 
                 let responseMessage = messageConstants.apiResponses.OBSERVATION_LIST;
 
