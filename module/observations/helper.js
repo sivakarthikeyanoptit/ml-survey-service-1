@@ -115,14 +115,68 @@ module.exports = class ObservationsHelper {
 
 
     /**
-   * list observation.
-   * @method
-   * @name list
-   * @param {String} [userId = ""] -Logged in user id.
-   * @returns {Object} observation list.
-   */
+     * list observation v1.
+     * @method
+     * @name listV1
+     * @param {String} [userId = ""] -Logged in user id.
+     * @returns {Object} observation list.
+     */
 
-    static list(userId = "") {
+    static listV1(userId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(userId == "") {
+                    throw new Error(messageConstants.apiResponses.INVALID_USER_ID);
+                }
+
+                let observations = this.listCommon(userId, "v1");
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+     * list observation v2.
+     * @method
+     * @name listV2
+     * @param {String} [userId = ""] -Logged in user id.
+     * @returns {Object} observation list.
+     */
+
+    static listV2(userId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(userId == "") {
+                    throw new Error(messageConstants.apiResponses.INVALID_USER_ID);
+                }
+
+                let observations = this.listCommon(userId, "v2");
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+     * list observation v2.
+     * @method
+     * @name listV2
+     * @param {String} [userId = ""] -Logged in user id.
+     * @returns {Object} observation list.
+     */
+
+    static listCommon(userId = "", sourceApi = "v2") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -173,21 +227,41 @@ module.exports = class ObservationsHelper {
 
                     observation = userObservations[pointerToAssessorObservationArray];
 
+                    if(sourceApi == "v2") {
 
-                    submissions = await database.models.observationSubmissions.find(
-                        {
-                            observationId: observation._id,
-                            entityId: {
-                                $in: observation.entities
+                        submissions = await database.models.observationSubmissions.find(
+                            {
+                                observationId: observation._id,
+                                entityId: {
+                                    $in: observation.entities
+                                }
+                            },
+                            {
+                                "themes": 0,
+                                "criteria": 0,
+                                "evidences": 0,
+                                "answers": 0
                             }
-                        },
-                        {
-                            "themes": 0,
-                            "criteria": 0,
-                            "evidences": 0,
-                            "answers": 0
-                        }
-                    ).sort( { createdAt: -1 } );
+                        ).sort( { createdAt: -1 } );
+
+                    } else {
+
+                        submissions = await database.models.observationSubmissions.find(
+                            {
+                                observationId: observation._id,
+                                entityId: {
+                                    $in: observation.entities
+                                }
+                            },
+                            {
+                                "themes": 0,
+                                "criteria": 0,
+                                "evidences": 0,
+                                "answers": 0
+                            }
+                        );
+                        
+                    }
 
                     let observationEntitySubmissions = {};
                     submissions.forEach(observationEntitySubmission => {
