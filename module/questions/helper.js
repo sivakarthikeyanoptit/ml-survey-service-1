@@ -97,7 +97,7 @@ module.exports = class QuestionsHelper {
             }
             if (parsedQuestion["responseType"] == "date") {
               allValues["dateFormat"] = parsedQuestion.dateFormat;
-              allValues["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture);
+              allValues["autoCapture"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion.autoCapture));
               allValues["validation"]["max"] = parsedQuestion.validationMax;
               allValues["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = "";
             }
@@ -385,7 +385,7 @@ module.exports = class QuestionsHelper {
 
           if (parsedQuestion["responseType"] == "date") {
             existingQuestion["dateFormat"] = parsedQuestion.dateFormat;
-            existingQuestion["autoCapture"] = gen.utils.lowerCase(parsedQuestion.autoCapture);
+            existingQuestion["autoCapture"] = this.convertStringToBoolean(gen.utils.lowerCase(parsedQuestion.autoCapture));
             existingQuestion["validation"]["max"] = parsedQuestion.validationMax;
             existingQuestion["validation"]["min"] = parsedQuestion.validationMin ? parsedQuestion.validationMin : parsedQuestion.validationMin = "";
           }
