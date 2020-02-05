@@ -31,6 +31,10 @@ let enviromentVariables = {
   "message" : "Required Application base url",
   "optional" : false
 },
+"MOBILE_APPLICATION_APP_TYPE" : {
+  "message" : "Required mobile application app type value",
+  "optional" : false
+},
 "APPLICATION_BASE_HOST" : {
   "message" : "Required Base host",
   "optional" : false
