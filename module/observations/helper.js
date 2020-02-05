@@ -517,7 +517,7 @@ module.exports = class ObservationsHelper {
                     },
                     title: "New Observation",
                     created_at: new Date(),
-                    "appName": "samiksha"
+                    appType: process.env.MOBILE_APPLICATION_APP_TYPE
                 })
 
                 if (kafkaMessage.status != "success") {
@@ -543,14 +543,14 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-   * Common function for pending observation or completed observations.
-   * @method
-   * @name pendingOrCompletedObservations
-   * @param {Object} observationStatus  - can be pending or completed.
-   * @param {String} pending  - pending observations.
-   * @param {String} completed  - completed observations.      
-   * @returns {Object} list of pending or completed observation.
-   */
+     * Common function for pending observation or completed observations.
+     * @method
+     * @name pendingOrCompletedObservations
+     * @param {Object} observationStatus  - can be pending or completed.
+     * @param {String} pending  - pending observations.
+     * @param {String} completed  - completed observations.      
+     * @returns {Object} list of pending or completed observation.
+     */
 
     static pendingOrCompletedObservations(observationStatus) {
         return new Promise(async (resolve, reject) => {
@@ -590,10 +590,17 @@ module.exports = class ObservationsHelper {
 
                     observationSubmissionsDocument = await database.models.observationSubmissions.find({
                         _id: { $in: observationSubmissionsIds }
-                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1 }).lean();
+                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1, "entityInformation.externalId": 1 }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
 
+                        let entityName = ""
+                        if(eachObservationData.entityInformation && eachObservationData.entityInformation.name) {
+                            entityName = eachObservationData.entityInformation.name;
+                        } else if (eachObservationData.entityInformation && eachObservationData.entityInformation.externalId) {
+                            entityName = eachObservationData.entityInformation.externalId;
+                        }
+                        
                         observationData.push({
                             _id: eachObservationData._id,
                             userId: eachObservationData.createdBy,
@@ -601,7 +608,7 @@ module.exports = class ObservationsHelper {
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
-                            entityName: eachObservationData.entityInformation.name
+                            entityName: entityName
                         });
 
                     })

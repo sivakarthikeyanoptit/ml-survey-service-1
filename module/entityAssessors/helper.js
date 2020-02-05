@@ -19,18 +19,18 @@ const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications")
 module.exports = class EntityAssessorHelper {
 
     /**
-   * Get track of entity assessor.
-   * @method
-   * @name createInidvidualEntityAssessor
-   * @param {Object} entityAssessor - entityAssessor data.
-   * @param {String} programId - program id.
-   * @param {String} solutionId - solution id.
-   * @param {String} entityId - entity id.
-   * @param {Object} userEntityDetails
-   * @param {Object} userDetails - logged in user details. 
-   * @param {Object} userDetails.id - logged in user id. 
-   * @returns {Object} Entity assessor data.
-   */
+     * Get track of entity assessor.
+     * @method
+     * @name createInidvidualEntityAssessor
+     * @param {Object} entityAssessor - entityAssessor data.
+     * @param {String} programId - program id.
+     * @param {String} solutionId - solution id.
+     * @param {String} entityId - entity id.
+     * @param {Object} userEntityDetails
+     * @param {Object} userDetails - logged in user details. 
+     * @param {Object} userDetails.id - logged in user id. 
+     * @returns {Object} Entity assessor data.
+     */
 
     static createInidvidualEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
         return new Promise(async (resolve, reject) => {
@@ -52,13 +52,13 @@ module.exports = class EntityAssessorHelper {
         })
     }
 
-        /**
-   * Get track of entity assessor.
-   * @method
-   * @name uploadEntityAssessorTracker
-   * @param {Object} entityAssessor - entityAssessor data.
-   * @returns {Object} Uploaded entity assessor tracker data.
-   */
+    /**
+     * Get track of entity assessor.
+     * @method
+     * @name uploadEntityAssessorTracker
+     * @param {Object} entityAssessor - entityAssessor data.
+     * @returns {Object} Uploaded entity assessor tracker data.
+     */
 
     static uploadEntityAssessorTracker(entityAssessor) {
         return new Promise(async (resolve, reject) => {
@@ -196,15 +196,15 @@ module.exports = class EntityAssessorHelper {
     }
 
     /**
-   * Entity Assessors upload helper function.
-   * @method
-   * @name upload
-   * @param {Object} files -uploaded files.
-   * @param {String} programId - program id.
-   * @param {String} solutionId - solution id. 
-   * @param {String} userId - Logged in user id.
-   * @param {String} token - Logged in user token.
-   */
+     * Entity Assessors upload helper function.
+     * @method
+     * @name upload
+     * @param {Object} files -uploaded files.
+     * @param {String} programId - program id.
+     * @param {String} solutionId - solution id. 
+     * @param {String} userId - Logged in user id.
+     * @param {String} token - Logged in user token.
+     */
 
     static upload(files, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
@@ -429,13 +429,13 @@ module.exports = class EntityAssessorHelper {
     }
 
      /**
-   * Get user id from external id.
-   * @method
-   * @name getInternalUserIdByExternalId
-   * @param {Array} userExternalIds - Array of externalIds.
-   * @param {String} token - user logged in token.
-   * @returns {Array} Array of userId for external ids.
-   */
+     * Get user id from external id.
+     * @method
+     * @name getInternalUserIdByExternalId
+     * @param {Array} userExternalIds - Array of externalIds.
+     * @param {String} token - user logged in token.
+     * @returns {Array} Array of userId for external ids.
+     */
 
     static getInternalUserIdByExternalId(token, userExternalIds) {
 
@@ -472,13 +472,13 @@ module.exports = class EntityAssessorHelper {
     }
 
       /**
-   * Send notifications to user.
-   * @method
-   * @name sendUserNotifications
-   * @param {String} [userId = ""] - Logged in userId.
-   * @param {Array} [entities = []] - Array of entities. 
-   * @returns {Object} Consisting of success and message. 
-   */
+     * Send notifications to user.
+     * @method
+     * @name sendUserNotifications
+     * @param {String} [userId = ""] - Logged in userId.
+     * @param {Array} [entities = []] - Array of entities. 
+     * @returns {Object} Consisting of success and message. 
+     */
 
     static sendUserNotifications(userId = "", entities = []) {
         return new Promise(async (resolve, reject) => {
@@ -504,7 +504,7 @@ module.exports = class EntityAssessorHelper {
                         },
                         title: "New Assessment",
                         created_at: new Date(),
-                        "appName": "samiksha"
+                        appType: process.env.MOBILE_APPLICATION_APP_TYPE
                     });
 
                     if (kafkaMessage.status != "success") {
@@ -537,15 +537,15 @@ module.exports = class EntityAssessorHelper {
         })
     }
 
-      /**
-   * Entity Assessors upload helper function.
-   * @method
-   * @name pendingOrCompletedAssessment
-   * @param {Object} assessmentStatus - status of the assessments.
-   * @param {String} assessmentStatus.pending - pending assessments.
-   * @param {String} assessmentStatus.completed - completed assessments. 
-   * @returns {Array} Array of pending or completed assessments.
-   */
+    /**
+     * Entity Assessors upload helper function.
+     * @method
+     * @name pendingOrCompletedAssessment
+     * @param {Object} assessmentStatus - status of the assessments.
+     * @param {String} assessmentStatus.pending - pending assessments.
+     * @param {String} assessmentStatus.completed - completed assessments. 
+     * @returns {Array} Array of pending or completed assessments.
+     */
 
     static pendingOrCompletedAssessment(assessmentStatus) {
         return new Promise(async (resolve, reject) => {
@@ -555,7 +555,7 @@ module.exports = class EntityAssessorHelper {
                     role: { $in: ["ASSESSOR", "LEAD_ASSESSOR"] },
                 }, { _id: 1 }).lean();
 
-                if (!entityAssessorsDocument.length > 0) {
+                if (entityAssessorsDocument.length < 1) {
                     throw { message: messageConstants.apiResponses.MISSING_ASSESSOR_LEAD_ASSESSOR };
                 }
 
@@ -600,7 +600,7 @@ module.exports = class EntityAssessorHelper {
                         };
 
                         let assessmentSubmissionsDoc = await database.models.submissions.find(queryObj, {
-                            _id: 1, createdAt: 1, entityId: 1, "entityInformation.name": 1
+                            _id: 1, createdAt: 1, entityId: 1, "entityInformation.name": 1, "entityInformation.externalId": 1
                         }).lean();
 
 
@@ -611,6 +611,13 @@ module.exports = class EntityAssessorHelper {
                             let programId = eachAssessor.programId;
 
                             assessmentSubmissionsDoc.forEach(eachAssessmentSubmissions => {
+                                
+                                let entityName = ""
+                                if(eachAssessmentSubmissions.entityInformation && eachAssessmentSubmissions.entityInformation.name) {
+                                    entityName = eachAssessmentSubmissions.entityInformation.name;
+                                } else if (eachAssessmentSubmissions.entityInformation && eachAssessmentSubmissions.entityInformation.externalId) {
+                                    entityName = eachAssessmentSubmissions.entityInformation.externalId;
+                                }
 
                                 entityAssessorsData.push({
                                     _id: eachAssessmentSubmissions._id,
@@ -619,7 +626,7 @@ module.exports = class EntityAssessorHelper {
                                     createdAt: eachAssessmentSubmissions.createdAt,
                                     entityId: eachAssessmentSubmissions.entityId,
                                     programId: programId,
-                                    entityName: eachAssessmentSubmissions.entityInformation.name
+                                    entityName: entityName
                                 });
 
                             })
