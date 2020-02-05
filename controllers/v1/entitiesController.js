@@ -753,7 +753,7 @@ module.exports = class Entities extends Abstract {
         }
         );
 
-        if ( entityDocuments.length < 0 ) {
+        if ( entityDocuments.length < 1 ) {
           throw { 
             status: httpStatusCode.not_found.status, 
             message: messageConstants.apiResponses.ENTITY_NOT_FOUND
