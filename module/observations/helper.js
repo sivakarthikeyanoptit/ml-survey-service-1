@@ -9,6 +9,7 @@
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
+const chunkOfObservationSubmissionsLength = 500;
 
 /**
     * ObservationsHelper
@@ -543,54 +544,64 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-     * Common function for pending observation or completed observations.
+     * Pending observation.
      * @method
-     * @name pendingOrCompletedObservations
-     * @param {Object} observationStatus  - can be pending or completed.
-     * @param {String} pending  - pending observations.
-     * @param {String} completed  - completed observations.      
-     * @returns {Object} list of pending or completed observation.
+     * @name pendingObservations  
+     * @returns {Object} list of pending observation.
      */
 
-    static pendingOrCompletedObservations(observationStatus) {
+    static pendingObservations() {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let findQuery = {};
+                let findQuery = {
+                    status : {
+                        $ne: messageConstants.apiResponses.STATUS_COMPLETED
+                    }
+                };
 
-                if (observationStatus.pending) {
-                    findQuery["status"] = { $ne: "completed" };
-                }
-
-                if (observationStatus.completed) {
-                    findQuery["status"] = "completed";
-                }
-
-                let observationDocuments = await database.models.observationSubmissions.find(findQuery, {
+                let observationSubmissionsDocuments = 
+                await database.models.observationSubmissions.find(
+                    findQuery, {
                     _id: 1
                 }).lean();
 
-                if (!observationDocuments.length > 0) {
-                    throw messageConstants.apiResponses.NO_PENDING_COMPLETED_OBSERVATIONS;
+                if ( observationSubmissionsDocuments.length < 0 ) {
+                    throw {
+                        message : 
+                        messageConstants.apiResponses.NO_PENDING_OBSERVATION
+                    }
                 }
 
-                let lengthOfObservationSubmissionsChunk = 500;
-
-                let chunkOfObservationSubmissions = _.chunk(observationDocuments, lengthOfObservationSubmissionsChunk);
+                let chunkOfObservationSubmissions = 
+                _.chunk(observationSubmissionsDocuments, chunkOfObservationSubmissionsLength);
 
                 let observationData = [];
                 let observationSubmissionsIds;
                 let observationSubmissionsDocument;
 
-                for (let pointerToObservationSubmission = 0; pointerToObservationSubmission < chunkOfObservationSubmissions.length; pointerToObservationSubmission++) {
+                for (
+                    let pointerToObservationSubmission = 0; 
+                    pointerToObservationSubmission < chunkOfObservationSubmissions.length; 
+                    pointerToObservationSubmission++
+                ) {
 
-                    observationSubmissionsIds = chunkOfObservationSubmissions[pointerToObservationSubmission].map(eachObservationSubmission => {
-                        return eachObservationSubmission._id;
+                    observationSubmissionsIds = chunkOfObservationSubmissions[pointerToObservationSubmission].map(observationSubmission => {
+                        return observationSubmission._id;
                     })
 
-                    observationSubmissionsDocument = await database.models.observationSubmissions.find({
+                    observationSubmissionsDocument = 
+                    await database.models.observationSubmissions.find({
                         _id: { $in: observationSubmissionsIds }
-                    }, { _id: 1, solutionId: 1, createdAt: 1, entityId: 1, observationId: 1, createdBy: 1, "entityInformation.name": 1, "entityInformation.externalId": 1 }).lean();
+                    }, { _id: 1, 
+                        solutionId: 1, 
+                        createdAt: 1, 
+                        entityId: 1, 
+                        observationId: 1, 
+                        createdBy: 1, 
+                        "entityInformation.name": 1, 
+                        "entityInformation.externalId": 1 
+                    }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
 
@@ -609,6 +620,116 @@ module.exports = class ObservationsHelper {
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
                             entityName: entityName
+                        });
+
+                    })
+                    )
+                }
+
+                return resolve(observationData);
+
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+     * Completed observations.
+     * @method
+     * @name completedObservations
+     * @param {String} fromDate  - from Date.
+     * @param {String} toDate  - to Date.      
+     * @returns {Object} list of completed observations.
+     */
+
+    static completedObservations(fromDate,toDate) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let findQuery = {
+                    status : messageConstants.apiResponses.STATUS_COMPLETED,
+                    completedDate : {
+                        $exists : true,
+                        $gte : fromDate,
+                        $lte : toDate
+                    }
+                };
+
+                let observationDocuments = 
+                await database.models.observationSubmissions.find(
+                    findQuery, {
+                    _id: 1
+                }).lean();
+
+                if ( !observationDocuments.length > 0 ) {
+                    throw {
+                        message : 
+                        messageConstants.apiResponses.NO_COMPLETED_OBSERVATIONS
+                    }
+                }
+
+                let chunkOfObservationSubmissions = 
+                _.chunk(observationDocuments, chunkOfObservationSubmissionsLength);
+
+                let observationData = [];
+                let observationSubmissionsIds;
+                let observationSubmissionsDocument;
+
+                for (
+                    let pointerToObservationSubmission = 0; 
+                    pointerToObservationSubmission < chunkOfObservationSubmissions.length; 
+                    pointerToObservationSubmission++
+                ) {
+
+                    observationSubmissionsIds = 
+                    chunkOfObservationSubmissions[pointerToObservationSubmission].map(observationSubmission => {
+                        return observationSubmission._id;
+                    })
+
+                    observationSubmissionsDocument = 
+                    await database.models.observationSubmissions.find({
+                        _id: { $in: observationSubmissionsIds }
+                    }, { 
+                        _id: 1, 
+                        solutionId: 1,
+                        entityId: 1, 
+                        observationId: 1, 
+                        "createdBy": 1, 
+                        "entityInformation.name": 1, 
+                        "entityInformation.externalId": 1,
+                        "completedDate" : 1 
+                    }).lean();
+                    await Promise.all(
+                        observationSubmissionsDocument.map(async eachObservationData => {
+
+                        let entityName = ""
+                        if(
+                            eachObservationData.entityInformation && 
+                            eachObservationData.entityInformation.name
+                        ) {
+                            entityName = 
+                            eachObservationData.entityInformation.name;
+
+                        } else if (
+                            eachObservationData.entityInformation && 
+                            eachObservationData.entityInformation.externalId
+                        ) {
+                            entityName = 
+                            eachObservationData.entityInformation.externalId;
+
+                        }
+                        
+                        observationData.push({
+                            _id: eachObservationData._id,
+                            userId: eachObservationData.createdBy,
+                            solutionId: eachObservationData.solutionId,
+                            entityId: eachObservationData.entityId,
+                            observationId: eachObservationData.observationId,
+                            entityName: entityName,
+                            completedDate : eachObservationData.completedDate
                         });
 
                     })

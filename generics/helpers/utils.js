@@ -112,6 +112,13 @@ function getReadableUserRole(userDetails) {
   }
 }
 
+function fetchAssessorsLeadAssessorRole() {
+  return [
+      "LEAD_ASSESSOR",
+      "ASSESSOR"
+  ]
+}
+
 function mapUserRole(role) {
   let allRoles = assessmentRoles()
   return allRoles[role];
@@ -192,5 +199,6 @@ module.exports = {
   getCriteriaIdsAndWeightage : getCriteriaIdsAndWeightage,
   assessmentRoles : assessmentRoles,
   arrayIdsTobjectIds : arrayIdsTobjectIds,
-  checkIfEnvDataExistsOrNot : checkIfEnvDataExistsOrNot
+  checkIfEnvDataExistsOrNot : checkIfEnvDataExistsOrNot,
+  fetchAssessorsLeadAssessorRole : fetchAssessorsLeadAssessorRole
 };
