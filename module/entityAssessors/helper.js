@@ -546,6 +546,7 @@ module.exports = class EntityAssessorHelper {
      */
 
     static pendingAssessment() {
+
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -691,7 +692,6 @@ module.exports = class EntityAssessorHelper {
                         message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
                     }
                 }
-
                 let chunkOfSubmissionDocuments = 
                 _.chunk(submissions,chunkOfSubmissionsLength);
 

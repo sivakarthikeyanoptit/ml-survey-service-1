@@ -702,7 +702,6 @@ module.exports = class ObservationsHelper {
                         "entityInformation.externalId": 1,
                         "completedDate" : 1 
                     }).lean();
-
                     await Promise.all(
                         observationSubmissionsDocument.map(async eachObservationData => {
 
