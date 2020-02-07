@@ -10,9 +10,10 @@ module.exports = (req) => {
         uploadForPortal: function () {
             req.checkQuery('programId').exists().withMessage("required programId")
             req.checkQuery('solutionId').exists().withMessage("required solutionId")
+        },
+        completedAssessments : function () {
+            req.checkQuery('fromDate').exists().withMessage("required from date");
         }
-
-
     }
 
     if (entityAssessorValidator[req.params.method]) entityAssessorValidator[req.params.method]();
