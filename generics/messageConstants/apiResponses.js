@@ -182,7 +182,8 @@ module.exports = {
 "INVALID_OBSERVATION_ENTITY_ID" : "Invalid observation or entity id.",
 "SUBMISSION_NUMBER_FETCHED" : "Submission Number fetched successfully.",
 
-"NO_PENDING_COMPLETED_OBSERVATIONS" : "No Pending or Completed Observations found",
+"NO_COMPLETED_OBSERVATIONS" : "Completed observations not found",
+"NO_PENDING_OBSERVATION" : "Pending observations not found",
 
 "SUBMISSION_STATUS_NOT_COMPLETE" : "Submission status is not completed",
 "OBSERVATION_SUBMISSION_ID_NOT_FOUND" :"No observation submission id found",
@@ -216,6 +217,9 @@ module.exports = {
 
 "NOT_FOUND" : "Not found!",
 
+"STATUS_COMPLETED" : "completed",
+
+"REQUIRED_FROM_DATE" : "From date is required"
 
 
 }
