@@ -1370,11 +1370,9 @@ module.exports = class Observations extends Abstract {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let status = {
-                    pending: true
-                };
 
-                let pendingObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
+                let pendingObservationDocuments = 
+                await observationsHelper.pendingObservations();
 
                 return resolve({
                     message: messageConstants.apiResponses.PENDING_OBSERVATION,
@@ -1397,6 +1395,7 @@ module.exports = class Observations extends Abstract {
     * @apiVersion 1.0.0
     * @apiName Completed Observations
     * @apiGroup Observations
+    * @apiParam {String} fromDate From Date
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/observations/completedObservations
     * @apiUse successBody
@@ -1419,21 +1418,21 @@ module.exports = class Observations extends Abstract {
     */
 
      /**
-    * Observations status equal to completed.
+    * Completed Observations.
     * @method
     * @name completedObservations 
     * @returns {JSON} List of completed observations.   
     */
 
-    async completedObservations() {
+    async completedObservations(req) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let status = {
-                    completed: true
-                };
-
-                let completedObservationDocuments = await observationsHelper.pendingOrCompletedObservations(status);
+                let completedObservationDocuments = 
+                await observationsHelper.completedObservations(
+                    req.query.fromDate,
+                    req.query.toDate
+                );
 
                 return resolve({
                     message: messageConstants.apiResponses.COMPLETED_OBSERVATION,

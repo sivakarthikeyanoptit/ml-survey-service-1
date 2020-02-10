@@ -371,11 +371,8 @@ module.exports = class EntityAssessors extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let status = {
-          pending: true,
-        };
-
-        let pendingAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status);
+        let pendingAssessmentDocument = 
+        await entityAssessorsHelper.pendingAssessment();
 
         return resolve({
           message: messageConstants.apiResponses.PENDING_ASSESSMENT,
@@ -398,6 +395,7 @@ module.exports = class EntityAssessors extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Completed Assessments
   * @apiGroup Entity Assessor
+  * @apiParam {String} fromDate From Date
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v1/entityAssessors/completedAssessments
   * @apiUse successBody
@@ -426,15 +424,15 @@ module.exports = class EntityAssessors extends Abstract {
    * @returns {JSON} - List of completed assessments.
   */
 
-  async completedAssessments() {
+  async completedAssessments(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let status = {
-          completed: true
-        }
-
-        let completedAssessmentDocument = await entityAssessorsHelper.pendingOrCompletedAssessment(status)
+        let completedAssessmentDocument = 
+        await entityAssessorsHelper.completedAssessment(
+          req.query.fromDate,
+          req.query.toDate
+        );
 
         return resolve({
           message: messageConstants.apiResponses.COMPLETED_ASSESSMENT,
