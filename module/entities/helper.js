@@ -877,7 +877,7 @@ module.exports = class EntitiesHelper {
                 let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection);
                 relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : [];
 
-                if(this.entityMapProccessData) {
+                if(this.entityMapProccessData && this.entityMapProccessData.relatedEntities) {
                     this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
                 }
 
