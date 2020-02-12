@@ -562,7 +562,7 @@ module.exports = class EntitiesHelper {
                     throw new Error(messageConstants.apiResponses.INVALID_MAPPING_DATA);
                 }
 
-                this.entityMapProccessData = {
+                this.entityMapProcessData = {
                     entityTypeMap : {},
                     relatedEntities : {},
                     entityToUpdate : {}
@@ -574,14 +574,14 @@ module.exports = class EntitiesHelper {
                   }
                 }
 
-                if(Object.keys(this.entityMapProccessData.entityToUpdate).length > 0) {
-                    await Promise.all(Object.keys(this.entityMapProccessData.entityToUpdate).map(async entityIdToUpdate => {
+                if(Object.keys(this.entityMapProcessData.entityToUpdate).length > 0) {
+                    await Promise.all(Object.keys(this.entityMapProcessData.entityToUpdate).map(async entityIdToUpdate => {
                         
                         let updateQuery = {"$addToSet" : {}};
 
-                        Object.keys(this.entityMapProccessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
+                        Object.keys(this.entityMapProcessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
                             updateQuery["$addToSet"][groupToUpdate] = {
-                                $each: this.entityMapProccessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
+                                $each: this.entityMapProcessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
                             };
                         })
 
@@ -593,7 +593,7 @@ module.exports = class EntitiesHelper {
                     }))
                 }
 
-                this.entityMapProccessData = {};
+                this.entityMapProcessData = {};
                 
                 return resolve({
                     success : true,
@@ -857,8 +857,8 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(this.entityMapProccessData && this.entityMapProccessData.relatedEntities[entityId.toString()]) {
-                    return resolve(this.entityMapProccessData.relatedEntities[entityId.toString()]);
+                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities[entityId.toString()]) {
+                    return resolve(this.entityMapProcessData.relatedEntities[entityId.toString()]);
                 }
 
                 let relatedEntitiesQuery = {};
@@ -877,8 +877,8 @@ module.exports = class EntitiesHelper {
                 let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection);
                 relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : [];
 
-                if(this.entityMapProccessData) {
-                    this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
+                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities) {
+                    this.entityMapProcessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
                 }
 
                 return resolve(relatedEntitiesDocument);
@@ -911,10 +911,10 @@ module.exports = class EntitiesHelper {
 
                 let updateParentHierarchy = false;
 
-                if(this.entityMapProccessData) {
+                if(this.entityMapProcessData) {
                     
-                    if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType]) {
-                        if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
+                    if(this.entityMapProcessData.entityTypeMap[parentEntity.entityType]) {
+                        if(this.entityMapProcessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
                             updateParentHierarchy = true;
                         }
                     } else {
@@ -929,7 +929,7 @@ module.exports = class EntitiesHelper {
                             updateParentHierarchy = true;
                         }
                         
-                        this.entityMapProccessData.entityTypeMap[parentEntity.entityType] = {
+                        this.entityMapProcessData.entityTypeMap[parentEntity.entityType] = {
                             updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
                         };
 
@@ -954,15 +954,15 @@ module.exports = class EntitiesHelper {
                     let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"]);
 
                     if (relatedEntities.length > 0) {
-                        if(this.entityMapProccessData) {
+                        if(this.entityMapProcessData) {
                             relatedEntities.forEach(eachRelatedEntities => {
-                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
+                                if(!this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
+                                    this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
                                 }
-                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
+                                if(!this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
+                                    this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
                                 }
-                                this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
+                                this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
                             })
                         } else {
                             let updateQuery = {};
