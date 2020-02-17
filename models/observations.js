@@ -13,6 +13,8 @@ module.exports = {
     status: String,
     entityTypeId: "ObjectId",
     entityType : String,
-    entities: Array
+    entities: Array,
+    createdFor: [String],
+    rootOrganisations: [String]
   }
 };

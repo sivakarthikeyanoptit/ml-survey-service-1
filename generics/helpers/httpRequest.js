@@ -46,7 +46,7 @@ var Request = class Request {
                 });
 
                 res.on('end', function (content) {
-                    resolve({ data: responseData, message: 'Success', status: res.status, headers: res.headers });
+                    resolve({ data: responseData, message: 'Success', status: res.status ? res.status : (res.statusCode) ? res.statusCode : "", headers: res.headers });
                 });
             });
 
