@@ -545,6 +545,9 @@ module.exports = class Observations extends Abstract {
 
                 entityDocuments[0].data.forEach(eachMetaData => {
                     eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                        eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
                 })
 
                 let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
