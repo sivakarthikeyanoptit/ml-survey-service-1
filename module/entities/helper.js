@@ -857,7 +857,7 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities[entityId.toString()]) {
+                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities && this.entityMapProcessData.relatedEntities[entityId.toString()]) {
                     return resolve(this.entityMapProcessData.relatedEntities[entityId.toString()]);
                 }
 
@@ -913,7 +913,7 @@ module.exports = class EntitiesHelper {
 
                 if(this.entityMapProcessData) {
                     
-                    if(this.entityMapProcessData.entityTypeMap[parentEntity.entityType]) {
+                    if(this.entityMapProcessData.entityTypeMap && this.entityMapProcessData.entityTypeMap[parentEntity.entityType]) {
                         if(this.entityMapProcessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
                             updateParentHierarchy = true;
                         }
@@ -929,9 +929,11 @@ module.exports = class EntitiesHelper {
                             updateParentHierarchy = true;
                         }
                         
-                        this.entityMapProcessData.entityTypeMap[parentEntity.entityType] = {
-                            updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
-                        };
+                        if(this.entityMapProcessData.entityTypeMap) {
+                            this.entityMapProcessData.entityTypeMap[parentEntity.entityType] = {
+                                updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
+                            };
+                        }
 
                     }
 
@@ -954,7 +956,7 @@ module.exports = class EntitiesHelper {
                     let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"]);
 
                     if (relatedEntities.length > 0) {
-                        if(this.entityMapProcessData) {
+                        if(this.entityMapProcessData && this.entityMapProcessData.entityToUpdate) {
                             relatedEntities.forEach(eachRelatedEntities => {
                                 if(!this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
                                     this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
