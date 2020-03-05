@@ -27,6 +27,15 @@ module.exports = {
     pointsBasedMaxScore : { type : Number, default: 0 },
     pointsBasedScoreAchieved : { type : Number, default: 0 },
     pointsBasedPercentageScore : { type : Number, default: 0 },
-    title : { type : String, default: "" }
+    title : { 
+      type : String,
+      default: function() {
+        if (this.submissionNumber && this.submissionNumber > 0) {
+          return "Observation "+this.submissionNumber;
+        } else {
+          return "Observation";
+        }
+      }
+    }
   }
 };
