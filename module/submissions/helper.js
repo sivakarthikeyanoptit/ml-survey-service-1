@@ -998,9 +998,9 @@ module.exports = class SubmissionsHelper {
                                     result.criteria[criteria.externalId].submissionAnswers = submissionAnswers;
                                 }
 
-                                return criteria;
-
                             }
+
+                            return criteria;
 
                         }));
 
@@ -1383,9 +1383,9 @@ module.exports = class SubmissionsHelper {
                                         themeResult[theme.externalId].children = children;
                                     }
     
-                                    return theme;
-    
                                 }
+
+                                return theme;
     
                             }));
 
