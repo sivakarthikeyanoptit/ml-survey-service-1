@@ -999,7 +999,9 @@ module.exports = class Submission extends Abstract {
         }
 
         let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi");
-
+        if(resultingArray.result.runUpdateQuery) {
+          await submissionsHelper.markCompleteAndPushForReporting(submissionDocument._id)
+        }
         return resolve(resultingArray);
 
       } catch (error) {
@@ -1178,6 +1180,13 @@ module.exports = class Submission extends Abstract {
         }
 
         let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi");
+
+        for (let pointerToResultingArray = 0; pointerToResultingArray < resultingArray.length; pointerToResultingArray++) {
+          const submission = resultingArray[pointerToResultingArray];
+          if(submission.runUpdateQuery) {
+            await submissionsHelper.markCompleteAndPushForReporting(submission.submissionId)
+          }
+        }
 
         return resolve({ result: resultingArray });
 
