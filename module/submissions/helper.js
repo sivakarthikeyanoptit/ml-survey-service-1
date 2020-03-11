@@ -1089,6 +1089,8 @@ module.exports = class SubmissionsHelper {
                         }
 
                         resultingArray.push({
+                            runUpdateQuery: result.runUpdateQuery,
+                            submissionId : eachSubmissionDocument._id,
                             entityId: eachSubmissionDocument.entityExternalId,
                             message: message
                         });
@@ -1103,6 +1105,8 @@ module.exports = class SubmissionsHelper {
                         }
 
                         resultingArray.push({
+                            runUpdateQuery: false,
+                            submissionId : eachSubmissionDocument._id,
                             entityId: eachSubmissionDocument.entityExternalId,
                             message: messageConstants.apiResponses.ALL_ECM_NOT_SUBMITTED
                         });
@@ -1510,12 +1514,12 @@ module.exports = class SubmissionsHelper {
     }
 
      /**
-   * Rate submission by id.
-   * @method
-   * @name rateSubmissionById
-   * @param {String} [submissionId = ""] - submission id.
-   * @returns {Object} message regarding rating of submission. 
-   */
+     * Rate submission by id.
+     * @method
+     * @name rateSubmissionById
+     * @param {String} [submissionId = ""] - submission id.
+     * @returns {Object} message regarding rating of submission. 
+     */
 
     static rateSubmissionById(submissionId = "") {
         return new Promise(async (resolve, reject) => {
@@ -1644,6 +1648,60 @@ module.exports = class SubmissionsHelper {
                     emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
                 }
+
+            } catch (error) {
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,error.message);
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+     * Mark submission complete and push to Kafka.
+     * @method
+     * @name markCompleteAndPushForReporting
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
+
+    static markCompleteAndPushForReporting(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+
+            let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
+
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND);
+                } else if (typeof submissionId !== "string") {
+                    submissionId = submissionId.toString()
+                }
+
+                let submissionDocument = await database.models.submissions.findOne(
+                    {_id : ObjectId(submissionId)},
+                    { "_id": 1}
+                ).lean();
+        
+                if (!submissionDocument._id) {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+                }
+
+                await database.models.submissions.updateOne(
+                    {
+                        _id: ObjectId(submissionId)
+                    },
+                    {
+                        status: "completed",
+                        completedDate: new Date()
+                    }
+                );
+                
+                await this.pushCompletedSubmissionForReporting(submissionId);
+
+                emailClient.pushMailToEmailService(emailRecipients,"Successfully marked submission " + submissionId + "complete and pushed for reporting","NO TEXT AVAILABLE");
+                return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
+
 
             } catch (error) {
                 emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,error.message);
