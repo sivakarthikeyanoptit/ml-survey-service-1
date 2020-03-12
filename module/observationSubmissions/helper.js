@@ -112,12 +112,12 @@ module.exports = class ObservationSubmissionsHelper {
     }
 
     /**
-   * Rate submission by id.
-   * @method
-   * @name rateSubmissionById
-   * @param {String} [submissionId = ""] -submission id.
-   * @returns {JSON} - message
-   */
+     * Rate submission by id.
+     * @method
+     * @name rateSubmissionById
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
 
     static rateSubmissionById(submissionId = "") {
         return new Promise(async (resolve, reject) => {
@@ -245,6 +245,58 @@ module.exports = class ObservationSubmissionsHelper {
                     emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 }
+
+            } catch (error) {
+                emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Mark observation submission complete and push to Kafka.
+     * @method
+     * @name markCompleteAndPushForReporting
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
+
+    static markCompleteAndPushForReporting(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+
+            let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
+
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
+                } else if (typeof submissionId !== "string") {
+                    submissionId = submissionId.toString()
+                }
+
+                let submissionDocument = await database.models.observationSubmissions.findOne(
+                    {_id : ObjectId(submissionId)},
+                    { "_id": 1}
+                ).lean();
+        
+                if (!submissionDocument._id) {
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND);
+                }
+
+                await database.models.observationSubmissions.updateOne(
+                    {
+                        _id: ObjectId(submissionId)
+                    },
+                    {
+                        status: "completed",
+                        completedDate: new Date()
+                    }
+                );
+                
+                await this.pushCompletedObservationSubmissionForReporting(submissionId);
+                
+                emailClient.pushMailToEmailService(emailRecipients,"Successfully marked submission " + submissionId + "complete and pushed for reporting","NO TEXT AVAILABLE");
+                return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
 
             } catch (error) {
                 emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
