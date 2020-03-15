@@ -624,7 +624,8 @@ module.exports = class EntitiesHelper {
                     _id: ObjectId(childEntityId)
                 }, {
                     entityType: 1,
-                    groups: 1
+                    groups: 1,
+                    childHierarchyPath : 1
                 }).lean();
 
 
@@ -652,16 +653,31 @@ module.exports = class EntitiesHelper {
                         })
                     }
 
+                    let childHierarchyPathToUpdate = [
+                        childEntity.entityType
+                    ]
+                    if(childEntity.childHierarchyPath && childEntity.childHierarchyPath.length > 0) {
+                        childHierarchyPathToUpdate = childHierarchyPathToUpdate.concat(childEntity.childHierarchyPath);
+                    }
+                    updateQuery["$addToSet"][`childHierarchyPath`] = {
+                        "$each" : childHierarchyPathToUpdate
+                    }
+
                     let projectedData = {
                         _id: 1,
                         "entityType": 1,
                         "entityTypeId": 1,
+                        "childHierarchyPath": 1
                     }
 
                     let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
                         updateQuery,
-                        projectedData
+                        {
+                            projection: projectedData,
+                            new: true
+                        }
+                        
                     );
 
                     await this.mappedParentEntities(updatedParentEntity, childEntity);
@@ -955,6 +971,13 @@ module.exports = class EntitiesHelper {
                 if (updateParentHierarchy) {
                     let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"]);
 
+                    let childHierarchyPathToUpdate = [
+                        parentEntity.entityType
+                    ]
+                    if(parentEntity.childHierarchyPath && parentEntity.childHierarchyPath.length > 0) {
+                        childHierarchyPathToUpdate = childHierarchyPathToUpdate.concat(parentEntity.childHierarchyPath);
+                    }
+
                     if (relatedEntities.length > 0) {
                         if(this.entityMapProcessData && this.entityMapProcessData.entityToUpdate) {
                             relatedEntities.forEach(eachRelatedEntities => {
@@ -965,6 +988,7 @@ module.exports = class EntitiesHelper {
                                     this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
                                 }
                                 this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
+                                this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`childHierarchyPath`] = childHierarchyPathToUpdate;
                             })
                         } else {
                             let updateQuery = {};
@@ -977,6 +1001,10 @@ module.exports = class EntitiesHelper {
                                 allEntities.push(eachRelatedEntities._id);
                             })
     
+                            updateQuery["$addToSet"][`childHierarchyPath`] = {
+                                "$each" : childHierarchyPathToUpdate
+                            }
+
                             await database.models.entities.updateMany(
                                 { _id: { $in: allEntities } },
                                 updateQuery
