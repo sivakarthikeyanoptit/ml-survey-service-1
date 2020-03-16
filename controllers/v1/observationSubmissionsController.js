@@ -607,6 +607,77 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
+  * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
+  * @apiVersion 1.0.0
+  * @apiName Set Observation Submission Title
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "title" : "Observation Submission Title",
+  * }
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Observation submission updated successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Set Observation Submission Title.
+   * @method
+   * @name post
+   * @param {String} req.params._id -observation submissions id.
+   * @returns {JSON} - message that observation submission title is set.
+   */
+
+  async title(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_UPDATED;
+
+        let submissionDocument = await database.models.observationSubmissions.findOneAndUpdate(
+          {
+            _id: req.params._id,
+            createdBy: req.userDetails.id
+          },
+          {
+            $set : {
+              title : req.body.title
+            }
+          }, {
+            projection : {
+              _id : 1
+            }
+          }
+        );
+
+        if (!submissionDocument || !submissionDocument._id) {
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+        }
+
+        let response = {
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
   * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
   * @apiVersion 1.0.0
   * @apiName Push Observation Submission to Kafka
