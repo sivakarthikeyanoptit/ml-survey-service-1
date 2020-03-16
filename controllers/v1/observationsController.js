@@ -224,7 +224,7 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
+                let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails, req.rspObj.userToken);
 
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_CREATED,
@@ -545,6 +545,9 @@ module.exports = class Observations extends Abstract {
 
                 entityDocuments[0].data.forEach(eachMetaData => {
                     eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                        eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
                 })
 
                 let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
@@ -1101,38 +1104,69 @@ module.exports = class Observations extends Abstract {
                 let observationData = await csv().fromString(req.files.observation.data.toString());
 
                 let users = [];
+                let usersKeycloakIdMap = {};
                 let solutionExternalIds = [];
                 let entityIds = [];
 
                 observationData.forEach(eachObservationData => {
                     if (!eachObservationData["keycloak-userId"] && eachObservationData.user && !users.includes(eachObservationData.user)) {
                         users.push(eachObservationData.user);
+                    } else if (eachObservationData["keycloak-userId"] && eachObservationData["keycloak-userId"] != "") {
+                        usersKeycloakIdMap[eachObservationData["keycloak-userId"]] = true;
                     }
                     solutionExternalIds.push(eachObservationData.solutionExternalId);
-                    entityIds.push(ObjectId(eachObservationData.entityId));
+                    if(eachObservationData.entityId && eachObservationData.entityId != "") {
+                        entityIds.push(ObjectId(eachObservationData.entityId));
+                    }
                 })
 
                 let userIdByExternalId;
 
                 if (users.length > 0) {
                     userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                    if(Object.keys(userIdByExternalId).length > 0) {
+                        Object.values(userIdByExternalId).forEach(userDetails => {
+                            usersKeycloakIdMap[userDetails.userId] = true;
+                        })
+                    }
                 }
 
-                let entityDocument = await database.models.entities.find({
-                    _id: {
-                        $in: entityIds
+                if(Object.keys(usersKeycloakIdMap).length > 0) {
+                    let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(Object.keys(usersKeycloakIdMap), req.rspObj.userToken);
+                    if(userOrganisationDetails.success && userOrganisationDetails.data) {
+                        usersKeycloakIdMap = userOrganisationDetails.data;
+                    } else {
+                        throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
                     }
-                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean();
+                }
+
+                let entityDocument;
+
+                if (entityIds.length > 0) {
+                    
+                    let entityQuery = {
+                        _id: {
+                            $in: entityIds
+                        }
+                    };
+
+                    let entityProjection = [
+                        "entityTypeId",
+                        "entityType"
+                    ];
+
+                    entityDocument = await entitiesHelper.entityDocuments(entityQuery, entityProjection);
+                }
 
                 let entityObject = {};
 
-                if (entityDocument.length > 0) {
+                if (entityDocument && Array.isArray(entityDocument) && entityDocument.length > 0) {
                     entityDocument.forEach(eachEntityDocument => {
                         entityObject[eachEntityDocument._id.toString()] = eachEntityDocument;
                     })
                 }
 
-                let solutionDocument = await database.models.solutions.find({
+                let solutionQuery = {
                     externalId: {
                         $in: solutionExternalIds
                     },
@@ -1140,15 +1174,20 @@ module.exports = class Observations extends Abstract {
                     isDeleted: false,
                     isReusable: true,
                     type: "observation"
-                }, {
-                        externalId: 1,
-                        frameworkExternalId: 1,
-                        frameworkId: 1,
-                        name: 1,
-                        description: 1,
-                        type: 1,
-                        subType: 1
-                    }).lean();
+                };
+                let solutionProjection = [
+                    "externalId",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "name",
+                    "description",
+                    "type",
+                    "subType",
+                    "entityTypeId",
+                    "entityType"
+                ];
+
+                let solutionDocument = await solutionsHelper.solutionDocuments(solutionQuery, solutionProjection);
 
                 let solutionObject = {};
 
@@ -1160,47 +1199,68 @@ module.exports = class Observations extends Abstract {
 
 
                 for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
+                    
                     let solution;
-                    let entityDocument;
+                    let entityDocument = {};
                     let observationHelperData;
                     let currentData = observationData[pointerToObservation];
                     let csvResult = {};
                     let status;
+                    let userId;
+                    let userOrganisations;
 
                     Object.keys(currentData).forEach(eachObservationData => {
                         csvResult[eachObservationData] = currentData[eachObservationData];
                     })
 
-                    let userId;
+                    try {
 
-                    if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
-                        userId = currentData["keycloak-userId"];
-                    } else {
+                        if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
+                            userId = currentData["keycloak-userId"];
+                        } else {
 
-                        if (userIdByExternalId[currentData.user] === "") {
-                            throw { status: httpStatusCode.bad_request.status, message: "Keycloak id for user is not present" };
+                            if (userIdByExternalId[currentData.user] === "") {
+                                throw new Error("Keycloak id for user is not present");
+                            }
+
+                            userId = userIdByExternalId[currentData.user];
                         }
 
-                        userId = userIdByExternalId[currentData.user]
-                    }
+                        if(userId == "") {
+                            throw new Error(messageConstants.apiResponses.USER_NOT_FOUND);
+                        }
 
-                    if (solutionObject[currentData.solutionExternalId] !== undefined) {
-                        solution = solutionObject[currentData.solutionExternalId];
-                    }
+                        if(!usersKeycloakIdMap[userId] || !Array.isArray(usersKeycloakIdMap[userId].organisations) || usersKeycloakIdMap[userId].organisations.length < 1 || !Array.isArray(usersKeycloakIdMap[userId].rootOrganisations) || usersKeycloakIdMap[userId].rootOrganisations.length < 1) {
+                            throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
+                        } else {
+                            userOrganisations = usersKeycloakIdMap[userId];
+                        }
 
-                    if (entityObject[currentData.entityId.toString()] !== undefined) {
-                        entityDocument = entityObject[currentData.entityId.toString()];
-                    }
-                    if (entityDocument !== undefined && solution !== undefined && userId !== "") {
-                        observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
+                        if (solutionObject[currentData.solutionExternalId] !== undefined) {
+                            solution = solutionObject[currentData.solutionExternalId];
+                        } else {
+                            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+                        }
+
+                        if (currentData.entityId && currentData.entityId != "") {
+                            if(entityObject[currentData.entityId.toString()] !== undefined) {
+                                entityDocument = entityObject[currentData.entityId.toString()];
+                            } else {
+                                throw new Error(messageConstants.apiResponses.ENTITY_NOT_FOUND);
+                            }
+                        }
+
+                        observationHelperData = await observationsHelper.bulkCreate(userId, solution, entityDocument, userOrganisations);
                         status = observationHelperData.status;
-                    } else {
-                        status = messageConstants.apiResponses.ENTITY_SOLUTION_USER_NOT_FOUND;
-                    }
 
+                    } catch (error) {
+                        status = error.message;
+                    }
+                    
                     csvResult["status"] = status;
                     input.push(csvResult);
                 }
+
                 input.push(null);
             } catch (error) {
                 return reject({

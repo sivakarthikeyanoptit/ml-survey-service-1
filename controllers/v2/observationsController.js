@@ -141,13 +141,17 @@ module.exports = class Observations extends v1Observation {
 
                 let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
 
+                let observationEntityIds = new Array;
                 if ( result.entities && result.entities.length > 0 ) {
-                    let observationEntityIds = result.entities.map(entity => entity.toString());
-
-                    entityDocuments[0].data.forEach(eachMetaData => {
-                        eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
-                    })
+                    observationEntityIds = result.entities.map(entity => entity.toString());
                 }
+
+                entityDocuments[0].data.forEach(eachMetaData => {
+                    eachMetaData.selected = (observationEntityIds.length > 0 && observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                        eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
+                })
 
                 let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if ( !(entityDocuments[0].count) ) {
