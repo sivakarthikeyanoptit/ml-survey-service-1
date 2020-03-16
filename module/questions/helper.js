@@ -632,7 +632,7 @@ module.exports = class QuestionsHelper {
    */
 
   static booleanData() {
-    let booleanData = ["allowAudioRecording", "showRemarks", "isAGeneralQuestion"];
+    let booleanData = ["allowAudioRecording", "showRemarks", "isAGeneralQuestion", "autoCapture"];
     return booleanData;
   }
 
