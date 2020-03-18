@@ -18,8 +18,15 @@ module.exports = (req) => {
 
         title: function () {
             req.checkBody('title').exists().notEmpty().withMessage("required observation submission title")
-        }
+        },
 
+        pushCompletedObservationSubmissionForReporting: function () {
+            req.checkParams('_id').exists().withMessage("required submission id")
+        },
+
+        pushIncompleteObservationSubmissionForReporting: function () {
+            req.checkParams('_id').exists().withMessage("required submission id")
+        }
     }
 
     if (observationSubmissionValidator[req.params.method]) observationSubmissionValidator[req.params.method]();
