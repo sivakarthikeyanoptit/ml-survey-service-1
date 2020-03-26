@@ -8,7 +8,6 @@ module.exports = {
       updatedBy: String,
       status: String,
       appType: String,
-      appName: String,
       metaInformation: Object,
       isDeleted: Boolean
     }
