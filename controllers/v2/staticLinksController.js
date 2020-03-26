@@ -48,23 +48,29 @@ module.exports = class StaticLinks extends v1StaticLinks {
    * @returns {Array} List of all static links. 
    */
 
-  list() {
+  list(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        let result = await staticLinksHelper.list({
+        let linksFilter = {
           status: "active",
           isDeleted: false
-        }, {
+        }
+
+        if(req.headers.apptype && req.headers.apptype != "") {
+          linksFilter["appType"] = req.headers.apptype;
+        }
+
+        let result = await staticLinksHelper.list(linksFilter, {
             value: 1,
             link: 1,
             title: 1,
             metaInformation: 1
-          });
+        });
 
         result = _.keyBy(result, 'value');
-        
+
         return resolve({
           message: messageConstants.apiResponses.STATIC_LINKS_FETCHED,
           result: result
