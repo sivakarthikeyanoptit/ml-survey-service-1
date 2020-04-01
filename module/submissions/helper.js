@@ -13,6 +13,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
+const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
 
 /**
     * SubmissionsHelper
@@ -69,6 +70,8 @@ module.exports = class SubmissionsHelper {
                         document
                     );
 
+                    // Push new submission to kafka for reporting/tracking.
+                    this.pushInCompleteSubmissionForReporting(submissionDocument._id);
                 } else {
 
                     let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
@@ -481,6 +484,14 @@ module.exports = class SubmissionsHelper {
                         updateObject,
                         queryOptions
                     );
+                    
+                    if(modelName == "submissions") {
+                        // Push update submission to kafka for reporting/tracking.
+                        this.pushInCompleteSubmissionForReporting(updatedSubmissionDocument._id);
+                    } else {
+                        // Push updated submission to kafka for reporting/tracking.
+                        observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(updatedSubmissionDocument._id);
+                    }
 
                     let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument);
                     let { ratingsEnabled } = canRatingsBeEnabled;
@@ -1709,5 +1720,58 @@ module.exports = class SubmissionsHelper {
             }
         })
     }
+
+
+    /**
+   * Push incomplete submission for reporting.
+   * @method
+   * @name pushInCompleteSubmissionForReporting
+   * @param {String} submissionId - submission id.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+    static pushInCompleteSubmissionForReporting(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
+                }
+
+                if(typeof submissionId == "string") {
+                    submissionId = ObjectId(submissionId);
+                }
+
+                let submissionsDocument = await database.models.submissions.findOne({
+                    _id: submissionId,
+                    status: {$ne: "completed"}
+                }).lean();
+
+                if (!submissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND + "or" +SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+
+
+                const kafkaMessage = await kafkaClient.pushInCompleteSubmissionToKafka(submissionsDocument);
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            submissionId:submissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    };
+                    slackClient.kafkaErrorAlert(errorObject);
+                }
+
+                return resolve(kafkaMessage);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 
 };
