@@ -44,11 +44,18 @@ module.exports = class AssessmentsHelper {
       * @param {Array} questionGroup - array of questionGroup for particulat entity.
       * @param {Object} submissionDocEvidences - all the evidences of the submission.
       * @param {Boolean} [questionSequenceByEcm = false] 
-      * - if true questions should be sequenced in an order format provided. 
+      * - if true questions should be sequenced in an order format provided.
+      * @param {Object} entityMetaInformation -  entity metaInformation
       * @returns {Promise} returns a promise.
      */
 
-    static parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm = false) {
+    static parseQuestions(
+        evidences, 
+        questionGroup, 
+        submissionDocEvidences, 
+        questionSequenceByEcm = false,
+        entityMetaInformation
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -89,11 +96,21 @@ module.exports = class AssessmentsHelper {
                         let sectionCode = section.code;
 
                         section.questions.forEach((question, index, section) => {
+
                             question.evidenceMethod = evidence.externalId;
 
                             if (_.difference(question.questionGroup, questionGroup).length < question.questionGroup.length) {
 
                                 sectionQuestionArray[question._id] = section;
+
+                                if( question.prefillFromEntityProfile ) {
+    
+                                    question["value"] = 
+                                    entityMetaInformation[question.entityFieldName] ?
+                                    entityMetaInformation[question.entityFieldName] : 
+                                    ""
+                                }
+
                                 questionArray[question._id] = question;
 
                                 if (question.page && question.page != "") {
@@ -228,15 +245,28 @@ module.exports = class AssessmentsHelper {
       * @param {Array} questionGroup - array of questionGroup for particulat entity.
       * @param {Object} submissionDocEvidences - all the evidences of the submission.
       * @param {Boolean} [questionSequenceByEcm = false] 
-      * - if true questions should be sequenced in an order format provided. 
+      * - if true questions should be sequenced in an order format provided.
+      * @param {Object} entityMetaInformation - entity metaInformation 
       * @returns {Promise} returns a promise.
      */
 
-    static parseQuestionsV2(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm = false) {
+    static parseQuestionsV2(
+        evidences, 
+        questionGroup, 
+        submissionDocEvidences, 
+        questionSequenceByEcm = false,
+        entityMetaInformation
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let parseQuestionV1 = await this.parseQuestions(evidences, questionGroup, submissionDocEvidences, questionSequenceByEcm);
+                let parseQuestionV1 = await this.parseQuestions(
+                    evidences, 
+                    questionGroup, 
+                    submissionDocEvidences, 
+                    questionSequenceByEcm,
+                    entityMetaInformation
+                );
 
 
                 let defaultQuestion = {};

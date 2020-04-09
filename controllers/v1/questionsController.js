@@ -81,12 +81,14 @@ module.exports = class Questions extends Abstract {
   bulkCreate(req){
     return new Promise(async (resolve, reject) => {
       try {
+        
         if (!req.files || !req.files.questions) {
-          let responseMessage = httpStatusCode.bad_request.message;
+
           return resolve({ 
-            status: httpStatusCode.bad_request.status, 
-            message: responseMessage 
+            status : httpStatusCode.bad_request.status, 
+            message : messageConstants.apiResponses.QUESTIONS_FILE_REQUIRED 
           });
+
         }
 
         let questionData = await csv().fromString(
@@ -99,12 +101,22 @@ module.exports = class Questions extends Abstract {
         let questionCollection = {};
         let questionIds = new Array();
 
-        let solutionDocument = await database.models.solutions
-          .findOne(
+        let solutionDocument = await database.models.solutions.findOne(
             { externalId: questionData[0]["solutionId"] },
-            { evidenceMethods: 1, sections: 1, themes: 1 }
-          )
-          .lean();
+            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1 }
+        ).lean();
+        
+        if( !solutionDocument ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND,
+          })
+        }
+
+        let entityTypeDocument = await database.models.entityTypes.findOne({
+          name : solutionDocument.entityType
+        },{ profileFields : 1 }).lean();
+
         let criteriasIdArray = gen.utils.getCriteriaIds(
           solutionDocument.themes
         );
@@ -140,11 +152,9 @@ module.exports = class Questions extends Abstract {
           }
         });
 
-        let criteriaDocument = await database.models.criteria
-          .find({
+        let criteriaDocument = await database.models.criteria.find({
             externalId: { $in: criteriaIds }
-          })
-          .lean();
+        }).lean();
 
         if (!criteriaDocument.length > 0) {
           throw messageConstants.apiResponses.CRITERIA_NOT_FOUND;
@@ -212,13 +222,21 @@ module.exports = class Questions extends Abstract {
         }
 
         // Create question
-        function createQuestion(parsedQuestion, question, criteria, ecm, section) {
+        function createQuestion(
+          parsedQuestion, 
+          question, 
+          criteria, 
+          ecm, 
+          section,
+          profileFields
+        ) {
           let resultFromCreateQuestions = questionsHelper.createQuestions(
             parsedQuestion,
             question,
             criteria,
             ecm,
-            section
+            section,
+            profileFields
           );
 
           return resultFromCreateQuestions;
@@ -266,7 +284,14 @@ module.exports = class Questions extends Abstract {
 
             let question = questionInCsv(parsedQuestion);
 
-            let resultFromCreateQuestions = await createQuestion(parsedQuestion, question, criteria, ecm, section);
+            let resultFromCreateQuestions = await createQuestion(
+              parsedQuestion,
+              question, 
+              criteria, 
+              ecm, 
+              section,
+              entityTypeDocument.profileFields
+            );
 
             if (resultFromCreateQuestions.result) {
               questionCollection[resultFromCreateQuestions.result.externalId] =
@@ -287,7 +312,14 @@ module.exports = class Questions extends Abstract {
 
             let question = questionInCsv(eachPendingItem);
 
-            let csvQuestionData = await createQuestion(eachPendingItem.parsedQuestion, question, eachPendingItem.criteriaToBeSent, eachPendingItem.evaluationFrameworkMethod, eachPendingItem.section);
+            let csvQuestionData = await createQuestion(
+              eachPendingItem.parsedQuestion, 
+              question, 
+              eachPendingItem.criteriaToBeSent, 
+              eachPendingItem.evaluationFrameworkMethod, 
+              eachPendingItem.section,
+              entityTypeDocument.profileFields
+            );
 
             input.push(csvQuestionData.total[0]);
           }
@@ -328,11 +360,12 @@ module.exports = class Questions extends Abstract {
       try {
 
         if (!req.files || !req.files.questions) {
-          let responseMessage = httpStatusCode.bad_request.message;
+
           return resolve({ 
             status: httpStatusCode.bad_request.status, 
-            message: responseMessage 
+            message: messageConstants.apiResponses.QUESTIONS_FILE_REQUIRED 
           });
+
         }
 
         let questionData = await csv().fromString(
@@ -342,9 +375,20 @@ module.exports = class Questions extends Abstract {
         let solutionDocument = await database.models.solutions
           .findOne(
             { externalId: questionData[0]["solutionId"] },
-            { evidenceMethods: 1, sections: 1, themes: 1 }
+            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1 }
           )
           .lean();
+
+        if( !solutionDocument ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          })
+        }
+
+        let entityTypeDocument = await database.models.entityTypes.findOne({
+          name : solutionDocument.entityType
+        },{ profileFields : 1 }).lean();
 
         let criteriasIdArray = gen.utils.getCriteriaIds(
           solutionDocument.themes
@@ -618,7 +662,8 @@ module.exports = class Questions extends Abstract {
           }
 
           let updateQuestion = await questionsHelper.updateQuestion(
-            parsedQuestion
+            parsedQuestion,
+            entityTypeDocument.profileFields
           );
 
           input.push(_.omitBy(updateQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
