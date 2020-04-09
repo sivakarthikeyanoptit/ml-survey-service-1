@@ -170,5 +170,7 @@ module.exports = {
 "REQUIRED_FROM_DATE" : "From date is required",
 "REQUIRED_USER_AUTH_TOKEN" : "User auth token is required",
 "REQUIRED_AUTH_TOKEN_OR_USER_ID": "Auth token or user id is missing.",
-"USER_ORGANISATION_DETAILS_NOT_FOUND": "Cannot create an observation for user whose organisation details are not available"
+"USER_ORGANISATION_DETAILS_NOT_FOUND": "Cannot create an observation for user whose organisation details are not available",
+
+"QUESTIONS_FILE_REQUIRED" : "Required questions key in form-data"
 }

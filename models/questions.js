@@ -42,6 +42,9 @@ module.exports = {
     allowAudioRecording: Boolean,
     page: String,
     questionNumber: String,
-    weightage: { type : Number, default: 1 }
+    weightage: { type : Number, default: 1 },
+    prefillFromEntityProfile : { type : Boolean, default : false },
+    entityFieldName : { type : String, default : "" } ,
+    canEdit : { type : Boolean, default : false }
   }
 };

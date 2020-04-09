@@ -21,12 +21,20 @@ module.exports = class QuestionsHelper {
    * @param {Object} questionCollection - question data if it exists in the database.
    * @param {Object} criteriaObject - question criteria.
    * @param {Object} evidenceCollectionMethodObject - question evidence method
-   * @param {Object} questionSection - question section          
+   * @param {Object} questionSection - question section
+   * @param {Array} profileFields - profile fields of the particular entity type.          
    * @returns {Object} consisting of SYSTEM_ID(if question is created than SYSTEM_ID
    * will have value else error message will be present in SYSTEM_ID)  
    */
 
-  static createQuestions(parsedQuestion, questionCollection, criteriaObject, evidenceCollectionMethodObject, questionSection) {
+  static createQuestions(
+    parsedQuestion, 
+    questionCollection, 
+    criteriaObject, 
+    evidenceCollectionMethodObject, 
+    questionSection,
+    profileFields
+  ) {
 
     let csvArray = new Array;
 
@@ -47,7 +55,12 @@ module.exports = class QuestionsHelper {
           "value": ""
         };
 
-        let fieldNotIncluded = ["instanceIdentifier", "dateFormat", "autoCapture", "isAGeneralQuestion"];
+        let fieldNotIncluded = [
+          "instanceIdentifier", 
+          "dateFormat", 
+          "autoCapture", 
+          "isAGeneralQuestion"
+        ];
 
         let resultQuestion;
 
@@ -148,7 +161,11 @@ module.exports = class QuestionsHelper {
           allValues["options"] = new Array;
 
           // Adding data in options field
-          for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+          for (
+            let pointerToResponseCount = 1; 
+            pointerToResponseCount < 1000; 
+            pointerToResponseCount++
+          ) {
             let optionValue = "R" + pointerToResponseCount;
             let optionHint = "R" + pointerToResponseCount + "-hint";
             let optionScore = "R" + pointerToResponseCount + "-score";
@@ -179,7 +196,11 @@ module.exports = class QuestionsHelper {
           allValues["sliderOptions"] = new Array;
           blankValueCount = 0;
           // Adding data in slider options field
-          for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+          for (
+            let pointerToResponseCount = 1;
+            pointerToResponseCount < 1000;
+            pointerToResponseCount++
+          ) {
             let optionValue = "slider-value-" + pointerToResponseCount;
             let optionScore = "slider-value-" + pointerToResponseCount + "-score";
 
@@ -201,14 +222,33 @@ module.exports = class QuestionsHelper {
           }
 
           Object.keys(parsedQuestion).forEach(parsedQuestionData => {
-            if (!fieldNotIncluded.includes(parsedQuestionData) && !allValues[parsedQuestionData] && questionDataModel.includes(parsedQuestionData)) {
+            if (
+              !fieldNotIncluded.includes(parsedQuestionData) && 
+              !allValues[parsedQuestionData] && 
+              questionDataModel.includes(parsedQuestionData)
+            ) {
               if (this.booleanData().includes(parsedQuestionData)) {
-                allValues[parsedQuestionData] = this.convertStringToBoolean(parsedQuestion[parsedQuestionData]);
+                
+                allValues[parsedQuestionData] = 
+                this.convertStringToBoolean(parsedQuestion[parsedQuestionData]);
+
               } else {
                 allValues[parsedQuestionData] = parsedQuestion[parsedQuestionData];
               }
             }
           })
+
+          // <- Add entityField name in question document. Entity field name provided 
+          // in the csv should exists in the profileFields of the particular entityType.
+
+          allValues["entityFieldName"] = "";
+
+          if( 
+            parsedQuestion.entityFieldName && 
+            profileFields.includes(parsedQuestion.entityFieldName) 
+          ) {
+            allValues["entityFieldName"] = parsedQuestion.entityFieldName;
+          }
 
           let createQuestion = await database.models.questions.create(
             allValues
@@ -322,11 +362,12 @@ module.exports = class QuestionsHelper {
    * update questions.
    * @method
    * @name updateQuestion
-   * @param {Object} parsedQuestion -parsed question.         
+   * @param {Object} parsedQuestion -parsed question.
+   * @param {Array} profileFields - profile fields of the particular entity type.         
    * @returns {Object} consisting of UPDATE_STATUS  
    */
 
-  static updateQuestion(parsedQuestion) {
+  static updateQuestion( parsedQuestion,profileFields ) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -366,12 +407,6 @@ module.exports = class QuestionsHelper {
         if (parsedQuestion["question1"]) {
           existingQuestion.question[1] = parsedQuestion["question1"];
         }
-
-        // if (parsedQuestion["isAGeneralQuestion"] && (parsedQuestion["isAGeneralQuestion"] == "true" || parsedQuestion["isAGeneralQuestion"] == "TRUE")) {
-        //   existingQuestion["isAGeneralQuestion"] = parsedQuestion["isAGeneralQuestion"] = true
-        // } else {
-        //   existingQuestion["isAGeneralQuestion"] = parsedQuestion["isAGeneralQuestion"] = false
-        // }
 
         if (parsedQuestion["responseType"] !== "") {
 
@@ -434,13 +469,6 @@ module.exports = class QuestionsHelper {
           existingQuestion["file"] = parsedQuestion["file"] = {};
         }
 
-        // if (parsedQuestion["showRemarks"] && (parsedQuestion["showRemarks"] == "true" || parsedQuestion["showRemarks"] == "TRUE")) {
-        //   existingQuestion["showRemarks"] = parsedQuestion["showRemarks"] = true
-        // } else {
-        //   existingQuestion["showRemarks"] = parsedQuestion["showRemarks"] = false
-        // }
-
-
         if (parsedQuestion["questionGroup"]) {
           existingQuestion["questionGroup"] = parsedQuestion["questionGroup"] = parsedQuestion["questionGroup"].split(',');
         }
@@ -451,7 +479,11 @@ module.exports = class QuestionsHelper {
         existingQuestion["options"] = new Array;
         
         // Adding data in options field
-        for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+        for (
+          let pointerToResponseCount = 1; 
+          pointerToResponseCount < 1000; 
+          pointerToResponseCount++
+        ) {
           let optionValue = "R" + pointerToResponseCount;
           let optionHint = "R" + pointerToResponseCount + "-hint";
           let optionScore = "R" + pointerToResponseCount + "-score";
@@ -482,7 +514,11 @@ module.exports = class QuestionsHelper {
         
         blankValueCount = 0;
         // Adding data in slider options field
-        for (let pointerToResponseCount = 1; pointerToResponseCount < 1000; pointerToResponseCount++) {
+        for (
+          let pointerToResponseCount = 1;
+          pointerToResponseCount < 1000; 
+          pointerToResponseCount++
+        ) {
           let optionValue = "slider-value-" + pointerToResponseCount;
           let optionScore = "slider-value-" + pointerToResponseCount + "-score";
 
@@ -509,9 +545,20 @@ module.exports = class QuestionsHelper {
             } else {
               existingQuestion[parsedQuestionData] = parsedQuestion[parsedQuestionData];
             }
-            // existingQuestion[parsedQuestionData] = parsedQuestion[parsedQuestionData]
           }
         })
+
+        // <- Add entityField name in question document. Entity field name provided 
+        // in the csv should exists in the profileFields of the particular entityType.
+
+        existingQuestion["entityFieldName"] = "";
+
+        if( 
+          parsedQuestion.entityFieldName && 
+          profileFields.includes(parsedQuestion.entityFieldName) 
+        ) {
+          existingQuestion["entityFieldName"] = parsedQuestion.entityFieldName;
+        }
 
         let updateQuestion = await database.models.questions.findOneAndUpdate(
           { _id: existingQuestion._id },
@@ -612,7 +659,6 @@ module.exports = class QuestionsHelper {
 
           }
 
-
         }
 
         return resolve(parsedQuestion);
@@ -632,7 +678,15 @@ module.exports = class QuestionsHelper {
    */
 
   static booleanData() {
-    let booleanData = ["allowAudioRecording", "showRemarks", "isAGeneralQuestion", "autoCapture"];
+    let booleanData = [
+      "allowAudioRecording", 
+      "showRemarks", 
+      "isAGeneralQuestion", 
+      "autoCapture",
+      "prefillFromEntityProfile",
+      "canEdit"
+    ];
+
     return booleanData;
   }
 
