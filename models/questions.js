@@ -39,9 +39,12 @@ module.exports = {
     autoCapture: { type : Boolean, default: false },
     rubricLevel: String,
     sectionHeader: String,
-    allowAudioRecording: Boolean,
+    allowAudioRecording: { type : Boolean, default : false },
     page: String,
     questionNumber: String,
-    weightage: { type : Number, default: 1 }
+    weightage: { type : Number, default: 1 },
+    prefillFromEntityProfile : { type : Boolean, default : false },
+    entityFieldName : { type : String, default : "" } ,
+    isEditable : { type : Boolean, default : true }
   }
 };
