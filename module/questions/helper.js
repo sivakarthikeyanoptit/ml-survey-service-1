@@ -677,7 +677,8 @@ module.exports = class QuestionsHelper {
   /**
    * Default boolean data needed for creating question.
    * @method
-   * @name booleanData         
+   * @name booleanData  
+   * @param questionSchemaData - All questions schema       
    * @returns {Array} Boolean data.
    */
 
