@@ -677,7 +677,8 @@ module.exports = class QuestionsHelper {
   /**
    * Default boolean data needed for creating question.
    * @method
-   * @name booleanData         
+   * @name booleanData  
+   * @param questionSchemaData - All questions schema       
    * @returns {Array} Boolean data.
    */
 
@@ -691,10 +692,8 @@ module.exports = class QuestionsHelper {
 
       let currentSchema = questionSchemaData[questionSchema];
 
-      if( 
-        currentSchema === "Boolean" || 
-        (currentSchema.type && currentSchema.type === "Boolean")
-      ) {
+      if( currentSchema.hasOwnProperty('default') && typeof currentSchema.default === "boolean" )
+      {
         booleanQuestions.push(questionSchema);
       }
     });
