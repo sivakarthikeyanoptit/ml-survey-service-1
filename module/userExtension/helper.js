@@ -226,12 +226,18 @@ module.exports = class UserExtensionHelper {
                 let userRole;
                 let existingEntity;
                 let existingUserRole;
-                const keycloakUserIdIsMandatoryInFile = (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false;
+                const keycloakUserIdIsMandatoryInFile = 
+                (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false;
 
-                for (let csvRowNumber = 0; csvRowNumber < userRolesCSVData.length; csvRowNumber++) {
+                for (
+                    let csvRowNumber = 0; 
+                    csvRowNumber < userRolesCSVData.length; 
+                    csvRowNumber++
+                ) {
 
                     userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
                     userRole["_SYSTEM_ID"] = "";
+                    aclData(userRole);
 
                     try {
 
@@ -246,6 +252,7 @@ module.exports = class UserExtensionHelper {
                         let entityQueryObject = {
                             _id: userRole.entity
                         };
+
                         if (userRoleAllowedEntityTypes[userRole.role] && userRoleAllowedEntityTypes[userRole.role].length > 0) {
                             entityQueryObject.entityTypeId = {
                                 $in: userRoleAllowedEntityTypes[userRole.role]
@@ -305,15 +312,25 @@ module.exports = class UserExtensionHelper {
                                 existingUserRole.roles.push(userRoleMap[userRole.role]);
                             }
 
-                            existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => eachEntity.toString());
+                            existingUserRole.roles[userRoleToUpdate].entities = 
+                            existingUserRole.roles[userRoleToUpdate].entities.map(
+                                eachEntity => eachEntity.toString()
+                            );
 
                             if (userRole.entityOperation == "OVERRIDE") {
+
                                 existingUserRole.roles[userRoleToUpdate].entities = [userRole.entity];
+                                existingUserRole.roles[userRoleToUpdate].acl = userRole.acl;
+
                             } else if (userRole.entityOperation == "APPEND" || userRole.entityOperation == "ADD") {
+
                                 existingUserRole.roles[userRoleToUpdate].entities.push(userRole.entity);
                                 existingUserRole.roles[userRoleToUpdate].entities = _.uniq(existingUserRole.roles[userRoleToUpdate].entities);
+
                             } else if (userRole.entityOperation == "REMOVE") {
+
                                 _.pull(existingUserRole.roles[userRoleToUpdate].entities, userRole.entity);
+                                
                             }
 
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => ObjectId(eachEntity));
@@ -332,9 +349,9 @@ module.exports = class UserExtensionHelper {
                             userRole.status = "Success";
 
                         } else {
-
                             let roles = [userRoleMap[userRole.role]];
                             roles[0].entities = [ObjectId(userRole.entity)];
+                            roles[0].acl = userRole.acl
 
                             let newRole = await database.models.userExtension.create(
                                 _.merge({
@@ -405,8 +422,15 @@ module.exports = class UserExtensionHelper {
 
                 let entities = [];
 
-                for (let pointerToUserExtension = 0; pointerToUserExtension < userExtensionDoument.roles.length; pointerToUserExtension++) {
-                    entities = _.concat(entities, userExtensionDoument.roles[pointerToUserExtension].entities);
+                for (
+                    let pointerToUserExtension = 0; 
+                    pointerToUserExtension < userExtensionDoument.roles.length; 
+                    pointerToUserExtension++
+                ) {
+                    entities = _.concat(
+                        entities, 
+                        userExtensionDoument.roles[pointerToUserExtension].entities
+                    );
                 }
 
                 return resolve(entities);
@@ -416,6 +440,77 @@ module.exports = class UserExtensionHelper {
             }
         })
     }
+
+    /**
+   * user access control list
+   * @method
+   * @name userAccessControlList
+   * @param {String} userId - logged in user id.
+   * @returns {object}  
+   */
+
+  static userAccessControlList( userId ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!userId) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.USER_ID_REQUIRED_CHECK
+                }
+            }
+
+            let userExtensionDoument = await database.models.userExtension.findOne({
+                userId: userId
+            }, { "roles.acl" : 1 }).lean();
+
+            if (!userExtensionDoument) {
+                throw { 
+                    status: httpStatusCode.badrequest.status, 
+                    message: messageConstants.apiResponses.USER_EXTENSION_NOT_FOUND 
+                };
+            }
+
+            let acl = {};
+
+            for (
+                let pointerToUserExtension = 0; 
+                pointerToUserExtension < userExtensionDoument.roles.length; 
+                pointerToUserExtension++
+            ) {
+
+                let currentUserRole = userExtensionDoument.roles[pointerToUserExtension];
+
+                if( currentUserRole.acl ) {
+                    
+                    let aclKeys = 
+                    Object.keys(currentUserRole.acl);
+    
+                    for( let aclKey = 0; aclKey < aclKeys.length ; aclKey ++ ) {
+                        let currentAclKey = aclKeys[aclKey];
+    
+                        if ( !acl[currentAclKey] ) {
+                            acl[currentAclKey] = [];
+                        }
+    
+                        if ( currentUserRole.acl[aclKeys[aclKey]].tags ) {
+                            acl[currentAclKey] = _.union(
+                                acl[currentAclKey],
+                                currentUserRole.acl[aclKeys[aclKey]].tags
+                            )
+                            
+                        }
+                    }
+                }
+
+            }
+
+            return resolve(acl);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
     /**
    * Get user entity universe by entity type.
@@ -485,6 +580,158 @@ module.exports = class UserExtensionHelper {
     }
 
     /**
+    * Entities list 
+    * @method
+    * @name entities
+    * @param userId - logged in user Id
+    * @param entityType - entity type
+    * @param pageSize - Page limit
+    * @param pageNo - Page No
+    * @param search - search data
+    * @returns {JSON} List of entities of the given type. 
+    */
+
+  static entities( 
+      userId,
+      entityType,
+      pageSize,
+      pageNo,
+      search
+    ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let entities = 
+            await this.getUserEntities(userId);
+
+            if ( !entities.length > 0 ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                }
+            }
+            
+            let entitiesFound = await entitiesHelper.entityDocuments({
+                _id: { $in: entities },
+                entityType: entityType
+            }, ["_id"]);
+
+            let allEntities = [];
+
+            if ( entitiesFound.length > 0 ) {
+                entitiesFound.forEach(eachEntityData => {
+                    allEntities.push(eachEntityData._id);
+                });
+            }
+
+            let findQuery = {
+                _id: { $in: entities },
+                entityType: { $ne: entityType },
+                [`groups.${entityType}`] : { $exists: true }
+            };
+
+            let remainingEntities = 
+            await entitiesHelper.entityDocuments(
+                findQuery, 
+                [`groups.${entityType}`]
+            );
+            
+            if ( remainingEntities.length > 0 ) {
+                remainingEntities.forEach(entity => {
+                    allEntities = _.concat(
+                        allEntities, 
+                        entity.groups[entityType]
+                    );
+                })
+            }
+            
+            if (!allEntities.length > 0) {
+                throw { 
+                    status: httpStatusCode.bad_request.status,
+                    message: messageConstants.apiResponses.ENTITY_NOT_FOUND
+                };
+            }
+
+            let queryObject = {
+                $match : {
+                    _id : { $in : allEntities }
+                }
+            };
+
+            let userAccessControlList = await this.userAccessControlList(
+                userId
+            );
+
+            if( 
+                userAccessControlList[entityType] && 
+                userAccessControlList[entityType].length > 0 
+            ) {
+                queryObject["$match"]["metaInformation.tags"] = {
+                    $in : userAccessControlList[entityType]
+                }
+            }
+
+            if ( search && search !== "" ) {
+                queryObject["$match"]["$or"] = [
+                    { "metaInformation.name": new RegExp(search, 'i') },
+                    { "metaInformation.externalId": new RegExp("^" + search, 'm') },
+                    { "metaInformation.addressLine1": new RegExp(search, 'i') },
+                    { "metaInformation.addressLine2": new RegExp(search, 'i') }
+                ]
+            }
+
+            let skippingValue = pageSize * (pageNo - 1);
+
+            let result = await database.models.entities.aggregate([
+                queryObject,
+                {
+                    $project: {
+                        "metaInformation.externalId" : 1, 
+                        "metaInformation.name" : 1, 
+                        "metaInformation.addressLine1" : 1, 
+                        "metaInformation.addressLine2" : 1, 
+                        "metaInformation.administration" : 1, 
+                        "metaInformation.city" : 1, 
+                        "metaInformation.country" : 1, 
+                        "entityTypeId" : 1, 
+                        "entityType" : 1
+                    }
+                },
+                {
+                    $facet : {
+                        "totalCount" : [
+                            { "$count" : "count" }
+                        ],
+                        "data" : [
+                            { $skip : skippingValue },
+                            { $limit : pageSize }
+                        ],
+                    }
+                }, {
+                    $project : {
+                        "data" : 1,
+                        "count" : {
+                            $arrayElemAt : ["$totalCount.count", 0]
+                        }
+                    }
+                }
+            ]);
+
+            return resolve({
+                message: messageConstants.apiResponses.USER_EXTENSION_ENTITIES_FETCHED,
+                result: result[0].data,
+                count: result[0].count ? result[0].count : 0
+            });
+
+           
+        } catch(error) {
+            return reject(error);
+        }
+    })
+    
+  }
+
+    /**
    * Default user extension schemas value.
    * @method
    * @name userExtensionSchemaData
@@ -500,3 +747,33 @@ module.exports = class UserExtensionHelper {
   }
 
 };
+
+ /**
+   * Add access control list for user.
+   * @method
+   * @name aclData 
+   * @param {Object} userRole 
+   * @returns {JSON} added acl data inside user roles.
+   */
+
+function aclData(userRole) {
+    let userRoleKeys = Object.keys(userRole);
+
+    for( let userRoleKey = 0; userRoleKey < userRoleKeys.length ; userRoleKey ++) {
+        let currentRoleKey = userRoleKeys[userRoleKey];
+
+        if( currentRoleKey.startsWith("acl") ) {
+            
+            if( !userRole["acl"] ) {
+                userRole["acl"] = {};
+            }
+            let aclData = currentRoleKey.split("_");
+
+            userRole.acl[aclData[1]] = {
+                tags : userRole[currentRoleKey].split(",")
+            }
+            delete userRole[currentRoleKey];
+        }
+    }
+    return userRole;
+}

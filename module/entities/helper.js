@@ -83,14 +83,40 @@ module.exports = class EntitiesHelper {
    * @returns {JSON} - Details of entity.
    */
 
-    static list(entityType, entityId, limitingValue = "", skippingValue = "") {
+    static list(
+        entityType, 
+        entityId, 
+        limitingValue = "", 
+        skippingValue = "",
+        schoolTypes = "",
+        administrationTypes = ""
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let queryObject = { _id: ObjectId(entityId) };
                 let projectObject = { [`groups.${entityType}`]: 1 };
 
-                let result = await database.models.entities.findOne(queryObject, projectObject).lean();
+                let result = 
+                await database.models.entities.findOne(
+                    queryObject, 
+                    projectObject
+                ).lean();
+
+                if( !result ) {
+                    
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    })
+                }
+
+                if( !result.groups || !result.groups[entityType] ) {
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.ENTITY_GROUPS_NOT_FOUND
+                    })
+                }
 
                 let entityIds = result.groups[entityType];
 
@@ -107,42 +133,98 @@ module.exports = class EntitiesHelper {
                     })
                 }
 
-                let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
-                    metaInformation: 1,
-                    groups: 1,
-                    entityType: 1,
-                    entityTypeId: 1
-                })
-                    .limit(limitingValue)
-                    .skip(skippingValue)
-                    .lean();
+                let filteredQuery = {
+                    $match : { _id : { $in: entityIds }}
+                }
 
-                result = entityData.map(entity => {
-                    entity.metaInformation.childrenCount = 0;
-                    entity.metaInformation.entityType = entity.entityType;
-                    entity.metaInformation.entityTypeId = entity.entityTypeId;
-                    entity.metaInformation.subEntityGroups = new Array;
+                let schoolOrAdministrationTypes = [];
+                
+                if( schoolTypes !== "" ) {
 
-                    entity.groups && Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
-                        if (entity.groups[immediateChildrenEntityType]) {
-                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
-                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(schoolTypes.split(","));
+                }
+                
+                if( administrationTypes !== "" ) {
+
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(administrationTypes.split(","));
+                }
+
+                if( schoolOrAdministrationTypes.length > 0 ) {
+
+                    schoolOrAdministrationTypes = schoolOrAdministrationTypes.map(
+                        schoolOrAdministrationType=>schoolOrAdministrationType.toLowerCase()
+                    );
+
+                    filteredQuery["$match"]["metaInformation.tags"] = 
+                    { $in : schoolOrAdministrationTypes };
+                }
+                
+                let entityData = await database.models.entities.aggregate([
+                    filteredQuery,
+                    {
+                        $project: {
+                            metaInformation : 1,
+                            groups : 1,
+                            entityType : 1,
+                            entityTypeId : 1
+                        }
+                    },
+                    {
+                        $facet: {
+                            "totalCount": [
+                                { "$count": "count" }
+                            ],
+                            "data": [
+                                { $skip: skippingValue },
+                                { $limit: limitingValue }
+                            ],
+                        }
+                    },{
+                        $project: {
+                            "data": 1,
+                            "count": {
+                                $arrayElemAt: ["$totalCount.count", 0]
+                            }
+                        }
+                    }
+                ]);
+
+                let count = 0;
+                result = [];
+
+                if( entityData[0].data.length > 0 ) {
+
+                    result = entityData[0].data.map(entity => {
+                        entity.metaInformation.childrenCount = 0;
+                        entity.metaInformation.entityType = entity.entityType;
+                        entity.metaInformation.entityTypeId = entity.entityTypeId;
+                        entity.metaInformation.subEntityGroups = new Array;
+    
+                        entity.groups && Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                            if (entity.groups[immediateChildrenEntityType]) {
+                                entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
+                                entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
+                            }
+                        })
+    
+                        entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                            entity.metaInformation.subEntityGroups.push(subEntityType);
+                        })
+                        return {
+                            _id: entity._id,
+                            entityId: entity._id,
+                            ...entity.metaInformation
                         }
                     })
-
-                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
-                        entity.metaInformation.subEntityGroups.push(subEntityType);
-                    })
-                    return {
-                        _id: entity._id,
-                        entityId: entity._id,
-                        ...entity.metaInformation
-                    }
-                })
+                    count = entityData[0].count;
+                }
 
                 return resolve({
-                    entityData: result,
-                    count: entityIds.length
+                    message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
+                    result: result,
+                    count: count
                 });
 
             } catch (error) {
@@ -195,7 +277,10 @@ module.exports = class EntitiesHelper {
 
             try {
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { profileForm: 1 }).lean();
+                let entityTypeDocument = 
+                await database.models.entityTypes.findOne({ 
+                    name: entityType 
+                }, { profileForm: 1 }).lean();
 
                 let entityForm = entityTypeDocument.profileForm;
 
@@ -422,7 +507,10 @@ module.exports = class EntitiesHelper {
                     }), {});
                 }
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
+                let entityTypeDocument = 
+                await database.models.entityTypes.findOne({ 
+                    name: entityType 
+                }, { _id: 1 });
 
                 if (!entityTypeDocument) {
                     throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
@@ -432,6 +520,7 @@ module.exports = class EntitiesHelper {
                     entityCSVData.map(async singleEntity => {
 
                         singleEntity = gen.utils.valueParser(singleEntity);
+                        addTagsInEntities(singleEntity);
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
@@ -494,16 +583,21 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                const entityUploadedData = await Promise.all(entityCSVData.map(async singleEntity => {
+                const entityUploadedData = 
+                await Promise.all(entityCSVData.map(async singleEntity => {
 
                     singleEntity = gen.utils.valueParser(singleEntity);
+                    addTagsInEntities(singleEntity);
 
                     if(!singleEntity["_SYSTEM_ID"] || singleEntity["_SYSTEM_ID"] == "") {
                         singleEntity["UPDATE_STATUS"] = "Invalid or missing _SYSTEM_ID";
                         return singleEntity;
                     }
 
-                    let columnsToUpdate = _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") });
+                    let columnsToUpdate = 
+                    _.omitBy(singleEntity, (value, key) => { 
+                        return _.startsWith(key, "_") 
+                    });
                     
                     let metaInformationToSet = {};
 
@@ -1079,3 +1173,43 @@ module.exports = class EntitiesHelper {
     }
 
 };
+
+  /**
+   * Add tags in entity meta information.
+   * @method
+   * @name addTagsInEntities
+   * @param {Object} entityMetaInformation - Meta information of the entity.
+   * @returns {JSON} - entities metainformation consisting of scool types,administration types 
+   * and tags.
+   */
+
+function addTagsInEntities(entityMetaInformation) {
+
+    if( entityMetaInformation.schoolTypes ) {
+        
+        entityMetaInformation.schoolTypes =  
+        entityMetaInformation.schoolTypes.map(
+            schoolType=>schoolType.toLowerCase()
+        );
+
+        entityMetaInformation["tags"] = [...entityMetaInformation.schoolTypes];
+    }
+
+    if( entityMetaInformation.administrationTypes ) {
+
+        entityMetaInformation.administrationTypes =  
+        entityMetaInformation.administrationTypes.map(
+            schoolType=>schoolType.toLowerCase()
+        );
+
+        if( entityMetaInformation.tags ) {
+            entityMetaInformation.tags = entityMetaInformation.tags.concat(
+                entityMetaInformation.administrationTypes
+            )
+        } else {
+            entityMetaInformation.tags = 
+            entityMetaInformation.administrationTypes;
+        }
+    }
+    return entityMetaInformation;
+}
