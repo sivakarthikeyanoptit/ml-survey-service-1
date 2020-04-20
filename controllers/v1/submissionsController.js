@@ -2169,27 +2169,67 @@ module.exports = class Submission extends Abstract {
    * @returns {JSON} response message.
    */
 
- async pushCompletedSubmissionForReporting(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
+  async pushCompletedSubmissionForReporting(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
 
-      let pushSubmissionToKafka = await submissionsHelper.pushCompletedSubmissionForReporting(req.params._id);
+        let pushSubmissionToKafka = await submissionsHelper.pushCompletedSubmissionForReporting(req.params._id);
 
-      if(pushSubmissionToKafka.status != "success") {
-        throw pushSubmissionToKafka.message
+        if(pushSubmissionToKafka.status != "success") {
+          throw pushSubmissionToKafka.message
+        }
+
+        return resolve({
+          message: pushSubmissionToKafka.message
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message        
+        });
       }
+    })
+  }
 
-      return resolve({
-        message: pushSubmissionToKafka.message
-      });
+  /**
+  * @api {get} /assessment/api/v1/submissions/pushIncompleteSubmissionForReporting/:submissionId Push incomplete Submission for Reporting
+  * @apiVersion 1.0.0
+  * @apiName Push incomplete Submission for Reporting
+  * @apiGroup Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
-    } catch (error) {
-      return reject({
-        status: error.status || httpStatusCode.internal_server_error.status,
-        message: error.message || httpStatusCode.internal_server_error.message        
-      });
-    }
-  })
-}
+  /**
+   * Push incomplete submission in kafka for reporting.
+   * @method
+   * @name pushIncompleteSubmissionForReporting
+   * @param {String} req.params._id -submission id.
+   * @returns {JSON} response message.
+   */
+
+  async pushIncompleteSubmissionForReporting(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let pushSubmissionToKafka = await submissionsHelper.pushInCompleteSubmissionForReporting(req.params._id);
+
+        if(pushSubmissionToKafka.status != "success") {
+          throw pushSubmissionToKafka.message
+        }
+
+        return resolve({
+          message: pushSubmissionToKafka.message
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message        
+        });
+      }
+    })
+  }
 
 };

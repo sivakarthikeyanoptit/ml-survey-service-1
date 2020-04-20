@@ -7,6 +7,7 @@
 
 // Dependencies
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
@@ -401,6 +402,8 @@ module.exports = class ObservationsHelper {
                         document
                     );
 
+                    // Push new observation submission to kafka for reporting/tracking.
+                    observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(submissionDocument._id);
                 }
 
                 return resolve({

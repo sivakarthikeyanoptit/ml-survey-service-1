@@ -191,15 +191,23 @@ let enviromentVariables = {
     "message" : "Required kafka url",
     "optional" : false
   },
-  "SUBMISSION_TOPIC" : {
-    "message" : "Required submission topic for kafka",
+  "COMPLETED_SUBMISSION_TOPIC" : {
+    "message" : "OFF/TOPIC_NAME",
+    "optional" : false
+  },
+  "INCOMPLETE_SUBMISSION_TOPIC" : {
+    "message" : "OFF/TOPIC_NAME",
     "optional" : false
   },
   "SUBMISSION_RATING_QUEUE_TOPIC" : {
     "message" : "OFF/TOPIC_NAME",
     "optional" : false
   },
-  "OBSERVATION_SUBMISSION_TOPIC" : {
+  "COMPLETED_OBSERVATION_SUBMISSION_TOPIC" : {
+    "message" : "OFF/TOPIC_NAME",
+    "optional" : false
+  },
+  "INCOMPLETE_OBSERVATION_SUBMISSION_TOPIC" : {
     "message" : "OFF/TOPIC_NAME",
     "optional" : false
   },

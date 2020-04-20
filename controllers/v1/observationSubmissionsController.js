@@ -247,8 +247,11 @@ module.exports = class ObservationSubmissions extends Abstract {
       submissionDocument.criteria = submissionDocumentCriterias;
       submissionDocument.submissionNumber = lastSubmissionNumber;
 
-      await database.models.observationSubmissions.create(submissionDocument);
+      let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
       
+      // Push new observation submission to kafka for reporting/tracking.
+      observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(newObservationSubmissionDocument._id);
+
       let observations = new Array;
 
       observations = await observationsHelper.listV2(req.userDetails.userId);
@@ -700,6 +703,48 @@ module.exports = class ObservationSubmissions extends Abstract {
       try {
 
         let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+
+        if(pushObservationSubmissionToKafka.status != "success") {
+          throw pushObservationSubmissionToKafka.message;
+        }
+
+        return resolve({
+          message: pushObservationSubmissionToKafka.message
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+        });
+      }
+    })
+  }
+
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/pushInCompleteObservationSubmissionForReporting/:observationSubmissionId Push Incomplete Observation Submission for Reporting
+  * @apiVersion 1.0.0
+  * @apiName Push Incomplete Observation Submission for Reporting
+  * @apiGroup Observation Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  /**
+   * Push incomplete observation submissions to kafka for reporting.
+   * @method
+   * @name pushInCompleteObservationSubmissionForReporting
+   * @param {Object} req -request data. 
+   * @param {String} req.params._id -observation submissions id.
+   * @returns {JSON} - message that observation submission is pushed to kafka.
+   */
+
+  async pushInCompleteObservationSubmissionForReporting(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(req.params._id);
 
         if(pushObservationSubmissionToKafka.status != "success") {
           throw pushObservationSubmissionToKafka.message;
