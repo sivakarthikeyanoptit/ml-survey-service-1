@@ -24,7 +24,7 @@ module.exports = class ObservationSubmissionsHelper {
    * Push completed observation submission in kafka for reporting.
    * @method
    * @name pushCompletedObservationSubmissionForReporting
-   * @param {String} observationSubmissionId -observation submission id.
+   * @param {String} observationSubmissionId - observation submission id.
    * @returns {JSON} - message that observation submission is pushed to kafka.
    */
 
@@ -50,6 +50,57 @@ module.exports = class ObservationSubmissionsHelper {
                 }
 
                 const kafkaMessage = await kafkaClient.pushCompletedObservationSubmissionToKafka(observationSubmissionsDocument);
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            observationSubmissionId:observationSubmissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    };
+                    slackClient.kafkaErrorAlert(errorObject);
+                }
+
+                return resolve(kafkaMessage);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+   * Push incomplete observation submission for reporting.
+   * @method
+   * @name pushInCompleteObservationSubmissionForReporting
+   * @param {String} observationSubmissionId - observation submission id.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+    static pushInCompleteObservationSubmissionForReporting(observationSubmissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (observationSubmissionId == "") {
+                    throw "No observation submission id found";
+                }
+
+                if(typeof observationSubmissionId == "string") {
+                    observationSubmissionId = ObjectId(observationSubmissionId);
+                }
+
+                let observationSubmissionsDocument = await database.models.observationSubmissions.findOne({
+                    _id: observationSubmissionId,
+                    status: {$ne : "completed"}
+                }).lean();
+
+                if (!observationSubmissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND+"or"+messageConstants.apiResponses.SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+
+                const kafkaMessage = await kafkaClient.pushInCompleteObservationSubmissionToKafka(observationSubmissionsDocument);
 
                 if(kafkaMessage.status != "success") {
                     let errorObject = {
