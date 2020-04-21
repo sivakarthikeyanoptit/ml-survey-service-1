@@ -40,4 +40,76 @@ module.exports = class EntityTypesHelper {
 
     }
 
+    /**
+      * List of entity types which can be observed in a state.
+      * @method
+      * @name canBeObserved
+      * @param {String} stateId
+      * @returns {Object} returns list of all entity type which can be observed in a state.
+     */
+
+    static canBeObserved( stateId ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observableEntityTypes = 
+                await this.list(
+                    { 
+                        isObservable: true 
+                    }, { 
+                        name: 1 
+                    }
+                );
+
+                if ( stateId ) {
+
+                    let entityDocument = await database.models.entities.findOne(
+                        {
+                            _id : stateId
+                        },{
+                            childHierarchyPath : 1
+                        }
+                    ).lean();
+
+                    if ( !entityDocument ) {
+                        return resolve(
+                            {
+                                status : httpStatusCode.bad_request.status,
+                                message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                            }
+                        );
+                    }
+
+                    let result = [];
+
+                    if( 
+                        entityDocument.childHierarchyPath && 
+                        entityDocument.childHierarchyPath.length > 0 
+                    ) {
+                        
+                        observableEntityTypes.forEach(entityType=>{
+                            
+                            if( 
+                                entityDocument.childHierarchyPath.includes(entityType.name) 
+                            ) {
+                                result.push(entityType);
+                            }
+                        })
+                    }
+
+                    observableEntityTypes = result;
+                }
+
+                return resolve({
+                    message : messageConstants.apiResponses.ENTITY_TYPES_FETCHED,
+                    result : observableEntityTypes
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
+
 };
