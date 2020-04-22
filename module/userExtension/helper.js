@@ -87,7 +87,10 @@ module.exports = class UserExtensionHelper {
 
                     let roleMap = {};
 
-                    if( userExtensionData[0].entityDocuments && userExtensionData[0].entityDocuments.length >0 ) {
+                    if( 
+                        userExtensionData[0].entityDocuments && 
+                        userExtensionData[0].entityDocuments.length >0 
+                    ) {
                         
                         let projection = [
                             entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".externalId", 
@@ -110,7 +113,10 @@ module.exports = class UserExtensionHelper {
                         );
                     }
 
-                    if ( userExtensionData[0].roleDocuments && userExtensionData[0].roleDocuments.length > 0 ) {
+                    if ( 
+                        userExtensionData[0].roleDocuments && 
+                        userExtensionData[0].roleDocuments.length > 0 
+                    ) {
 
                         userExtensionData[0].roleDocuments.forEach(role => {
                             roleMap[role._id.toString()] = role;
@@ -137,8 +143,16 @@ module.exports = class UserExtensionHelper {
                             entityMap[entity._id.toString()] = entity;
                         })
 
-                        for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
-                            for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
+                        for (
+                            let userExtensionRoleCounter = 0; 
+                            userExtensionRoleCounter < userExtensionData[0].roles.length; 
+                            userExtensionRoleCounter++
+                        ) {
+                            for (
+                                let userExtenionRoleEntityCounter = 0; 
+                                userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; 
+                                userExtenionRoleEntityCounter++
+                            ) {
                                 userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
                                     _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
                                     ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
@@ -149,6 +163,10 @@ module.exports = class UserExtensionHelper {
                         }
                     }
 
+                    let aclInformation = await this.roleBasedAclInformation(
+                        userExtensionData[0].roles
+                    );
+
                     return resolve(
                         _.merge(_.omit(
                             userExtensionData[0], 
@@ -158,7 +176,9 @@ module.exports = class UserExtensionHelper {
                             this.userExtensionSchemaData().USER_EXTENSION_ROLE_DOCUMENTS 
                             ]), 
                         { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) },
-                        { relatedEntities : relatedEntities })
+                        { relatedEntities : relatedEntities },
+                        { acl : aclInformation }
+                    )
                     );
                 } else {
                     return resolve({});
@@ -440,6 +460,40 @@ module.exports = class UserExtensionHelper {
             }
         })
     }
+
+    /**
+   * Role based acl information
+   * @method
+   * @name roleBasedAclInformation
+   * @param {String} roles - user roles
+   * @returns {object}  
+   */
+
+  static roleBasedAclInformation( roles ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let aclInformation = {};
+
+            for( let role = 0; role < roles.length ; role ++ ) {
+                
+                if( !aclInformation[roles[role].code] ) {
+                    aclInformation[roles[role].code] = {};
+                }
+
+                if( roles[role].acl ) {
+                    aclInformation[roles[role].code] = roles[role].acl;
+                }
+            }
+
+
+            return resolve(aclInformation);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
     /**
    * user access control list
