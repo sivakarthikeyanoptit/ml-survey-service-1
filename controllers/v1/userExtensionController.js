@@ -57,7 +57,17 @@ module.exports = class UserExtension extends Abstract {
             }
           ]
        }
-     ]
+     ],
+     "acl": {
+       "HM": {
+         "school": {
+           "tags": [
+             "primary",
+             "middle"
+            ]
+          }
+        }
+      }
   * }
   */
 
