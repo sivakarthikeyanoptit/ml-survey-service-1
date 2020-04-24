@@ -6,6 +6,7 @@
  */
 
 // Dependencies
+const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 
 
 /**
@@ -899,7 +900,7 @@ module.exports = class ScoringHelper {
 
         })
     }
-    
+
 };
 
 
