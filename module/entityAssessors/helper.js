@@ -836,146 +836,142 @@ module.exports = class EntityAssessorHelper {
                     assessorEntitiesQueryObject
                 );
 
-                if( !assessorsDocument.length > 0 ) {
-                    throw {
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.USER_NOT_FOUND
-                    }
-                }
-
                 let programIds = [];
                 let solutionIds = [];
-
-                assessorsDocument.forEach(assessor=>{
-                    programIds.push(assessor.programId);
-                    solutionIds.push(assessor.solutionId);
-                })
-
-                let solutionDocuments = await database.models.solutions.find(
-                    { 
-                        _id : { $in : solutionIds },
-                        type : requestedData.type,
-                        subType : requestedData.subType,
-                        status : "active",
-                        "isDeleted" : false
-                    },
-                    {
-                      name: 1,
-                      description: 1,
-                      externalId: 1,
-                      type: 1,
-                      subType: 1
-                    }
-                ).lean();
-
-                if( !solutionDocuments.length > 0 ) {
-                    throw {
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
-                    }
-                }
-
-                let solutionsData = solutionDocuments.reduce(
-                    (ac, solutionDoc) => ({
-                        ...ac,
-                        [solutionDoc._id.toString()]: solutionDoc
-                }), {});
-
-                let programsDocument = await database.models.programs.find(
-                    {
-                        _id : { $in : programIds },
-                        status : "active",
-                        "isDeleted" : false
-                    },
-                    {
-                      name: 1,
-                      description: 1,
-                      externalId: 1,
-                      startDate: 1,
-                      endDate: 1
-                    }
-                  ).lean();
-
-                  if( !programsDocument.length > 0 ) {
-                    throw {
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
-                    }
-                }
-
-                  let programsData = programsDocument.reduce(
-                    (ac, programDoc) => ({
-                        ...ac,
-                        [ programDoc._id.toString() ] : programDoc
-                }), {});
-                
                 let result = [];
-                let entityPAISubmission = {};
-        
-                for (
-                    let pointerToAssessorDocumentArray = 0; 
-                    pointerToAssessorDocumentArray < assessorsDocument.length; 
-                    pointerToAssessorDocumentArray++
-                ) {
 
-                    let assessor = assessorsDocument[pointerToAssessorDocumentArray];
+                if( assessorsDocument.length > 0 ) {
 
-                    let solution = solutionsData[assessor.solutionId.toString()];
-                    let program = programsData[assessor.programId.toString()];
+                    assessorsDocument.forEach(assessor=>{
+                        programIds.push(assessor.programId);
+                        solutionIds.push(assessor.solutionId);
+                    })
+    
+                    let solutionDocuments = await database.models.solutions.find(
+                        { 
+                            _id : { $in : solutionIds },
+                            type : requestedData.type,
+                            subType : requestedData.subType,
+                            status : "active",
+                            "isDeleted" : false
+                        },
+                        {
+                          name: 1,
+                          description: 1,
+                          externalId: 1,
+                          type: 1,
+                          subType: 1
+                        }
+                    ).lean();
+    
+                    if( !solutionDocuments.length > 0 ) {
+                        throw {
+                            status : httpStatusCode.bad_request.status,
+                            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                        }
+                    }
+    
+                    let solutionsData = solutionDocuments.reduce(
+                        (ac, solutionDoc) => ({
+                            ...ac,
+                            [solutionDoc._id.toString()]: solutionDoc
+                    }), {});
+    
+                    let programsDocument = await database.models.programs.find(
+                        {
+                            _id : { $in : programIds },
+                            status : "active",
+                            "isDeleted" : false
+                        },
+                        {
+                          name: 1,
+                          description: 1,
+                          externalId: 1,
+                          startDate: 1,
+                          endDate: 1
+                        }
+                      ).lean();
+    
+                      if( !programsDocument.length > 0 ) {
+                        throw {
+                            status : httpStatusCode.bad_request.status,
+                            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                        }
+                    }
+    
+                      let programsData = programsDocument.reduce(
+                        (ac, programDoc) => ({
+                            ...ac,
+                            [ programDoc._id.toString() ] : programDoc
+                    }), {});
                     
-                    
-                    if (solution && program) {
+                    let entityPAISubmission = {};
+            
+                    for (
+                        let pointerToAssessorDocumentArray = 0; 
+                        pointerToAssessorDocumentArray < assessorsDocument.length; 
+                        pointerToAssessorDocumentArray++
+                    ) {
+    
+                        let assessor = assessorsDocument[pointerToAssessorDocumentArray];
+    
+                        let solution = solutionsData[assessor.solutionId.toString()];
+                        let program = programsData[assessor.programId.toString()];
                         
-                        let submissions = await database.models.submissions.find(
-                            {
-                                entityId: {
-                                    $in: assessor.entities
+                        
+                        if (solution && program) {
+                            
+                            let submissions = await database.models.submissions.find(
+                                {
+                                    entityId: {
+                                        $in: assessor.entities
+                                    },
+                                    solutionId: assessor.solutionId
                                 },
-                                solutionId: assessor.solutionId
-                            },
-                            {
-                                "entityId": 1,
-                                "status": 1,
-                                "evidences.PAI.isSubmitted": 1
-                            }
-                        );
-                        
-                        entityPAISubmission = submissions.reduce(
-                            (ac, entitySubmission) => ({
-                                ...ac,
-                                [entitySubmission.entityId.toString()]: {
-                                    PAIStatus : 
-                                    (
-                                        entitySubmission.entityId && 
-                                        entitySubmission.entityId.evidences && 
-                                        entitySubmission.entityId.evidences.PAI && 
-                                        entitySubmission.entityId.evidences.PAI.isSubmitted === true
-                                    ) ? entity.entityId.evidences.PAI.isSubmitted : false,
-
-                                    submissionId : entitySubmission._id,
-                                    submissionStatus : (
-                                        entitySubmission.entityId && 
-                                        entitySubmission.status
-                                    ) ? entitySubmission.status : "pending"
+                                {
+                                    "entityId": 1,
+                                    "status": 1,
+                                    "evidences.PAI.isSubmitted": 1
                                 }
-                        }), {});
-
-                        if( apiVersion === "v2" ) {
-                            result = _entitiesV2(
-                                assessor,
-                                result,
-                                program,
-                                solution,
-                                entityPAISubmission
-                            )
-                        } else {
-                            result = _entitiesV1(
-                                assessor,
-                                result,
-                                program,
-                                solution,
-                                entityPAISubmission
-                            )
+                            );
+                            
+                            entityPAISubmission = submissions.reduce(
+                                (ac, entitySubmission) => ({
+                                    ...ac,
+                                    [entitySubmission.entityId.toString()]: {
+                                        PAIStatus : 
+                                        (
+                                            entitySubmission.entityId && 
+                                            entitySubmission.entityId.evidences && 
+                                            entitySubmission.entityId.evidences.PAI && 
+                                            entitySubmission.entityId.evidences.PAI.isSubmitted === true
+                                        ) ? entity.entityId.evidences.PAI.isSubmitted : false,
+    
+                                        submissionId : entitySubmission._id,
+                                        submissionStatus : (
+                                            entitySubmission.entityId && 
+                                            entitySubmission.status
+                                        ) ? entitySubmission.status : "pending"
+                                    }
+                            }), {});
+    
+                            if( apiVersion === "v2" ) {
+                                result = _entitiesV2(
+                                    assessor,
+                                    result,
+                                    program,
+                                    solution,
+                                    entityPAISubmission
+                                )
+                            } else {
+                                result = _entitiesV1(
+                                    assessor,
+                                    result,
+                                    program,
+                                    solution,
+                                    entityPAISubmission
+                                )
+                            }
                         }
                     }
                 }
