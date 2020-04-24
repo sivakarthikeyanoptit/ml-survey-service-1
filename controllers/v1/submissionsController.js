@@ -11,6 +11,7 @@ const csv = require("csvtojson");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 
 /**
     * Submission
@@ -998,7 +999,7 @@ module.exports = class Submission extends Abstract {
 
         }
 
-        let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi");
+        let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
         if(resultingArray.result.runUpdateQuery) {
           await submissionsHelper.markCompleteAndPushForReporting(submissionDocument._id)
         }
@@ -1179,7 +1180,7 @@ module.exports = class Submission extends Abstract {
           })
         }
 
-        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi");
+        let resultingArray = await scoringHelper.rateEntities(submissionDocuments, "multiRateApi");
 
         for (let pointerToResultingArray = 0; pointerToResultingArray < resultingArray.length; pointerToResultingArray++) {
           const submission = resultingArray[pointerToResultingArray];

@@ -7,6 +7,7 @@
 
 // Dependencies
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
+const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 
 
 /**
