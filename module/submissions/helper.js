@@ -366,7 +366,8 @@ module.exports = class SubmissionsHelper {
                         solutionId: 1,
                         evidencesStatus: 1,
                         status: 1
-                    }
+                    },
+                    returnNewDocument : true
                 };
 
                 let submissionDocument = await database.models[modelName].findOne(
