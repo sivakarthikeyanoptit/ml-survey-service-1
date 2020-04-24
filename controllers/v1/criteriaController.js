@@ -47,11 +47,13 @@ module.exports = class Criteria extends Abstract {
   async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
+        
         if (!req.files || !req.files.criteria) {
           throw messageConstants.apiResponses.CRITERIA_FILE_NOT_FOUND;
         }
 
-        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
+        let criteriaData = 
+        await csv().fromString(req.files.criteria.data.toString());
 
         const fileName = `Criteria-Upload`;
         let fileStream = new FileStream(fileName);
@@ -65,6 +67,82 @@ module.exports = class Criteria extends Abstract {
           });
         }());
 
+        let improvementProjectIds = [];
+        let improvementObj = {};
+
+        for( let criteria = 0; criteria < criteriaData.length ; criteria ++ ) {
+
+          let parsedCriteria = gen.utils.valueParser(criteriaData[criteria]);
+
+          let parsedCriteriaKeys = Object.keys(parsedCriteria);
+
+          for( let key = 0; key < parsedCriteriaKeys.length ; key ++ ) {
+            
+            let improvement = 
+            parsedCriteriaKeys[key].endsWith("-improvement-projects");
+
+            if( improvement ) {
+
+              if( !improvementObj[improvement] ) {
+                improvementObj[parsedCriteria[parsedCriteriaKeys[key]]] = [];
+              }
+
+              let improvements = 
+              parsedCriteria[parsedCriteriaKeys[key]].split(",");
+
+              improvementProjectIds = _.concat(improvementProjectIds,improvements);
+
+            }
+          }
+
+        }
+
+        let improvementProjects = await database.models.impTemplates.find(
+          {
+            externalId : {
+              $in : improvementProjectIds
+            }
+          },{
+            title : 1,
+            goal : 1,
+            rationale : 1,
+            recommendedFor : 1,
+            externalId : 1
+          }
+          ).lean();
+
+        if( improvementProjects.length > 0 ) {
+          
+          let improvements = improvementProjects.reduce((ac, improvementProject) => ({
+            ...ac, [improvementProject.externalId]: improvementProject
+          }), {});
+
+          Object.keys(improvementObj).forEach(improvement=>{
+          
+            let improvementsArr = improvement.split(",");
+  
+            let result = [];
+  
+            if( improvementsArr.length > 0 ) {
+              
+              improvementsArr.forEach(eachImprovement=>{
+                result = _.concat(
+                  result,
+                  improvements[eachImprovement] ? improvements[eachImprovement] : []
+                );
+
+              })
+
+            } else {
+              result = 
+              improvements[improvementsArr[0]] ? improvements[improvementsArr[0]] : [];
+            }
+
+            improvementObj[improvement] = result;
+  
+          })
+
+        }
 
         await Promise.all(criteriaData.map(async criteria => {
 
@@ -82,9 +160,14 @@ module.exports = class Criteria extends Abstract {
           Object.keys(parsedCriteria).forEach(eachCriteriaKey => {
 
             let regExpForLevels = /^L+[0-9]/;
-            if (regExpForLevels.test(eachCriteriaKey)) {
+            if ( 
+              regExpForLevels.test(eachCriteriaKey) && 
+              !eachCriteriaKey.includes("-improvement-projects")
+            ) {
 
               let label = "Level " + countLabel++;
+
+              let improvementProject = eachCriteriaKey+"-improvement-projects";
 
               rubric.levels[eachCriteriaKey] = {
                 level: eachCriteriaKey,
@@ -92,6 +175,16 @@ module.exports = class Criteria extends Abstract {
                 description: parsedCriteria[eachCriteriaKey],
                 expression: ""
               };
+
+              if( parsedCriteria[improvementProject] && 
+                improvementObj[parsedCriteria[improvementProject]] &&  
+                Object.values(improvementObj[parsedCriteria[improvementProject]]).length > 0
+              ) {
+                
+                rubric.levels[eachCriteriaKey]["improvement-projects"] = 
+                improvementObj[parsedCriteria[improvementProject]];
+
+              }
             }
           })
 

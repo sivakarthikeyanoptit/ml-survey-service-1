@@ -1,0 +1,31 @@
+module.exports = {
+    name: "impTemplates",
+    schema: {
+        title : String,
+        organisation : String,
+        duration : String,
+        difficultyLevel : String,
+        goal : String,
+        concepts : Array,
+        keywords : Array,
+        status : String,
+        primaryAudience : Array,
+        rationale : String,
+        recommendedFor : String,
+        risks : String,
+        protocols : String,
+        tasks : Array,
+        createdBy : String,
+        vision : String,
+        problemDefinition : String,
+        prerequisites : String,
+        assumptions : String,
+        resources : Array,
+        supportingDocuments : Array,
+        approaches : String,
+        successIndicators : String,
+        suggestedProject : String,
+        creationType : String,
+        category : Array
+    }
+}

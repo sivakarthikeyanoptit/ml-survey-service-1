@@ -472,12 +472,12 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
+     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&schoolTypes=:schoolTypes&administrationTypes=:administrationTypes&limit=1&page=1 Search Entities
      * @apiVersion 1.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
+     * @apiSampleRequest /assessment/api/v1/observations/searchEntities/5d1a002d2dfd8135bc8e1615?schoolTypes=primary&administrationTypes=bbmp&search=&limit=100&page=1
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
@@ -519,7 +519,6 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-
                 let observationDocument = await database.models.observations.findOne(
                     {
                         _id: req.params._id,
@@ -539,7 +538,16 @@ module.exports = class Observations extends Abstract {
                     }
                 }
 
-                let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
+                let entityDocuments = 
+                await entitiesHelper.search(
+                    observationDocument.entityTypeId, 
+                    req.searchText, 
+                    req.pageSize, 
+                    req.pageNo,
+                    false,
+                    req.query.schoolTypes,
+                    req.query.administrationTypes
+                );
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 

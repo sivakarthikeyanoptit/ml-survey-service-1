@@ -795,7 +795,15 @@ module.exports = class EntitiesHelper {
    * @param {Array} [entityIds = false] - Array of entity ids.
    */
 
-    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
+    static search(
+        entityTypeId, 
+        searchText,
+        pageSize, 
+        pageNo, 
+        entityIds = false,
+        schoolTypes = "",
+        administrationTypes = ""
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -806,6 +814,30 @@ module.exports = class EntitiesHelper {
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {};
                     queryObject["$match"]["_id"]["$in"] = entityIds;
+                }
+
+                let schoolOrAdministrationTypes = [];
+                
+                if( schoolTypes !== "" ) {
+
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(schoolTypes.split(","));
+                }
+                
+                if( administrationTypes !== "" ) {
+
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(administrationTypes.split(","));
+                }
+
+                if( schoolOrAdministrationTypes.length > 0 ) {
+
+                    schoolOrAdministrationTypes = schoolOrAdministrationTypes.map(
+                        schoolOrAdministrationType=>schoolOrAdministrationType.toLowerCase()
+                    );
+
+                    queryObject["$match"]["metaInformation.tags"] = 
+                    { $in : schoolOrAdministrationTypes };
                 }
 
                 queryObject["$match"]["entityTypeId"] = entityTypeId;

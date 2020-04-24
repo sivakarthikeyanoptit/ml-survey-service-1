@@ -597,7 +597,10 @@ module.exports = class SubmissionsHelper {
 
                     let answersToUpdate = {};
 
-                    let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission);
+                    let allSubmittedEvidence = 
+                    eachSubmissionDocument.evidencesStatus.every(
+                        this.allSubmission
+                    );
 
                     if (allSubmittedEvidence) {
 
@@ -605,7 +608,8 @@ module.exports = class SubmissionsHelper {
                         result.criteriaErrors = new Array;
                         result.themes = {};
 
-                        let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
+                        let criteriaData = await Promise.all(
+                            eachSubmissionDocument.criteria.map(async (criteria) => {
 
                             if (criteria.weightage > 0) {
 
@@ -993,7 +997,15 @@ module.exports = class SubmissionsHelper {
                                         result.criteria[criteria.externalId].score = score;
                                         criteria.score = score;
                                     } else {
+                                        
                                         result.criteria[criteria.externalId].score = score;
+
+                                        if( criteria.rubric.levels[score]["improvement-projects"] ) {
+                                            
+                                            criteria["improvement-projects"] = 
+                                            criteria.rubric.levels[score]["improvement-projects"];
+                                        }
+
                                         criteria.score = score;
                                     }
 
