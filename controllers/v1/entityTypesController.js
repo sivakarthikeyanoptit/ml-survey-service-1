@@ -24,26 +24,26 @@ module.exports = class EntityTypes extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/entityTypes/canBeObserved 
+  * @api {get} /assessment/api/v1/entityTypes/canBeObserved /:stateId
   * Entity Type list which can be observed.
   * @apiVersion 1.0.0
   * @apiName Entity Type Observable list
   * @apiGroup Entity Types
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/entityTypes/canBeObserved
+  * @apiSampleRequest /assessment/api/v1/entityTypes/canBeObserved/5da829874c67d63cca1bd9d0
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
-  * "result": [
-    {
-      "_id": "5ce23d633c330302e720e661",
-      "name": "teacher"
-    },
-    {
-      "_id": "5ce23d633c330302e720e663",
-      "name": "schoolLeader"
-    }
+  * {
+    "message": "Entity types fetched successfully.",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d15a959e9185967a6d5e8a6",
+            "name": "school"
+        }
     ]
+  }
   */
 
   /**
@@ -53,17 +53,16 @@ module.exports = class EntityTypes extends Abstract {
    * @returns {JSON} - List of all entity types that can be observed.
    */
 
-  canBeObserved() {
+  canBeObserved(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        let result = await entitiyTypesHelper.list({ isObservable: true }, { name: 1 });
+        let result = await entitiyTypesHelper.canBeObserved(
+          req.params._id ? req.params._id : ""
+        );
 
-        return resolve({
-          message : messageConstants.apiResponses.ENTITY_FETCHED,
-          result : result
-        });
+        return resolve(result);
 
       } catch (error) {
 
@@ -90,6 +89,14 @@ module.exports = class EntityTypes extends Abstract {
   * @apiSampleRequest /assessment/api/v1/entityTypes/createGroupEntityTypeIndex
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entity type index created successfully.",
+    "status": 200,
+    "result": [
+        "Index successfully created for entity type - school"
+      ]
+    }
   */
 
    /**
