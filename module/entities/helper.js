@@ -793,6 +793,8 @@ module.exports = class EntitiesHelper {
    * @param {Number} pageSize - total page size.
    * @param {Number} pageNo - Page no.
    * @param {Array} [entityIds = false] - Array of entity ids.
+   * @param {Array} aclData - access control list for the logged in user.
+   * @returns {Array} searched entities
    */
 
     static search(
@@ -801,8 +803,7 @@ module.exports = class EntitiesHelper {
         pageSize, 
         pageNo, 
         entityIds = false,
-        schoolTypes = "",
-        administrationTypes = ""
+        aclData = []
     ) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -816,28 +817,9 @@ module.exports = class EntitiesHelper {
                     queryObject["$match"]["_id"]["$in"] = entityIds;
                 }
 
-                let schoolOrAdministrationTypes = [];
-                
-                if( schoolTypes !== "" ) {
-
-                    schoolOrAdministrationTypes = 
-                    schoolOrAdministrationTypes.concat(schoolTypes.split(","));
-                }
-                
-                if( administrationTypes !== "" ) {
-
-                    schoolOrAdministrationTypes = 
-                    schoolOrAdministrationTypes.concat(administrationTypes.split(","));
-                }
-
-                if( schoolOrAdministrationTypes.length > 0 ) {
-
-                    schoolOrAdministrationTypes = schoolOrAdministrationTypes.map(
-                        schoolOrAdministrationType=>schoolOrAdministrationType.toLowerCase()
-                    );
-
+                if( aclData.length > 0 ) {
                     queryObject["$match"]["metaInformation.tags"] = 
-                    { $in : schoolOrAdministrationTypes };
+                    { $in : aclData };
                 }
 
                 queryObject["$match"]["entityTypeId"] = entityTypeId;

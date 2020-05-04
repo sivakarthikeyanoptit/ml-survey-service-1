@@ -10,7 +10,7 @@
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
-const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 
@@ -277,7 +277,7 @@ module.exports = class ObservationSubmissionsHelper {
                 })
                 }
 
-                let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi");
+                let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.observationSubmissions.updateOne(
@@ -290,15 +290,15 @@ module.exports = class ObservationSubmissionsHelper {
                         }
                     );
                     await this.pushCompletedObservationSubmissionForReporting(submissionId);
-                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_SUCCESS+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_SUCCESS+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 } else {
-                    emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 }
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
         })
@@ -350,7 +350,7 @@ module.exports = class ObservationSubmissionsHelper {
                 return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
         })

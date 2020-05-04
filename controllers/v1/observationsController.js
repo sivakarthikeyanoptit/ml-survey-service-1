@@ -11,6 +11,7 @@ const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper")
@@ -472,12 +473,12 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&schoolTypes=:schoolTypes&administrationTypes=:administrationTypes&limit=1&page=1 Search Entities
+     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&limit=1&page=1 Search Entities
      * @apiVersion 1.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/searchEntities/5d1a002d2dfd8135bc8e1615?schoolTypes=primary&administrationTypes=bbmp&search=&limit=100&page=1
+     * @apiSampleRequest /assessment/api/v1/observations/searchEntities/5d1a002d2dfd8135bc8e1615?search=&limit=100&page=1
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
@@ -538,6 +539,18 @@ module.exports = class Observations extends Abstract {
                     }
                 }
 
+                let userAclInformation = await userExtensionHelper.userAccessControlList(
+                    req.userDetails.userId
+                );
+
+                let tags = [];
+                
+                if( Object.keys(userAclInformation).length > 0 ) {
+                    Object.values(userAclInformation).forEach(acl=>{
+                        tags = tags.concat(acl);
+                    })
+                }
+
                 let entityDocuments = 
                 await entitiesHelper.search(
                     observationDocument.entityTypeId, 
@@ -545,8 +558,7 @@ module.exports = class Observations extends Abstract {
                     req.pageSize, 
                     req.pageNo,
                     false,
-                    req.query.schoolTypes,
-                    req.query.administrationTypes
+                    tags
                 );
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
