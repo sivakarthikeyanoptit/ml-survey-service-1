@@ -793,9 +793,18 @@ module.exports = class EntitiesHelper {
    * @param {Number} pageSize - total page size.
    * @param {Number} pageNo - Page no.
    * @param {Array} [entityIds = false] - Array of entity ids.
+   * @param {Array} aclData - access control list for the logged in user.
+   * @returns {Array} searched entities
    */
 
-    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
+    static search(
+        entityTypeId, 
+        searchText,
+        pageSize, 
+        pageNo, 
+        entityIds = false,
+        aclData = []
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -806,6 +815,11 @@ module.exports = class EntitiesHelper {
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {};
                     queryObject["$match"]["_id"]["$in"] = entityIds;
+                }
+
+                if( aclData.length > 0 ) {
+                    queryObject["$match"]["metaInformation.tags"] = 
+                    { $in : aclData };
                 }
 
                 queryObject["$match"]["entityTypeId"] = entityTypeId;

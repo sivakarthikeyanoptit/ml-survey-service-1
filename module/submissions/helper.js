@@ -550,7 +550,6 @@ module.exports = class SubmissionsHelper {
         return answer;
     }
 
-
     /**
    * Push completed submission for reporting.
    * @method

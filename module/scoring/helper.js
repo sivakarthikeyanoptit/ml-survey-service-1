@@ -462,6 +462,15 @@ module.exports = class ScoringHelper {
                                         criteria.score = score;
                                     } else {
                                         result.criteria[criteria.externalId].score = score;
+
+                                        if( 
+                                            criteria.rubric.levels[score]["improvement-projects"] 
+                                        ) {
+                                        
+                                            criteria["improvement-projects"] = 
+                                            criteria.rubric.levels[score]["improvement-projects"];
+                                        }
+
                                         criteria.score = score;
                                     }
 
