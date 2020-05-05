@@ -153,7 +153,7 @@ module.exports = class ScoringHelper {
                                                                     } else {
                                                                         scoreOfAllQuestionInCriteria[question.qid.toString()] = {
                                                                             scoreAchieved : optionScore,
-                                                                            weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
+                                                                            weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage || eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage === 0) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
                                                                             questionIndexInArray : questionIndexInArray,
                                                                             percentageScore : (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && optionScore) ? ((optionScore / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
                                                                         };
@@ -163,7 +163,7 @@ module.exports = class ScoringHelper {
                                                             }
                                                         })
                                                         if(selectedOptionScoreFound) {
-                                                            totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1;
+                                                            totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage  || eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage === 0)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1;
                                                         }
                                                         if(selectedOptionScoreFound) {
                                                             question.optionScores = eachSubmissionDocument.questionDocuments[question.qid.toString()];
