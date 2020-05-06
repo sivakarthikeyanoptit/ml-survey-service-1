@@ -359,12 +359,12 @@ module.exports = class QuestionsHelper {
 
         }
 
-        if (parsedQuestion["question0"]) {
+        if (parsedQuestion["question0"] !== undefined) {
           existingQuestion.question[0] = parsedQuestion["question0"];
         }
 
-        if (parsedQuestion["question1"]) {
-          existingQuestion.question[1] = (parsedQuestion["question1"] && parsedQuestion["question1"] != "") ? parsedQuestion["question1"] : "";
+        if (parsedQuestion["question1"] !== undefined) {
+          existingQuestion.question[1] = parsedQuestion["question1"];
         }
 
         // if (parsedQuestion["isAGeneralQuestion"] && (parsedQuestion["isAGeneralQuestion"] == "true" || parsedQuestion["isAGeneralQuestion"] == "TRUE")) {
