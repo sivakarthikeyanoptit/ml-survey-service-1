@@ -132,6 +132,7 @@ module.exports = class AssessmentsHelper {
                     questionArrayElm[1]["startTime"] = "";
                     questionArrayElm[1]["endTime"] = "";
                     questionArrayElm[1]["gpsLocation"] = "";
+                    if(!Object.keys(questionArrayElm[1].file).length) questionArrayElm[1]["file"] = "";
                     delete questionArrayElm[1]["criteriaId"];
 
                     // Remove weightage of each question from being sent to client.
