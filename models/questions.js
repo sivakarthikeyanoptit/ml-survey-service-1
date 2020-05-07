@@ -24,7 +24,7 @@ module.exports = {
     questionType: String,
     modeOfCollection: String,
     usedForScoring: String,
-    file: Object,
+    file: { type : Object, default : {} },
     fileName: Array,
     validation: Object,
     accessibility: String,
