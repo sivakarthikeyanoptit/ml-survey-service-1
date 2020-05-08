@@ -917,7 +917,7 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
-            submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+            submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
@@ -1099,7 +1099,7 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
             }
-            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = questionMaxScore;
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
