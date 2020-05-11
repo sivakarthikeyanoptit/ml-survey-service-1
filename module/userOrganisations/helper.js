@@ -16,11 +16,11 @@ module.exports = class UserOrganisationsHelper {
    * Lists of user organisations
    * @method
    * @name list
-   * @param {Object} userIds - list of user ids.
+   * @param {Array} userIds - Array of keycloak user ids.
    * @returns {Object} - key userId and value as organisations and root organisations lists 
    */
 
-    static list(userIds = "") {
+    static list(userIds = []) {
         return new Promise(async (resolve, reject) => {
             try {
 
