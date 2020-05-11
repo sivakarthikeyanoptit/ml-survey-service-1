@@ -8,6 +8,7 @@
 // Dependencies
 
 const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
+const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
@@ -1132,7 +1133,19 @@ module.exports = class Observations extends Abstract {
                 }
 
                 if(Object.keys(usersKeycloakIdMap).length > 0) {
-                    let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(Object.keys(usersKeycloakIdMap), req.rspObj.userToken);
+                    
+                    // <- Dirty Fix. Temporary as Sunbird api not working.
+
+                    // let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(
+                    //     Object.keys(usersKeycloakIdMap), 
+                    //     req.rspObj.userToken
+                    // );
+
+                    let userOrganisationDetails = 
+                    await userOrganisationHelper.list(
+                        Object.keys(usersKeycloakIdMap)
+                    )
+
                     if(userOrganisationDetails.success && userOrganisationDetails.data) {
                         usersKeycloakIdMap = userOrganisationDetails.data;
                     } else {
