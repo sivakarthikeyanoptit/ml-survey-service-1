@@ -8,6 +8,13 @@
  * Author           : Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>
  */
 
+/**
+ * Mongodb Database configuration.
+ * @method
+ * @name db_connect
+ * @param {Object} configData  - configuration data for mongodb.
+*/
+
 let db_connect = function(configData) {
   global.database = require("./dbConfig")(
     configData.DB_Config.connection.mongodb
@@ -16,6 +23,26 @@ let db_connect = function(configData) {
   global.Abstract = require("../generics/abstract");
 };
 
+/**
+  * Cassandra Database configuration.
+  * @method
+  * @name cassandra_connect
+  * @param {Object} cassandraConfigurationData  - configuration data for cassandra.
+*/
+
+let cassandra_connect = function (cassandraConfigurationData) {
+  global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
+  if( !global.Abstract ){
+    global.Abstract = require("../generics/abstract");
+  }
+};
+
+/**
+  * Kafka connection information.
+  * @method
+  * @name kafka_connect
+  * @param {Object} configData  - configuration data for kafka.
+*/
 
 let kafka_connect = function(configData) {
   global.kafkaClient = require("./kafkaConfig")(
@@ -41,6 +68,11 @@ const configuration = {
         options: {
           useNewUrlParser: true
         }
+      }, 
+      cassandra: {
+        host: process.env.CASSANDRA_HOST,
+        port:process.env.CASSANDRA_PORT,
+        keyspace: process.env.CASSANDRA_DB,
       }
     },
     plugins: {
@@ -68,5 +100,7 @@ const configuration = {
 db_connect(configuration);
 
 kafka_connect(configuration);
+
+cassandra_connect(configuration.DB_Config.connection.cassandra);
 
 module.exports = configuration;
