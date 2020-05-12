@@ -45,16 +45,11 @@ module.exports = class UserOrganisationsHelper {
 
                     if ( organisationLists.length > 0 ) {
                         result.success = true;
-                        result.data[userId]["rootOrganisations"] = [organisationLists[0]];
+
+                        result.data[userId]["rootOrganisations"] = [organisationLists[0].organisationid];
 
                         result.data[userId]["organisations"] = organisationLists.map(organisation=>{
-
-                            if( 
-                                organisation.organisationid !== 
-                                result.data[userId].rootOrganisations 
-                            ) {
-                                return organisation.organisationid
-                            }
+                            return organisation.organisationid
                         })
                     }
                 }));
