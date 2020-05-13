@@ -1153,7 +1153,12 @@ module.exports = class Observations extends Abstract {
                 }
 
                 if(Object.keys(usersKeycloakIdMap).length > 0) {
-                    let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(Object.keys(usersKeycloakIdMap), req.rspObj.userToken);
+                    
+                    let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(
+                        Object.keys(usersKeycloakIdMap), 
+                        req.rspObj.userToken
+                    );
+
                     if(userOrganisationDetails.success && userOrganisationDetails.data) {
                         usersKeycloakIdMap = userOrganisationDetails.data;
                     } else {
