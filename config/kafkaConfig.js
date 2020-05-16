@@ -6,7 +6,7 @@ var connect = function(config) {
     Producer = kafka.Producer
     KeyedMessage = kafka.KeyedMessage
     client = new kafka.KafkaClient({
-      kafkaHost:config.host
+      kafkaHost : config.host
     })
 
     client.on('error', function(error) {
@@ -23,20 +23,16 @@ var connect = function(config) {
       console.error.bind(console, "kafka producer creation error!")
     })
 
-
-    Consumer = kafka.Consumer
-
     if(config.consumerTopics["submissionRatingQueueTopic"] && config.consumerTopics["submissionRatingQueueTopic"] != "") {
- 
-        let consumer = new Consumer(
-            client,
-            [
-                { topic: config.consumerTopics["submissionRatingQueueTopic"], offset: 0, partition: 0 }
-            ],
-            {
-                autoCommit: true
-            }
-        );
+
+        let consumer = new kafka.ConsumerGroup(
+          {
+              kafkaHost : config.host,
+              groupId : process.env.KAFKA_GROUP_ID,
+              autoCommit : true
+          },
+          config.consumerTopics["submissionRatingQueueTopic"]
+          ); 
 
         consumer.on('message', async function (message) {
           submissionRatingQueueConsumer.messageReceived(message)

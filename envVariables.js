@@ -191,6 +191,10 @@ let enviromentVariables = {
     "message" : "Required kafka url",
     "optional" : false
   },
+  "KAFKA_GROUP_ID" : {
+    "message" : "Required kafka group id",
+    "optional" : false
+  },
   "COMPLETED_SUBMISSION_TOPIC" : {
     "message" : "OFF/TOPIC_NAME",
     "optional" : false
