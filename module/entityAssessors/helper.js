@@ -892,7 +892,7 @@ module.exports = class EntityAssessorHelper {
 
                     let programsData;
     
-                    if( !programsDocument.length > 0 ) {
+                    if( programsDocument.length > 0 ) {
 
                         programsData = programsDocument.reduce(
                             (ac, programDoc) => ({
