@@ -863,19 +863,17 @@ module.exports = class EntityAssessorHelper {
                           subType: 1
                         }
                     ).lean();
+
+                    let solutionsData;
     
-                    if( !solutionDocuments.length > 0 ) {
-                        throw {
-                            status : httpStatusCode.bad_request.status,
-                            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
-                        }
+                    if( solutionDocuments.length > 0 ) {
+                        solutionsData = solutionDocuments.reduce(
+                            (ac, solutionDoc) => ({
+                                ...ac,
+                                [solutionDoc._id.toString()]: solutionDoc
+                        }), {});
                     }
-    
-                    let solutionsData = solutionDocuments.reduce(
-                        (ac, solutionDoc) => ({
-                            ...ac,
-                            [solutionDoc._id.toString()]: solutionDoc
-                    }), {});
+                    
     
                     let programsDocument = await database.models.programs.find(
                         {
@@ -891,20 +889,18 @@ module.exports = class EntityAssessorHelper {
                           endDate: 1
                         }
                       ).lean();
+
+                    let programsData;
     
-                      if( !programsDocument.length > 0 ) {
-                        throw {
-                            status : httpStatusCode.bad_request.status,
-                            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
-                        }
+                    if( !programsDocument.length > 0 ) {
+
+                        programsData = programsDocument.reduce(
+                            (ac, programDoc) => ({
+                                ...ac,
+                                [ programDoc._id.toString() ] : programDoc
+                        }), {});
                     }
     
-                      let programsData = programsDocument.reduce(
-                        (ac, programDoc) => ({
-                            ...ac,
-                            [ programDoc._id.toString() ] : programDoc
-                    }), {});
-                    
                     let entityPAISubmission = {};
             
                     for (
@@ -915,8 +911,11 @@ module.exports = class EntityAssessorHelper {
     
                         let assessor = assessorsDocument[pointerToAssessorDocumentArray];
     
-                        let solution = solutionsData[assessor.solutionId.toString()];
-                        let program = programsData[assessor.programId.toString()];
+                        let solution = 
+                        solutionsData && solutionsData[assessor.solutionId.toString()];
+
+                        let program = 
+                        programsData && programsData[assessor.programId.toString()];
                         
                         
                         if (solution && program) {
