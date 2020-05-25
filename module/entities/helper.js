@@ -730,7 +730,8 @@ module.exports = class EntitiesHelper {
                             name: "$metaInformation.name",
                             externalId: "$metaInformation.externalId",
                             addressLine1: "$metaInformation.addressLine1",
-                            addressLine2: "$metaInformation.addressLine2"
+                            addressLine2: "$metaInformation.addressLine2",
+                            districtName: "$metaInformation.districtName"
                         }
                     },
                     {
