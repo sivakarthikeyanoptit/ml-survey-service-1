@@ -47,7 +47,19 @@ module.exports = {
       let userDocumentArray = 
       await db.collection('userExtension').find({
         _id : { $in : usersId }
-      }).project({ devices : 0 }).toArray();
+      }).project({ 
+        _id : 1, 
+        roles : 1,
+        status : 1, 
+        isDeleted : 1,
+        deleted : 1,
+        userId : 1,
+        externalId : 1,
+        updatedBy : 1,
+        createdBy : 1,
+        updatedAt : 1,
+        createdAt : 1,
+      }).toArray();
 
       await Promise.all(userDocumentArray.map(async userDocument=>{
 
