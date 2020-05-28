@@ -57,7 +57,17 @@ module.exports = class UserExtension extends Abstract {
             }
           ]
        }
-     ]
+     ],
+     "acl": {
+       "HM": {
+         "school": {
+           "tags": [
+             "primary",
+             "middle"
+            ]
+          }
+        }
+      }
   * }
   */
 
@@ -205,6 +215,10 @@ module.exports = class UserExtension extends Abstract {
    * @name entities
    * @param {Object} req - request data.
    * @param {String} req.params._id - user id.
+   * @param {String} req.query.entityType - entity type.
+   * @param {Number} req.pageSize - page limit.
+   * @param {Number} req.pageNo - page number.
+   * @param {String} req.searchText - search data.
    * @returns {JSON} List of entities in user extension.
    */
 
@@ -212,82 +226,19 @@ module.exports = class UserExtension extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
-        let allEntities = [];
 
         let userId = req.params._id ? req.params._id : req.userDetails.id;
-        let userExtensionEntities = await userExtensionHelper.getUserEntities(userId);
-        let projection = ["metaInformation.externalId", "metaInformation.name", "metaInformation.addressLine1", "metaInformation.addressLine2", "metaInformation.administration", "metaInformation.city", "metaInformation.country", "entityTypeId", "entityType"];
         let entityType = req.query.entityType ? req.query.entityType : "school";
+        
+        let userExtensionEntities = await userExtensionHelper.entities(
+          userId,
+          entityType,
+          req.pageSize,
+          req.pageNo,
+          req.searchText
+        );
 
-        let entitiesFound = await entitiesHelper.entityDocuments({
-          _id: { $in: userExtensionEntities },
-          entityType: entityType
-        }, ["_id"]);
-
-
-        if (entitiesFound.length > 0) {
-          entitiesFound.forEach(eachEntityData => {
-            allEntities.push(eachEntityData._id);
-          });
-        }
-
-        let findQuery = {
-          _id: { $in: userExtensionEntities },
-          entityType: { $ne: entityType }
-        };
-
-        findQuery[`groups.${entityType}`] = { $exists: true };
-
-        let remainingEntities = await entitiesHelper.entityDocuments(findQuery, [`groups.${entityType}`]);
-
-        if (remainingEntities.length > 0) {
-          remainingEntities.forEach(eachEntityNotFound => {
-            allEntities = _.concat(allEntities, eachEntityNotFound.groups[entityType]);
-          })
-        }
-
-        if (!allEntities.length > 0) {
-          throw { 
-            status: httpStatusCode.bad_request.status,
-            message: messageConstants.apiResponses.ENTITY_NOT_FOUND
-          };
-        }
-
-        let skippingValue = req.pageSize * (req.pageNo - 1);
-
-        let queryObject = {};
-
-        if(req.searchText && req.searchText != "") {
-          queryObject = {
-              $and: [
-                  {
-                      _id: { 
-                          $in: allEntities
-                      }
-                  },
-                  { 
-                      $or: [
-                          { "metaInformation.name": new RegExp(req.searchText, 'i') },
-                          { "metaInformation.externalId": new RegExp("^" + req.searchText, 'm') },
-                          { "metaInformation.addressLine1": new RegExp(req.searchText, 'i') },
-                          { "metaInformation.addressLine2": new RegExp(req.searchText, 'i') }
-                      ]
-                  } 
-              ]
-          };
-      } else {
-          queryObject = {
-              _id: { $in: allEntities }
-          };
-      }
-
-        let result = await entitiesHelper.entityDocuments(queryObject, projection, req.pageSize, skippingValue);
-
-        return resolve({
-          message: messageConstants.apiResponses.USER_EXTENSION_ENTITIES_FETCHED,
-          result: result,
-          count: allEntities.length
-        });
+        return resolve(userExtensionEntities);
 
       } catch (error) {
 
