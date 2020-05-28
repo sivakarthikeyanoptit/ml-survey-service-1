@@ -14,6 +14,7 @@ const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 
 /**
     * ObservationSubmissions
@@ -916,12 +917,12 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
-            submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+            submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
 
-        let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
+        let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi")
         if(resultingArray.result.runUpdateQuery) {
           await observationSubmissionsHelper.markCompleteAndPushForReporting(submissionDocument._id)
         }
@@ -1098,7 +1099,7 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
             }
-            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = questionMaxScore;
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
@@ -1108,7 +1109,7 @@ module.exports = class ObservationSubmissions extends Abstract {
           })
         }
 
-        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi");
+        let resultingArray = await scoringHelper.rateEntities(submissionDocuments, "multiRateApi");
 
         for (let pointerToResultingArray = 0; pointerToResultingArray < resultingArray.length; pointerToResultingArray++) {
           const submission = resultingArray[pointerToResultingArray];

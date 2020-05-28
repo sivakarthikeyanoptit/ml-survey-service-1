@@ -139,7 +139,32 @@ module.exports = class Observations extends v1Observation {
                     }
                 }
 
-                let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
+                let userAclInformation = await userExtensionHelper.userAccessControlList(
+                    req.userDetails.userId
+                );
+
+                let tags = [];
+                
+                if( 
+                    userAclInformation && 
+                    Object.keys(userAclInformation).length > 0 
+                ) {
+                    Object.values(userAclInformation).forEach(acl=>{
+                        tags = tags.concat(acl);
+                    })
+                }
+
+                let entityDocuments = await entitiesHelper.search(
+                    result.entityTypeId, 
+                    req.searchText, 
+                    req.pageSize, 
+                    req.pageNo, 
+                    
+                    userAllowedEntities && userAllowedEntities.length > 0 ? 
+                    userAllowedEntities : 
+                    false,
+                    tags
+                    );
 
                 let observationEntityIds = new Array;
                 if ( result.entities && result.entities.length > 0 ) {
@@ -702,7 +727,8 @@ module.exports = class Observations extends v1Observation {
                     Object.values(evidenceMethodArray),
                     entityDocumentQuestionGroup,
                     submissionDoc.result.evidences,
-                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
+                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false,
+                    entityDocument.metaInformation
                 );
 
                 assessment.evidences = parsedAssessment.evidences;
