@@ -43,7 +43,9 @@ module.exports = class criteriaHelper {
 
                 existingCriteriaRubricLevels.forEach(levelObject => {
 
-                  rubric.levels[levelObject.level] = {};
+                  rubric.levels[levelObject.level] = {
+                      expression : criteriaRubricData[levelObject.level]
+                  };
 
                   Object.keys(levelObject).forEach(level=>{
                     rubric.levels[levelObject.level][level] = levelObject[level];
