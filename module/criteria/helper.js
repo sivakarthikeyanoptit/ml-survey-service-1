@@ -42,12 +42,12 @@ module.exports = class criteriaHelper {
                 }
 
                 existingCriteriaRubricLevels.forEach(levelObject => {
-                    rubric.levels[levelObject.level] = {
-                        level: levelObject.level,
-                        label: levelObject.label,
-                        description: levelObject.description,
-                        expression: criteriaRubricData[levelObject.level]
-                    };
+
+                  rubric.levels[levelObject.level] = {};
+
+                  Object.keys(levelObject).forEach(level=>{
+                    rubric.levels[levelObject.level][level] = levelObject[level];
+                  })
                 })
 
                  await database.models.criteria.findOneAndUpdate(
@@ -147,7 +147,6 @@ module.exports = class criteriaHelper {
    static upload(criteriaData,userId,token) {
     return new Promise(async (resolve, reject) => {
       try {
-
 
         let improvementProjectIds = [];
         let improvementObj = {};
@@ -268,22 +267,41 @@ module.exports = class criteriaHelper {
           })
 
           let criteriaStructure = {
-            owner: userId,
             name: parsedCriteria.criteriaName,
             description: parsedCriteria.criteriaName,
-            resourceType: [
+            externalId: criteria.criteriaID,
+            rubric: rubric
+          };
+
+          let criteriaDocuments;
+
+          if( parsedCriteria._SYSTEM_ID ) {
+            criteriaDocuments = await database.models.criteria.findOneAndUpdate(
+              {
+                _id : parsedCriteria._SYSTEM_ID
+              },{
+                $set : criteriaStructure
+              }
+            )
+
+          } else {
+            
+            criteriaStructure["resourceType"] = [
               "Program",
               "Framework",
               "Criteria"
-            ],
-            language: [
+            ];
+
+            criteriaStructure["language"] = [
               "English"
-            ],
-            keywords: [
+            ];
+
+            criteriaStructure["keywords"] = [
               "Keyword 1",
               "Keyword 2"
-            ],
-            concepts: [
+            ];
+
+            criteriaStructure["concepts"] = [
               {
                 identifier: "LPD20100",
                 name: "Teacher_Performance",
@@ -323,29 +341,28 @@ module.exports = class criteriaHelper {
                 visibility: null,
                 compatibilityLevel: null
               }
-            ],
-            createdFor: [
+            ];
+
+            criteriaStructure["createdFor"] = [
               "0125747659358699520",
               "0125748495625912324"
-            ],
-            evidences: [],
-            deleted: false,
-            externalId: criteria.criteriaID,
-            owner: userId,
-            timesUsed: 12,
-            weightage: 20,
-            remarks: "",
-            name: parsedCriteria.criteriaName,
-            description: parsedCriteria.criteriaName,
-            criteriaType: "auto",
-            score: "",
-            flag: "",
-            rubric: rubric
-          };
+            ];
 
-          let criteriaDocuments = await database.models.criteria.create(
-            criteriaStructure
-          );
+            criteriaStructure["evidences"] = [];
+            criteriaStructure["deleted"] = false;
+            criteriaStructure["owner"] = userId;
+            criteriaStructure["timesUsed"] = 12;
+            criteriaStructure["weightage"] = 20;
+            criteriaStructure["remarks"] = "";
+            criteriaStructure["criteriaType"] = "auto";
+            criteriaStructure["score"] =  "";
+            criteriaStructure["flag"] =  "";
+
+            criteriaDocuments = await database.models.criteria.create(
+              criteriaStructure
+            );
+
+          }
 
           csvData["Criteria Name"] = parsedCriteria.criteriaName;
           csvData["Criteria External Id"] = parsedCriteria.criteriaID;
