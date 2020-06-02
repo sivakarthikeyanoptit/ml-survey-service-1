@@ -170,14 +170,54 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType Entity list
+  * @api {get} /assessment/api/v1/entities/list/:entityId?type=:entityType&schoolTypes=:schoolTypes&administrationTypes=:administrationTypes&page=:page&limit=:limit Entity list
   * @apiVersion 1.0.0
   * @apiName Entity list
   * @apiGroup Entities
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiSampleRequest /assessment/api/v1/entities/list/5bfe53ea1d0c350d61b78d0a?type=parent
+  * @apiSampleRequest /assessment/api/v1/entities/list/5db173598a8e070bedca6ba1?type=school&schoolTypes=primary,secondary&administrationTypes=bbmp&page=1&limit=10
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+  * "message": "Information fetched successfully.",
+  * "status": 200,
+  * "result": [
+  * {
+  * "_id": "5e969ae233132f0b8f2aa06f",
+  * "entityId": "5e969ae233132f0b8f2aa06f",
+  * "externalId": "akj",
+  * "name": "SMC of School 1",
+  * "schoolName": "Navaya jyoti",
+  * "noOfMembers": "5",
+  * "headOfCommittee": "Mr.Prakash",
+  * "types": [
+  * "A1",
+  * "A2"
+  * ],
+  * "address": "Address of school 1",
+  * "city": "Noida",
+  * "schoolTypes": [
+  * "primary",
+  * "secondary"
+  * ],
+  * "administrationTypes": [
+  * "bbmp"
+  * ],
+  * "state": "Delhi",
+  * "tags": [
+  * "primary",
+  * "secondary",
+  * "bbmp"
+  * ],
+  * "childrenCount": 0,
+  * "entityType": "school",
+  * "entityTypeId": "5d15a959e9185967a6d5e8a6",
+  * "subEntityGroups": []
+  * }
+  * ],
+  * "count": 1
+}
   */
 
     /**
@@ -188,6 +228,9 @@ module.exports = class Entities extends Abstract {
    * @param {String} req.query.type - type of entity requested.
    * @param {String} req.params._id - requested entity id. 
    * @param {Number} req.pageSize - total size of the page.
+   * @param {Number} req.pageNo - page number.
+   * @param {string} req.query.schoolTypes - comma seperated school types.
+   * @param {string} req.query.administrationTypes - comma seperated administration types.
    * @returns {JSON} - Listed entity details.
    */
 
@@ -196,13 +239,16 @@ module.exports = class Entities extends Abstract {
 
       try {
 
-        let result = await entitiesHelper.list(req.query.type, req.params._id, req.pageSize, req.pageSize * (req.pageNo - 1));
+        let result = await entitiesHelper.list(
+          req.query.type, 
+          req.params._id, 
+          req.pageSize, 
+          req.pageSize * (req.pageNo - 1),
+          req.query.schoolTypes,
+          req.query.administrationTypes
+        );
 
-        return resolve({
-          message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
-          result: result.entityData,
-          count: result.count
-        });
+        return resolve(result);
 
       } catch (error) {
 
@@ -289,7 +335,10 @@ module.exports = class Entities extends Abstract {
 
       try {
 
-        let result = await entitiesHelper.fetch(req.query.type, req.params._id);
+        let result = await entitiesHelper.fetch(
+          req.query.type, 
+          req.params._id
+        );
 
         return resolve({
           message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
@@ -401,9 +450,15 @@ module.exports = class Entities extends Abstract {
       try {
 
         let entityCSVData = await csv().fromString(req.files.entities.data.toString());
-        let newEntityData = await entitiesHelper.bulkCreate(req.query.type, null, null, req.userDetails, entityCSVData);
+        let newEntityData = await entitiesHelper.bulkCreate(
+          req.query.type, 
+          null, 
+          null, 
+          req.userDetails, 
+          entityCSVData
+        );
 
-        if (newEntityData.length > 0) {
+        if ( newEntityData.length > 0 ) {
 
           const fileName = `Entity-Upload`;
           let fileStream = new FileStream(fileName);
@@ -470,7 +525,10 @@ module.exports = class Entities extends Abstract {
 
         let entityCSVData = await csv().fromString(req.files.entities.data.toString());
         
-        let newEntityData = await entitiesHelper.bulkUpdate(req.userDetails, entityCSVData);
+        let newEntityData = await entitiesHelper.bulkUpdate(
+          req.userDetails, 
+          entityCSVData
+        );
 
         if (newEntityData.length > 0) {
 
