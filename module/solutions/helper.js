@@ -5,6 +5,10 @@
  * Description : Solution related helper functionality.
  */
 
+//Dependencies
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+
 /**
     * SolutionsHelper
     * @class
@@ -14,27 +18,42 @@ module.exports = class SolutionsHelper {
     /**
    * find solutions
    * @method
-   * @name details
-   * @param {Array} [solutionIds = "all"] - solution ids.
-   * @param {Array} [fields = "all"] - projected fields.
+   * @name solutionDocuments
+   * @param {Array} [solutionFilter = "all"] - solution ids.
+   * @param {Array} [fieldsArray = "all"] - projected fields.
+   * @param {Array} [skipFields = "none"] - field not to include
    * @returns {Array} List of solutions. 
    */
   
-  static solutionDocuments(solutionFilter = "all", fieldsArray = "all") {
+  static solutionDocuments(
+    solutionFilter = "all", 
+    fieldsArray = "all",
+    skipFields = "none"
+  ) {
     return new Promise(async (resolve, reject) => {
         try {
     
             let queryObject = (solutionFilter != "all") ? solutionFilter : {};
     
-            let projectionObject = {}
+            let projection = {}
     
             if (fieldsArray != "all") {
                 fieldsArray.forEach(field => {
-                    projectionObject[field] = 1;
+                    projection[field] = 1;
                 });
             }
+
+            if( skipFields !== "none" ) {
+              skipFields.forEach(field=>{
+                projection[field] = 0;
+              })
+            }
     
-            let solutionDocuments = await database.models.solutions.find(queryObject, projectionObject).lean();
+            let solutionDocuments = 
+            await database.models.solutions.find(
+              queryObject, 
+              projection
+            ).lean();
             
             return resolve(solutionDocuments);
             
@@ -44,6 +63,30 @@ module.exports = class SolutionsHelper {
     });
   }
 
+   /**
+   * Create solution.
+   * @method create
+   * @name create
+   * @param {Object} data - solution creation data.
+   * @returns {JSON} solution creation data. 
+   */
+  
+  static create(data) {
+    return new Promise(async (resolve, reject) => {
+        try {
+    
+            let solutionData = 
+            await database.models.solutions.create(
+              data
+            );
+            
+            return resolve(solutionData);
+            
+        } catch (error) {
+            return reject(error);
+        }
+    });
+  }
 
     /**
    * Check if the solution is rubric driven i.e isRubricDriven flag as true is present
@@ -319,7 +362,6 @@ module.exports = class SolutionsHelper {
     });
   }
 
-
    /**
    * Set theme rubric expression. 
    * @method
@@ -572,24 +614,30 @@ module.exports = class SolutionsHelper {
    * @param {Object} filteredData - Search solutions from filtered data.
    * @param {Number} pageSize - page limit.
    * @param {Number} pageNo - No of the page. 
+   * @param {Object} projection - Projected data. 
    * @returns {Array} List of solutions document. 
    */
 
-  static search(filteredData, pageSize, pageNo) {
+  static search(filteredData, pageSize, pageNo,projection) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let solutionDocument = [];
 
         let projection1 = {};
-        projection1["$project"] = {
-          name: 1,
-          description: 1,
-          keywords: 1,
-          externalId: 1,
-          programId: 1,
-          entityTypeId: 1
-        };
+
+        if( projection ) {
+          projection1["$project"] = projection
+        } else {
+          projection1["$project"] = {
+            name: 1,
+            description: 1,
+            keywords: 1,
+            externalId: 1,
+            programId: 1,
+            entityTypeId: 1
+          };
+        }
 
         let facetQuery = {};
         facetQuery["$facet"] = {};
@@ -613,7 +661,8 @@ module.exports = class SolutionsHelper {
 
         solutionDocument.push(filteredData, projection1, facetQuery, projection2);
 
-        let solutionDocuments = await database.models.solutions.aggregate(solutionDocument);
+        let solutionDocuments = 
+        await database.models.solutions.aggregate(solutionDocument);
 
         return resolve(solutionDocuments);
 
@@ -694,4 +743,301 @@ module.exports = class SolutionsHelper {
     return mandatoryFields;
 
   }
+
+   /**
+     * Solution templates lists.
+     * @method
+     * @name templates
+     * @param {String} type - type of solution can be observation/institutional/individual
+     * @param {string} searchtext - search text based on name,description.keywords.
+     * @param {string} limit - Maximum data to return
+     * @param {string} page - page no
+     * @returns {Array} - Solution templates lists.
+     */
+
+    static templates( type,searchText,limit,page) {
+      return new Promise(async (resolve, reject) => {
+          try {
+
+            let matchQuery = {};
+
+            matchQuery["$match"] = {
+              isReusable : true,
+              status : "active"
+            };
+
+            if ( type === messageConstants.common.OBSERVATION ) {
+              matchQuery["$match"]["type"] = type;
+            } else {
+              matchQuery["$match"]["type"] = messageConstants.common.ASSESSMENT;
+              matchQuery["$match"]["subType"] = type;
+            }
+
+            matchQuery["$match"]["$or"] = [
+              { 
+                "name": new RegExp(searchText, 'i') 
+              }, { 
+                "description": new RegExp(searchText, 'i') 
+              }, { 
+                "keywords": new RegExp(searchText, 'i') 
+              }
+            ];
+
+            let solutionDocument = await this.search(
+              matchQuery, 
+              limit, 
+              page,
+              {
+                name : 1,
+                description : 1,
+                externalId : 1
+              }
+            );
+
+            if (!solutionDocument[0].count) {
+              solutionDocument[0].count = 0;
+            }
+            
+            return resolve(solutionDocument[0]);
+
+          } catch (error) {
+              return reject(error);
+          }
+      });
+    }
+
+     /**
+     * Solution details
+     * @method
+     * @name details
+     * @param {String} - solutionId 
+     * @returns {Object} - Solution details information.
+     */
+
+    static details( solutionId ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          let solutionData = 
+          await this.solutionDocuments(
+              {
+                _id : solutionId
+              }, [
+                "creator",
+                "description",
+                "themes",
+                "evidenceMethods",
+                "linkTitle",
+                "linkUrl",
+                "name"
+              ]
+            );
+
+            if( !solutionData[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                }
+            }
+                
+            return resolve(solutionData[0]);
+
+        } catch (error) {
+          return reject(error);
+        }
+      });
+    }
+
+     /**
+     * Create solution and program from solution templates.
+     * @method
+     * @name createProgramAndSolutionFromTemplate -
+     * @param {String} templateId - solution template id.
+     * @param {Object} program
+     * @param {String} program.id - program id
+     * @param {String} program.name - program name
+     * @param {String} userId - Logged in user id.
+     * @param {Object} solutionData - new solution creation data
+     * @param {Boolean} [isAPrivateProgram = false] - created program is private or not     
+     * @returns {Object} Created solution and program
+     */
+
+    static createProgramAndSolutionFromTemplate(
+      templateId,
+      program,
+      userId,
+      solutionData,
+      isAPrivateProgram = false
+  ) {
+      return new Promise(async (resolve, reject) => {
+          try {
+
+              let dateFormat = gen.utils.epochTime();
+              let programData;
+
+              if( program.id === "" ) {
+
+                programData = await programsHelper.create({
+                  externalId : 
+                  program.name ? 
+                  program.name + "-" + dateFormat : 
+                  solutionData.name + "-" + dateFormat,
+                  
+                  description : solutionData.description,
+                  name : program.name,
+                  userId : userId,
+                  isAPrivateProgram : isAPrivateProgram
+                });
+                
+                program.id = programData._id;
+              }
+
+              let duplicateSolution = 
+              await this.importFromSolution(
+                templateId,
+                program.id.toString(),
+                userId,
+                solutionData,
+                false
+              );
+
+              return resolve(
+                _.pick(
+                  duplicateSolution,
+                  [
+                    "_id",
+                    "externalId",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "programExternalId",
+                    "programId",
+                    "entityTypeId",
+                    "entityType",
+                    "isAPrivateProgram"
+                  ]
+                  ));
+
+          } catch (error) {
+              return reject(error);
+          }
+      })
+    }
+
+      /**
+     * Create a new solution from existing solution.
+     * @method
+     * @name importFromSolution -
+     * @param {String} solutionId - solution id.
+     * @param {String} programId - program id.
+     * @param {String} userId - logged in user id.
+     * @param {Object} data - new solution data.  
+     * @param {String} isReusable - new solution isReusable value.
+     * @returns {Object} New solution information
+     */
+
+    static importFromSolution(
+      solutionId,
+      programId,
+      userId,
+      data,
+      isReusable
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          let validateSolutionId = gen.utils.isValidMongoId(solutionId);
+
+          let solutionQuery = {};
+
+          if( validateSolutionId ) {
+            solutionQuery["_id"] = solutionId;
+          } else {
+            solutionQuery["externalId"] = solutionId;
+          }
+
+          let solutionDocument = await this.solutionDocuments(
+            solutionQuery
+          );
+  
+          if (!solutionDocument[0]) {
+            throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+          }
+
+          let programQuery = {};
+
+          let validateProgramId = gen.utils.isValidMongoId(programId);
+
+          if( validateProgramId ) {
+            programQuery["_id"] = programId;
+          } else {
+            programQuery["externalId"] = programId;
+          }
+  
+          let programDocument = 
+          await programsHelper.list(
+            programQuery, 
+            ["externalId","name","description","isAPrivateProgram"]
+          );
+  
+          if (!programDocument[0]) {
+            throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+          }
+  
+          let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
+          let startDate = new Date();
+          let endDate = new Date();
+          endDate.setFullYear(endDate.getFullYear() + 1);
+
+          if( data.entities && data.entities.length > 0 ) {
+            
+            data.entities = 
+            await entitiesHelper.validateEntities(
+              data.entities,
+              solutionDocument[0].entityTypeId
+            );
+
+          }
+  
+          newSolutionDocument.externalId = 
+          data.externalId ? data.externalId : solutionDocument[0].externalId +"-"+ gen.utils.epochTime();
+          
+          newSolutionDocument.name = data.name;
+          newSolutionDocument.description = data.description;
+          newSolutionDocument.programId = programDocument[0]._id;
+          newSolutionDocument.programExternalId = programDocument[0].externalId;
+          newSolutionDocument.programName = programDocument[0].name;
+          newSolutionDocument.programDescription = programDocument[0].description;
+          newSolutionDocument.author = userId;
+          newSolutionDocument.createdBy = userId;
+          newSolutionDocument.entities = [];
+          newSolutionDocument.parentSolutionId = solutionDocument[0]._id;
+          newSolutionDocument.startDate = startDate;
+          newSolutionDocument.endDate = endDate;
+          newSolutionDocument.createdAt = startDate;
+          newSolutionDocument.updatedAt = startDate;
+          newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
+          newSolutionDocument.isReusable = 
+          isReusable !== undefined ? isReusable : newSolutionDocument.isReusable;
+  
+          let duplicateSolutionDocument = 
+          await database.models.solutions.create(
+            _.omit(newSolutionDocument, ["_id"])
+          );
+  
+          if (duplicateSolutionDocument._id) {
+  
+            await database.models.programs.updateOne({ _id: programDocument[0]._id }, { $addToSet: { components: duplicateSolutionDocument._id } });
+  
+            return resolve(duplicateSolutionDocument);
+  
+          } else {
+            throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
+          }
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+  
 };

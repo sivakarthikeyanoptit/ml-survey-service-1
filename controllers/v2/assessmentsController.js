@@ -300,8 +300,12 @@ module.exports = class Assessments {
                     entityType: solutionDocument.entityType,
                     programId: programDocument._id,
                     programExternalId: programDocument.externalId,
+                    isAPrivateProgram : 
+                    programDocument.isAPrivateProgram ? 
+                    programDocument.isAPrivateProgram : 
+                    false,
                     programInformation: {
-                        ..._.omit(programDocument, ["_id", "components"])
+                        ..._.omit(programDocument, ["_id", "components","isAPrivateProgram"])
                     },
                     evidenceSubmissions: [],
                     entityProfile: {},

@@ -31,7 +31,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/observationSubmissions/create:observationId?entityId=:entityId Create A New Observation Submission
+  * @api {post} /assessment/api/v1/observationSubmissions/create/:observationId?entityId=:entityId Create A New Observation Submission
   * @apiVersion 1.0.0
   * @apiName Create A New Observation Submission
   * @apiGroup Observation Submissions
@@ -135,7 +135,10 @@ module.exports = class ObservationSubmissions extends Abstract {
           "frameworkExternalId",
           "evidenceMethods",
           "entityTypeId",
-          "entityType"
+          "entityType",
+          "programId",
+          "programExternalId",
+          "isAPrivateProgram"
         ]);
 
         if (!solutionDocument[0]) {
@@ -176,6 +179,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           entityInformation: entityDocument.metaInformation,
           solutionId: solutionDocument._id,
           solutionExternalId: solutionDocument.externalId,
+          programId : solutionDocument.programId,
+          programExternalId : solutionDocument.programExternalId,
+          isAPrivateProgram : solutionDocument.isAPrivateProgram,
           frameworkId: solutionDocument.frameworkId,
           frameworkExternalId: solutionDocument.frameworkExternalId,
           entityTypeId: solutionDocument.entityTypeId,
@@ -1128,6 +1134,63 @@ module.exports = class ObservationSubmissions extends Abstract {
         });
       }
 
+    })
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/list/:observationId?entityId:entityId List Observation Submissions
+  * @apiVersion 1.0.0
+  * @apiName List Observation Submissions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/list/5d1a002d2dfd8135bc8e1615?entityId=5cee7d1390013936552f6a8d
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Successfully fetched observation submissions",
+    "status": 200,
+    "result": [
+        {
+             "_id": "5d8de379bccbfb51d4450d05",
+            "entityId": "5bfe53ea1d0c350d61b78d0f",
+            "entityExternalId": "1208138",
+            "entityType": "school",
+            "status": "started",
+            "submissionNumber": 1,
+            "updatedAt": "2019-09-27T10:24:57.182Z",
+            "createdAt": "2019-09-27T10:24:57.182Z"
+        }
+    ]
+  }
+
+
+  */
+   /**
+   * List observation submissions
+   * @method
+   * @name list
+   * @param {Object} req - requested data.
+   * @param {String} req.query.entityId - entity id.
+   * @param {String} req.params._id - observation id. 
+   * @returns {JSON} consists of list of observation submissions.
+   */
+  async list(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let submissionDocument =
+         await observationSubmissionsHelper.list
+          (
+          req.query.entityId,
+          req.params._id
+          );
+        return resolve(submissionDocument);
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
     })
   }
 

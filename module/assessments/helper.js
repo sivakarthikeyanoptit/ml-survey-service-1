@@ -6,7 +6,10 @@
  */
 
 // Dependencies. 
-const questionHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
     * AssessmentsHelper
@@ -422,8 +425,208 @@ module.exports = class AssessmentsHelper {
                 "externalId",
                 "name",
                 "description",
-                "imageCompression"
+                "imageCompression",
+                "isAPrivateProgram"
             ]);
+        })
+    }
+
+      /**
+   * Assessment meta form.
+   * @method
+   * @name metaForm
+   * @param {String} solutionId - Assessment solution id.
+   * @returns {JSON} - Form details.
+   */
+
+  static metaForm(solutionId) {
+
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let solutionsData = await solutionsHelper.solutionDocuments({
+                _id : solutionId,
+                isReusable: true
+            }, [
+              messageConstants.common["ASSESSMENT_META_FORM_KEY"],
+              "subType"
+            ]);
+
+            if (!solutionsData[0]) {
+                throw { 
+                    status: httpStatusCode.bad_request.status, 
+                    message: messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                };
+            }
+
+            let defaultForm;
+
+            if( solutionsData[0].subType === messageConstants.common.INSTITUTIONAL) {
+                defaultForm = messageConstants.common.INSTITUTIONAL_METAFORM;
+            } else {
+                defaultForm = messageConstants.common.INDIVIDUAL_METAFORM;
+            }
+
+            let filteredData = {
+              "name" : 
+              solutionsData[0].assessmentMetaFormKey &&
+              solutionsData[0].assessmentMetaFormKey !== "" ? 
+              solutionsData[0].assessmentMetaFormKey : defaultForm
+            };
+
+            let assessmentMetaForm = 
+            await formsHelper.formDocuments(filteredData,["value"]);
+
+            if( !assessmentMetaForm[0] ) {
+              throw { 
+                status: httpStatusCode.bad_request.status, 
+                message: messageConstants.apiResponses.FORM_NOT_FOUND
+              };
+            }
+
+            return resolve({
+                message: messageConstants.apiResponses.OBSERVATION_META_FETCHED,
+                result: assessmentMetaForm[0].value
+            });
+
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+
+    });
+  }
+
+     /**
+     * Create solution and program from assessment template. 
+     * @method
+     * @name create
+     * @param {String} templateId - assessment template id. 
+     * @param {String} userId - Logged in user id.
+     * @param {Object} requestedData - request body data.
+     * @returns {Object} - Create solution from assessment template. 
+     */
+
+    static create( templateId,userId,requestedData ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+              let solutionInformation =  {
+                name : requestedData.name,
+                description : requestedData.description,
+                entities : requestedData.entities ? requestedData.entities: []
+              };
+  
+              let createdSolutionAndProgram = 
+              await solutionsHelper.createProgramAndSolutionFromTemplate(
+                templateId,
+                requestedData.program,
+                userId,
+                solutionInformation,
+                true
+              );
+  
+              return resolve({
+                message: messageConstants.apiResponses.CREATED_SOLUTION,
+                result : createdSolutionAndProgram
+              });
+  
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+      /**
+      * Assessment templates details
+      * @method
+      * @name templateDetails
+      * @param {String} templateId - Template id.
+      * @returns {Object} returns creator,about and list of questions.
+     */
+
+    static templateDetails(templateId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+              let solutionDetails = 
+              await solutionsHelper.details(
+                templateId
+              );
+
+              let criteriaIds = gen.utils.getCriteriaIds(solutionDetails.themes);
+
+              let questionDetails = 
+              await criteriaQuestionsHelper.details(
+                  criteriaIds,
+                  {
+                      $project : {
+                          "ecm" : "$evidences.code",
+                          "question" : "$evidences.sections.questions.question"
+                        }
+                  },
+                  {
+                      "evidences.sections.questions.showQuestionInPreview" : true 
+                  }
+               );
+
+               let ecmQuestions = [];
+
+               if( questionDetails.length > 0 ) {
+                   
+                   questionDetails.forEach(questionData=>{
+                    
+                    let ecmIndex = 
+                    ecmQuestions.findIndex(
+                        ecmQuestion=> ecmQuestion.ecm === questionData.ecm
+                    );
+
+                    if( ecmIndex < 0 ) {
+                        
+                        let ecmQuestion = {
+                            ecm : questionData.ecm,
+                            name : solutionDetails.evidenceMethods[questionData.ecm].name,
+                            questions : []
+                        }
+
+                        ecmQuestions.push(ecmQuestion);
+                        ecmIndex = ecmQuestions.length - 1;
+                    }
+
+                    let questionIndex = 
+                    ecmQuestions[ecmIndex].questions.findIndex(
+                        question=> question === questionData.question[0]
+                    );
+
+                    if( questionIndex < 0 ) {
+                        ecmQuestions[ecmIndex].questions.push(questionData.question[0]);
+                    }
+
+                   })
+               }
+
+               let result = {
+                   name : solutionDetails.name,
+                   creator : solutionDetails.creator ? solutionDetails.creator : "",
+                   description : solutionDetails.description,
+                   ecmQuestions : ecmQuestions,
+                   linkTitle : solutionDetails.linkTitle ? solutionDetails.linkTitle: "",
+                   linkUrl : solutionDetails.linkUrl ? solutionDetails.linkUrl: ""
+                };
+
+              return resolve(result);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
         })
     }
 

@@ -15,6 +15,10 @@ module.exports = {
     createdFor: [String],
     imageCompression: {},
     components: ["json"],
-    components: ["json"]
+    components: ["json"],
+    isAPrivateProgram : {
+      default : false,
+      type : Boolean
+    }
   }
 };
