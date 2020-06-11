@@ -38,6 +38,19 @@ let cassandra_connect = function (cassandraConfigurationData) {
 };
 
 /**
+  * Elastic search configuration.
+  * @function
+  * @name elasticsearch_connect
+  * @param {Object} elasticSearchConfigurations  - elastic search configuration.
+*/
+
+let elasticsearch_connect = function (elasticSearchConfigurations) {
+  global.elasticsearch = require("./db/elasticSearch")(
+    elasticSearchConfigurations
+  );
+};
+
+/**
   * Kafka connection information.
   * @method
   * @name kafka_connect
@@ -73,6 +86,9 @@ const configuration = {
         host: process.env.CASSANDRA_HOST,
         port:process.env.CASSANDRA_PORT,
         keyspace: process.env.CASSANDRA_DB,
+      },
+      elasticSearch: {
+        host: process.env.ELASTICSEARCH_HOST_URL 
       }
     },
     plugins: {
@@ -102,5 +118,7 @@ db_connect(configuration);
 kafka_connect(configuration);
 
 cassandra_connect(configuration.DB_Config.connection.cassandra);
+
+elasticsearch_connect(configuration.DB_Config.connection.elasticSearch);
 
 module.exports = configuration;
