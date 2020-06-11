@@ -10,6 +10,7 @@ const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
 /**
     * UserExtensionHelper
@@ -319,6 +320,8 @@ module.exports = class UserExtensionHelper {
                             }
                         );
 
+                        let user;
+
                         if (existingUserRole && existingUserRole._id) {
 
                             let userRoleToUpdate;
@@ -355,6 +358,7 @@ module.exports = class UserExtensionHelper {
 
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => ObjectId(eachEntity));
 
+                            user =
                             await database.models.userExtension.findOneAndUpdate(
                                 {
                                     _id: existingUserRole._id
@@ -362,7 +366,11 @@ module.exports = class UserExtensionHelper {
                                 _.merge({
                                     "roles": existingUserRole.roles,
                                     "updatedBy": userDetails.id
-                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt"]))
+                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt"])),
+                                {
+                                    new : true,
+                                    returnNewDocument : true
+                                }
                             );
 
                             userRole["_SYSTEM_ID"] = existingUserRole._id;
@@ -373,7 +381,7 @@ module.exports = class UserExtensionHelper {
                             roles[0].entities = [ObjectId(userRole.entity)];
                             roles[0].acl = userRole.acl
 
-                            let newRole = await database.models.userExtension.create(
+                            user = await database.models.userExtension.create(
                                 _.merge({
                                     "roles": roles,
                                     "userId": userKeycloakId,
@@ -384,8 +392,8 @@ module.exports = class UserExtensionHelper {
                                 }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt", "status", "roles"]))
                             );
 
-                            if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id;
+                            if (user._id) {
+                                userRole["_SYSTEM_ID"] = user._id;
                                 userRole.status = "Success";
                             } else {
                                 userRole["_SYSTEM_ID"] = "";
@@ -394,15 +402,14 @@ module.exports = class UserExtensionHelper {
 
                         }
 
+                        await this.pushUserToElasticSearch(user._doc);
 
                     } catch (error) {
                         userRole.status = (error && error.message) ? error.message : error;
                     }
 
-
                     userRolesUploadedData.push(userRole);
                 }
-
 
                 return resolve(userRolesUploadedData);
 
@@ -798,6 +805,142 @@ module.exports = class UserExtensionHelper {
         "USER_EXTENSION_ENTITY_DOCUMENTS" : "entityDocuments", 
         "USER_EXTENSION_ROLE_DOCUMENTS" : "roleDocuments"
     }
+  }
+
+    /**
+   * Push user data to elastic search
+   * @method
+   * @name pushUserToElasticSearch
+   * @name userData - created or modified user data.
+   * @returns {Object} 
+   */
+
+  static pushUserToElasticSearch(userData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let userEntities = 
+            await this.getUserEntities(userData.userId);
+
+            let entities = [];
+            let telemetryEntities = [];
+
+            if( userEntities.length > 0 ) {
+            
+                let entityDocuments = 
+                await entitiesHelper.entityDocuments({
+                    _id : { $in : userEntities }
+                },[
+                    "metaInformation.externalId",
+                    "metaInformation.name",
+                    "entityType",
+                    "entityTypeId",
+                    "_id"
+                ]);
+
+                if( entityDocuments.length > 0 ) {
+                    
+                    for( 
+                        let entity = 0;
+                        entity < entityDocuments.length ; 
+                        entity++
+                    ) {
+
+                        let singleEntity = entityDocuments[entity];
+
+                        let entityObj = {
+                            name : singleEntity.metaInformation.name,
+                            externalId : singleEntity.metaInformation.externalId,
+                            entityType : singleEntity.entityType,
+                            entityTypeId : singleEntity.entityTypeId,
+                            _id : singleEntity._id
+                        };
+
+                        let telemetryObj = {
+                            [`${entityObj.entityType}_name`] : entityObj.name,
+                            [`${entityObj.entityType}_id`] : entityObj._id,
+                            [`${entityObj.entityType}_externalId`] : entityObj.externalId
+                        };
+
+                        let relatedEntities = 
+                        await entitiesHelper.relatedEntities(
+                            entityObj._id,
+                            entityObj.entityTypeId,
+                            entityObj.entityType,
+                            [
+                                "metaInformation.externalId",
+                                "metaInformation.name",
+                                "entityType",
+                                "entityTypeId",
+                                "_id"
+                            ]
+                        );
+
+                        if( relatedEntities.length > 0 ) {
+                            entityObj["relatedEntities"] = 
+                            relatedEntities.map(
+                                entity => {
+                                    telemetryObj[`${entity.entityType}_name`] = 
+                                    entity.metaInformation.name;
+                
+                                    telemetryObj[`${entity.entityType}_id`] = 
+                                    entity._id;
+                
+                                    telemetryObj[`${entity.entityType}_externalId`] = 
+                                    entity.metaInformation.externalId;
+                
+                                    return {
+                                      name : entity.metaInformation.name,
+                                      externalId : entity.metaInformation.externalId,
+                                      entityType : entity.entityType,
+                                      entityTypeId : entity.entityTypeId,
+                                      _id : entity._id
+                                    }
+                                }
+                            ) 
+                        }
+
+                        telemetryEntities.push(telemetryObj);
+                        entities.push(entityObj)
+                    }
+                }
+            }
+            
+            let userInformation = _.pick(userData,[
+                "_id",
+                "status", 
+                "isDeleted",
+                "deleted",
+                "roles",
+                "userId",
+                "externalId",
+                "updatedBy",
+                "createdBy",
+                "updatedAt",
+                "createdAt"
+            ]);
+
+            userInformation["entities"] = entities;
+            userInformation["telemetry_entities"] = telemetryEntities;
+
+            await elasticSearchData.createOrUpdate(
+                userData.userId,
+                process.env.ELASTICSEARCH_USER_EXTENSION_INDEX,
+                process.env.ELASTICSEARCH_USER_EXTENSION_INDEX_TYPE,
+                {
+                    data : userInformation
+                }
+            );
+
+            return resolve({
+                success : true
+            });
+            
+        }
+        catch(error) {
+            return reject(error);
+        }
+    })
   }
 
 };

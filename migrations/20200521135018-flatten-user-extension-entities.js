@@ -64,6 +64,7 @@ module.exports = {
       await Promise.all(userDocumentArray.map(async userDocument=>{
 
         let result = [];
+        let telemetry = [];
 
         if( userDocument.roles.length > 0 ) {
   
@@ -102,6 +103,12 @@ module.exports = {
                 
                 let entityObj = entityDocuments[entity];
 
+                let telemetryObj = {
+                  [`${entityObj.entityType}_name`] : entityObj.name,
+                  [`${entityObj.entityType}_id`] : entityObj._id,
+                  [`${entityObj.entityType}_externalId`] : entityObj.externalId
+                };
+
                 let relatedEntitiesQuery = {
                   [`groups.${entityObj.entityType}`] : entityObj._id,
                   entityTypeId : {
@@ -122,6 +129,16 @@ module.exports = {
                 if( relatedEntities.length > 0 ) {
 
                   relatedEntities = relatedEntities.map(entity=>{
+                    
+                    telemetryObj[`${entity.entityType}_name`] = 
+                    entity.metaInformation.name;
+
+                    telemetryObj[`${entity.entityType}_id`] = 
+                    entity._id;
+
+                    telemetryObj[`${entity.entityType}_externalId`] = 
+                    entity.metaInformation.externalId;
+
                     return {
                       name : entity.metaInformation.name,
                       externalId : entity.metaInformation.externalId,
@@ -134,8 +151,8 @@ module.exports = {
                   entityObj["relatedEntities"] = relatedEntities;
                 }
 
+                telemetry.push(telemetryObj);
                 result.push(entityObj)
-
               }
 
             }
@@ -144,17 +161,16 @@ module.exports = {
   
         }
 
-        if( result.length > 0 ) {
-          userDocument["entities"] = result;
-        }
+        userDocument["entities"] = result;
+        userDocument["telemetry_entities"] = telemetry;
 
-  
-        await es.create({
+        await es.update({
           id : userDocument.userId,
           index: userExtensionIndex,
           type: userExtensionIndexType,
           body: {
-            _doc : userDocument
+            doc : { data : userDocument },
+            doc_as_upsert : true
           }
         });
 
