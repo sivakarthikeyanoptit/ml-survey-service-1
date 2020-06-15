@@ -30,6 +30,21 @@ module.exports = {
     entityType: String,
     pointsBasedMaxScore : { type : Number, default: 0 },
     pointsBasedScoreAchieved : { type : Number, default: 0 },
-    pointsBasedPercentageScore : { type : Number, default: 0 }
+    pointsBasedPercentageScore : { type : Number, default: 0 },
+    isAPrivateProgram : {
+      default : false,
+      type : Boolean
+    },
+    submissionNumber : Number,
+    title : { 
+      type : String,
+      default: function() {
+        if (this.submissionNumber && this.submissionNumber > 0) {
+          return "Assessment "+this.submissionNumber;
+        } else {
+          return "Assessment";
+        }
+      }
+    }
   }
 };

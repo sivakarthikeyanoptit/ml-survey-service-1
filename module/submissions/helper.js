@@ -21,6 +21,56 @@ const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 */
 
 module.exports = class SubmissionsHelper {
+
+     /**
+   * List submissions.
+   * @method
+   * @name submissionDocuments
+   * @param {Object} [findQuery = "all"] - filter query
+   * @param {Array} [fields = "all"] - fields to include.
+   * @param {Array} [skipFields = "none"] - field which can be skipped.
+   * @returns {Array} list of submissions document. 
+   */
+
+  static submissionDocuments(findQuery = "all", fields = "all",skipFields = "none") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let queryObject = {};
+
+            if (findQuery != "all") {
+                queryObject = findQuery;
+            }
+
+            let projection = {};
+
+            if (fields != "all") {
+                fields.forEach(element => {
+                    projection[element] = 1;
+                });
+            }
+
+            if (skipFields != "none") {
+                skipFields.forEach(element => {
+                    projection[element] = 0;
+                });
+            }
+
+            let submissionDocuments = 
+            await database.models.submissions.find(
+                queryObject, 
+                projection
+            ).lean();
+          
+            return resolve(submissionDocuments);
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    });
+}
     
     /**
    * find submission by entity data.

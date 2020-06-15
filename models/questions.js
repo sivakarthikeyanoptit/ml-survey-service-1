@@ -45,6 +45,7 @@ module.exports = {
     weightage: { type : Number, default: 1 },
     prefillFromEntityProfile : { type : Boolean, default : false },
     entityFieldName : { type : String, default : "" } ,
-    isEditable : { type : Boolean, default : true }
+    isEditable : { type : Boolean, default : true },
+    showQuestionInPreview : { type : Boolean, default : false }
   }
 };
