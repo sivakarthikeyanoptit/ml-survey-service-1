@@ -19,6 +19,58 @@ const chunkOfSubmissionsLength = 500;
 */
 module.exports = class EntityAssessorHelper {
 
+     /**
+   * List entity assessors data.
+   * @method
+   * @name assessorsDocument
+   * @param {Object} [findQuery = "all"] - filtered data
+   * @param {Array} [fields = "all"] - projected field.
+   * @param {Array} [skipFields = "none"] - projected field.
+   * @returns {Array} - List of entity assessors data.
+   */
+
+    static assessorsDocument(findQuery = "all", fields = "all",skipFields = "none") {
+        return new Promise(async (resolve, reject) => {
+            
+            try {
+                
+                let queryObject = {};
+                
+                if (findQuery != "all") {
+                    
+                    queryObject = findQuery;
+                }
+
+                let projection = {};
+                
+                if (fields != "all") {
+                    
+                    fields.forEach(element => {
+                        projection[element] = 1;
+                    });
+                }
+
+                if (skipFields != "none") {
+                    skipFields.forEach(element => {
+                        projection[element] = 0;
+                    });
+                }
+                
+                let assessorsData = 
+                await database.models.entityAssessors.find(queryObject, projection).lean();
+                
+                return resolve(assessorsData);
+            
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        });
+    }
+
     /**
      * Get track of entity assessor.
      * @method
