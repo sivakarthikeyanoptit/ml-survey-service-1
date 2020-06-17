@@ -10,6 +10,54 @@
     * @class
 */
 module.exports = class CriteriaQuestionsHelper {
+
+     /**
+      * List of criteria questions
+      * @method
+      * @name list
+      * @param {Object} [ findQuery = "all" ] - filtered query data.
+      * @param {Array} [ fields = "all" ] - fields to include.
+      * @param {Array} [ skipFields = "none" ] - skip fields.   
+      * @returns {Array} List of criteria questions.
+     */
+
+    static list( findQuery = "all", fields = "all", skipFields = "none" ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+        
+                let queryObject = {};
+
+                if( findQuery !== "all" ) {
+                    queryObject = findQuery;
+                }
+        
+                let projection = {};
+        
+                if (fields != "all") {
+                    fieldsArray.forEach(field => {
+                        projection[field] = 1;
+                    });
+                }
+
+                if (skipFields != "none") {
+                    skipFields.forEach(element => {
+                        projection[element] = 0;
+                    });
+                }
+        
+                let criteriaQuestionDocuments = 
+                await database.models.criteriaQuestions.find(
+                    queryObject, 
+                    projection
+                ).lean();
+                
+                return resolve(criteriaQuestionDocuments);
+                
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
     
     /**
       * Details of criteria questions

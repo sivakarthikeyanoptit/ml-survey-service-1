@@ -165,7 +165,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let lastSubmissionNumber = 0;
 
-        const lastSubmissionForObservationEntity = await observationsHelper.findLastSubmissionForObservationEntity(req.params._id, req.query.entityId);
+        const lastSubmissionForObservationEntity = 
+        await observationsHelper.findLastSubmissionForObservationEntity(req.params._id, req.query.entityId);
         
         if(!lastSubmissionForObservationEntity.success) {
           throw new Error(lastSubmissionForObservationEntity.message);
@@ -638,7 +639,7 @@ module.exports = class ObservationSubmissions extends Abstract {
    /**
    * Set Observation Submission Title.
    * @method
-   * @name post
+   * @name title
    * @param {String} req.params._id -observation submissions id.
    * @returns {JSON} - message that observation submission title is set.
    */
@@ -1162,7 +1163,6 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
     ]
   }
-
 
   */
    /**

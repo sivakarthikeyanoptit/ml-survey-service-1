@@ -382,7 +382,8 @@ module.exports = class AssessmentsHelper {
                 entityTypeId: 1,
                 entityType: 1,
                 captureGpsLocationAtQuestionLevel : 1,
-                enableQuestionReadOut : 1
+                enableQuestionReadOut : 1,
+                allowMultipleAssessemts : 1
             });
         })
     }
@@ -404,7 +405,8 @@ module.exports = class AssessmentsHelper {
                 "description",
                 "registry",
                 "captureGpsLocationAtQuestionLevel",
-                "enableQuestionReadOut"
+                "enableQuestionReadOut",
+                "allowMultipleAssessemts"
             ]);
         })
     }

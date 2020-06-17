@@ -32,14 +32,14 @@ module.exports = class Assessments {
      */
 
     /**
-    * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
+    * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId}&submissionNumber=submissionNumber Detailed assessments
     * @apiVersion 1.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
     * @apiParam {String} entityId Entity ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
+    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7&submissionNumber=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -114,8 +114,12 @@ module.exports = class Assessments {
       * Assessment details.
       * @method
       * @name details
-      * @param {Request} req 
-      * - request consists of programId,solutionId and entityId.
+      * @param {Object} req - request data. 
+      * @param {String} req.params._id - program id.
+      * @param {String} req.query.solutionId - solution id.
+      * @param {String} req.query.entityId - entity id.
+      * @param {String} req.query.submissionNumber - submission number.
+      * @param {String} req.userDetails.userId -logged in user id.
       * @returns {JSON} returns assessment details response.
      */
 
@@ -136,7 +140,6 @@ module.exports = class Assessments {
                     components: { $in: [ObjectId(req.query.solutionId)] }
                 };
                 let programDocument = await database.models.programs.findOne(programQueryObject).lean();
-
 
                 if (!programDocument) {
                     let responseMessage = messageConstants.apiResponses.PROGRAM_NOT_FOUND;
@@ -394,11 +397,17 @@ module.exports = class Assessments {
                 submissionDocument.evidences = submissionDocumentEvidences;
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
+                
+                let submissionNumber = 
+                req.query.submissionNumber ? parseInt(req.query.submissionNumber) : 1;
+                submissionDocument.submissionNumber = submissionNumber;
 
                 let submissionDoc = await submissionsHelper.findSubmissionByEntityProgram(
                     submissionDocument,
-                    req
+                    req.headers['user-agent'],
+                    req.userDetails.userId
                 );
+                
                 assessment.submissionId = submissionDoc.result._id;
 
                 if (isRequestForOncallOrOnField == "oncall" && submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {

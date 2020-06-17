@@ -147,10 +147,10 @@ module.exports = class Observations extends v1Observation {
                 let tags = [];
                 
                 if( 
-                    userAclInformation && 
-                    Object.keys(userAclInformation).length > 0 
+                    userAclInformation.success && 
+                    Object.keys(userAclInformation.acl).length > 0 
                 ) {
-                    Object.values(userAclInformation).forEach(acl=>{
+                    Object.values(userAclInformation.acl).forEach(acl=>{
                         tags = tags.concat(acl);
                     })
                 }
@@ -176,6 +176,10 @@ module.exports = class Observations extends v1Observation {
                     eachMetaData.selected = (observationEntityIds.length > 0 && observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
                     if(eachMetaData.districtName && eachMetaData.districtName != "") {
                         eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
+
+                    if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
+                        eachMetaData.name += ", "+eachMetaData.externalId;
                     }
                 })
 
