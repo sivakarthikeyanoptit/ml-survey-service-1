@@ -8,6 +8,17 @@ module.exports = (req) => {
 
         pushIncompleteSubmissionForReporting: function () {
             req.checkParams('_id').exists().withMessage("required submission id")
+        },
+        delete : function () {
+            req.checkParams('_id').exists().withMessage("required submission id");
+        },
+        title : function () {
+            req.checkParams('_id').exists().withMessage("required submission id");
+            req.checkBody('title').exists().withMessage("required title");
+        },
+        create : function () {
+            req.checkParams('_id').exists().withMessage("required solution id");
+            req.checkParams('entityId').exists().withMessage("required entityId");
         }
     }
 

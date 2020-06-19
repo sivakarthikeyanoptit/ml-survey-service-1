@@ -60,8 +60,14 @@ module.exports = class UserHelper {
                     "status",
                     "_id",
                     "entityId",
-                    "solutionId"
-                ]);
+                    "solutionId",
+                    "title",
+                    "submissionNumber",
+                    "completedDate"
+                ],"none",
+                {
+                    createdAt : -1
+                });
                 
                 let observationsData = 
                 await observationsHelper.observationDocuments({
@@ -75,7 +81,9 @@ module.exports = class UserHelper {
                     "name",
                     "description",
                     "status",
-                    "observationId"
+                    "observationId",
+                    "createdAt",
+                    "updatedAt"
                 ]);
 
                 let observationIds = [];
@@ -227,10 +235,11 @@ module.exports = class UserHelper {
    * @method
    * @name programs
    * @param {String} userId 
+   * @param {String} [ version = "v1" ] - api version 
    * @returns {Object} list of user programs. 
    */
 
-    static programs( userId ) {
+    static programs( userId, version = "v1" ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -246,7 +255,12 @@ module.exports = class UserHelper {
                 let observationSubmissions = {};
 
                 if( userDetails.submissions.length > 0 ) {
-                    submissions =  _submissions(userDetails.submissions);
+
+                    if( version === messageConstants.common.VERSION_2 ) {
+                        submissions =  _v2Submissions(userDetails.submissions);
+                    } else {
+                        submissions =  _submissions(userDetails.submissions);
+                    }
                 };
 
                 if( userDetails.observationSubmissions.length > 0 ) {
@@ -320,7 +334,8 @@ module.exports = class UserHelper {
                             userDetails.entitiesData,
                             solutionOrObservationId,
                             submissionData,
-                            users[user].isObservation ? true : false
+                            users[user].isObservation ? true : false,
+                            version
                         );
                     }
                 }
@@ -342,10 +357,11 @@ module.exports = class UserHelper {
    * @method
    * @name entities
    * @param {string} userId - logged in user Id.
+   * @param {String} [ version = "v1" ] - api version 
    * @returns {Array} - Entity types and entities detail information.
    */
 
-    static entities( userId ) {
+    static entities( userId,version = "v1" ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -357,7 +373,12 @@ module.exports = class UserHelper {
                 let observationSubmissions = {};
 
                 if( userDetails.submissions.length > 0 ) {
-                    submissions =  _submissions(userDetails.submissions);
+
+                    if( version === messageConstants.common.VERSION_2 ) {
+                        submissions =  _v2Submissions(userDetails.submissions);
+                    } else {
+                        submissions =  _submissions(userDetails.submissions);
+                    }
                 };
 
                 if( userDetails.observationSubmissions.length > 0 ) {
@@ -436,18 +457,32 @@ module.exports = class UserHelper {
                                         program,
                                         users[user],
                                         solution
-                                    ) : 
-                                    _solutionInformation(program,solution); 
+                                    ) : _solutionInformation(program,solution);
+                                    
+                                    let submission;
 
-                                    let submission = 
-                                    users[user].isObservation ? 
-                                    _observationSubmissionInformation(
-                                        observationSubmissions,
-                                        users[user]._id,
-                                        entity.toString()
-                                    ) : submissions[solution._id.toString()] && submissions[solution._id.toString()][entity.toString()] ? 
-                                    submissions[solution._id.toString()][entity.toString()] : 
-                                    _submissionNotStarted();
+                                    if( users[user].isObservation ) {
+                                        submission = 
+                                         _observationSubmissionInformation(
+                                            observationSubmissions,
+                                            users[user]._id,
+                                            entity.toString()
+                                        ) 
+                                    } else {
+                                        if( version === messageConstants.common.VERSION_2 ) { 
+                                            submission = 
+                                            _submissionInformation(
+                                                submissions,
+                                                solution._id,
+                                                entity
+                                            );
+                                        } else {
+                                            submission = 
+                                            submissions[solution._id.toString()] && submissions[solution._id.toString()][entity.toString()] ? 
+                                            submissions[solution._id.toString()][entity.toString()] : 
+                                            submissionNotStarted();
+                                        }
+                                    }
 
                                     let solutionData = {
                                         ...solutionOrObservationInformation,
@@ -544,7 +579,6 @@ module.exports = class UserHelper {
    * Assessment Submissions data.
    * @method
    * @name _submissions - submission helper functionality
-   * @param {Array} entities - list of entities.
    * @param {Object} submissions - assessment submission.
    * @returns {Array} - submission id and submission status.
    */
@@ -641,6 +675,72 @@ function _observationSubmissionInformation(submissions,observationId,entityId) {
     };
 }
 
+  /**
+   * list of submissions.
+   * @method
+   * @name _v2Submissions
+   * @param {Array} submissions - list of submissions.
+   * @returns {Array} - submissions data.
+   */
+
+  function _v2Submissions(submissions) {
+
+    let submissionData = {};
+
+    submissions.forEach(submission=>{
+        
+        if ( !submissionData[submission.solutionId.toString()] ) {
+            submissionData[submission.solutionId.toString()] =  {};
+        }
+
+        if( !submissionData[submission.solutionId.toString()][submission.entityId.toString()] ) {
+            submissionData[submission.solutionId.toString()][submission.entityId.toString()] = {};
+            submissionData[submission.solutionId.toString()][submission.entityId.toString()]["submissions"] = [];
+        }
+            
+        submissionData[submission.solutionId.toString()][submission.entityId.toString()]["submissions"].push(
+            {
+                submissionNumber : submission.submissionNumber,
+                title : submission.title,
+                submissionId : submission._id,
+                submissionStatus : submission.status,
+                createdAt : submission.createdAt,
+                updatedAt : submission.updatedAt,
+                submissionDate : 
+                submission.completedDate ? 
+                submission.completedDate : ""
+            }
+        );
+    })
+
+    return submissionData;
+}
+
+/**
+   * submissions information
+   * @method
+   * @name _submissionInformation
+   * @param {Array} submissions - list of submissions.
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @returns {Array} - submissions data.
+   */
+
+function _submissionInformation(submissions,solutionId,entityId) {
+    return {
+        totalSubmissionCount : 
+        submissions[solutionId] && submissions[solutionId][entityId] && submissions[solutionId][entityId].submissions.length > 0 ? 
+        submissions[solutionId][entityId].submissions.length  : 
+        0,
+
+        submissions : 
+        submissions[solutionId] && submissions[solutionId][entityId] && submissions[solutionId][entityId].submissions.length > 0 ? 
+        submissions[solutionId][entityId].submissions.slice(0,10) : 
+        []
+
+    };
+}
+
  /**
    * program information
    * @method
@@ -731,6 +831,7 @@ function _observationInformation(program,observation,solution) {
    * @param {String} solutionOrObservationId - solution or observation id.
    * @param {Object} submissions - submissions data.
    * @param {Object} [observation = false] - either observation submissions or submissions.
+   * @param {Object} version - api version 
    * @returns {Array} - Entities data
    */
 
@@ -739,7 +840,8 @@ function _entities(
     entitiesData,
     solutionOrObservationId,
     submissions,
-    observation = false
+    observation = false,
+    version
 ) {
 
     let result = [];
@@ -773,11 +875,22 @@ function _entities(
                         );
         
                     } else {
-        
-                        submission = 
-                        submissions[solutionOrObservationId.toString()] && submissions[solutionOrObservationId.toString()][entityId.toString()] ? 
-                        submissions[solutionOrObservationId.toString()][entityId.toString()] : 
-                        _submissionNotStarted()
+
+                        if( version === messageConstants.common.VERSION_2 ) {
+
+                            submission =
+                            _submissionInformation(
+                                submissions,
+                                solutionOrObservationId,
+                                entityId
+                            );
+
+                        } else {
+                            submission = 
+                            submissions[solutionOrObservationId.toString()] && submissions[solutionOrObservationId.toString()][entityId.toString()] ? 
+                            submissions[solutionOrObservationId.toString()][entityId.toString()] : 
+                            _submissionNotStarted()
+                        }
                     }
         
                     entityObj = {

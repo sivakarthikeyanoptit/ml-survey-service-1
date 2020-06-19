@@ -19,14 +19,14 @@ module.exports = class Assessments {
     }
 
     /**
-    * @api {get} /assessment/api/v2/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
+    * @api {get} /assessment/api/v2/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId}&submissionNumber=submissionNumber Detailed assessments
     * @apiVersion 2.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
     * @apiParam {String} entityId Entity ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v2/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
+    * @apiSampleRequest /assessment/api/v2/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7&submissionNumber=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -139,10 +139,10 @@ module.exports = class Assessments {
       * @param {String} req.params._id -program id.
       * @param {String} req.query.solutionId -solution id.
       * @param {String} req.query.entityId -entity id.
+      * @param {String} req.query.submissionNumber - submission number.
       * @param {String} req.userDetails.userId -logged in user id.
       * @returns {JSON}
    */
-
 
     async details(req) {
         return new Promise(async (resolve, reject) => {
@@ -159,6 +159,7 @@ module.exports = class Assessments {
                     status: "active",
                     components: { $in: [ObjectId(req.query.solutionId)] }
                 };
+
                 let programDocument = await database.models.programs.findOne(programQueryObject).lean();
 
 
@@ -422,10 +423,17 @@ module.exports = class Assessments {
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
 
+                let submissionNumber = 
+                req.query.submissionNumber ? parseInt(req.query.submissionNumber) : 1;
+
+                submissionDocument.submissionNumber = submissionNumber;
+
                 let submissionDoc = await submissionsHelper.findSubmissionByEntityProgram(
                     submissionDocument,
-                    req
+                    req.headers['user-agent'],
+                    req.userDetails.userId
                 );
+                
                 assessment.submissionId = submissionDoc.result._id;
 
                 if (isRequestForOncallOrOnField == "oncall" && submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {

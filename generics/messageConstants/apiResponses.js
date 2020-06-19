@@ -196,5 +196,8 @@ module.exports = {
 "INDIVIDUAL_SOLUTIONS_DETAILS" : "Successfully fetched individual solution details",
 "OBSERVATION_SOLUTIONS_LIST" : "Successfully fetched observations solutions list",
 "PRIVATE_PROGRAMS_LIST" : "List of private programs",
-"USER_PROGRAMS_FETCHED" : "Successfully fetched user programs"
+"USER_PROGRAMS_FETCHED" : "Successfully fetched user programs",
+"SUBMISSION_DELETED" : "Submission deleted successfully",
+"SUBMISSION_UPDATED" : "Submission updated successfully",
+"SUBMISSION_CREATED" : "Submission created successfully"
 }
