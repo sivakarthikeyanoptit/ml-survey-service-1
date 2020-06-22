@@ -52,6 +52,10 @@ module.exports = {
       default : false,
       type : Boolean
     },
-    assessmentMetaFormKey : String
+    assessmentMetaFormKey : String,
+    allowMultipleAssessemts : {
+      default : false,
+      type : Boolean
+    }
   }
 };
