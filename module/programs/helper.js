@@ -196,10 +196,10 @@ module.exports = class ProgramsHelper {
         },["name","externalId","description","_id"]);
 
         if( !programsData.length > 0 ) {
-          throw {
-            status : httpStatusCode.bad_request.status,
-            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
-          }
+          return resolve({
+            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND,
+            result : []
+          });
         }
 
         return resolve(programsData);

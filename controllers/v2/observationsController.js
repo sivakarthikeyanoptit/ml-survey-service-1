@@ -787,7 +787,7 @@ module.exports = class Observations extends v1Observation {
     }
 
     /**
-     * @api {post} /assessment/api/v2/observation/create/:SolutionId Create observation
+     * @api {post} /assessment/api/v2/observation/create?solutionId=:solutionId Create observation
      * @apiVersion 2.0.0
      * @apiName Create observation
      * @apiGroup Observations
@@ -796,13 +796,13 @@ module.exports = class Observations extends v1Observation {
      * "name" : "My Solution",
      * "description" : "My Solution Description",
      * "program" : {
-     * "id" : "",
+     * "_id" : "",
      * "name" : "My program"
      * },
      * "entities" : ["5bfe53ea1d0c350d61b78d0a"],
      * "status" : "Published" 
      * }
-     * @apiSampleRequest /assessment/api/v2/observation/create/5ed5ec4dd2afa80d0f616460
+     * @apiSampleRequest /assessment/api/v2/observation/create?solutionId=5ed5ec4dd2afa80d0f616460
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
@@ -840,7 +840,7 @@ module.exports = class Observations extends v1Observation {
 
             let solutionData = 
             await observationsHelper.createV2(
-              req.params._id,
+              req.query.solutionId,
               req.userDetails.userId,
               req.body,
               req.rspObj.userToken 

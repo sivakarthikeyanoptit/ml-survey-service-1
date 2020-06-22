@@ -6,10 +6,11 @@
  */
 
 // Dependencies. 
-const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+let entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 
 /**
     * AssessmentsHelper
@@ -508,14 +509,51 @@ module.exports = class AssessmentsHelper {
      * @method
      * @name create
      * @param {String} templateId - assessment template id. 
-     * @param {String} userId - Logged in user id.
+     * @param {String} userDetails - Logged in user id.
      * @param {Object} requestedData - request body data.
      * @returns {Object} - Create solution from assessment template. 
      */
 
-    static create( templateId,userId,requestedData ) {
+    static create( templateId,userDetails,requestedData ) {
         return new Promise(async (resolve, reject) => {
             try {
+
+              let solutionData = 
+              await solutionsHelper.solutionDocuments(
+                  {
+                      _id : templateId
+                  },[
+                      "subType",
+                      "entityType",
+                      "entityTypeId"
+                    ]
+              )
+
+              if( solutionData[0].subType === messageConstants.common.INDIVIDUAL ) {
+
+                    let entity = 
+                    await entitiesHelper.entityDocuments({
+                        "userId" :  userDetails.userId
+                    },["_id"])
+
+                    let entityId;
+
+                    if( !entity[0] ) {
+
+                        let individualEntity = 
+                        await entitiesHelper.createIndividualEntity(
+                            userDetails,
+                            solutionData[0].entityType,
+                            solutionData[0].entityTypeId
+                        );
+
+                        entityId = individualEntity._id;
+                    } else {
+                        entityId = entity[0]._id;
+                    }
+
+                    requestedData.entities = [entityId];
+              }
 
               let solutionInformation =  {
                 name : requestedData.name,
@@ -527,10 +565,19 @@ module.exports = class AssessmentsHelper {
               await solutionsHelper.createProgramAndSolutionFromTemplate(
                 templateId,
                 requestedData.program,
-                userId,
+                userDetails.userId,
                 solutionInformation,
                 true
               );
+
+              await entityAssessorsHelper.create(
+                  createdSolutionAndProgram.programId,
+                  createdSolutionAndProgram._id,
+                  createdSolutionAndProgram.entityType,
+                  createdSolutionAndProgram.entityTypeId,
+                  createdSolutionAndProgram.entities,
+                  userDetails
+              )
   
               return resolve({
                 message: messageConstants.apiResponses.CREATED_SOLUTION,
@@ -614,6 +661,7 @@ module.exports = class AssessmentsHelper {
                let result = {
                    name : solutionDetails.name,
                    creator : solutionDetails.creator ? solutionDetails.creator : "",
+                   entityType : solutionDetails.entityType,
                    description : solutionDetails.description,
                    ecmQuestions : ecmQuestions,
                    linkTitle : solutionDetails.linkTitle ? solutionDetails.linkTitle: "",

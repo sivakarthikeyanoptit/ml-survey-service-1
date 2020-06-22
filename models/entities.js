@@ -8,6 +8,7 @@ module.exports = {
       metaInformation : Object,
       updatedBy: String,
       createdBy: String,
-      childHierarchyPath : Array
+      childHierarchyPath : Array,
+      userId : String
     }
   };

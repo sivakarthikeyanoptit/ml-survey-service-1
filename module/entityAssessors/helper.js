@@ -113,140 +113,142 @@ module.exports = class EntityAssessorHelper {
      * @returns {Object} Uploaded entity assessor tracker data.
      */
 
-    static uploadEntityAssessorTracker(entityAssessor) {
-        return new Promise(async (resolve, reject) => {
-            try {
+    // <- Dirty fix. Not in use.
 
-                let entityAssessorsTrackersDocument = await database.models.entityAssessorsTrackers.find({ "assessorUserId": entityAssessor.assessorId, "programId": entityAssessor.programId }).sort({ "dateOfOperation": -1 }).limit(1).lean();
+    // static uploadEntityAssessorTracker(entityAssessor) {
+    //     return new Promise(async (resolve, reject) => {
+    //         try {
 
-                if (!entityAssessorsTrackersDocument.length) {
-                    return resolve();
-                }
+    //             let entityAssessorsTrackersDocument = await database.models.entityAssessorsTrackers.find({ "assessorUserId": entityAssessor.assessorId, "programId": entityAssessor.programId }).sort({ "dateOfOperation": -1 }).limit(1).lean();
 
-                let actions = ["APPEND", "OVERRIDE", "REMOVE"];
+    //             if (!entityAssessorsTrackersDocument.length) {
+    //                 return resolve();
+    //             }
 
-                if (entityAssessor.entities.length) {
-                    entityAssessor.entities = entityAssessor.entities.map(entity => entity.toString());
-                }
+    //             let actions = ["APPEND", "OVERRIDE", "REMOVE"];
 
-                let trackerObject = {};
+    //             if (entityAssessor.entities.length) {
+    //                 entityAssessor.entities = entityAssessor.entities.map(entity => entity.toString());
+    //             }
 
-                entityAssessorsTrackersDocument = entityAssessorsTrackersDocument[0];
+    //             let trackerObject = {};
 
-                let updatedData = entityAssessorsTrackersDocument.updatedData;
+    //             entityAssessorsTrackersDocument = entityAssessorsTrackersDocument[0];
 
-                if (actions.includes(entityAssessor.action)) {
+    //             let updatedData = entityAssessorsTrackersDocument.updatedData;
 
-                    trackerObject.action = entityAssessor.action;
+    //             if (actions.includes(entityAssessor.action)) {
 
-                    if (entityAssessor.action == "APPEND") {
+    //                 trackerObject.action = entityAssessor.action;
 
-                        entityAssessor.entities.forEach(entity => {
-                            if (!updatedData.includes(entity)) {
-                                updatedData.push(entity);
-                            }
-                        })
+    //                 if (entityAssessor.action == "APPEND") {
 
-                    } else if (entityAssessor.action == "OVERRIDE") {
+    //                     entityAssessor.entities.forEach(entity => {
+    //                         if (!updatedData.includes(entity)) {
+    //                             updatedData.push(entity);
+    //                         }
+    //                     })
 
-                        updatedData = entityAssessor.entities;
+    //                 } else if (entityAssessor.action == "OVERRIDE") {
 
-                    } else if (entityAssessor.action == "REMOVE") {
+    //                     updatedData = entityAssessor.entities;
 
-                        _.pullAll(updatedData, entityAssessor.entities);
+    //                 } else if (entityAssessor.action == "REMOVE") {
 
-                    }
+    //                     _.pullAll(updatedData, entityAssessor.entities);
 
-                } else {
+    //                 }
 
-                    throw { 
-                        status: httpStatusCode.bad_request.status, 
-                        message: messageConstants.apiResponses.WRONG_ACTION
-                    };
+    //             } else {
 
-                }
+    //                 throw { 
+    //                     status: httpStatusCode.bad_request.status, 
+    //                     message: messageConstants.apiResponses.WRONG_ACTION
+    //                 };
 
-                trackerObject.updatedData = updatedData;
+    //             }
 
-                trackerObject.actionObject = entityAssessor.entities;
+    //             trackerObject.updatedData = updatedData;
 
-                trackerObject.assessorId = entityAssessorsTrackersDocument.assessorId;
+    //             trackerObject.actionObject = entityAssessor.entities;
 
-                trackerObject.programId = entityAssessor.programId;
+    //             trackerObject.assessorId = entityAssessorsTrackersDocument.assessorId;
 
-                trackerObject.solutionId = entityAssessor.solutionId;
+    //             trackerObject.programId = entityAssessor.programId;
 
-                trackerObject.entityType = entityAssessor.entityType;
+    //             trackerObject.solutionId = entityAssessor.solutionId;
 
-                trackerObject.entityTypeId = entityAssessor.entityTypeId;
+    //             trackerObject.entityType = entityAssessor.entityType;
 
-                trackerObject.dateOfOperation = new Date;
+    //             trackerObject.entityTypeId = entityAssessor.entityTypeId;
 
-                trackerObject.validFrom = moment().startOf('day');
+    //             trackerObject.dateOfOperation = new Date;
 
-                //hard coded long range value to reduce query
+    //             trackerObject.validFrom = moment().startOf('day');
 
-                let date = new Date();
+    //             //hard coded long range value to reduce query
 
-                trackerObject.validTo = date.setFullYear(2100);
+    //             let date = new Date();
 
-                trackerObject.createdBy = entityAssessor.assessorId;
+    //             trackerObject.validTo = date.setFullYear(2100);
 
-                let queryObject = {};
+    //             trackerObject.createdBy = entityAssessor.assessorId;
 
-                queryObject.assessorId = entityAssessorsTrackersDocument.assessorId;
+    //             let queryObject = {};
 
-                queryObject.programId = entityAssessor.programId;
+    //             queryObject.assessorId = entityAssessorsTrackersDocument.assessorId;
 
-                queryObject.dateOfOperation = {};
+    //             queryObject.programId = entityAssessor.programId;
 
-                queryObject.dateOfOperation["$gte"] = moment().startOf('day');
+    //             queryObject.dateOfOperation = {};
 
-                queryObject.dateOfOperation["$lte"] = moment().endOf('day');
+    //             queryObject.dateOfOperation["$gte"] = moment().startOf('day');
 
-                let trackerDocument = await database.models.entityAssessorsTrackers.findOneAndUpdate(queryObject, trackerObject, {
-                    upsert: true,
-                    new: true,
-                    setDefaultsOnInsert: true,
-                    returnNewDocument: true
-                });
+    //             queryObject.dateOfOperation["$lte"] = moment().endOf('day');
 
-                let lastDataDate = moment(entityAssessorsTrackersDocument.dateOfOperation).format("DD-MM-YYYY");
-                let todayDate = moment().format("DD-MM-YYYY");
+    //             let trackerDocument = await database.models.entityAssessorsTrackers.findOneAndUpdate(queryObject, trackerObject, {
+    //                 upsert: true,
+    //                 new: true,
+    //                 setDefaultsOnInsert: true,
+    //                 returnNewDocument: true
+    //             });
 
-                if (lastDataDate != todayDate) {
+    //             let lastDataDate = moment(entityAssessorsTrackersDocument.dateOfOperation).format("DD-MM-YYYY");
+    //             let todayDate = moment().format("DD-MM-YYYY");
 
-                    let queryObject = {
-                        assessorId: entityAssessorsTrackersDocument.assessorId,
-                        programId: entityAssessorsTrackersDocument.programId,
-                        dateOfOperation: entityAssessorsTrackersDocument.dateOfOperation
-                    };
+    //             if (lastDataDate != todayDate) {
 
-                    entityAssessorsTrackersDocument.validTo = moment().endOf('day').subtract(1, 'days');
+    //                 let queryObject = {
+    //                     assessorId: entityAssessorsTrackersDocument.assessorId,
+    //                     programId: entityAssessorsTrackersDocument.programId,
+    //                     dateOfOperation: entityAssessorsTrackersDocument.dateOfOperation
+    //                 };
 
-                    delete entityAssessorsTrackersDocument.createdAt;
-                    delete entityAssessorsTrackersDocument._id;
+    //                 entityAssessorsTrackersDocument.validTo = moment().endOf('day').subtract(1, 'days');
 
-                    await database.models.entityAssessorsTrackers.findOneAndUpdate(queryObject, entityAssessorsTrackersDocument, {
-                        upsert: true,
-                        new: true,
-                        setDefaultsOnInsert: true,
-                        returnNewDocument: true
-                    });
+    //                 delete entityAssessorsTrackersDocument.createdAt;
+    //                 delete entityAssessorsTrackersDocument._id;
 
-                }
+    //                 await database.models.entityAssessorsTrackers.findOneAndUpdate(queryObject, entityAssessorsTrackersDocument, {
+    //                     upsert: true,
+    //                     new: true,
+    //                     setDefaultsOnInsert: true,
+    //                     returnNewDocument: true
+    //                 });
 
-                return resolve({ result: trackerDocument });
+    //             }
 
-            } catch (error) {
-                return reject({
-                    status: error.status || httpStatusCode.internal_server_error.status,
-                    message: error.message || httpStatusCode.internal_server_error.message,
-                    errorObject: error
-                });
-            }
-        })
-    }
+    //             return resolve({ result: trackerDocument });
+
+    //         } catch (error) {
+    //             return reject({
+    //                 status: error.status || httpStatusCode.internal_server_error.status,
+    //                 message: error.message || httpStatusCode.internal_server_error.message,
+    //                 errorObject: error
+    //             });
+    //         }
+    //     })
+    // }
 
     /**
      * Entity Assessors upload helper function.
@@ -436,26 +438,27 @@ module.exports = class EntityAssessorHelper {
                         updateObject = { $pull: { entities: { $in: assessor.entities } }, $set: fieldsWithOutEntity };
                     }
 
-                    let updatedEntityAssessorDocument = await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutEntity["solutionId"] }, updateObject,
+                    await database.models.entityAssessors.findOneAndUpdate({ userId: assessor.userId, programId: assessor.programId, solutionId: fieldsWithOutEntity["solutionId"] }, updateObject,
                         {
                             upsert: true,
                             new: true,
                             setDefaultsOnInsert: true,
                             returnNewDocument: true
                         });
+                    
+                    // <- Dirty fix. Entity assessor tracker not required at the moment.
 
-                    //entity assessor tracker
-                    let entityAssessorDocument = {
-                        "action": assessor.entityOperation,
-                        "entities": updatedEntityAssessorDocument.entities,
-                        "assessorId": assessor.userId,
-                        "programId": assessor.programId,
-                        "solutionId": assessor.solutionId,
-                        "entityType": assessor.entityType,
-                        "entityTypeId": assessor.entityTypeId,
-                    };
+                    // let entityAssessorDocument = {
+                    //     "action": assessor.entityOperation,
+                    //     "entities": updatedEntityAssessorDocument.entities,
+                    //     "assessorId": assessor.userId,
+                    //     "programId": assessor.programId,
+                    //     "solutionId": assessor.solutionId,
+                    //     "entityType": assessor.entityType,
+                    //     "entityTypeId": assessor.entityTypeId,
+                    // };
 
-                    await this.uploadEntityAssessorTracker(entityAssessorDocument);
+                    // await this.uploadEntityAssessorTracker(entityAssessorDocument);
 
                     if (sendPushNotificationToAssessor && assessorPushNotificationArray.length > 0) {
                         await this.sendUserNotifications(assessor.userId, assessorPushNotificationArray);
@@ -568,10 +571,12 @@ module.exports = class EntityAssessorHelper {
                             }
                         };
                         slackClient.kafkaErrorAlert(errorObject);
-                        return;
+                        return resolve({
+                            success : false
+                        });
                     }
 
-                    return kafkaMessage;
+                    return resolve(kafkaMessage);
 
                 }));
 
@@ -824,6 +829,47 @@ module.exports = class EntityAssessorHelper {
                 }
 
                 return resolve(completedAssessmentsData);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Create entity assessor data.
+     * @method
+     * @name create
+     * @param {String} programId - program id.
+     * @param {String} solutionId - solution id.
+     * @param {String} entityType - entity type.
+     * @param {String} entityTypeId - entity type id.
+     * @param {Array}  entities - entities 
+     * @param {Object} userDetails - logged in user details. 
+     * @returns {Object} created Entity assessor data.
+     */
+
+    static create(programId,solutionId,entityType,entityTypeId, entities, userDetails) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let createdAssessor = 
+                await database.models.entityAssessors.create({
+                    userId : userDetails.userId,
+                    email : userDetails.email,
+                    name : userDetails.name,
+                    externalId : userDetails.externalId,
+                    programId : programId,
+                    solutionId : solutionId,
+                    entityTypeId : entityTypeId,
+                    entityType : entityType,
+                    role : messageConstants.common.LEAD_ASSESSOR,
+                    createdBy : userDetails.userId,
+                    updatedBy : userDetails.userId,
+                    entities : entities
+                });
+
+                return resolve(createdAssessor);
 
             } catch (error) {
                 return reject(error);
