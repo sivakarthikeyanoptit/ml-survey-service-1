@@ -147,10 +147,10 @@ module.exports = class SubmissionsHelper {
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
                 } else {
 
-                    let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+                    let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === userId)
                     if (assessorElement && assessorElement.externalId != "") {
                         assessorElement.assessmentStatus = "started";
-                        assessorElement.userAgent = requestObject.headers['user-agent'];
+                        assessorElement.userAgent = userAgent;
                         let updateObject = {};
                         updateObject.$set = {
                             assessors: submissionDocument[0].assessors
