@@ -480,7 +480,7 @@ module.exports = class UserHelper {
                                             submission = 
                                             submissions[solution._id.toString()] && submissions[solution._id.toString()][entity.toString()] ? 
                                             submissions[solution._id.toString()][entity.toString()] : 
-                                            submissionNotStarted();
+                                            _submissionNotStarted();
                                         }
                                     }
 
