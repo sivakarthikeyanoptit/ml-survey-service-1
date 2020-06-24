@@ -1,4 +1,5 @@
-let improvementProjectService = require(ROOT_PATH+"/generics/services/improvement-project")
+let improvementProjectService = require(ROOT_PATH+"/generics/services/improvement-project");
+let criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 module.exports = class criteriaHelper {
 
@@ -58,6 +59,10 @@ module.exports = class criteriaHelper {
                         rubric: rubric,
                         criteriaType : "auto"
                     }
+                );
+
+                await criteriaQuestionsHelper.createOrUpdate(
+                  criteriaId
                 );
 
                 return resolve({
@@ -286,6 +291,10 @@ module.exports = class criteriaHelper {
               }
             )
 
+            await criteriaQuestionsHelper.createOrUpdate(
+              parsedCriteria._SYSTEM_ID
+            );
+
           } else {
             
             criteriaStructure["resourceType"] = [
@@ -379,6 +388,66 @@ module.exports = class criteriaHelper {
         }))
 
         return resolve(result);
+        
+      } catch (error) {
+        return reject(error)
+      }
+    })
+   }
+
+    /**
+    * Update criteria
+    * @method
+    * @name update
+    * @param {String} criteriaExternalId - criteria external id.
+    * @param {String} frameworkIdExists - Either it is a framework id or not.
+    * @param {Object} bodyData - Criteria data to be updated.
+    * @param {String} userId - Logged in user id.
+    * @returns {Array} - returns updated criteria.
+    */
+
+   static update(
+     criteriaExternalId,
+     frameworkIdExists,
+     bodyData,
+     userId
+    ) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let queryObject = {
+          externalId : criteriaExternalId
+        }
+
+        if( frameworkIdExists ) {
+          queryObject["frameworkCriteriaId"] = {
+            $exists : true
+          }
+        };
+
+        let updateObject = {
+          "$set" : {}
+        };
+
+        Object.keys(bodyData).forEach(criteriaData=>{
+          updateObject["$set"][criteriaData] = bodyData[criteriaData];
+        })
+
+        updateObject["$set"]["updatedBy"] = userId;
+
+        let updatedCriteria = 
+        await database.models.criteria.findOneAndUpdate(queryObject, updateObject);
+
+        if( frameworkIdExists ) {
+          await criteriaQuestionsHelper.createOrUpdate(
+            updatedCriteria._id
+          );
+        }
+        
+        return resolve({
+          status: httpStatusCode.ok.status,
+          message: messageConstants.apiResponses.CRITERIA_UPDATED
+        });
         
       } catch (error) {
         return reject(error)

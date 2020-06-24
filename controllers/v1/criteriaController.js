@@ -127,12 +127,22 @@ module.exports = class Criteria extends Abstract {
   }
 
     /**
-   * @api {post} /assessment/api/v1/criteria/update Create Questions 
+   * @api {post} /assessment/api/v1/criteria/update?externalId=:criteriaExternalId&frameworkIdExists=:FrameworkIdExists Create Questions 
    * @apiVersion 1.0.0
    * @apiName Update criteria
    * @apiGroup Criteria
+   * @apiSampleRequest /assessment/api/v1/criteria/update?externalId=SS/I/a2&frameworkIdExists=true
    * @apiUse successBody
    * @apiUse errorBody
+   * @apiParamExample {json} Request-Body:
+   * {
+   * "name" : "Construction,Potholes and Electricity "
+   * }
+   * @apiParamExample {json} Response:
+   * {
+    "message": "Criteria updated successfully",
+    "status": 200
+    }
    */
 
   /**
@@ -140,6 +150,8 @@ module.exports = class Criteria extends Abstract {
    * @method
    * @name create
    * @param {Object} req - requested data.
+   * @param {Object} req.query.externalId - criteria id.
+   * @param {Object} req.query.frameworkIdExists - framework criteria or not.
    * @param {Object} req.body - requested criteria update data. 
    * @returns {Object} 
    */
@@ -148,34 +160,15 @@ module.exports = class Criteria extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let queryObject = {
-          externalId: req.query.externalId
-        }
-
-        if(req.query.frameworkIdExists) {
-          queryObject["frameworkCriteriaId"] = {
-            $exists : true
-          }
-        };
-
-        let updateObject = {
-          "$set" : {}
-        };
-
-        let criteriaUpdateData = req.body;
-
-        Object.keys(criteriaUpdateData).forEach(criteriaData=>{
-          updateObject["$set"][criteriaData] = criteriaUpdateData[criteriaData];
-        })
-
-        updateObject["$set"]["updatedBy"] = req.userDetails.id;
-
-        await database.models.criteria.findOneAndUpdate(queryObject, updateObject)
-
-        return resolve({
-          status: httpStatusCode.ok.status,
-          message: messageConstants.apiResponses.CRITERIA_UPDATED
-        });
+          let criteriaData = 
+          await criteriaHelper.update(
+            req.query.externalId,
+            req.query.frameworkIdExists ? Boolean(req.query.frameworkIdExists) : false,
+            req.body,
+            req.userDetails.id
+          );
+          
+          return resolve(criteriaData);
       }
       catch (error) {
         reject({
