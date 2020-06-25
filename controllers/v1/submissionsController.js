@@ -2269,6 +2269,7 @@ module.exports = class Submission extends Abstract {
               "name",
               "description",
               "externalId",
+              "score",
               "improvement-projects"
             ]))
           }
