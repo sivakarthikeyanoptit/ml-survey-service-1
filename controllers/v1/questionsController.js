@@ -9,6 +9,7 @@
 const csv = require("csvtojson");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
     * Questions
@@ -59,14 +60,14 @@ module.exports = class Questions extends Abstract {
 
 
   /**
-   * Bulk create questions.
-   * @method
-   * @name bulkCreate
-   * @param {Object} req - requested data.
-   * @param {Object} req.files.questions - questions csv data. 
-   * @returns {CSV} - Same existing csv with extra field _SYSTEM_ID to indicate 
-   * whether the question is created or not . If created question id will be provided. 
-   */
+  * @api {post} /assessment/api/v1/questions/bulkCreate Upload questions CSV
+  * @apiVersion 1.0.0
+  * @apiName Upload questions via csv.
+  * @apiGroup Questions
+  * @apiParam {File} questions Mandatory questions file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
 
   /**
    * Bulk create questions.
@@ -615,6 +616,11 @@ module.exports = class Questions extends Abstract {
             await database.models.criteria.findOneAndUpdate(
               queryCriteriaObject,
               updateCriteriaObject
+            );
+
+            await criteriaQuestionsHelper.createOrUpdate(
+              criteriaToUpdate._id,
+              true
             );
 
             parsedQuestion["_setQuestionInCriteria"] = true;

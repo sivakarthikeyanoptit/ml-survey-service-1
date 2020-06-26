@@ -891,4 +891,50 @@ module.exports = class SubmissionsHelper {
     }
 
 
+    /**
+   * Return criteria from submissions.
+   * @method
+   * @name getCriteria
+   * @param {String} submissionId - submission id.
+   * @returns {JSON} consists of criteria of submission
+   */
+
+    static getCriteria(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
+                }
+
+                if(typeof submissionId == "string") {
+                    submissionId = ObjectId(submissionId);
+                }
+
+                let submissionsDocument = await database.models.submissions.findOne({
+                    _id: submissionId
+                },{
+                    criteria : 1
+                }).lean();
+
+                if (!submissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
+                }
+
+                return resolve({
+                    success : true,
+                    message : "Submission criteria fetched successfully.",
+                    data : submissionsDocument.criteria
+                });
+
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message
+                });
+            }
+        })
+    }
+
+
 };
