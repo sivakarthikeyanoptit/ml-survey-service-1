@@ -6,6 +6,7 @@
  */
 
 // Dependencies
+let criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
     * Questions
@@ -340,6 +341,11 @@ module.exports = class QuestionsHelper {
               updateCriteriaObject
             );
 
+            await criteriaQuestionsHelper.createOrUpdate(
+              newCriteria._id,
+              true
+            );
+
           }
 
         }
@@ -593,7 +599,6 @@ module.exports = class QuestionsHelper {
 
           }
 
-
           if (parsedQuestion["_instanceParentQuestionId"] != "" && parsedQuestion["responseType"] != "matrix") {
 
             await database.models.questions.findOneAndUpdate(
@@ -662,6 +667,11 @@ module.exports = class QuestionsHelper {
             );
 
           }
+
+          await criteriaQuestionsHelper.createOrUpdate(
+            parsedQuestion["_criteriaInternalId"],
+            true
+          );
 
         }
 
