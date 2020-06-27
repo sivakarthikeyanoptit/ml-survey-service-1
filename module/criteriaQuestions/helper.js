@@ -170,107 +170,123 @@ module.exports = class CriteriaQuestionsHelper {
 
 };
 
+/**
+   * Create Or update criteria Questions.
+   * @method
+   * @name singleCriteriaCreateOrUpdate
+   * @param {String} criteriaId - criteria id.
+   * @param {String} updateQuestion - update question or criteria.
+   * @returns {JSON} success true or false
+   */
 
-    /**
-     * Create Or update criteria Questions.
-     * @method
-     * @name singleCriteriaCreateOrUpdate
-     * @param {String} criteriaId - criteria id.
-     * @param {String} updateQuestion - update question or criteria.
-     * @returns {JSON} success true or false
-     */
+  function singleCriteriaCreateOrUpdate(criteriaId,updateQuestion) {
+    return new Promise(async function (resolve, reject) {
+        try {
 
-    function singleCriteriaCreateOrUpdate(criteriaId,updateQuestion) {
-        return new Promise(async function (resolve, reject) {
-            try {
+            let criteriaModel = 
+            Object.keys(criteriaSchema.schema);
 
-                let criteriaModel = 
-                Object.keys(criteriaSchema.schema);
-
-                let findQuery = {
-                    "$match" : {
-                        "_id" : ObjectId(criteriaId),
-                        "frameworkCriteriaId" : { $exists : true }
-                    }
-                };
-
-                let unwindEvidences = {
-                    "$unwind": "$evidences"
-                };
-
-                let unwindSections = {
-                    "$unwind": "$evidences.sections"
-                };
-
-                let lookupQuestions = {
-                    "$lookup": {
-                        "from": "questions",
-                        "localField": "evidences.sections.questions",
-                        "foreignField": "_id",
-                        "as": "evidences.sections.questions"
-                    }
-                };
-
-                let addCriteriaIdInQuestion = {
-                    "$addFields": {
-                        "evidences.sections.questions.criteriaId": "$_id"
-                    }
-                };
-
-                let groupData =  {
-                    "$group": {
-                        "_id" : "$_id"
-                    }
-                };
-
-                criteriaModel.forEach(criteria=>{
-                    if( ["evidences"].indexOf(criteria) == -1 ) {
-                        groupData["$group"][criteria] = {
-                            "$first" : `$${criteria}`
-                        }
-                    }
-                });
-
-                if( updateQuestion ) {
-                    groupData["$group"]["evidences"] = {};
-                    groupData["$group"]["evidences"]["$push"] = {};
-                    groupData["$group"]["evidences"]["$push"]["code"] = "$evidences.code";
-                    groupData["$group"]["evidences"]["$push"]["sections"] =  {};
-                    groupData["$group"]["evidences"]["$push"]["sections"] = "$evidences.sections";
+            let findQuery = {
+                "$match" : {
+                    "_id" : ObjectId(criteriaId),
+                    "frameworkCriteriaId" : { $exists : true }
                 }
+            };
 
-                let criteriaData = 
-                await database.models.criteria.aggregate([
-                    findQuery,
-                    unwindEvidences,
-                    unwindSections,
-                    lookupQuestions,
-                    addCriteriaIdInQuestion,
-                    groupData
-                ]);
+            let unwindEvidences = {
+                "$unwind": "$evidences"
+            };
 
-                if ( !criteriaData[0] ) {
-                    return resolve({
-                        success : false
-                    })
+            let unwindSections = {
+                "$unwind": "$evidences.sections"
+            };
+
+            let lookupQuestions = {
+                "$lookup": {
+                    "from": "questions",
+                    "localField": "evidences.sections.questions",
+                    "foreignField": "_id",
+                    "as": "evidences.sections.questions"
                 }
+            };
 
-                await database.models.criteriaQuestions.findOneAndUpdate(
-                    {
-                        _id : criteriaId
-                    },{
-                        $set : criteriaData[0]
-                    },{
-                        upsert: true
+            let addCriteriaIdInQuestion = {
+                "$addFields": {
+                    "evidences.sections.questions.criteriaId": "$_id"
+                }
+            };
+
+            let groupData1 =  {
+                "$group": {
+                    "_id": {
+                        "_id": "$_id",
+                        "evidences_code": "$evidences.code"
                     }
-                );
+                }
+            };
 
-                return resolve({
-                    success : true
-                });
+            criteriaModel.forEach(criteria=>{
+                if( ["evidences"].indexOf(criteria) == -1 ) {
+                    groupData1["$group"][criteria] = {
+                        "$first" : `$${criteria}`
+                    }
+                }
+            });
 
-            } catch(error) {
-                return reject(error);
+            let groupData2 = _.cloneDeep(groupData1);
+            groupData2["$group"]["_id"] = "$_id._id";
+
+            if( updateQuestion ) {
+
+                groupData1["$group"]["evidenceCode"] = {
+                    "$first": "$evidences.code"
+                };
+
+                groupData1["$group"]["sections"] =  {
+                    "$push": "$evidences.sections"
+                };
+                
+                groupData2["$group"]["evidences"] = {
+                    "$push": {
+                        "code" : "$evidenceCode",
+                        "sections" : "$sections"
+                    }
+                };
             }
-        })
-    }
+
+            let criteriaData = 
+            await database.models.criteria.aggregate([
+                findQuery,
+                unwindEvidences,
+                unwindSections,
+                lookupQuestions,
+                addCriteriaIdInQuestion,
+                groupData1,
+                groupData2
+            ]);
+
+            if ( !criteriaData[0] ) {
+                return resolve({
+                    success : false
+                })
+            }
+
+            await database.models.criteriaQuestions.findOneAndUpdate(
+                {
+                    _id : criteriaId
+                },{
+                    $set : criteriaData[0]
+                },{
+                    upsert: true
+                }
+            );
+
+            return resolve({
+                success : true
+            });
+        
+        } catch(error) {
+            return reject(error);
+        }
+    })
+  }
