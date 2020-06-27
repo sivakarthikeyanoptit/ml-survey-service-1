@@ -114,26 +114,42 @@ module.exports = class CriteriaQuestionsHelper {
                 }
             };
 
-            let groupData =  {
+            let groupData1 =  {
                 "$group": {
-                    "_id" : "$_id"
+                    "_id": {
+                        "_id": "$_id",
+                        "evidences_code": "$evidences.code"
+                    }
                 }
             };
 
             criteriaModel.forEach(criteria=>{
                 if( ["evidences"].indexOf(criteria) == -1 ) {
-                    groupData["$group"][criteria] = {
+                    groupData1["$group"][criteria] = {
                         "$first" : `$${criteria}`
                     }
                 }
             });
 
+            let groupData2 = _.cloneDeep(groupData1);
+            groupData2["$group"]["_id"] = "$_id._id";
+
             if( updateQuestion ) {
-                groupData["$group"]["evidences"] = {};
-                groupData["$group"]["evidences"]["$push"] = {};
-                groupData["$group"]["evidences"]["$push"]["code"] = "$evidences.code";
-                groupData["$group"]["evidences"]["$push"]["sections"] =  {};
-                groupData["$group"]["evidences"]["$push"]["sections"] = "$evidences.sections";
+
+                groupData1["$group"]["evidenceCode"] = {
+                    "$first": "$evidences.code"
+                };
+
+                groupData1["$group"]["sections"] =  {
+                    "$push": "$evidences.sections"
+                };
+                
+                groupData2["$group"]["evidences"] = {
+                    "$push": {
+                        "code" : "$evidenceCode",
+                        "sections" : "$sections"
+                    }
+                };
             }
 
             let criteriaData = 
@@ -143,7 +159,8 @@ module.exports = class CriteriaQuestionsHelper {
                 unwindSections,
                 lookupQuestions,
                 addCriteriaIdInQuestion,
-                groupData
+                groupData1,
+                groupData2
             ]);
 
             if ( !criteriaData[0] ) {
