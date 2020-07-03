@@ -822,94 +822,7 @@ module.exports = class UserExtensionHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-            let userEntities = 
-            await this.getUserEntities(userData.userId);
-
-            let entities = [];
-            let telemetryEntities = [];
-
-            if( userEntities.length > 0 ) {
-            
-                let entityDocuments = 
-                await entitiesHelper.entityDocuments({
-                    _id : { $in : userEntities }
-                },[
-                    "metaInformation.externalId",
-                    "metaInformation.name",
-                    "entityType",
-                    "entityTypeId",
-                    "_id"
-                ]);
-
-                if( entityDocuments.length > 0 ) {
-                    
-                    for( 
-                        let entity = 0;
-                        entity < entityDocuments.length ; 
-                        entity++
-                    ) {
-
-                        let singleEntity = entityDocuments[entity];
-
-                        let entityObj = {
-                            name : singleEntity.metaInformation.name,
-                            externalId : singleEntity.metaInformation.externalId,
-                            entityType : singleEntity.entityType,
-                            entityTypeId : singleEntity.entityTypeId,
-                            _id : singleEntity._id
-                        };
-
-                        let telemetryObj = {
-                            [`${entityObj.entityType}_name`] : entityObj.name,
-                            [`${entityObj.entityType}_id`] : entityObj._id,
-                            [`${entityObj.entityType}_externalId`] : entityObj.externalId
-                        };
-
-                        let relatedEntities = 
-                        await entitiesHelper.relatedEntities(
-                            entityObj._id,
-                            entityObj.entityTypeId,
-                            entityObj.entityType,
-                            [
-                                "metaInformation.externalId",
-                                "metaInformation.name",
-                                "entityType",
-                                "entityTypeId",
-                                "_id"
-                            ]
-                        );
-
-                        if( relatedEntities.length > 0 ) {
-                            entityObj["relatedEntities"] = 
-                            relatedEntities.map(
-                                entity => {
-                                    telemetryObj[`${entity.entityType}_name`] = 
-                                    entity.metaInformation.name;
-                
-                                    telemetryObj[`${entity.entityType}_id`] = 
-                                    entity._id;
-                
-                                    telemetryObj[`${entity.entityType}_externalId`] = 
-                                    entity.metaInformation.externalId;
-                
-                                    return {
-                                      name : entity.metaInformation.name,
-                                      externalId : entity.metaInformation.externalId,
-                                      entityType : entity.entityType,
-                                      entityTypeId : entity.entityTypeId,
-                                      _id : entity._id
-                                    }
-                                }
-                            ) 
-                        }
-
-                        telemetryEntities.push(telemetryObj);
-                        entities.push(entityObj)
-                    }
-                }
-            }
-            
-            let userInformation = _.pick(userData,[
+         let userInformation = _.pick(userData,[
                 "_id",
                 "status", 
                 "isDeleted",
@@ -923,9 +836,7 @@ module.exports = class UserExtensionHelper {
                 "createdAt"
             ]);
 
-            userInformation["entities"] = entities;
-            userInformation["telemetry_entities"] = telemetryEntities;
-
+           
             await elasticSearchData.createOrUpdate(
                 userData.userId,
                 process.env.ELASTICSEARCH_USER_EXTENSION_INDEX,
