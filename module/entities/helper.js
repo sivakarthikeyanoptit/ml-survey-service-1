@@ -7,6 +7,7 @@
 
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
  /**
     * EntitiesHelper
@@ -53,15 +54,20 @@ module.exports = class EntitiesHelper {
                 let entityData = await database.models.entities.create(
                     entityDocuments
                 );
+                
+                let entities = [];
 
                 //update entity id in parent entity
                 for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
                     await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(), queryParams.programId);
+                    entities.push(entityData[eachEntityData]._id);
                 }
 
                 if (entityData.length != data.length) {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
+               
+                await this.pushEntitiesToElasticSearch(entities);
 
                 return resolve(entityData);
 
@@ -546,6 +552,8 @@ module.exports = class EntitiesHelper {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id);
                         }
 
+                        await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
+
                         return singleEntity;
                     })
                 )
@@ -622,6 +630,8 @@ module.exports = class EntitiesHelper {
                     } else {
                         singleEntity["UPDATE_STATUS"] = "No information to update.";
                     }
+                    
+                    await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
 
                     return singleEntity;
 
@@ -651,6 +661,7 @@ module.exports = class EntitiesHelper {
     static processEntityMappingUploadData(mappingData = []) {
         return new Promise(async (resolve, reject) => {
             try {
+                let entities = [];
 
                 if(mappingData.length < 1) {
                     throw new Error(messageConstants.apiResponses.INVALID_MAPPING_DATA);
@@ -665,6 +676,7 @@ module.exports = class EntitiesHelper {
                 for (let indexToEntityMapData = 0; indexToEntityMapData < mappingData.length; indexToEntityMapData++) {
                   if (mappingData[indexToEntityMapData].parentEntiyId != "" && mappingData[indexToEntityMapData].childEntityId != "") {
                     await this.addSubEntityToParent(mappingData[indexToEntityMapData].parentEntiyId, mappingData[indexToEntityMapData].childEntityId);
+                    entities.push(mappingData[indexToEntityMapData].childEntityId);
                   }
                 }
 
@@ -686,6 +698,8 @@ module.exports = class EntitiesHelper {
 
                     }))
                 }
+
+                await this.pushEntitiesToElasticSearch(entities);
 
                 this.entityMapProcessData = {};
                 
@@ -1187,7 +1201,124 @@ module.exports = class EntitiesHelper {
         }
     }
 
+     /**
+   * Push entities to elastic search
+   * @method
+   * @name pushEntitiesToElasticSearch
+   * @name entities - array of entity Id.
+   * @returns {Object} 
+   */
+
+    static pushEntitiesToElasticSearch(entities = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (entities.length > 0) {
+
+                    let entityDocuments = await this.entityDocuments({
+                        _id: {
+                            $in: entities
+                        }
+                    }, [
+                            "_id",
+                            "metaInformation",
+                            "entityType",
+                            "entityTypeId",
+                            "updatedAt",
+                            "createdAt",
+                        ]);
+
+                    for (entity = 0; entity < entityDocuments.length; entity++) {
+
+                        let entityDocument = entityDocuments[entity];
+
+                        let telemetryEntities = [];
+
+                        let entityObj = {
+                            _id: entityDocument._id,
+                            entityType: entityDocument.entityType,
+                            entityTypeId: entityDocument.entityTypeId,
+                            updatedAt: entityDocument.updatedAt,
+                            createdAt: entityDocument.createdAt
+                        }
+
+                        for (let metaData in entityDocument.metaInformation) {
+                            entityObj[metaData] = entityDocument.metaInformation[metaData];
+                        }
+
+                        let telemetryObj = {
+                            [`${entityObj.entityType}_name`]: entityObj.name,
+                            [`${entityObj.entityType}_id`]: entityObj._id,
+                            [`${entityObj.entityType}_externalId`]: entityObj.externalId
+                        };
+
+                        let relatedEntities = await this.relatedEntities(
+                            entityObj._id,
+                            entityObj.entityTypeId,
+                            entityObj.entityType,
+                            [
+                                "metaInformation.externalId",
+                                "metaInformation.name",
+                                "entityType",
+                                "entityTypeId",
+                                "_id"
+                            ])
+
+                        if (relatedEntities.length > 0) {
+
+                            relatedEntities = relatedEntities.map(entity => {
+
+                                telemetryObj[`${entity.entityType}_name`] =
+                                    entity.metaInformation.name;
+
+                                telemetryObj[`${entity.entityType}_id`] =
+                                    entity._id;
+
+                                telemetryObj[`${entity.entityType}_externalId`] =
+                                    entity.metaInformation.externalId;
+
+                                return {
+                                    name: entity.metaInformation.name,
+                                    externalId: entity.metaInformation.externalId,
+                                    entityType: entity.entityType,
+                                    entityTypeId: entity.entityTypeId,
+                                    _id: entity._id
+                                }
+                            })
+
+                            entityObj["relatedEntities"] = relatedEntities;
+                        }
+
+                        telemetryEntities.push(telemetryObj);
+
+                        entityObj["telemetry_entities"] = telemetryEntities;
+
+                        await elasticSearchData.createOrUpdate(
+                            entityObj._id,
+                            process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                            process.env.ELASTICSEARCH_ENTITIES_INDEX_TYPE,
+                            {
+                                data: entityObj
+                            }
+                        );
+
+                    }
+
+                }
+
+                return resolve({
+                    success: true
+                });
+
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 };
+
 
   /**
    * Add tags in entity meta information.
@@ -1228,3 +1359,5 @@ function addTagsInEntities(entityMetaInformation) {
     }
     return entityMetaInformation;
 }
+
+
