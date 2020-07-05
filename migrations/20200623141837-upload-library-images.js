@@ -60,11 +60,10 @@ module.exports = {
 
       await kendraServiceHelper.upload(
         `public/assets/library/${categories[category].icon}`,
-        `static/${categories[category].icon}`,
-        process.env.CLOUD_STORAGE
+        `static/library/${categories[category].icon}`
       );
 
-      categories[category].icon = "static/" + categories[category].icon; 
+      categories[category].icon = "static/library/" + categories[category].icon; 
     }
 
     await db.collection('libraryCategories').insertMany(categories);

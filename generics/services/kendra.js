@@ -70,19 +70,17 @@ const getDownloadableUrl = function (bodyData) {
   * @returns {Array} upload file.
 */
 
-const upload = function (file,filePath,storage) {
+const upload = function (file,filePath) {
 
     let fileUploadUrl = process.env.KENDRA_APPLICATION_ENDPOINT; 
     let bucketName = "";
 
-    if ( storage === "GC" ) {
+    if ( process.env.CLOUD_STORAGE === "GC" ) {
         fileUploadUrl = fileUploadUrl + "api/v1/cloud-services/gcp/uploadFile";
         bucketName = process.env.GCP_BUCKET_NAME;
-    } else if( storage === "AWS" ) {
-        console.log("here")
+    } else if( process.env.CLOUD_STORAGE === "AWS" ) {
         fileUploadUrl = fileUploadUrl + "api/v1/cloud-services/aws/uploadFile";
         bucketName = process.env.AWS_BUCKET_NAME;
-        console.log(process.env.AWS_BUCKET_NAME)
     } else {
         fileUploadUrl = fileUploadUrl + "api/v1/cloud-services/azure/uploadFile";
         bucketName = process.env.AZURE_STORAGE_CONTAINER;
@@ -113,7 +111,6 @@ const upload = function (file,filePath,storage) {
             form.append("filePath",filePath);
             form.append("bucketName",bucketName);
             form.append("file",fs.createReadStream(file));
-            // console.log(form);
 
         } catch (error) {
             return reject(error);

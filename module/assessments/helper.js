@@ -533,7 +533,8 @@ module.exports = class AssessmentsHelper {
 
                     let entity = 
                     await entitiesHelper.entityDocuments({
-                        "userId" :  userDetails.userId
+                        "userId" :  userDetails.userId,
+                        "entityType" : solutionData[0].entityType
                     },["_id"])
 
                     let entityId;
@@ -541,10 +542,18 @@ module.exports = class AssessmentsHelper {
                     if( !entity[0] ) {
 
                         let individualEntity = 
-                        await entitiesHelper.createIndividualEntity(
-                            userDetails,
-                            solutionData[0].entityType,
-                            solutionData[0].entityTypeId
+                        await entitiesHelper.add(
+                            {
+                                type : solutionData[0].entityType
+                            },
+                            [{
+                                externalId : userDetails.userId,
+                                name : userDetails.firstName + userDetails.lastName,
+                                userName : userDetails.userName,
+                                email : userDetails.email,
+                                rootOrgId : userDetails.rootOrgId
+                            }],
+                            userDetails
                         );
 
                         entityId = individualEntity._id;
@@ -570,14 +579,30 @@ module.exports = class AssessmentsHelper {
                 true
               );
 
-              await entityAssessorsHelper.create(
+              await entityAssessorsHelper.createOrUpdate(
                   createdSolutionAndProgram.programId,
                   createdSolutionAndProgram._id,
-                  createdSolutionAndProgram.entityType,
-                  createdSolutionAndProgram.entityTypeId,
-                  createdSolutionAndProgram.entities,
-                  userDetails
-              )
+                  userDetails.userId,
+                  {
+                      userId : userDetails.userId,
+                      email : userDetails.email,
+                      name : userDetails.firstName + userDetails.lastName,
+                      externalId : userDetails.userName,
+                      programId : createdSolutionAndProgram.programId,
+                      solutionId : createdSolutionAndProgram._id,
+                      entityTypeId : createdSolutionAndProgram.entityTypeId,
+                      entityType : createdSolutionAndProgram.entityType,
+                      role : messageConstants.common.LEAD_ASSESSOR,
+                      createdBy : userDetails.userId,
+                      updatedBy : userDetails.userId,
+                      entities : createdSolutionAndProgram.entities
+                  }
+              );
+
+              await solutionsHelper.addDefaultACL(
+                createdSolutionAndProgram._id,
+                [messageConstants.common.LEAD_ASSESSOR]
+              );
   
               return resolve({
                 message: messageConstants.apiResponses.CREATED_SOLUTION,

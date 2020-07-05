@@ -19,6 +19,9 @@ module.exports = class librarySearchHelper {
       * Search library solutions.
       * @method
       * @name search
+      * @param searchText - text to search.
+      * @param pageSize - size of the page.
+      * @param pageNo - page no.
       * @returns {Object} Search library solutions.
      */
 
@@ -50,9 +53,19 @@ module.exports = class librarySearchHelper {
                     {
                         name : 1,
                         description : 1,
-                        externalId : 1
+                        externalId : 1,
+                        type : 1,
+                        subType : 1
                     }
                 );
+
+                if( solutionDocument[0].data && solutionDocument[0].data.length > 0 ) {
+                    solutionDocument[0].data = 
+                    solutionDocument[0].data.map(solutionData=>{
+                        solutionData.type = solutionData.type === messageConstants.common.ASSESSMENT ? solutionData.subType : solutionData.type;
+                        return _.omit(solutionData,["subType"]);
+                    })
+                }
 
                 return resolve({
                     message : messageConstants.apiResponses.LIBRARY_CATEGORY_FETCHED,

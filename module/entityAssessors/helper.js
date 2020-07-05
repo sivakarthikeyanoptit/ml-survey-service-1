@@ -74,40 +74,6 @@ module.exports = class EntityAssessorHelper {
     /**
      * Get track of entity assessor.
      * @method
-     * @name createInidvidualEntityAssessor
-     * @param {Object} entityAssessor - entityAssessor data.
-     * @param {String} programId - program id.
-     * @param {String} solutionId - solution id.
-     * @param {String} entityId - entity id.
-     * @param {Object} userEntityDetails
-     * @param {Object} userDetails - logged in user details. 
-     * @param {Object} userDetails.id - logged in user id. 
-     * @returns {Object} Entity assessor data.
-     */
-
-    static createInidvidualEntityAssessor(programId, solutionId, entityId, userEntityDetails, userDetails) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                userEntityDetails.programId = programId;
-                userEntityDetails.assessmentStatus = "pending";
-                userEntityDetails.parentId = "";
-                userEntityDetails["entities"] = entityId;
-                userEntityDetails.solutionId = solutionId;
-                userEntityDetails.createdBy = userDetails.id;
-                userEntityDetails.updatedBy = userDetails.id;
-                let entityAssessor = await database.models.entityAssessors.create(
-                    userEntityDetails
-                );
-                return resolve(entityAssessor);
-            } catch (error) {
-                return reject(error);
-            }
-        })
-    }
-
-    /**
-     * Get track of entity assessor.
-     * @method
      * @name uploadEntityAssessorTracker
      * @param {Object} entityAssessor - entityAssessor data.
      * @returns {Object} Uploaded entity assessor tracker data.
@@ -837,39 +803,40 @@ module.exports = class EntityAssessorHelper {
     }
 
     /**
-     * Create entity assessor data.
+     * Create or update entity assessor data.
      * @method
-     * @name create
+     * @name createOrUpdate
      * @param {String} programId - program id.
      * @param {String} solutionId - solution id.
-     * @param {String} entityType - entity type.
-     * @param {String} entityTypeId - entity type id.
-     * @param {Array}  entities - entities 
-     * @param {Object} userDetails - logged in user details. 
-     * @returns {Object} created Entity assessor data.
+     * @param {Object} userId - logged in user id.
+     * @param {Object}  updateData - update assessor data.  
+     * @returns {Object} create or update Entity assessor data.
      */
 
-    static create(programId,solutionId,entityType,entityTypeId, entities, userDetails) {
+    static createOrUpdate(
+        programId,
+        solutionId,
+        userId,
+        updateData
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
-                
-                let createdAssessor = 
-                await database.models.entityAssessors.create({
-                    userId : userDetails.userId,
-                    email : userDetails.email,
-                    name : userDetails.name,
-                    externalId : userDetails.externalId,
-                    programId : programId,
-                    solutionId : solutionId,
-                    entityTypeId : entityTypeId,
-                    entityType : entityType,
-                    role : messageConstants.common.LEAD_ASSESSOR,
-                    createdBy : userDetails.userId,
-                    updatedBy : userDetails.userId,
-                    entities : entities
+
+                let assessorData = 
+                await database.models.entityAssessors.findOneAndUpdate({ 
+                    userId : userId, 
+                    programId : programId, 
+                    solutionId : solutionId
+                }, 
+                updateData,
+                {
+                    upsert: true,
+                    new: true,
+                    setDefaultsOnInsert: true,
+                    returnNewDocument: true
                 });
 
-                return resolve(createdAssessor);
+                return resolve(assessorData);
 
             } catch (error) {
                 return reject(error);

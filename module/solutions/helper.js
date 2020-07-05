@@ -915,11 +915,7 @@ module.exports = class SolutionsHelper {
                     "entityTypeId",
                     "entityType",
                     "isAPrivateProgram",
-                    "entities",
-                    "name",
-                    "type",
-                    "subType",
-                    "programName",
+                    "entities"
                   ]
                   ));
 
@@ -1041,6 +1037,52 @@ module.exports = class SolutionsHelper {
           } else {
             throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
           }
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+     * Add default acl.
+     * @method
+     * @name addDefaultACL
+     * @param {String} solutionId - solution id.
+     * @param {Array} allRoles - roles assigned to solution.
+     * @returns {Object} Add default acl.
+     */
+
+    static addDefaultACL(
+      solutionId,
+      allRoles
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          
+          let roles = {};
+
+          allRoles.map(role=>{
+            roles[gen.utils.assessmentRoles()[role]] ={
+              "acl" : {
+                "entityProfile" : {
+                  "visible" : ["all"],
+                  "editable" : ["all"]
+                }
+              }
+            }
+          });
+
+          let solutionRoles = 
+          await database.models.solutions.findOneAndUpdate({
+            _id : solutionId 
+          },{
+            $set : {
+              roles : roles
+            }
+          });
+
+          return resolve(solutionRoles);
 
         } catch(error) {
           return reject(error);

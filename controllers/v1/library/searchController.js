@@ -16,7 +16,7 @@ module.exports = class Search {
     * @apiVersion 1.0.0
     * @apiName Search library solutions
     * @apiGroup Library solutions
-    * @apiSampleRequest /assessment/api/v1/library/search/solutions?search=in&limit=1&page=1
+    * @apiSampleRequest /assessment/api/v1/library/search/solutions?search=sl&limit=1&page=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -26,18 +26,15 @@ module.exports = class Search {
     "result": {
         "data": [
             {
-                "_id": "5efdd8ef85bcec44a15257b6",
-                "name": "Individual Assessments",
-                "type": "individual"
-            },
-            {
-                "_id": "5efdd8ef85bcec44a15257b7",
-                "name": "Institutional Assessments",
-                "type": "institutional"
+                "_id": "5d15b0d7463d3a6961f91747",
+                "externalId": "SL-Shalasiddhi-TEMPLATE",
+                "name": "SL-Shalasiddhi",
+                "description": "SL-Shalasiddhi"
             }
         ],
-        "count": 2
-    }}
+        "count": 3
+    }
+    }
     */
 
       /**

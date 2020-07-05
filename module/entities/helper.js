@@ -37,8 +37,15 @@ module.exports = class EntitiesHelper {
                 }
 
                 let entityDocuments = data.map(singleEntity => {
-                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
-                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+
+                    if( singleEntity.createdByProgramId ) {
+                        singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
+                    }
+
+                    if( singleEntity.createdBySolutionId ) {
+                        singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+                    }
+
                     return {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
@@ -46,7 +53,8 @@ module.exports = class EntitiesHelper {
                         "groups": {},
                         "metaInformation": singleEntity,
                         "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id
+                        "createdBy": userDetails.id,
+                        "userId" : userDetails.id
                     }
 
                 });
@@ -58,8 +66,22 @@ module.exports = class EntitiesHelper {
                 let entities = [];
 
                 //update entity id in parent entity
-                for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
-                    await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(), queryParams.programId);
+                
+                for (
+                    let eachEntityData = 0; 
+                    eachEntityData < entityData.length; 
+                    eachEntityData++
+                ) {
+
+                    if( queryParams.parentEntityId && queryParams.programId ) {
+
+                        await this.addSubEntityToParent(
+                            queryParams.parentEntityId, 
+                            entityData[eachEntityData]._id.toString(), 
+                            queryParams.programId
+                        );
+                    }
+                    
                     entities.push(entityData[eachEntityData]._id);
                 }
 
@@ -1200,48 +1222,6 @@ module.exports = class EntitiesHelper {
             "SCHEMA_ENTITY_CREATED_BY" : "createdBy"
         }
     }
-
-      /**
-   * Create individual entity.
-   * @method 
-   * @name createIndividualEntity
-   * @param {String} userDetails - User details.
-   * @param {String} entityType - Type of entity.
-   * @param {String} entityTypeId - Entity type id.
-   * @returns {String} Create individual entity.
-   */
-
-  static createIndividualEntity(
-      userDetails,
-      entityType,
-      entityTypeId
-  ) {
-    return new Promise(async (resolve, reject) => {
-        try {
-
-            let entity = await database.models.entities.create({
-                entityType : entityType,
-                entityTypeId : entityTypeId,
-                updatedBy : userDetails.userId,
-                createdBy : userDetails.userId,
-                userId : userDetails.userId,
-                isDeleted : false,
-                metaInformation : {
-                    externalId : userDetails.userId,
-                    name : userDetails.firstName + userDetails.lastName,
-                    userName : userDetails.userName,
-                    email : userDetails.email,
-                    rootOrgId : userDetails.rootOrgId
-                }
-            });
-
-            return resolve(entity);
-
-        } catch (error) {
-            return reject(error);
-        }
-    })
-  }
 
      /**
    * Push entities to elastic search

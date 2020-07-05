@@ -1,5 +1,4 @@
 /**
-<<<<<<< HEAD
  * name : helper.js
  * author : Aman
  * created-date : 10-Jun-2020
@@ -80,8 +79,12 @@ module.exports = class CriteriaQuestionsHelper {
                     }
                 }
 
+                let queryData2 = {
+                    $match : {}
+                };
+
                 if(query) {
-                    queryData["$match"] = _.merge(queryData["$match"],query);
+                    queryData2["$match"] = query;
                 }
 
                 let unwindEvidences = {
@@ -102,6 +105,7 @@ module.exports = class CriteriaQuestionsHelper {
                     unwindEvidences,
                     unwindSections,
                     unwindQuestions,
+                    queryData2,
                     projection
                 ])
 
