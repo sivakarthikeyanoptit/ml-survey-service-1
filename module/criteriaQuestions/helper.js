@@ -79,8 +79,12 @@ module.exports = class CriteriaQuestionsHelper {
                     }
                 }
 
+                let queryData2 = {
+                    $match : {}
+                };
+
                 if(query) {
-                    queryData["$match"] = _.merge(queryData["$match"],query);
+                    queryData2["$match"] = query;
                 }
 
                 let unwindEvidences = {
@@ -101,6 +105,7 @@ module.exports = class CriteriaQuestionsHelper {
                     unwindEvidences,
                     unwindSections,
                     unwindQuestions,
+                    queryData2,
                     projection
                 ])
 
@@ -113,64 +118,63 @@ module.exports = class CriteriaQuestionsHelper {
 
     }
 
-
     /**
-     * Create Or update criteria Questions.
-     * @method
-     * @name createOrUpdate
-     * @param {String} criteriaIds - criteria ids.
-     * @param {String} [ updateQuestion = false ] - update question or criteria.
-     * @returns {JSON} - success true or false
-     */
+   * Create Or update criteria Questions.
+   * @method
+   * @name createOrUpdate
+   * @param {String} criteriaIds - criteria ids.
+   * @param {String} [ updateQuestion = false ] - update question or criteria.
+   * @returns {JSON} - success true or false
+   */
 
-    static createOrUpdate( 
-        criteriaIds,
-        updateQuestion = false
-    ) {
-        return new Promise(async (resolve, reject) => {
-            try {
+  static createOrUpdate( 
+    criteriaIds,
+    updateQuestion = false
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
 
-                let result = "";
+            let result = "";
 
-                if( Array.isArray(criteriaIds) ) {
+            if( Array.isArray(criteriaIds) ) {
 
-                    result = [];
+                result = [];
 
-                    for (
-                        let criteria = 0; 
-                        criteria < criteriaIds.length ; 
-                        criteria++ 
-                    ) {
-
-                        let data = await singleCriteriaCreateOrUpdate(
-                            criteriaIds[criteria]
-                        );
-
-                        result.push({
-                            criteriaId : criteriaIds[criteria],
-                            success : data.success
-                        });
-                    }
-                } else {
-
-                    result = 
-                    await singleCriteriaCreateOrUpdate(
-                        criteriaIds,
-                        updateQuestion
+                for (
+                    let criteria = 0; 
+                    criteria < criteriaIds.length ; 
+                    criteria++ 
+                ) {
+                    
+                    let data = await singleCriteriaCreateOrUpdate(
+                        criteriaIds[criteria]
                     );
+
+                    result.push({
+                        criteriaId : criteriaIds[criteria],
+                        success : data.success
+                    });
                 }
-
-                return resolve(result);
-
-            } catch (error) {
-                return reject(error);
+            } else {
+                
+                result = 
+                await singleCriteriaCreateOrUpdate(
+                    criteriaIds,
+                    updateQuestion
+                );
             }
-        })
-    }
+
+            return resolve(result);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
 };
 
-/**
+   /**
    * Create Or update criteria Questions.
    * @method
    * @name singleCriteriaCreateOrUpdate

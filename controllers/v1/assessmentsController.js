@@ -510,7 +510,7 @@ module.exports = class Assessments {
    }
 
    /**
-     * @api {post} /assessment/api/v1/assessments/create/:solutionId Create assessment solution
+     * @api {post} /assessment/api/v1/assessments/create?solutionId=solutionId Create assessment solution
      * @apiVersion 1.0.0
      * @apiName Create assessment solution
      * @apiGroup Assessments
@@ -519,12 +519,12 @@ module.exports = class Assessments {
      * "name" : "My Solution",
      * "description" : "My Solution Description",
      * "program" : {
-     * "id" : "",
+     * "_id" : "",
      * "name" : "My program"
      * },
      * "entities" : ["5bfe53ea1d0c350d61b78d0a"]
      * }
-     * @apiSampleRequest /assessment/api/v1/assessments/create/5ed5ec4dd2afa80d0f616460
+     * @apiSampleRequest /assessment/api/v1/assessments/create?solutionId=5ed5ec4dd2afa80d0f616460
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
@@ -560,8 +560,8 @@ module.exports = class Assessments {
 
             let solutionData = 
             await assessmentsHelper.create(
-              req.params._id,
-              req.userDetails.userId,
+              req.query.solutionId,
+              req.userDetails,
               req.body
             );
 

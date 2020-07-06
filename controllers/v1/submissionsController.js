@@ -2345,7 +2345,7 @@ module.exports = class Submission extends Abstract {
   }
 
    /**
-  * @api {get} /assessment/api/v1/submissions/create/:solutionId?entityId=:entityId 
+  * @api {get} /assessment/api/v1/submissions/create/:solutionId?entityId=:entityId Create submissions
   * @apiVersion 1.0.0
   * @apiName Submissions created successfully
   * @apiGroup Submissions
@@ -2398,7 +2398,54 @@ module.exports = class Submission extends Abstract {
         });
 
       }
+    })
+  }
 
+
+  /**
+   * List improvement project suggestions by criteria
+   * @method
+   * @name listImprovementProjectSuggestions
+   * @param {String} req.params._id -submission id.
+   * @returns {JSON} response message.
+   */
+
+  async listImprovementProjectSuggestions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let submissionCriteria = await submissionsHelper.getCriteria(req.params._id);
+
+        if(!submissionCriteria.success) {
+          throw submissionCriteria.message
+        }
+
+        let result = new Array;
+
+        if(submissionCriteria.data && submissionCriteria.data.length > 0) {
+          for (let pointerToSubmissionCriteria = 0; pointerToSubmissionCriteria < submissionCriteria.data.length; pointerToSubmissionCriteria++) {
+            const criteria = submissionCriteria.data[pointerToSubmissionCriteria];
+            result.push(_.pick(criteria,[
+              "name",
+              "description",
+              "externalId",
+              "score",
+              "improvement-projects"
+            ]))
+          }
+        }
+
+        return resolve({
+          message: submissionCriteria.message,
+          result : result
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message        
+        });
+      }
     })
   }
 

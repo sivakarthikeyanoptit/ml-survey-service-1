@@ -199,5 +199,9 @@ module.exports = {
 "USER_PROGRAMS_FETCHED" : "Successfully fetched user programs",
 "SUBMISSION_DELETED" : "Submission deleted successfully",
 "SUBMISSION_UPDATED" : "Submission updated successfully",
-"SUBMISSION_CREATED" : "Submission created successfully"
+"SUBMISSION_CREATED" : "Submission created successfully",
+"LIBRARY_CATEGORY_FETCHED" : "Library categories fetched successfully",
+"LIBRARY_CATEGORIES_NOT_FOUND" : "Could not found library categories",
+"URL_COULD_NOT_BE_FOUND" : "Could not found url from gcp",
+"KENDRA_SERVICE_DOWN" : "Kendra service is down"
 }

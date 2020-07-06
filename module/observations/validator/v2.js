@@ -22,7 +22,7 @@ module.exports = (req) => {
             req.checkQuery('entityId').exists().withMessage("required entity id")
         },
         create : function() {
-            req.checkParams('_id')
+            req.checkQuery('solutionId')
             .exists()
             .withMessage("required solution id")
             .isMongoId().withMessage("Invalid observation solution id");
@@ -45,7 +45,7 @@ module.exports = (req) => {
 
     function programValidation(program) {
         
-        if( "id" in program && "name" in program ) {
+        if( "_id" in program && "name" in program ) {
             return true;
         } else {
            return false;
