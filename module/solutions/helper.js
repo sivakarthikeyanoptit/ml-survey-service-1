@@ -829,7 +829,8 @@ module.exports = class SolutionsHelper {
                 "evidenceMethods",
                 "linkTitle",
                 "linkUrl",
-                "name"
+                "name",
+                "entityType"
               ]
             );
 
@@ -854,7 +855,7 @@ module.exports = class SolutionsHelper {
      * @name createProgramAndSolutionFromTemplate -
      * @param {String} templateId - solution template id.
      * @param {Object} program
-     * @param {String} program.id - program id
+     * @param {String} program._id - program id
      * @param {String} program.name - program name
      * @param {String} userId - Logged in user id.
      * @param {Object} solutionData - new solution creation data
@@ -875,7 +876,7 @@ module.exports = class SolutionsHelper {
               let dateFormat = gen.utils.epochTime();
               let programData;
 
-              if( program.id === "" ) {
+              if( program._id === "" ) {
 
                 programData = await programsHelper.create({
                   externalId : 
@@ -889,13 +890,13 @@ module.exports = class SolutionsHelper {
                   isAPrivateProgram : isAPrivateProgram
                 });
                 
-                program.id = programData._id;
+                program._id = programData._id;
               }
 
               let duplicateSolution = 
               await this.importFromSolution(
                 templateId,
-                program.id.toString(),
+                program._id.toString(),
                 userId,
                 solutionData,
                 false
@@ -913,7 +914,8 @@ module.exports = class SolutionsHelper {
                     "programId",
                     "entityTypeId",
                     "entityType",
-                    "isAPrivateProgram"
+                    "isAPrivateProgram",
+                    "entities"
                   ]
                   ));
 
@@ -990,11 +992,13 @@ module.exports = class SolutionsHelper {
 
           if( data.entities && data.entities.length > 0 ) {
             
-            data.entities = 
+            let entitiesToAdd = 
             await entitiesHelper.validateEntities(
               data.entities,
               solutionDocument[0].entityTypeId
             );
+
+            data.entities = entitiesToAdd.entityIds;
 
           }
   
@@ -1009,7 +1013,7 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.programDescription = programDocument[0].description;
           newSolutionDocument.author = userId;
           newSolutionDocument.createdBy = userId;
-          newSolutionDocument.entities = [];
+          newSolutionDocument.entities = data.entities;
           newSolutionDocument.parentSolutionId = solutionDocument[0]._id;
           newSolutionDocument.startDate = startDate;
           newSolutionDocument.endDate = endDate;
@@ -1033,6 +1037,52 @@ module.exports = class SolutionsHelper {
           } else {
             throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
           }
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+     * Add default acl.
+     * @method
+     * @name addDefaultACL
+     * @param {String} solutionId - solution id.
+     * @param {Array} allRoles - roles assigned to solution.
+     * @returns {Object} Add default acl.
+     */
+
+    static addDefaultACL(
+      solutionId,
+      allRoles
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          
+          let roles = {};
+
+          allRoles.map(role=>{
+            roles[gen.utils.assessmentRoles()[role]] ={
+              "acl" : {
+                "entityProfile" : {
+                  "visible" : ["all"],
+                  "editable" : ["all"]
+                }
+              }
+            }
+          });
+
+          let solutionRoles = 
+          await database.models.solutions.findOneAndUpdate({
+            _id : solutionId 
+          },{
+            $set : {
+              roles : roles
+            }
+          });
+
+          return resolve(solutionRoles);
 
         } catch(error) {
           return reject(error);

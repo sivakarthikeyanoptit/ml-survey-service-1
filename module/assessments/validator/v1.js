@@ -15,7 +15,7 @@ module.exports = (req) => {
             .withMessage("Invalid assessment solution id");
         },
         create : function () {
-            req.checkParams('_id')
+            req.checkQuery('solutionId')
             .exists()
             .withMessage("required assessment solution id")
             .isMongoId().withMessage("Invalid assessment solution id");
@@ -37,7 +37,7 @@ module.exports = (req) => {
 
     function programValidation(programData) {
         
-        if( "id" in programData && "name" in programData ) {
+        if( "_id" in programData && "name" in programData ) {
             return true;
         } else {
            return false;

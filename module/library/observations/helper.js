@@ -95,6 +95,7 @@ module.exports = class ObservationHelper {
                   name : solutionDetails.name,
                   creator : solutionDetails.creator ? solutionDetails.creator : "",
                   description : solutionDetails.description,
+                  entityType : solutionDetails.entityType,
                   linkTitle : solutionDetails.linkTitle ? solutionDetails.linkTitle : "",
                   linkUrl : solutionDetails.linkUrl ? solutionDetails.linkUrl : "",
                   questions : questions

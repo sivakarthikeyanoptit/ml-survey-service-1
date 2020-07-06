@@ -102,7 +102,6 @@ module.exports = function () {
       }
     });
 
-
   // Load all kafka consumer files
   fs.readdirSync(ROOT_PATH + '/generics/kafkaConsumers/').forEach(function (file) {
     if (file.match(/\.js$/) !== null) {
@@ -110,6 +109,14 @@ module.exports = function () {
       global[name + 'Consumer'] = require(ROOT_PATH + '/generics/kafkaConsumers/' + file);
     }
   });
+
+  global.sessions = {};
+
+  const libraryCategoriesHelper = require(MODULES_BASE_PATH+"/library/categories/helper");
+
+  (async () => {
+    await libraryCategoriesHelper.setLibraryCategories();
+  })();
 
 };
 
