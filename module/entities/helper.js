@@ -1228,7 +1228,7 @@ module.exports = class EntitiesHelper {
                             "createdAt",
                         ]);
 
-                    for (entity = 0; entity < entityDocuments.length; entity++) {
+                    for (let entity = 0; entity < entityDocuments.length; entity++) {
 
                         let entityDocument = entityDocuments[entity];
 
