@@ -2505,4 +2505,60 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+   /**
+  * @api {get} /assessment/api/v1/submissions/list/:solutionId?entityId:entityId List Submissions
+  * @apiVersion 1.0.0
+  * @apiName List Submissions
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/list/5b98fa069f664f7e1ae7498c?entityId=5bfe53ea1d0c350d61b78d0a
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Submission list fetched successfully",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5c6a352f77c8d249d68ec6d0",
+            "status": "inprogress",
+            "updatedAt": "2019-09-03T05:01:40.587Z",
+            "createdAt": "2019-02-18T04:31:43.974Z",
+            "entityId": "5bfe53ea1d0c350d61b78d0a",
+            "entityExternalId": "1207229",
+            "entityType": "school",
+            "submissionNumber": 1,
+            "title": "Assessment 1"
+        }
+    ]
+}
+
+  */
+   /**
+   * List submissions
+   * @method
+   * @name list
+   * @param {Object} req - requested data.
+   * @param {String} req.query.entityId - entity id.
+   * @param {String} req.params._id - solution id. 
+   * @returns {JSON} consists of list of submissions.
+   */
+
+  async list(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+        await submissionsHelper.list( req.query.entityId,req.params._id);
+
+        return resolve(submissionDocument);
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
 };
