@@ -203,5 +203,6 @@ module.exports = {
 "LIBRARY_CATEGORY_FETCHED" : "Library categories fetched successfully",
 "LIBRARY_CATEGORIES_NOT_FOUND" : "Could not found library categories",
 "URL_COULD_NOT_BE_FOUND" : "Could not found url from gcp",
-"KENDRA_SERVICE_DOWN" : "Kendra service is down"
+"KENDRA_SERVICE_DOWN" : "Kendra service is down",
+"SUBMISSION_LIST_FETCHED" : "Submission list fetched successfully"
 }
