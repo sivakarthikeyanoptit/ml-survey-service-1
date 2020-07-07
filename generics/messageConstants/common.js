@@ -17,7 +17,6 @@ module.exports = {
     INDIVIDUAL_METAFORM : "defaultIndividualMetaForm",
     PUBLISHED : "published",
     ACTIVE_STATUS : "active",
-    VERSION_2 : "v2",
     STARTED : "started",
     LEAD_ASSESSOR : "LEAD_ASSESSOR"
 }
