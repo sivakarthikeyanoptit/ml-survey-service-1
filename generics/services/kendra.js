@@ -63,7 +63,7 @@ const getDownloadableUrl = function (bodyData) {
 }
 
 /**
-  * Upload urls.
+  * Upload file.
   * @function
   * @name upload
   * @param {Object} bodyData - body data.

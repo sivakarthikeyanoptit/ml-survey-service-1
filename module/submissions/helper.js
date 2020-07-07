@@ -1425,5 +1425,62 @@ module.exports = class SubmissionsHelper {
         })
     }
 
+     /**
+    * List submissions
+    * @method
+    * @name list
+    * @param {String} entityId - entity id.
+    * @param {String} solutionId - solution id.
+    * @returns {Object} - list of submissions
+    */
+
+   static list(entityId,solutionId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let queryObject = {
+                entityId: entityId,
+                solutionId : solutionId
+            };
+
+            let projection = [
+                "status",
+                "submissionNumber",
+                "entityId",
+                "entityExternalId",
+                "entityType",
+                "createdAt",
+                "updatedAt",
+                "title"
+            ];
+
+            let result = await this.submissionDocuments
+            (
+                 queryObject,
+                 projection,
+                 "none",
+                 {
+                     "createdAt" : -1 
+                }
+            );
+
+            if( !result.length > 0 ) {
+                return resolve({
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                    result : []
+                })
+            }
+
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_LIST_FETCHED,
+                result : result
+            })
+        } catch (error) {
+            return reject(error);
+        }
+    });
+   }
+
 
 };

@@ -173,7 +173,8 @@ module.exports = class UserHelper {
                         "externalId",
                         "type",
                         "subType",
-                        "solutionId"
+                        "solutionId",
+                        "allowMultipleAssessemts"
                     ]
                 );
 
@@ -788,7 +789,8 @@ function _solutionInformation(program,solution) {
         externalId : solution.externalId,
         description : solution.description,
         type : solution.type,
-        subType : solution.subType
+        subType : solution.subType,
+        allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false 
     }
 }
 
