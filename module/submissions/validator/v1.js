@@ -18,7 +18,7 @@ module.exports = (req) => {
         },
         create : function () {
             req.checkParams('_id').exists().withMessage("required solution id");
-            req.checkParams('entityId').exists().withMessage("required entityId");
+            req.checkQuery('entityId').exists().withMessage("required entityId");
         },
         list: function () {
             req.checkParams('_id').exists().withMessage("required solution id")
