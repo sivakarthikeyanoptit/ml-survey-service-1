@@ -37,7 +37,12 @@ module.exports = class UserHelper {
                 let assessorsData = 
                 await entityAssessorsHelper.assessorsDocument({
                     userId : userId
-                },["programId","solutionId","entities"]);
+                },[
+                    "programId",
+                    "solutionId",
+                    "entities",
+                    "createdAt"
+                ]);
                 
                 let programIds = [];
                 let solutionIds = [];
@@ -252,6 +257,8 @@ module.exports = class UserHelper {
                 let users = userDetails.entityAssessors.concat(
                     userDetails.observations
                 );
+
+                users = users.sort((a,b) => b.createdAt - a.createdAt);
 
                 let submissions = {};
                 let observationSubmissions = {};
@@ -867,19 +874,5 @@ function _entityInformation(entityDetails) {
         name : entityDetails.metaInformation.name ? entityDetails.metaInformation.name : "",
         externalId : entityDetails.metaInformation.externalId,
         entityType : entityDetails.entityType
-    }
-}
-
-/**
-   * Submission not started.
-   * @method
-   * @name _submissionNotStarted 
-   * @returns {Object} - submissionId and submission status.
-*/
-
-function _submissionNotStarted() {
-    return {
-        submissionId : "",
-        submissionStatus : "pending"
     }
 }
