@@ -1472,10 +1472,16 @@ module.exports = class SubmissionsHelper {
                 })
             }
 
+            result = result.map(resultedData=>{
+                resultedData.submissionId = resultedData._id;
+                return _.omit(resultedData,["_id"]);
+            })
+
             return resolve({
                 message : messageConstants.apiResponses.SUBMISSION_LIST_FETCHED,
                 result : result
-            })
+            });
+
         } catch (error) {
             return reject(error);
         }
