@@ -132,7 +132,7 @@ module.exports = class SubmissionsHelper {
                 if (!submissionDocument[0]) {
 
                     document.assessors = 
-                    this.assessors(
+                    await this.assessors(
                         document.solutionId,
                         document.entityId,
                         userAgent,
