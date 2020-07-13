@@ -1372,7 +1372,10 @@ module.exports = class SubmissionsHelper {
                 1 
             );
 
-            return resolve(submissionDocument[0].submissionNumber);
+            return resolve(
+                submissionDocument[0] && submissionDocument[0].submissionNumber ?
+                submissionDocument[0].submissionNumber : 0
+            );
 
         } catch(error) {
             reject(error);
