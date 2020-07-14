@@ -726,7 +726,8 @@ module.exports = class ObservationsHelper {
                         observationId: 1, 
                         createdBy: 1, 
                         "entityInformation.name": 1, 
-                        "entityInformation.externalId": 1 
+                        "entityInformation.externalId": 1,
+                        programId : 1 
                     }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
@@ -745,7 +746,8 @@ module.exports = class ObservationsHelper {
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
-                            entityName: entityName
+                            entityName: entityName,
+                            programId : eachObservationData.programId
                         });
 
                     })
@@ -825,7 +827,8 @@ module.exports = class ObservationsHelper {
                         "createdBy": 1, 
                         "entityInformation.name": 1, 
                         "entityInformation.externalId": 1,
-                        "completedDate" : 1 
+                        "completedDate" : 1,
+                        programId : 1  
                     }).lean();
                     await Promise.all(
                         observationSubmissionsDocument.map(async eachObservationData => {
@@ -854,7 +857,8 @@ module.exports = class ObservationsHelper {
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
                             entityName: entityName,
-                            completedDate : eachObservationData.completedDate
+                            completedDate : eachObservationData.completedDate,
+                            programId : eachObservationData.programId
                         });
 
                     })
