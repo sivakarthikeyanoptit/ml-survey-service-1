@@ -1477,7 +1477,8 @@ module.exports = class SubmissionsHelper {
 
             result = result.map(resultedData=>{
                 resultedData.submissionId = resultedData._id;
-                return _.omit(resultedData,["_id"]);
+                resultedData.submissionStatus = resultedData.status;
+                return _.omit(resultedData,["_id","status"]);
             })
 
             return resolve({
