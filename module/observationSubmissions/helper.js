@@ -472,10 +472,15 @@ module.exports = class ObservationSubmissionsHelper {
                 }
             }
 
+            result = result.map(resultedData=>{
+                resultedData.submissionId = resultedData._id;
+                resultedData.submissionStatus = resultedData.status;
+                return _.omit(resultedData,["_id","status"]);
+            })
+
             return resolve({
-                message:
-                    messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
-                result: result
+                message : messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
+                result : result
             })
         } catch (error) {
             return reject(error);
