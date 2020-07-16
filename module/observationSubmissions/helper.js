@@ -453,7 +453,11 @@ module.exports = class ObservationSubmissionsHelper {
                 "entityType",
                 "createdAt",
                 "updatedAt",
-                "title"
+                "title",
+                "completedDate",
+                "ratingCompletedAt",
+                "observationInformation.name",
+                "observationId"
             ];
 
             let result = await this.observationSubmissionsDocument
@@ -475,7 +479,15 @@ module.exports = class ObservationSubmissionsHelper {
             result = result.map(resultedData=>{
                 resultedData.submissionId = resultedData._id;
                 resultedData.submissionStatus = resultedData.status;
-                return _.omit(resultedData,["_id","status"]);
+                resultedData.observationName =  
+                resultedData.observationInformation && resultedData.observationInformation.name ? 
+                resultedData.observationInformation.name : "";
+
+                resultedData.submissionDate = resultedData.completedDate ? resultedData.completedDate : "";
+                resultedData.ratingCompletedAt = resultedData.ratingCompletedAt ? resultedData.ratingCompletedAt : "";
+
+                delete resultedData.observationInformation;
+                return _.omit(resultedData,["_id","status","completedDate"]);
             })
 
             return resolve({

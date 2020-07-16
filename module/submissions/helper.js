@@ -1454,7 +1454,8 @@ module.exports = class SubmissionsHelper {
                 "entityType",
                 "createdAt",
                 "updatedAt",
-                "title"
+                "title",
+                "completedDate"
             ];
 
             let result = await this.submissionDocuments
@@ -1472,13 +1473,17 @@ module.exports = class SubmissionsHelper {
                     status : httpStatusCode.bad_request.status,
                     message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
                     result : []
-                })
+                });
             }
 
             result = result.map(resultedData=>{
                 resultedData.submissionId = resultedData._id;
                 resultedData.submissionStatus = resultedData.status;
-                return _.omit(resultedData,["_id","status"]);
+                resultedData.submissionDate = 
+                resultedData.completedDate ? 
+                resultedData.completedDate : "";
+
+                return _.omit(resultedData,["_id","status","completedDate"]);
             })
 
             return resolve({
