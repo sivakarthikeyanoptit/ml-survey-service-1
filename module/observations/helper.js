@@ -94,7 +94,7 @@ module.exports = class ObservationsHelper {
                 (
                     solutionId,
                     {
-                        id : programId
+                        _id : programId
                     },
                     userId,
                     _.omit(data,["entities"])

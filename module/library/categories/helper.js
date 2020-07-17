@@ -172,6 +172,8 @@ module.exports = class libraryCategoriesHelper {
                         { url : downloadableImage.url }
                     )
                 });
+
+                result = result.sort((a,b)=> a.name.toString() > b.name.toString() ? 1 : -1);
                 
                 sessionHelpers.set("libraryCategories",result);
 
