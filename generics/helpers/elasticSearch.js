@@ -39,7 +39,8 @@ var get = function (
       const result = await elasticsearch.client.get({
         id: data.id,
         index: data.index,
-        type: data.type
+        type: data.type,
+        include_type_name : true
       }, {
           ignore: [httpStatusCode["not_found"].status],
           maxRetries: 3
@@ -98,7 +99,8 @@ var createOrUpdate = function (
         body : {
           doc : data ,
           doc_as_upsert : true
-        }
+        },
+        include_type_name : true
       });
 
       return resolve(result);
