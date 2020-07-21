@@ -384,7 +384,8 @@ module.exports = class AssessmentsHelper {
                 entityType: 1,
                 captureGpsLocationAtQuestionLevel : 1,
                 enableQuestionReadOut : 1,
-                allowMultipleAssessemts : 1
+                allowMultipleAssessemts : 1,
+                scoringSystem: 1
             });
         })
     }

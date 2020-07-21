@@ -25,7 +25,10 @@ module.exports = (req) => {
             .isMongoId().withMessage("Invalid solution id");
             req.checkQuery('entityId').exists().withMessage("required entity id")
             .isMongoId().withMessage("Invalid entity id");
-        }   
+        },
+        getCriteriaQuestions: function () {
+            req.checkParams('_id').exists().withMessage("required submission id");
+        }      
     }
 
     if (submissionValidator[req.params.method]) submissionValidator[req.params.method]();

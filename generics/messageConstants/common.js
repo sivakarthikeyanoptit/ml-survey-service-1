@@ -18,5 +18,6 @@ module.exports = {
     PUBLISHED : "published",
     ACTIVE_STATUS : "active",
     STARTED : "started",
-    LEAD_ASSESSOR : "LEAD_ASSESSOR"
+    LEAD_ASSESSOR : "LEAD_ASSESSOR",
+    MANUAL_RATING : "manual"
 }

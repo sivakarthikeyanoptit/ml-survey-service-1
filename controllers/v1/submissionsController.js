@@ -2561,4 +2561,83 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+
+   /**
+  * @api {get} /assessment/api/v1/submissions/getCriteriaQuestions/:submissionId
+  * @apiVersion 1.0.0
+  * @apiName Get Criteria Questions
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/getCriteriaQuestions/5b98fa069f664f7e1ae7498c
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  
+  */
+   /**
+   * Get criteria quetions
+   * @method
+   * @name getCriteriaQuestions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - submission id. 
+   * @returns {JSON} consists of Criteias questions and answeres.
+   */
+
+  async getCriteriaQuestions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+        await submissionsHelper.getCriteriaQuestions( req.params._id);
+
+        return resolve(submissionDocument);
+        
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+  /**
+  * @api {post} /assessment/api/v1/submissions/submitManualRating/:submissionId
+  * @apiVersion 1.0.0
+  * @apiName Submit manual rating
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/submitManualRating/5b98fa069f664f7e1ae7498c
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  
+  */
+   /**
+   * Submit manual rating
+   * @method
+   * @name  submitManualRating
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - submission id. 
+   * @returns {JSON} submit manual ratig
+   */
+
+  async submitManualRating(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+        await submissionsHelper.submitManualRating( req );
+
+        return resolve(submissionDocument);
+        
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
 };

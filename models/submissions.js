@@ -36,6 +36,7 @@ module.exports = {
       type : Boolean
     },
     submissionNumber : Number,
+    scoringSystem : String,
     title : { 
       type : String,
       default: function() {

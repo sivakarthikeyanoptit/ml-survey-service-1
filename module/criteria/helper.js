@@ -365,7 +365,7 @@ module.exports = class criteriaHelper {
             criteriaStructure["timesUsed"] = 12;
             criteriaStructure["weightage"] = 20;
             criteriaStructure["remarks"] = "";
-            criteriaStructure["criteriaType"] = "auto";
+            criteriaStructure["criteriaType"] = parsedCriteria.criteriaType ? parsedCriteria.criteriaType : messageConstants.common.MANUAL_RATING;
             criteriaStructure["score"] =  "";
             criteriaStructure["flag"] =  "";
 
