@@ -1477,13 +1477,11 @@ module.exports = class SubmissionsHelper {
             }
 
             result = result.map(resultedData=>{
-                resultedData.submissionId = resultedData._id;
-                resultedData.submissionStatus = resultedData.status;
                 resultedData.submissionDate = 
                 resultedData.completedDate ? 
                 resultedData.completedDate : "";
 
-                return _.omit(resultedData,["_id","status","completedDate"]);
+                return _.omit(resultedData,["completedDate"]);
             })
 
             return resolve({
