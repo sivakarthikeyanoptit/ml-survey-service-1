@@ -7,6 +7,7 @@
 
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
  /**
     * EntitiesHelper
