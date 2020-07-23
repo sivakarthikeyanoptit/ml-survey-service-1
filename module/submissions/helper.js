@@ -1600,10 +1600,10 @@ module.exports = class SubmissionsHelper {
 
                         let questionDcoument = await questionsHelper.questionDocument
                         (
-                                {
-                                    _id: { $in: questionIdArray }
-                                },
-                                ["question"]
+                            {
+                              _id: { $in: questionIdArray }
+                            },
+                            ["question"]
                         );
 
                         let groupByQuestion = {};

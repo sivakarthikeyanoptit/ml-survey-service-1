@@ -2641,6 +2641,11 @@ module.exports = class Submission extends Abstract {
   * @apiName manual rating
   * @apiGroup Submissions
   * @apiSampleRequest /assessment/api/v1/submissions/manualRating/5b98fa069f664f7e1ae7498c
+  * @apiParamExample {json} Request-Body:
+  * {
+  *  "5698fa069f664f7e1ae7499d" : "L1",
+  *  "58673e7b9f664f7e1ae7388e" : "L2"
+  * }
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
@@ -2656,7 +2661,7 @@ module.exports = class Submission extends Abstract {
    * @name  manualRating
    * @param {Object} req - requested data.
    * @param {String} req.params._id - submission id. 
-   * @returns {JSON} manual ratig
+   * @returns {JSON} manual rating
    */
 
   async manualRating(req) {
