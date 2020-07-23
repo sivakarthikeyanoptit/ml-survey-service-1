@@ -589,8 +589,8 @@ function _observationSubmissions(observationSubmissions) {
             
         submissions[submission.observationId.toString()][submission.entityId.toString()]["submissions"].push(
             {
-                "submissionId" : submission._id,
-                "submissionStatus" : submission.status,
+                "_id" : submission._id,
+                "status" : submission.status,
                 "submissionNumber" : submission.submissionNumber,
                 "entityId" : submission.entityId,
                 "createdAt" : submission.createdAt,
@@ -661,8 +661,8 @@ function _observationSubmissionInformation(submissions,observationId,entityId) {
             {
                 submissionNumber : submission.submissionNumber,
                 title : submission.title,
-                submissionId : submission._id,
-                submissionStatus : submission.status,
+                _id : submission._id,
+                status : submission.status,
                 createdAt : submission.createdAt,
                 updatedAt : submission.updatedAt,
                 submissionDate : 

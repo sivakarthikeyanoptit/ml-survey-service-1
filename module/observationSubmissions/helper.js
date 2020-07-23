@@ -477,8 +477,6 @@ module.exports = class ObservationSubmissionsHelper {
             }
 
             result = result.map(resultedData=>{
-                resultedData.submissionId = resultedData._id;
-                resultedData.submissionStatus = resultedData.status;
                 resultedData.observationName =  
                 resultedData.observationInformation && resultedData.observationInformation.name ? 
                 resultedData.observationInformation.name : "";
@@ -487,7 +485,7 @@ module.exports = class ObservationSubmissionsHelper {
                 resultedData.ratingCompletedAt = resultedData.ratingCompletedAt ? resultedData.ratingCompletedAt : "";
 
                 delete resultedData.observationInformation;
-                return _.omit(resultedData,["_id","status","completedDate"]);
+                return _.omit(resultedData,["completedDate"]);
             })
 
             return resolve({
