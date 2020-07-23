@@ -2571,6 +2571,39 @@ module.exports = class Submission extends Abstract {
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
+  * {
+    "status": 200,
+    "message": "Criteria questions fetched successfully",
+    "result": {
+        "criteriaQuestions": [{
+            "id": "5de4a2811bbd650c9861a7b8",
+            "name": "प्रधान अध्यापक/ अध्यापक (कोची) के लिए आई डी पी का निर्माण करना",
+            "score": "",
+            "questions": [{
+                "question": [
+                    "आपको प्रधान अध्यापक/ अध्यापक (कोची) के व्यक्तिगत विकास (आई डी पी) को लेकर काम करने की जरुरत क्यों है?"
+                ],
+                "questionId": "5de4ac761f6a980ca737c735",
+                "responseType": "radio",
+                "value": [
+                    "label of selected answer if options otherwise only answer" 
+                ],
+                "evidences": [],
+                "remarks":[]
+            }]
+        }]
+        "criteria": [{
+            "id": "5de4a2811bbd650c9861a7b8",
+            "name": "प्रधान अध्यापक/ अध्यापक (कोची) के लिए आई डी पी का निर्माण करना"
+        }],
+        "levelToScoreMapping": [{
+                "level":"L1",
+                "points": 25,
+                "label": "Not Good"
+            }
+        ]
+      }
+    }
   
   */
    /**
@@ -2579,7 +2612,7 @@ module.exports = class Submission extends Abstract {
    * @name getCriteriaQuestions
    * @param {Object} req - requested data.
    * @param {String} req.params._id - submission id. 
-   * @returns {JSON} consists of Criteias questions and answeres.
+   * @returns {JSON} Criteia questions and answers.
    */
 
   async getCriteriaQuestions(req) {
@@ -2603,33 +2636,37 @@ module.exports = class Submission extends Abstract {
 
 
   /**
-  * @api {post} /assessment/api/v1/submissions/submitManualRating/:submissionId
+  * @api {post} /assessment/api/v1/submissions/manualRating/:submissionId
   * @apiVersion 1.0.0
-  * @apiName Submit manual rating
+  * @apiName manual rating
   * @apiGroup Submissions
-  * @apiSampleRequest /assessment/api/v1/submissions/submitManualRating/5b98fa069f664f7e1ae7498c
+  * @apiSampleRequest /assessment/api/v1/submissions/manualRating/5b98fa069f664f7e1ae7498c
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
+  * {
+     "status": 200,
+     "message": "submitted the manual rating successfully"
+    }
   
   */
    /**
-   * Submit manual rating
+   * manual rating
    * @method
-   * @name  submitManualRating
+   * @name  manualRating
    * @param {Object} req - requested data.
    * @param {String} req.params._id - submission id. 
-   * @returns {JSON} submit manual ratig
+   * @returns {JSON} manual ratig
    */
 
-  async submitManualRating(req) {
+  async manualRating(req) {
     return new Promise(async (resolve, reject) => {
       try {
         
-        let submissionDocument =
-        await submissionsHelper.submitManualRating( req );
+        let response =
+        await submissionsHelper.manualRating( req );
 
-        return resolve(submissionDocument);
+        return resolve(response);
         
       } catch (error) {
         return reject({

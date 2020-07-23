@@ -1488,138 +1488,275 @@ module.exports = class SubmissionsHelper {
     * @method
     * @name getCriteriaQuestions
     * @param {String} submissionId - submissionId.
+    * @returns {String} - success message
+    */
+
+    static getCriteriaQuestions(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let result = {};
+
+                let queryObject = {
+                    _id: submissionId
+                };
+
+                let projection = [
+                    "answers",
+                    "criteria",
+                    "solutionId",
+                    "status",
+                    "scoringSystem"
+                ];
+
+                let submissionDocument = await this.submissionDocuments
+                (
+                    queryObject,
+                    projection
+                );
+
+                if (!submissionDocument.length > 0) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                        result: []
+                    })
+                }
+
+                if (submissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS &&
+                    submissionDocument[0]["scoringSystem"] && submissionDocument[0].scoringSystem == messageConstants.common.MANUAL_RATING) {
+
+                    let groupByCriteria = {};
+
+                    if (submissionDocument[0].criteria.length > 0) {
+                        submissionDocument[0].criteria.forEach(singleCriteria => {
+                            if (!groupByCriteria[singleCriteria._id]) {
+                                groupByCriteria[singleCriteria._id] = singleCriteria;
+                            }
+                        });
+                    }
+
+                    let criteriaObject = {};
+                    let criteria = [];
+                    let questionIdArray = [];
+
+                    if (submissionDocument[0]["answers"] && Object.keys(submissionDocument[0].answers).length > 0) {
+
+                        Object.entries(submissionDocument[0].answers).forEach(answer => {
+
+                            if (answer[1].criteriaId) {
+
+                                let questionAnswerObj = {};
+
+                                if (!criteriaObject[answer[1].criteriaId]) {
+                                    criteriaObject[answer[1].criteriaId] = {};
+                                    criteriaObject[answer[1].criteriaId]["id"] = answer[1].criteriaId;
+                                    criteriaObject[answer[1].criteriaId]["name"] = groupByCriteria[answer[1].criteriaId]["name"];
+                                    criteriaObject[answer[1].criteriaId]["score"] = "";
+                                    criteriaObject[answer[1].criteriaId]["questions"] = [];
+
+                                    criteria.push({
+                                        id: groupByCriteria[answer[1].criteriaId]["_id"],
+                                        name: groupByCriteria[answer[1].criteriaId]["name"]
+                                    });
+                                }
+
+                                if (answer[1]["qid"]) {
+
+                                    questionIdArray.push(answer[1].qid);
+
+                                    questionAnswerObj.questionId = answer[1].qid;
+                                    questionAnswerObj.responseType = answer[1].responseType;
+                                    questionAnswerObj.remarks = [answer[1].remarks];
+                                    questionAnswerObj.evidences = [];
+
+                                    if (answer[1].fileName && answer[1].fileName.length > 0) {
+
+                                        answer[1].fileName.forEach(file => {
+                                            questionAnswerObj.evidences.push({
+                                                fileName: file.name,
+                                                fileSourcePath: file.sourcePath
+                                            });
+
+                                        });
+                                    }
+
+
+                                    if (Array.isArray(answer[1].value)) {
+                                        questionAnswerObj.value = answer[1].value;
+                                    }
+                                    else {
+                                        questionAnswerObj.value = [answer[1].value];
+                                    }
+                                }
+
+                                criteriaObject[answer[1].criteriaId].questions.push(questionAnswerObj);
+                            }
+                        });
+                        
+                        result.criteriaQuestions = [];
+                        result.criteria = criteria;
+                        result.levelToScoreMapping = [];
+
+                        let questionDcoument = await questionsHelper.questionDocument
+                        (
+                                {
+                                    _id: { $in: questionIdArray }
+                                },
+                                ["question"]
+                        );
+
+                        let groupByQuestion = {};
+
+                        if (questionDcoument.length > 0) {
+                            questionDcoument.forEach(singleQuestion => {
+                                if (!groupByQuestion[singleQuestion._id]) {
+                                    groupByQuestion[singleQuestion._id] = singleQuestion;
+                                }
+                            });
+                        }
+
+                        Object.keys(criteriaObject).forEach(singleCriteria => {
+                            criteriaObject[singleCriteria]["questions"].forEach(singleQuestion => {
+                                singleQuestion.question = groupByQuestion[singleQuestion.questionId]["question"];
+                            })
+
+                            result.criteriaQuestions.push(criteriaObject[singleCriteriaObject]);
+                        });
+
+
+                        let solutionDocument = await solutionsHelper.solutionDocuments
+                            (
+                                { _id: submissionDocument[0].solutionId },
+                                [
+                                    "levelToScoreMapping"
+                                ]
+                            );
+
+                        if (solutionDocument.length > 0) {
+                            Object.keys(solutionDocument[0].levelToScoreMapping).forEach(level => {
+                                result.levelToScoreMapping.push({
+                                    level: level,
+                                    points: levelToScoreMapping[level].points,
+                                    label: levelToScoreMapping[level].label
+                                })
+                            });
+                        }
+                    }
+
+                    return resolve({
+                        message: messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
+                        result: result
+                    })
+
+                }
+                else {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.FETCH_CRITERIA_QUESTIONS_FAILURE,
+                        result: []
+                    })
+                }
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+
+    /**
+    * manual rating 
+    * @method
+    * @name manualRating
+    * @param {Object} req - request Data.
     * @returns {Object} - criteria questions and answeres
     */
 
-   static getCriteriaQuestions(submissionId) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            
-            let result = {};
+    static manualRating( req ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+ 
+                let queryObject = {
+                    _id: req.params._id,
+                };
+    
+                let projection = [
+                    "assessors",
+                    "scoringSystem",
+                    "status",
+                    "criteria"
+                ];
+    
+                let submissionDocument = await this.submissionDocuments
+                (
+                     queryObject,
+                     projection,
+                );
 
-            let queryObject = {
-                _id : submissionId
-            };
+                if ( !submissionDocument.length > 0 ) {
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                        result : []
+                    })
+                }
 
-            let projection = [
-                "answers",
-                "criteria",
-                "solutionId"
-            ];
-
-            let submissionDocument = await this.submissionDocuments
-            (
-                 queryObject,
-                 projection
-            );
-
-            if( !submissionDocument.length > 0 ) {
-                return resolve({
-                    status : httpStatusCode.bad_request.status,
-                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                    result : []
-                })
-            }
-
-            let solutionDocumnet = await solutionsHelper.solutionDocuments
-            (
-               { _id : submissionDocument[0].solutionId },
-               [
-                "levelToScoreMapping"
-               ]
-            );
-            
-            let groupByCriteria  = {};
-            
-            if (submissionDocument[0].criteria.length > 0) {
-                submissionDocument[0].criteria.forEach(singleCriteria => {
-                    if (!groupByCriteria[singleCriteria._id]) {
-                        groupByCriteria[singleCriteria._id] = singleCriteria;
+                let isValidAssessor = false;
+                
+                if (submissionDocument[0]["assessors"] && submissionDocument[0].assessors.length > 0) {
+                    submissionDocument[0].assessors.forEach( assessor => {
+                 
+                    if (assessor.userId == req.userDetails.userId ) {
+                        isValidAssessor = true;
                     }
                 });
-            }
+               }
 
-            let criteriaObject = {};
-            let criterias = [];
-            let answerDocument;
-             
-            if (submissionDocument[0]["answers"] && Object.keys(submissionDocument[0].answers).length > 0) {
-                
-            Object.entries(submissionDocument[0].answers).forEach ( answer => {
+               if ( isValidAssessor == true && 
+                    submissionDocument[0]["scoringSystem"] && submissionDocument[0].scoringSystem == messageConstants.common.MANUAL_RATING &&
+                    submissionDocument[0]["status"] && submissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS
+                ) {
 
-                answerDocument = answer[1];
+                     if (submissionDocument[0]["criteria"] && submissionDocument[0].criteria.length > 0) {
+                        
+                        for(let criteria = 0 ; criteria < submissionDocument[0].criteria.length; criteria ++) {
 
-                if (answer[1].criteriaId) { 
+                            if(req.body[submissionDocument[0].criteria[criteria]._id]){
 
-                let questionAnswerObj = {};
-
-                if(!criteriaObject[answer[1].criteriaId]){
-                    criteriaObject[answer[1].criteriaId] = {};
-                    criteriaObject[answer[1].criteriaId]["criteriaId"] = answer[1].criteriaId;
-                    criteriaObject[answer[1].criteriaId]["criteriaName"] = groupByCriteria[answer[1].criteriaId]["name"];
-                    criteriaObject[answer[1].criteriaId]["criteriaQuestions"] = [];
-                    
-                    criterias.push({
-                        id : groupByCriteria[answer[1].criteriaId]["_id"],
-                        name : groupByCriteria[answer[1].criteriaId]["name"]
-                    });
-                }
-                 
-
-                    if (answer[1]["payload"] && Object.keys(answer[1].payload).length !== 0 && answer[1]["qid"] != null) {
-
-                            questionAnswerObj.questionName = answer[1].payload.question[0];
-                            questionAnswerObj.questionAnswer = answer[1].payload.labels;
-                            questionAnswerObj.questionId = answer[1].qid;
-                            questionAnswerObj.responseType = answer[1].responseType;
-                            questionAnswerObj.evidences = [];
-                            
-                            if (answer[1].fileName && answer[1].fileName.length > 0) {
-                                
-                                answer[1].fileName.forEach ( file => {
-                                    questionAnswerObj.evidences.push({
-                                        fileName : file.name,
-                                        fileSourcePath : file.sourcePath
-                                   });
-
-                                });
+                               submissionDocument[0].criteria[criteria].score = req.body[submissionDocument[0].criteria[criteria]._id];
                             }
+                        }
+                        
+                        await database.models.submissions.updateOne(
+                        {_id : req.params._id },
+                        { $set : {
+                             criteria: submissionDocument[0].criteria,
+                             status : messageConstants.common.STATUS_COMPLETED
+                            }
+                        }
+                        );
                     }
-                
-                criteriaObject[answer[1].criteriaId].criteriaQuestions.push(questionAnswerObj);
 
-              }
+                    await this.pushCompletedSubmissionForReporting(req.params._id);
+                    
+                    return resolve({
+                        message : messageConstants.apiResponses.SUCCESSFULLY_SUBMITTED_MANUAL_RATING
+                    })
 
-            });
-
-            result.criteriaQuestions = [];
-            result.criterias = criterias;
-
-            if (solutionDocumnet.length > 0 ) {
-               result.levelToScoreMapping = solutionDocumnet[0].levelToScoreMapping;
+                }
+                else {
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.RATING_SUBMISSION_FAILURE,
+                        result : []
+                    })
+                }
+    
+            } catch (error) {
+                return reject(error);
             }
-
-            Object.keys(criteriaObject).forEach ( singleCriteriaObject => {
-                result.criteriaQuestions.push(criteriaObject[singleCriteriaObject]);
-            });
-
-            console.log(result.criteriaQuestions[0])
-            
-             result.criteriaQuestions[0].criteriaQuestions[0].evidences.push(answerDocument);
-
-            }
-
-            return resolve({
-                message : messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
-                result : result
-            })
-
-           
-
-        } catch (error) {
-            return reject(error);
-        }
-    });
-   }
+        });
+    }
 
 };

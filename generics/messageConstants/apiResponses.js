@@ -205,5 +205,8 @@ module.exports = {
 "URL_COULD_NOT_BE_FOUND" : "Could not found url from gcp",
 "KENDRA_SERVICE_DOWN" : "Kendra service is down",
 "SUBMISSION_LIST_FETCHED" : "Submission list fetched successfully",
-"CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY" : "Criteria questions fetched successfully"
+"CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY" : "Criteria questions fetched successfully",
+"SUCCESSFULLY_SUBMITTED_MANUAL_RATING" : "submitted the manual rating successfully",
+"RATING_SUBMISSION_FAILURE" : "Could not submit the rating",
+"FETCH_CRITERIA_QUESTIONS_FAILURE" : "rating is already done / scoring system has to be manual"
 }
