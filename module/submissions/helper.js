@@ -1795,8 +1795,7 @@ module.exports = class SubmissionsHelper {
                 else {
                     return resolve({
                         status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.RATING_SUBMISSION_FAILURE,
-                        result : []
+                        message : messageConstants.apiResponses.RATING_SUBMISSION_FAILURE
                     })
                 }
     
