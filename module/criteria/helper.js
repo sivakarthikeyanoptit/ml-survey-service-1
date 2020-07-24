@@ -57,7 +57,7 @@ module.exports = class criteriaHelper {
                     {_id : criteriaId},
                     {
                         rubric: rubric,
-                        criteriaType : "auto"
+                        criteriaType : existingCriteria.criteriaType ? existingCriteria.criteriaType : messageConstants.common.AUTO_RATING
                     }
                 );
 

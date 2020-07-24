@@ -20,6 +20,7 @@ module.exports = {
     STARTED : "started",
     LEAD_ASSESSOR : "LEAD_ASSESSOR",
     MANUAL_RATING : "manual",
+    AUTO_RATING : "auto",
     SUBMISSION_STATUS : "ratingPending",
     STATUS_COMPLETED : "completed"
 }

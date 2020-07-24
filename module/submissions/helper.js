@@ -1488,7 +1488,7 @@ module.exports = class SubmissionsHelper {
     * @method
     * @name getCriteriaQuestions
     * @param {String} submissionId - submissionId.
-    * @returns {String} - success message
+    * @returns {Object} - Criteria questions and answers 
     */
 
     static getCriteriaQuestions(submissionId) {
@@ -1581,30 +1581,77 @@ module.exports = class SubmissionsHelper {
                                         });
                                     }
 
-
-                                    if (Array.isArray(answer[1].value)) {
-                                        questionAnswerObj.value = answer[1].value;
+                                    if (answer[1].responseType != "matrix") {
+                                        if (Array.isArray(answer[1].value)) {
+                                            questionAnswerObj.value = answer[1].value;
+                                        }
+                                        else {
+                                            questionAnswerObj.value = [answer[1].value];
+                                        }
                                     }
                                     else {
-                                        questionAnswerObj.value = [answer[1].value];
+                                        answer[1].value.forEach(singleMatrixObject => {
+                                            if (singleMatrixObject.criteriaId) {
+                                                if (!criteriaObject[singleMatrixObject.criteriaId]) {
+                                                    criteriaObject[singleMatrixObject.criteriaId] = {};
+                                                    criteriaObject[singleMatrixObject.criteriaId]["id"] = singleMatrixObject.criteriaId;
+                                                    criteriaObject[singleMatrixObject.criteriaId]["name"] = groupByCriteria[singleMatrixObject.criteriaId]["name"];
+                                                    criteriaObject[singleMatrixObject.criteriaId]["score"] = "";
+                                                    criteriaObject[singleMatrixObject.criteriaId]["questions"] = [];
+
+                                                    criteria.push({
+                                                        id: groupByCriteria[singleMatrixObject.criteriaId]["_id"],
+                                                        name: groupByCriteria[singleMatrixObject.criteriaId]["name"]
+                                                    });
+                                                }
+                                            }
+
+                                            if (singleMatrixObject.qid) {
+                                                questionIdArray.push(singleMatrixObject.qid);
+
+                                                questionAnswerObj.questionId = singleMatrixObject.qid;
+                                                questionAnswerObj.responseType = singleMatrixObject.responseType;
+                                                questionAnswerObj.remarks = [singleMatrixObject.remarks];
+                                                questionAnswerObj.evidences = [];
+
+                                                if (singleMatrixObject.fileName && singleMatrixObject.fileName.length > 0) {
+
+                                                    singleMatrixObject.fileName.forEach(file => {
+                                                        questionAnswerObj.evidences.push({
+                                                            fileName: file.name,
+                                                            fileSourcePath: file.sourcePath
+                                                        });
+
+                                                    });
+                                                }
+
+                                                if (Array.isArray(singleMatrixObject.value)) {
+                                                    questionAnswerObj.value = singleMatrixObject.value;
+                                                }
+                                                else {
+                                                    questionAnswerObj.value = [singleMatrixObject.value];
+                                                }
+
+                                            }
+                                        })
                                     }
                                 }
 
                                 criteriaObject[answer[1].criteriaId].questions.push(questionAnswerObj);
                             }
                         });
-                        
+
                         result.criteriaQuestions = [];
                         result.criteria = criteria;
                         result.levelToScoreMapping = [];
 
                         let questionDcoument = await questionsHelper.questionDocument
-                        (
-                            {
-                              _id: { $in: questionIdArray }
-                            },
-                            ["question"]
-                        );
+                            (
+                                {
+                                    _id: { $in: questionIdArray }
+                                },
+                                ["question"]
+                            );
 
                         let groupByQuestion = {};
 
@@ -1621,7 +1668,7 @@ module.exports = class SubmissionsHelper {
                                 singleQuestion.question = groupByQuestion[singleQuestion.questionId]["question"];
                             })
 
-                            result.criteriaQuestions.push(criteriaObject[singleCriteriaObject]);
+                            result.criteriaQuestions.push(criteriaObject[singleCriteria]);
                         });
 
 
@@ -1633,12 +1680,12 @@ module.exports = class SubmissionsHelper {
                                 ]
                             );
 
-                        if (solutionDocument.length > 0) {
+                        if (solutionDocument.length > 0 && Object.keys(solutionDocument[0].levelToScoreMapping).length > 0) {
                             Object.keys(solutionDocument[0].levelToScoreMapping).forEach(level => {
                                 result.levelToScoreMapping.push({
                                     level: level,
-                                    points: levelToScoreMapping[level].points,
-                                    label: levelToScoreMapping[level].label
+                                    points: solutionDocument[0].levelToScoreMapping[level].points,
+                                    label: solutionDocument[0].levelToScoreMapping[level].label
                                 })
                             });
                         }
