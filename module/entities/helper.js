@@ -65,8 +65,6 @@ module.exports = class EntitiesHelper {
                 
                 let entities = [];
 
-                let entities = [];
-
                 //update entity id in parent entity
                 
                 for (
