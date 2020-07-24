@@ -65,6 +65,8 @@ module.exports = class EntitiesHelper {
                 
                 let entities = [];
 
+                let entities = [];
+
                 //update entity id in parent entity
                 
                 for (
@@ -573,8 +575,9 @@ module.exports = class EntitiesHelper {
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id);
                         }
-
+                        
                         await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
+
 
                         return singleEntity;
                     })
