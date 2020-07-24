@@ -1,16 +1,122 @@
 /**
- * name : criteriaQuestions.js
+ * name : helper.js
  * author : Aman
- * created-date : 24-Jun-2020
- * Description : Criteria questions related information.
+ * created-date : 10-Jun-2020
+ * Description : Criteria questions related functionality
  */
 
-/**
- * CriteriaQuestionsHelper
- * @class
+ /**
+    * CriteriaQuestionsHelper
+    * @class
 */
-
 module.exports = class CriteriaQuestionsHelper {
+
+     /**
+      * List of criteria questions
+      * @method
+      * @name list
+      * @param {Object} [ findQuery = "all" ] - filtered query data.
+      * @param {Array} [ fields = "all" ] - fields to include.
+      * @param {Array} [ skipFields = "none" ] - skip fields.   
+      * @returns {Array} List of criteria questions.
+     */
+
+    static list( findQuery = "all", fields = "all", skipFields = "none" ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+        
+                let queryObject = {};
+
+                if( findQuery !== "all" ) {
+                    queryObject = findQuery;
+                }
+        
+                let projection = {};
+        
+                if (fields != "all") {
+                    fieldsArray.forEach(field => {
+                        projection[field] = 1;
+                    });
+                }
+
+                if (skipFields != "none") {
+                    skipFields.forEach(element => {
+                        projection[element] = 0;
+                    });
+                }
+        
+                let criteriaQuestionDocuments = 
+                await database.models.criteriaQuestions.find(
+                    queryObject, 
+                    projection
+                ).lean();
+                
+                return resolve(criteriaQuestionDocuments);
+                
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+    
+    /**
+      * Details of criteria questions
+      * @method
+      * @name details
+      * @param {Array} criteriaIds - criteria ids
+      * @param {Object} projection - projected data
+      * @param {Object} query - additional query if any    
+      * @returns {Array} List of criteria questions.
+     */
+
+    static details(criteriaIds,projection,query) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let queryData = {
+                    $match : { 
+                        _id : { $in : criteriaIds }
+                    }
+                }
+
+                let queryData2 = {
+                    $match : {}
+                };
+
+                if(query) {
+                    queryData2["$match"] = query;
+                }
+
+                let unwindEvidences = {
+                    $unwind : "$evidences"
+                };
+
+                let unwindSections = {
+                    $unwind : "$evidences.sections"
+                };
+
+                let unwindQuestions = {
+                    $unwind : "$evidences.sections.questions"
+                };
+
+                let questionInCriteria = 
+                await database.models.criteriaQuestions.aggregate([
+                    queryData,
+                    unwindEvidences,
+                    unwindSections,
+                    unwindQuestions,
+                    queryData2,
+                    projection
+                ])
+
+                return resolve(questionInCriteria);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
 
     /**
    * Create Or update criteria Questions.
@@ -21,51 +127,51 @@ module.exports = class CriteriaQuestionsHelper {
    * @returns {JSON} - success true or false
    */
 
-    static createOrUpdate( 
-        criteriaIds,
-        updateQuestion = false
-    ) {
-        return new Promise(async (resolve, reject) => {
-            try {
+  static createOrUpdate( 
+    criteriaIds,
+    updateQuestion = false
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
 
-                let result = "";
+            let result = "";
 
-                if( Array.isArray(criteriaIds) ) {
+            if( Array.isArray(criteriaIds) ) {
 
-                    result = [];
+                result = [];
 
-                    for (
-                        let criteria = 0; 
-                        criteria < criteriaIds.length ; 
-                        criteria++ 
-                    ) {
-                        
-                        let data = await singleCriteriaCreateOrUpdate(
-                            criteriaIds[criteria]
-                        );
-
-                        result.push({
-                            criteriaId : criteriaIds[criteria],
-                            success : data.success
-                        });
-                    }
-                } else {
+                for (
+                    let criteria = 0; 
+                    criteria < criteriaIds.length ; 
+                    criteria++ 
+                ) {
                     
-                    result = 
-                    await singleCriteriaCreateOrUpdate(
-                        criteriaIds,
-                        updateQuestion
+                    let data = await singleCriteriaCreateOrUpdate(
+                        criteriaIds[criteria]
                     );
+
+                    result.push({
+                        criteriaId : criteriaIds[criteria],
+                        success : data.success
+                    });
                 }
-
-                return resolve(result);
-
-            } catch (error) {
-                return reject(error);
+            } else {
+                
+                result = 
+                await singleCriteriaCreateOrUpdate(
+                    criteriaIds,
+                    updateQuestion
+                );
             }
-        })
-    }
-    
+
+            return resolve(result);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
 };
 
    /**

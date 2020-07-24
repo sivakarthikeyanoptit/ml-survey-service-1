@@ -13,7 +13,11 @@ const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
 const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
-const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
+const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
     * SubmissionsHelper
@@ -21,6 +25,79 @@ const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 */
 
 module.exports = class SubmissionsHelper {
+
+     /**
+   * List submissions.
+   * @method
+   * @name submissionDocuments
+   * @param {Object} [findQuery = "all"] - filter query
+   * @param {Array} [fields = "all"] - fields to include.
+   * @param {Array} [skipFields = "none"] - field which can be skipped.
+   * @param {Object} [sort = "none"] - sorted data.
+   * @param {Number} [limitingValue = ""] - limitting value.
+   * @param {Number} [skippingValue = ""] - skip fields value.
+   * @returns {Array} list of submissions document. 
+   */
+
+  static submissionDocuments(
+      findQuery = "all", 
+      fields = "all",
+      skipFields = "none",
+      sort = "none",
+      limitingValue = "", 
+      skippingValue = "",
+ ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let queryObject = {};
+
+            if (findQuery != "all") {
+                queryObject = findQuery;
+            }
+
+            let projection = {};
+
+            if (fields != "all") {
+                fields.forEach(element => {
+                    projection[element] = 1;
+                });
+            }
+
+            if (skipFields != "none") {
+                skipFields.forEach(element => {
+                    projection[element] = 0;
+                });
+            }
+
+            let submissionDocuments;
+
+            if( sort !== "none" ) {
+                
+                submissionDocuments = 
+                await database.models.submissions.find(
+                    queryObject, 
+                    projection
+                ).sort(sort).limit(limitingValue).skip(skippingValue).lean();
+
+            } else {
+                
+                submissionDocuments = 
+                await database.models.submissions.find(
+                    queryObject, 
+                    projection
+                ).limit(limitingValue).skip(skippingValue).lean();
+            }
+          
+            return resolve(submissionDocuments);
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    });
+}
     
     /**
    * find submission by entity data.
@@ -28,43 +105,39 @@ module.exports = class SubmissionsHelper {
    * @name findSubmissionByEntityProgram
    * @param {Object} document
    * @param {String} document.entityId - entity id.
-   * @param {String} document.solutionId - solution id.   
-   * @param {Object} requestObject -requested object.
-   * @param {Object} requestObject.headers -requested header.
+   * @param {String} document.solutionId - solution id.
+   * @param {String} document.submissionNumber - submission number. Default to 1.   
+   * @param {Object} userAgent - user Agent.
+   * @param {Object} userId - logged in user id.
    * @returns {Object} submission document. 
    */
 
-    static findSubmissionByEntityProgram(document, requestObject) {
+    static findSubmissionByEntityProgram(document, userAgent,userId) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
                 let queryObject = {
-                    entityId: document.entityId,
-                    solutionId: document.solutionId
+                    entityId : document.entityId,
+                    solutionId : document.solutionId,
+                    submissionNumber : document.submissionNumber
                 };
 
-                let submissionDocument = await database.models.submissions.findOne(
-                    queryObject
-                );
+                let submissionDocument = 
+                await this.submissionDocuments(
+                    queryObject,["assessors"]
+                )
 
-                if (!submissionDocument) {
-                    let entityAssessorsQueryObject = [
-                        {
-                            $match: { entities: document.entityId, programId: document.programId }
-                        }
-                    ];
+                if (!submissionDocument[0]) {
 
-                    document.assessors = await database.models[
-                        "entityAssessors"
-                    ].aggregate(entityAssessorsQueryObject);
-
-                    let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-                    if (assessorElement && assessorElement.externalId != "") {
-                        assessorElement.assessmentStatus = "started";
-                        assessorElement.userAgent = requestObject.headers['user-agent'];
-                    }
+                    document.assessors = 
+                    await this.assessors(
+                        document.solutionId,
+                        document.entityId,
+                        userAgent,
+                        userId
+                    );
 
                     submissionDocument = await database.models.submissions.create(
                         document
@@ -74,15 +147,16 @@ module.exports = class SubmissionsHelper {
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
                 } else {
 
-                    let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+                    let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === userId)
                     if (assessorElement && assessorElement.externalId != "") {
                         assessorElement.assessmentStatus = "started";
-                        assessorElement.userAgent = requestObject.headers['user-agent'];
+                        assessorElement.userAgent = userAgent;
                         let updateObject = {};
                         updateObject.$set = {
-                            assessors: submissionDocument.assessors
+                            assessors: submissionDocument[0].assessors
                         };
-                        submissionDocument = await database.models.submissions.findOneAndUpdate(
+                        submissionDocument = 
+                        await database.models.submissions.findOneAndUpdate(
                             queryObject,
                             updateObject
                         );
@@ -211,8 +285,7 @@ module.exports = class SubmissionsHelper {
         })
     }
 
-
-      /**
+    /**
    * Question value conversion.
    * @method
    * @name questionValueConversion
@@ -838,7 +911,6 @@ module.exports = class SubmissionsHelper {
         })
     }
 
-
     /**
    * Push incomplete submission for reporting.
    * @method
@@ -890,6 +962,426 @@ module.exports = class SubmissionsHelper {
         })
     }
 
+     /**
+   * Delete submission.
+   * @method
+   * @name delete
+   * @param {String} submissionId - submission id.
+   * @param {String} userId - logged in user id.
+   * @returns {Object} status and deleted message
+   */
+
+  static delete(submissionId,userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let submissionDocument = 
+            await database.models.submissions.deleteOne(
+                {
+                    "_id" : submissionId,
+                    "assessors.userId" : userId,
+                    "status" : messageConstants.common.STARTED
+                }
+            );
+
+            if (!submissionDocument.n) {
+                throw {
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                }
+              }
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_DELETED
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+    /**
+   * Edit submission title.
+   * @method
+   * @name setTitle
+   * @param {String} submissionId - submission id.
+   * @param {String} updatedTitle - setTitle data to be updated.
+   * @param {String} userId - logged in user id.
+   * @returns {Object} status and updated message.
+   */
+
+  static setTitle(submissionId,updatedTitle,userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let submissionDocument = 
+            await database.models.submissions.findOneAndUpdate(
+                {
+                    "_id" : submissionId,
+                    "assessors.userId" : userId
+                },{
+                    $set : {
+                        title : updatedTitle
+                    }
+                }
+            );
+
+            if (!submissionDocument || !submissionDocument._id) {
+                throw {
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                }
+            }
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_UPDATED
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+     /**
+   * Create submission.
+   * @method
+   * @name create
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - Logged in userId.
+   * @returns {Object} status and updated message.
+   */
+
+  static create(
+      solutionId,
+      entityId,
+      userAgent,
+      userId
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let solutionDocument = 
+            await solutionsHelper.solutionDocuments(
+                {
+                    _id : solutionId
+                },[
+                    "externalId",
+                    "frameworkId",
+                    "frameworkExternalId",
+                    "entityTypeId",
+                    "entityType",
+                    "programId",
+                    "themes",
+                    "evidenceMethods"
+                ]
+            );
+
+            if( !solutionDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                };
+            }
+
+            let programDocument = 
+            await programsHelper.list(
+                {
+                    _id : solutionDocument[0].programId
+                },
+                "all",
+                ["_id", "components","isAPrivateProgram"]
+            );
+
+            if( !programDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                }
+            }
+
+            let entityDocument = 
+            await entitiesHelper.entityDocuments({
+                _id : entityId
+            },
+            [
+                "metaInformation",
+                "entityTypeId",
+                "entityType"
+            ]);
+
+            if( !entityDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                }
+            }
+
+            let submissionDocumentEvidences = 
+            this.evidences(
+                solutionDocument[0].evidenceMethods
+            );
+
+            let submissionDocumentCriterias = 
+            await this.criterias(
+                solutionDocument[0].themes
+            );
+
+            let submissionData = {
+                entityId : entityDocument[0]._id,
+                entityExternalId : 
+                entityDocument[0].metaInformation.externalId ? 
+                entityDocument[0].metaInformation.externalId : "",
+                entityInformation : entityDocument[0].metaInformation,
+                solutionId : solutionDocument[0]._id,
+                solutionExternalId : solutionDocument[0].externalId,
+                frameworkId : solutionDocument[0].frameworkId,
+                frameworkExternalId : solutionDocument[0].frameworkExternalId,
+                entityTypeId : solutionDocument[0].entityTypeId,
+                entityType : solutionDocument[0].entityType,
+                programId : solutionDocument[0].programId,
+                programExternalId: programDocument[0].externalId,
+                isAPrivateProgram : programDocument[0].isAPrivateProgram, 
+                programInformation : programDocument[0],
+                evidenceSubmissions : [],
+                entityProfile : {},
+                status: "started",
+                evidences : submissionDocumentEvidences,
+                criteria : submissionDocumentCriterias,
+                evidencesStatus : Object.values(submissionDocumentEvidences)
+            };
+
+            let submissionDoc = await this.createASubmission(
+                submissionData,
+                userAgent,
+                userId
+            );
+
+            this.pushInCompleteSubmissionForReporting(submissionDoc._id);
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_CREATED,
+                result : {
+                    _id : submissionDoc._id,
+                    title : submissionDoc.title,
+                    submissionNumber : submissionDoc.submissionNumber
+                }
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+   /**
+   * Create new submission.
+   * @method
+   * @name createASubmission
+   * @param {Object} submissionData - submission data.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - user id.
+   * @returns {Object} Create new submission.
+   */
+
+  static createASubmission( submissionData, userAgent,userId ) {
+      return new Promise(async (resolve,reject)=>{
+        try {
+            
+            const lastSubmission = 
+            await this.findLastSubmission(
+                submissionData.solutionId, 
+                submissionData.entityId
+            );
+
+            submissionData.submissionNumber = lastSubmission + 1;
+            submissionData.assessors = 
+            await this.assessors(
+                submissionData.solutionId, 
+                submissionData.entityId,
+                userAgent,
+                userId
+            );
+
+            let submissionDocument = await database.models.submissions.create(
+                submissionData
+            );
+
+            resolve(submissionDocument);
+
+        } catch(error) {
+            reject(error);
+        }
+      })
+  }
+
+   /**
+   * Generate submission evidences.
+   * @method
+   * @name evidences
+   * @param {Object} evidenceMethods - All evidences method.
+   * @returns {Object} Generated submission evidences.
+   */
+
+  static evidences(evidenceMethods) {
+    try {        
+        Object.keys(evidenceMethods).forEach(solutionEcm => {
+            if( evidenceMethods[solutionEcm].isActive ) {
+                evidenceMethods[solutionEcm].startTime = "";
+                evidenceMethods[solutionEcm].endTime = "";
+                evidenceMethods[solutionEcm].isSubmitted = false;
+                evidenceMethods[solutionEcm].submissions = new Array;
+            } else {
+                delete evidenceMethods[solutionEcm];
+            }
+        })
+    
+        return evidenceMethods;
+
+    } catch(error) {
+        
+        return {
+            message : error
+        }
+    }
+  }
+
+    /**
+   * Generate submission criterias.
+   * @method
+   * @name criterias
+   * @param {Object} themes - solution themes.
+   * @returns {Object} Generated submission criterias.
+   */
+
+  static criterias( 
+      themes
+    ) {
+      return new Promise( async (resolve,reject)=> {
+          try {
+            
+            let criteriaIdArray = 
+            gen.utils.getCriteriaIdsAndWeightage(
+                themes
+            );
+
+            let criteriaId = new Array;
+            let criteriaObject = {};
+
+            criteriaIdArray.forEach(eachCriteriaId => {
+                criteriaId.push(eachCriteriaId.criteriaId);
+                criteriaObject[eachCriteriaId.criteriaId.toString()] = {
+                    weightage: eachCriteriaId.weightage
+                };
+            });
+
+            let criteriaQuestionDocument = 
+            await criteriaQuestionsHelper.list(
+                { _id: { $in: criteriaId } },
+                "all",
+                [
+                    "resourceType",
+                    "language",
+                    "keywords",
+                    "concepts",
+                    "createdFor",
+                    "evidences"
+                ]
+            );
+
+            let submissionDocumentCriterias = 
+            criteriaQuestionDocument.map(criteria => {
+
+                criteria.weightage = 
+                criteriaObject[criteria._id.toString()].weightage;
+
+                return criteria;
+
+            });
+
+            return resolve(submissionDocumentCriterias)
+
+          } catch(error) {
+              reject(error);
+          }
+      })
+  }
+
+  /**
+   * Generate assessors for submission.
+   * @method
+   * @name assessors
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - user id.
+   * @returns {Object} Generate assessors for submission.
+   */
+
+  static assessors(solutionId,entityId,userAgent,userId) {
+    return new Promise( async (resolve,reject)=> {
+        try {
+
+            let assessorDocument = 
+            await entityAssessorsHelper.assessorsDocument({
+                solutionId : solutionId,
+                entities : entityId
+            });
+
+            let assessorElement = assessorDocument.find(
+                assessor => assessor.userId === userId
+            );
+            
+            if (assessorElement && assessorElement.externalId != "") {
+                assessorElement.assessmentStatus = "started";
+                assessorElement.userAgent = userAgent;
+            }
+
+            resolve(assessorDocument);
+
+        } catch(error) {
+            reject(error);
+        }
+    })
+  }
+
+    /**
+   * Find last submission.
+   * @method
+   * @name findLastSubmission
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @returns {Object} last submission number
+   */
+
+  static findLastSubmission(solutionId,entityId) {
+    return new Promise( async (resolve,reject)=> {
+        try {
+            
+            let submissionDocument = 
+            await this.submissionDocuments(
+                {
+                    solutionId : solutionId,
+                    entityId : entityId
+                },[
+                    "submissionNumber"
+                ],
+                "none",
+                { createdAt: -1 },
+                1 
+            );
+
+            return resolve(
+                submissionDocument[0] && submissionDocument[0].submissionNumber ?
+                submissionDocument[0].submissionNumber : 0
+            );
+
+        } catch(error) {
+            reject(error);
+        }
+    })
+  }
 
     /**
    * Return criteria from submissions.
@@ -935,6 +1427,73 @@ module.exports = class SubmissionsHelper {
             }
         })
     }
+
+     /**
+    * List submissions
+    * @method
+    * @name list
+    * @param {String} entityId - entity id.
+    * @param {String} solutionId - solution id.
+    * @returns {Object} - list of submissions
+    */
+
+   static list(entityId,solutionId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let queryObject = {
+                entityId: entityId,
+                solutionId : solutionId
+            };
+
+            let projection = [
+                "status",
+                "submissionNumber",
+                "entityId",
+                "entityExternalId",
+                "entityType",
+                "createdAt",
+                "updatedAt",
+                "title",
+                "completedDate"
+            ];
+
+            let result = await this.submissionDocuments
+            (
+                 queryObject,
+                 projection,
+                 "none",
+                 {
+                     "createdAt" : -1 
+                }
+            );
+
+            if( !result.length > 0 ) {
+                return resolve({
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                    result : []
+                });
+            }
+
+            result = result.map(resultedData=>{
+                resultedData.submissionDate = 
+                resultedData.completedDate ? 
+                resultedData.completedDate : "";
+
+                return _.omit(resultedData,["completedDate"]);
+            })
+
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_LIST_FETCHED,
+                result : result
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    });
+   }
 
 
 };

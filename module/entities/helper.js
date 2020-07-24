@@ -37,8 +37,15 @@ module.exports = class EntitiesHelper {
                 }
 
                 let entityDocuments = data.map(singleEntity => {
-                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
-                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+
+                    if( singleEntity.createdByProgramId ) {
+                        singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
+                    }
+
+                    if( singleEntity.createdBySolutionId ) {
+                        singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+                    }
+
                     return {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
@@ -46,7 +53,8 @@ module.exports = class EntitiesHelper {
                         "groups": {},
                         "metaInformation": singleEntity,
                         "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id
+                        "createdBy": userDetails.id,
+                        "userId" : userDetails.id
                     }
 
                 });
@@ -54,20 +62,33 @@ module.exports = class EntitiesHelper {
                 let entityData = await database.models.entities.create(
                     entityDocuments
                 );
-
+                
                 let entities = [];
 
                 //update entity id in parent entity
-                for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
-                    await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(), queryParams.programId);
+                
+                for (
+                    let eachEntityData = 0; 
+                    eachEntityData < entityData.length; 
+                    eachEntityData++
+                ) {
 
+                    if( queryParams.parentEntityId && queryParams.programId ) {
+
+                        await this.addSubEntityToParent(
+                            queryParams.parentEntityId, 
+                            entityData[eachEntityData]._id.toString(), 
+                            queryParams.programId
+                        );
+                    }
+                    
                     entities.push(entityData[eachEntityData]._id);
                 }
 
                 if (entityData.length != data.length) {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
-                
+               
                 await this.pushEntitiesToElasticSearch(entities);
 
                 return resolve(entityData);
@@ -555,6 +576,7 @@ module.exports = class EntitiesHelper {
                         
                         await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
 
+
                         return singleEntity;
                     })
                 )
@@ -631,7 +653,7 @@ module.exports = class EntitiesHelper {
                     } else {
                         singleEntity["UPDATE_STATUS"] = "No information to update.";
                     }
-
+                    
                     await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
 
                     return singleEntity;
@@ -662,7 +684,6 @@ module.exports = class EntitiesHelper {
     static processEntityMappingUploadData(mappingData = []) {
         return new Promise(async (resolve, reject) => {
             try {
-                
                 let entities = [];
 
                 if(mappingData.length < 1) {
@@ -678,8 +699,8 @@ module.exports = class EntitiesHelper {
                 for (let indexToEntityMapData = 0; indexToEntityMapData < mappingData.length; indexToEntityMapData++) {
                   if (mappingData[indexToEntityMapData].parentEntiyId != "" && mappingData[indexToEntityMapData].childEntityId != "") {
                     await this.addSubEntityToParent(mappingData[indexToEntityMapData].parentEntiyId, mappingData[indexToEntityMapData].childEntityId);
-                    entities.push(mappingData[indexToEntityMapData].childEntityId); 
-                }
+                    entities.push(mappingData[indexToEntityMapData].childEntityId);
+                  }
                 }
 
                 if(Object.keys(this.entityMapProcessData.entityToUpdate).length > 0) {
@@ -1203,7 +1224,7 @@ module.exports = class EntitiesHelper {
         }
     }
 
-    /**
+     /**
    * Push entities to elastic search
    * @method
    * @name pushEntitiesToElasticSearch
@@ -1318,8 +1339,8 @@ module.exports = class EntitiesHelper {
             }
         })
     }
-
 };
+
 
   /**
    * Add tags in entity meta information.
@@ -1360,3 +1381,5 @@ function addTagsInEntities(entityMetaInformation) {
     }
     return entityMetaInformation;
 }
+
+

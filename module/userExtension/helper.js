@@ -442,7 +442,7 @@ module.exports = class UserExtensionHelper {
 
                 if (!userExtensionDoument) {
                     throw { 
-                        status: httpStatusCode.badrequest.status, 
+                        status: httpStatusCode.bad_request.status, 
                         message: messageConstants.apiResponses.USER_EXTENSION_NOT_FOUND 
                     };
                 }
@@ -525,10 +525,9 @@ module.exports = class UserExtensionHelper {
             }, { "roles.acl" : 1 }).lean();
 
             if (!userExtensionDoument) {
-                throw { 
-                    status: httpStatusCode.badrequest.status, 
-                    message: messageConstants.apiResponses.USER_EXTENSION_NOT_FOUND 
-                };
+                return resolve({
+                    success : false
+                });
             }
 
             let acl = {};
@@ -565,7 +564,10 @@ module.exports = class UserExtensionHelper {
 
             }
 
-            return resolve(acl);
+            return resolve({
+                success : true,
+                acl : acl
+            });
 
         } catch (error) {
             return reject(error);
@@ -724,11 +726,12 @@ module.exports = class UserExtensionHelper {
             );
 
             if( 
-                userAccessControlList[entityType] && 
-                userAccessControlList[entityType].length > 0 
+                userAccessControlList.success &&
+                userAccessControlList.acl[entityType] && 
+                userAccessControlList.acl[entityType].length > 0 
             ) {
                 queryObject["$match"]["metaInformation.tags"] = {
-                    $in : userAccessControlList[entityType]
+                    $in : userAccessControlList.acl[entityType]
                 }
             }
 

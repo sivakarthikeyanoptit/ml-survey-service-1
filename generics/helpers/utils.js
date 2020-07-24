@@ -185,6 +185,31 @@ function checkIfEnvDataExistsOrNot(data){
   return value;
 }
 
+ /**
+  * Get epoch time from current date.
+  * @function
+  * @name epochTime
+  * @returns {Date} returns epoch time.  
+*/
+
+function epochTime() {
+  var currentDate = new Date();
+  currentDate = currentDate.getTime();
+  return currentDate;
+}
+
+ /**
+  * check whether id is mongodbId or not.
+  * @function
+  * @name isValidMongoId
+  * @param {String} id 
+  * @returns {Boolean} returns whether id is valid mongodb id or not.  
+*/
+
+function isValidMongoId(id) {
+  return ObjectId.isValid(id) && new ObjectId(id).toString() === id;
+}
+
 module.exports = {
   camelCaseToTitleCase : camelCaseToTitleCase,
   lowerCase : lowerCase,
@@ -200,5 +225,7 @@ module.exports = {
   assessmentRoles : assessmentRoles,
   arrayIdsTobjectIds : arrayIdsTobjectIds,
   checkIfEnvDataExistsOrNot : checkIfEnvDataExistsOrNot,
-  fetchAssessorsLeadAssessorRole : fetchAssessorsLeadAssessorRole
+  fetchAssessorsLeadAssessorRole : fetchAssessorsLeadAssessorRole,
+  epochTime : epochTime,
+  isValidMongoId : isValidMongoId
 };
