@@ -845,13 +845,13 @@ module.exports = class Submission extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/submissions/rate/:entityExternalId?programId=:programExternalId&solutionId=:solutionExternalId Rate an Entity
+  * @api {get} /assessment/api/v1/submissions/rate/:entityExternalId?programId=:programExternalId&solutionId=:solutionExternalId&submissionNumber=:submissionInstanceNumber Rate an Entity
   * @apiVersion 1.0.0
   * @apiName Rate an Entity
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} solutionId Solution External ID.
-  * @apiSampleRequest /assessment/api/v1/submissions/rate/1002036?programId=PROGID01&solutionId=EF-DCPCR-2018-001
+  * @apiSampleRequest /assessment/api/v1/submissions/rate/1002036?programId=PROGID01&solutionId=EF-DCPCR-2018-001&submissionNumber=1
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -864,6 +864,7 @@ module.exports = class Submission extends Abstract {
    * @param {String} req.params._id - entity external id.
    * @param {String} req.query.solutionId - solution external id.
    * @param {String} req.query.programId - program external id.
+   * @param {String} req.query.submissionNumber - submission number.
    * @returns {JSON} consists of criteria name,expressionVariablesDefined,
    * expressionVariables,score,expressionResult,submissionAnswers,criteriaExternalId
    */
@@ -904,10 +905,13 @@ module.exports = class Submission extends Abstract {
           });
         }
 
+        let submissionNumber = req.query.submissionNumber ? parseInt(req.query.submissionNumber) : 1;
+
         let queryObject = {
           "entityExternalId": entityId,
           "programExternalId": programId,
-          "solutionExternalId": solutionId
+          "solutionExternalId": solutionId,
+          "submissionNumber" : submissionNumber
         }
 
         let submissionDocument = await database.models.submissions.findOne(
@@ -918,7 +922,6 @@ module.exports = class Submission extends Abstract {
         if (!submissionDocument._id) {
           throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
         }
-
 
         if(solutionDocument.scoringSystem == "pointsBasedScoring") {
 
@@ -1017,14 +1020,14 @@ module.exports = class Submission extends Abstract {
   }
 
   /**
-  * @api {get} /assessment/api/v1/submissions/multiRate?entityId=:entityId1,:entityId2&programId=:programExternalId&solutionId=:solutionExternalId Rate Multiple Entities
+  * @api {get} /assessment/api/v1/submissions/multiRate?entityId=:entityId1,:entityId2&programId=:programExternalId&solutionId=:solutionExternalId&submissionNumber=:submissionInstanceNumber Rate Multiple Entities
   * @apiVersion 1.0.0
   * @apiName Rate Multiple Entities
   * @apiGroup Submissions
   * @apiParam {String} programId Program External ID.
   * @apiParam {String} solutionId Solution External ID.
   * @apiParam {String} entityId Entity ID.
-  * @apiSampleRequest /assessment/api/v1/submissions/multiRate?entityId=1556397,1310274&programId=PROGID01&solutionId=EF-DCPCR-2018-001
+  * @apiSampleRequest /assessment/api/v1/submissions/multiRate?entityId=1556397,1310274&programId=PROGID01&solutionId=EF-DCPCR-2018-001&submissionNumber=all
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -1037,6 +1040,7 @@ module.exports = class Submission extends Abstract {
    * @param {Array} req.params.entityId - entity external ids.
    * @param {String} req.query.solutionId - solution external id.
    * @param {String} req.query.programId - program external id.
+   * @param {String} req.query.submissionNumber - submission number.
    * @returns {JSON} consists of criteria name,expressionVariablesDefined,
    * expressionVariables,score,expressionResult,submissionAnswers,criteriaExternalId
    */
@@ -1052,6 +1056,10 @@ module.exports = class Submission extends Abstract {
         let programId = req.query.programId;
         let solutionId = req.query.solutionId;
         let entityId = req.query.entityId.split(",");
+        let submissionNumber = 
+        req.query.submissionNumber ? 
+        req.query.submissionNumber : 
+        "all";
 
         if (!programId) {
           throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
@@ -1081,6 +1089,10 @@ module.exports = class Submission extends Abstract {
           "programExternalId": programId,
           "solutionExternalId": solutionId
         };
+
+        if(submissionNumber != "all" && parseInt(submissionNumber)) {
+          queryObject["submissionNumber"] = parseInt(submissionNumber);
+        }
 
         let submissionDocuments = await database.models.submissions.find(
           queryObject,
@@ -2233,6 +2245,210 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+    /**
+  * @api {get} /assessment/api/v1/submissions/delete/:submissionId Delete Submission.
+  * @apiVersion 1.0.0
+  * @apiName Delete Submission
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/delete/5c6a352f77c8d249d68ec6d0
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Submission deleted successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Delete submission.
+   * @method
+   * @name delete
+   * @param {String} req.params._id - submission id.
+   * @returns {JSON} - status and deleted message.
+   */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+            
+          let submissionData = await submissionsHelper.delete(
+            req.params._id,
+            req.userDetails.userId
+          );
+          
+          return resolve(submissionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/submissions/setTitle/:submissionId Set Submission Title
+  * @apiVersion 1.0.0
+  * @apiName Set Submission Title
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/setTitle/5c6a352f77c8d249d68ec6d0
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "title" : "Assessment Submission Title",
+  * }
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Submission updated successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Set Submission Title.
+   * @method
+   * @name setTitle
+   * @param {String} req.params._id - submission id.
+   * @param {String} req.body.title - submission title to update.
+   * @returns {JSON} - status and delete message.
+   */
+
+  async setTitle(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+          let editedSubmissionTitle = 
+          await submissionsHelper.setTitle(
+            req.params._id,
+            req.body.title,
+            req.userDetails.userId
+          );
+
+          return resolve(editedSubmissionTitle);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+   /**
+  * @api {get} /assessment/api/v1/submissions/create/:solutionId?entityId=:entityId Create submissions
+  * @apiVersion 1.0.0
+  * @apiName Submissions created successfully
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/create/5b98fa069f664f7e1ae7498c?entityId=5bfe53ea1d0c350d61b78d0a
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Submission created successfully",
+    "status": 200,
+    "result": {
+        "_id": "5eea03f9170c8c5f22069abd",
+        "title": "Assessment 3",
+        "submissionNumber": 3
+    }
+  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+    /**
+   * Create submissions.
+   * @method
+   * @name create
+   * @param {Object} req -request data.
+   * @param {String} req.params._id - solution id.
+   * @param {String} req.query.entityId - entity id.
+   * @returns {JSON} Created submission data. 
+   */
+
+  async create(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let response = 
+        await submissionsHelper.create(
+          req.params._id,
+          req.query.entityId,
+          req.headers['user-agent'],
+          req.userDetails.userId
+        );
+
+        return resolve(response);
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+
+      }
+    })
+  }
+
+
+  /**
+   * List improvement project suggestions by criteria
+   * @method
+   * @name listImprovementProjectSuggestions
+   * @param {String} req.params._id -submission id.
+   * @returns {JSON} response message.
+   */
+
+  async listImprovementProjectSuggestions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let submissionCriteria = await submissionsHelper.getCriteria(req.params._id);
+
+        if(!submissionCriteria.success) {
+          throw submissionCriteria.message
+        }
+
+        let result = new Array;
+
+        if(submissionCriteria.data && submissionCriteria.data.length > 0) {
+          for (let pointerToSubmissionCriteria = 0; pointerToSubmissionCriteria < submissionCriteria.data.length; pointerToSubmissionCriteria++) {
+            const criteria = submissionCriteria.data[pointerToSubmissionCriteria];
+            result.push(_.pick(criteria,[
+              "name",
+              "description",
+              "externalId",
+              "score",
+              "improvement-projects"
+            ]))
+          }
+        }
+
+        return resolve({
+          message: submissionCriteria.message,
+          result : result
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message        
+        });
+      }
+    })
+  }
+
   /**
   * @api {get} /assessment/api/v1/submissions/listImprovementProjectSuggestions/:submissionId List improvement project suggestions by criteria
   * @apiVersion 1.0.0
@@ -2284,6 +2500,62 @@ module.exports = class Submission extends Abstract {
         return reject({
           status: error.status || httpStatusCode.internal_server_error.status,
           message: error.message || httpStatusCode.internal_server_error.message        
+        });
+      }
+    })
+  }
+
+   /**
+  * @api {get} /assessment/api/v1/submissions/list/:solutionId?entityId:entityId List Submissions
+  * @apiVersion 1.0.0
+  * @apiName List Submissions
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/list/5b98fa069f664f7e1ae7498c?entityId=5bfe53ea1d0c350d61b78d0a
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Submission list fetched successfully",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5c6a352f77c8d249d68ec6d0",
+            "status": "inprogress",
+            "updatedAt": "2019-09-03T05:01:40.587Z",
+            "createdAt": "2019-02-18T04:31:43.974Z",
+            "entityId": "5bfe53ea1d0c350d61b78d0a",
+            "entityExternalId": "1207229",
+            "entityType": "school",
+            "submissionNumber": 1,
+            "title": "Assessment 1"
+        }
+    ]
+}
+
+  */
+   /**
+   * List submissions
+   * @method
+   * @name list
+   * @param {Object} req - requested data.
+   * @param {String} req.query.entityId - entity id.
+   * @param {String} req.params._id - solution id. 
+   * @returns {JSON} consists of list of submissions.
+   */
+
+  async list(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+        await submissionsHelper.list( req.query.entityId,req.params._id);
+
+        return resolve(submissionDocument);
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
         });
       }
     })

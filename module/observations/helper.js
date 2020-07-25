@@ -12,6 +12,8 @@ const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfObservationSubmissionsLength = 500;
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+
 
 /**
     * ObservationsHelper
@@ -61,65 +63,49 @@ module.exports = class ObservationsHelper {
      * @name create
      * @param {String} solutionId -solution id.
      * @param {Object} data - Observation creation data.
-     * @param {Object} userDetails - Logged in user details.
-     * @param {String} requestingUserAuthToken - Requesting user auth token. 
+     * @param {Object} userId - User id.
+     * @param {String} requestingUserAuthToken - Requesting user auth token.
+     * @param {String} [programId = ""] - program id
      * @returns {Object} observation creation data.
      */
 
-    static create(solutionId, data, userDetails, requestingUserAuthToken = "") {
+    static create(
+        solutionId,
+        data, 
+        userId, 
+        requestingUserAuthToken = "",
+        programId = ""
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(requestingUserAuthToken == "") {
+                if( requestingUserAuthToken == "" ) {
                     throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN);
                 }
 
-                let userOrganisations = await shikshalokamHelper.getUserOrganisation(requestingUserAuthToken, userDetails.id);
-                let createdFor = new Array;
-                let rootOrganisations = new Array;
+                let organisationAndRootOrganisation = 
+                await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                    requestingUserAuthToken,
+                    userId
+                );
 
-                if(userOrganisations.success && userOrganisations.data) {
-                    createdFor = userOrganisations.data.organisations;
-                    rootOrganisations = userOrganisations.data.rootOrganisations;
-                } else {
-                    throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
-                }
+                let duplicateSolution = 
+                await solutionHelper.createProgramAndSolutionFromTemplate
+                (
+                    solutionId,
+                    {
+                        _id : programId
+                    },
+                    userId,
+                    _.omit(data,["entities"])
+                );
 
-                let solutionDocument = await database.models.solutions.findOne({
-                    _id: ObjectId(solutionId),
-                    isReusable: true
-                }, {
-                        _id: 1,
-                        frameworkId: 1,
-                        frameworkExternalId: 1,
-                        externalId: 1,
-                        entityTypeId: 1,
-                        entityType: 1
-                    }).lean();
-
-                if (!solutionDocument) {
-                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
-                }
-
-                if (data.entities) {
-                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId);
-                    data.entities = entitiesToAdd.entityIds;
-                }
-
-                let observationData = await database.models.observations.create(
-                    _.merge(data, {
-                        "solutionId": solutionDocument._id,
-                        "solutionExternalId": solutionDocument.externalId,
-                        "frameworkId": solutionDocument.frameworkId,
-                        "frameworkExternalId": solutionDocument.frameworkExternalId,
-                        "entityTypeId": solutionDocument.entityTypeId,
-                        "entityType": solutionDocument.entityType,
-                        "author": userDetails.id,
-                        "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id,
-                        "createdFor": createdFor,
-                        "rootOrganisations": rootOrganisations
-                    })
+                let observationData = 
+                await this.createObservation(
+                    data,
+                    userId,
+                    duplicateSolution,
+                    organisationAndRootOrganisation
                 );
 
                 return resolve(_.pick(observationData, ["_id", "name", "description"]));
@@ -128,9 +114,62 @@ module.exports = class ObservationsHelper {
                 return reject(error);
             }
         })
-
     }
 
+    /**
+     * Create observation.
+     * @method
+     * @name createObservation
+     * @param {Object} data - Observation creation data.
+     * @param {String} userId - Logged in user id.
+     * @param {Object} solution - Solution detail data.
+     * @param {Object} solution - Solution detail data.
+     * @param {String} organisationAndRootOrganisation - organisation and root organisation details. 
+     * @returns {Object} observation creation data.
+     */
+
+    static createObservation(data,userId,solution,organisationAndRootOrganisation) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (data.entities) {
+                    let entitiesToAdd = 
+                    await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
+                    data.entities = entitiesToAdd.entityIds;
+                }
+
+                let observationData = 
+                await database.models.observations.create(
+                    _.merge(data, {
+                        "solutionId": solution._id,
+                        "solutionExternalId": solution.externalId,
+                        "programId" : solution.programId,
+                        "programExternalId" : solution.programExternalId,
+                        "frameworkId": solution.frameworkId,
+                        "frameworkExternalId": solution.frameworkExternalId,
+                        "entityTypeId": solution.entityTypeId,
+                        "entityType": solution.entityType,
+                        "updatedBy": userId,
+                        "createdBy": userId,
+                        "createdFor": organisationAndRootOrganisation.createdFor,
+                        "rootOrganisations": organisationAndRootOrganisation.rootOrganisations,
+                        "isAPrivateProgram" : solution.isAPrivateProgram
+                    })
+                );
+
+                if( !observationData._id ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.OBSERVATION_NOT_CREATED
+                    }
+                }
+
+                return resolve(observationData);
+            } catch(error) {
+                return reject(error);
+            }
+        })
+    }
 
     /**
      * Fetch user organisation details.
@@ -153,17 +192,15 @@ module.exports = class ObservationsHelper {
 
                 if(userIds.length > 0) {
                     for (let pointerToUserIds = 0; pointerToUserIds < userIds.length; pointerToUserIds++) {
+                        
                         const user = userIds[pointerToUserIds];
-                        try {
-                            let userOrganisations = await shikshalokamHelper.getUserOrganisation(requestingUserAuthToken, userIds[pointerToUserIds]);
-                            if(userOrganisations.success && userOrganisations.data) {
-                                userOrganisationDetails[user] = userOrganisations.data;
-                            } else {
-                                throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
-                            }
-                        } catch (error) {
-                            userOrganisationDetails[user] = error.message
-                        }
+                        let userOrganisations = 
+                        await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                            requestingUserAuthToken, 
+                            userIds[pointerToUserIds]
+                        );
+                        
+                        userOrganisationDetails[user] = userOrganisations;
                     }
                 }
 
@@ -209,7 +246,6 @@ module.exports = class ObservationsHelper {
         })
     }
 
-
     /**
      * list observation v2.
      * @method
@@ -235,7 +271,6 @@ module.exports = class ObservationsHelper {
             }
         })
     }
-
 
     /**
      * list observation v2.
@@ -531,12 +566,14 @@ module.exports = class ObservationsHelper {
 
                     let observation = {}
 
-                    observation["createdFor"] = userOrganisations.organisations;
+                    observation["createdFor"] = userOrganisations.createdFor;
                     observation["rootOrganisations"] = userOrganisations.rootOrganisations;
                     observation["status"] = "published";
                     observation["deleted"] = "false";
                     observation["solutionId"] = solution._id;
                     observation["solutionExternalId"] = solution.externalId;
+                    observation["programId"] = solution.programId;
+                    observation["programExternalId"] = solution.programExternalId;
                     observation["frameworkId"] = solution.frameworkId;
                     observation["frameworkExternalId"] = solution.frameworkExternalId;
                     observation["entityTypeId"] = solution.entityTypeId;
@@ -547,6 +584,7 @@ module.exports = class ObservationsHelper {
                     observation["name"] = solution.name;
                     observation["description"] = solution.description;
                     observation["entities"] = new Array;
+                    
                     if(isEntityDocumentValid) {
                         observation["entities"].push(entityDocument._id);
                     }
@@ -560,6 +598,7 @@ module.exports = class ObservationsHelper {
                         await this.sendUserNotifications(userId, {
                             solutionType: solution.type,
                             solutionId: solution._id.toString(),
+                            programId : solution.programId,
                             observationId: observationDocument._id.toString()
                         });
                     }
@@ -687,7 +726,8 @@ module.exports = class ObservationsHelper {
                         observationId: 1, 
                         createdBy: 1, 
                         "entityInformation.name": 1, 
-                        "entityInformation.externalId": 1 
+                        "entityInformation.externalId": 1,
+                        programId : 1 
                     }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
@@ -706,7 +746,8 @@ module.exports = class ObservationsHelper {
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
-                            entityName: entityName
+                            entityName: entityName,
+                            programId : eachObservationData.programId
                         });
 
                     })
@@ -721,7 +762,6 @@ module.exports = class ObservationsHelper {
             }
         })
     }
-
 
     /**
      * Completed observations.
@@ -787,7 +827,8 @@ module.exports = class ObservationsHelper {
                         "createdBy": 1, 
                         "entityInformation.name": 1, 
                         "entityInformation.externalId": 1,
-                        "completedDate" : 1 
+                        "completedDate" : 1,
+                        programId : 1  
                     }).lean();
                     await Promise.all(
                         observationSubmissionsDocument.map(async eachObservationData => {
@@ -816,7 +857,8 @@ module.exports = class ObservationsHelper {
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
                             entityName: entityName,
-                            completedDate : eachObservationData.completedDate
+                            completedDate : eachObservationData.completedDate,
+                            programId : eachObservationData.programId
                         });
 
                     })
@@ -884,6 +926,8 @@ module.exports = class ObservationsHelper {
             return resolve({
                 name: 1,
                 externalId: 1,
+                programId : 1,
+                programExternalId : 1,
                 description: 1,
                 themes: 1,
                 entityProfileFieldsPerEntityTypes: 1,
@@ -922,6 +966,77 @@ module.exports = class ObservationsHelper {
                 "enableQuestionReadOut"
             ]);
         })
+    }
+
+     /**
+     * Create solution from library template. 
+     * @method
+     * @name createV2
+     * @param {String} templateId - observation solution library id. 
+     * @param {String} userId - Logged in user id.
+     * @param {Object} requestedData - request body data.
+     * @param {String} token - logged in token.    
+     * @returns {Array} - Create solution from library template.
+     */
+
+    static createV2( templateId,userId,requestedData,token ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+  
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                token,
+                userId
+              );
+
+              let solutionInformation =  {
+                name : requestedData.name,
+                description : requestedData.description
+              };
+  
+              let createdSolutionAndProgram = 
+              await solutionHelper.createProgramAndSolutionFromTemplate(
+                templateId,
+                requestedData.program,
+                userId,
+                solutionInformation,
+                true
+              );
+
+              let startDate = new Date();
+              let endDate = new Date();
+              endDate.setFullYear(endDate.getFullYear() + 1);
+
+              let observationData = {
+                name : requestedData.name,
+                description : requestedData.description,
+                status : requestedData.status,
+                startDate : startDate,
+                endDate : endDate,
+                entities : requestedData.entities
+              };
+
+              let observation = 
+              await this.createObservation(
+                observationData,
+                userId,
+                createdSolutionAndProgram,
+                organisationAndRootOrganisation
+              );
+
+              createdSolutionAndProgram["observationName"] = observation.name;
+              createdSolutionAndProgram["observationId"] = observation._id;
+              createdSolutionAndProgram["observationExternalId"] = observation.externalId;
+
+              return resolve({
+                message: messageConstants.apiResponses.CREATED_SOLUTION,
+                result : createdSolutionAndProgram
+              });
+  
+            } catch (error) {
+                return reject(error);
+            }
+        });
     }
 
 };

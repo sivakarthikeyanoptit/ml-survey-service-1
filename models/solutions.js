@@ -45,5 +45,17 @@ module.exports = {
     updatedBy: String,
     captureGpsLocationAtQuestionLevel:{ type : Boolean, default: false },
     sendSubmissionRatingEmailsTo: String,
+    creator: String,
+    linkTitle: String,
+    linkUrl: String,
+    isAPrivateProgram : {
+      default : false,
+      type : Boolean
+    },
+    assessmentMetaFormKey : String,
+    allowMultipleAssessemts : {
+      default : false,
+      type : Boolean
+    }
   }
 };

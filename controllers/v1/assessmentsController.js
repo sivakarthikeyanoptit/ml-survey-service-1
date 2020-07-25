@@ -10,7 +10,6 @@
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 
-
 /**
     * Assessments
     * @class
@@ -33,14 +32,14 @@ module.exports = class Assessments {
      */
 
     /**
-    * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId} Detailed assessments
+    * @api {get} /assessment/api/v1/assessments/details/{programID}?solutionId={solutionId}&entityId={entityId}&submissionNumber=submissionNumber Detailed assessments
     * @apiVersion 1.0.0
     * @apiName Assessment details
     * @apiGroup Assessments
     * @apiParam {String} solutionId Solution ID.
     * @apiParam {String} entityId Entity ID.
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7
+    * @apiSampleRequest /assessment/api/v1/assessments/details/5c56942d28466d82967b9479?solutionId=5c5693fd28466d82967b9429&entityId=5c5694be52600a1ce8d24dc7&submissionNumber=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -115,8 +114,12 @@ module.exports = class Assessments {
       * Assessment details.
       * @method
       * @name details
-      * @param {Request} req 
-      * - request consists of programId,solutionId and entityId.
+      * @param {Object} req - request data. 
+      * @param {String} req.params._id - program id.
+      * @param {String} req.query.solutionId - solution id.
+      * @param {String} req.query.entityId - entity id.
+      * @param {String} req.query.submissionNumber - submission number.
+      * @param {String} req.userDetails.userId -logged in user id.
       * @returns {JSON} returns assessment details response.
      */
 
@@ -137,7 +140,6 @@ module.exports = class Assessments {
                     components: { $in: [ObjectId(req.query.solutionId)] }
                 };
                 let programDocument = await database.models.programs.findOne(programQueryObject).lean();
-
 
                 if (!programDocument) {
                     let responseMessage = messageConstants.apiResponses.PROGRAM_NOT_FOUND;
@@ -277,8 +279,9 @@ module.exports = class Assessments {
                     entityType: solutionDocument.entityType,
                     programId: programDocument._id,
                     programExternalId: programDocument.externalId,
+                    isAPrivateProgram : programDocument.isAPrivateProgram, 
                     programInformation: {
-                        ..._.omit(programDocument, ["_id", "components"])
+                        ..._.omit(programDocument, ["_id", "components","isAPrivateProgram"])
                     },
                     evidenceSubmissions: [],
                     entityProfile: {},
@@ -394,11 +397,17 @@ module.exports = class Assessments {
                 submissionDocument.evidences = submissionDocumentEvidences;
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
+                
+                let submissionNumber = 
+                req.query.submissionNumber ? parseInt(req.query.submissionNumber) : 1;
+                submissionDocument.submissionNumber = submissionNumber;
 
                 let submissionDoc = await submissionsHelper.findSubmissionByEntityProgram(
                     submissionDocument,
-                    req
+                    req.headers['user-agent'],
+                    req.userDetails.userId
                 );
+                
                 assessment.submissionId = submissionDoc.result._id;
 
                 if (isRequestForOncallOrOnField == "oncall" && submissionDoc.result.parentInterviewResponses && submissionDoc.result.parentInterviewResponses.length > 0) {
@@ -431,5 +440,142 @@ module.exports = class Assessments {
             }
         });
     }
+
+     /**
+    * @api {get} /assessment/api/v1/assessments/metaForm/:solutionId Assessment Solution Meta Form
+    * @apiVersion 1.0.0
+    * @apiName Assessment Solution Meta Form
+    * @apiGroup Assessments
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/assessments/metaForm/5ed5ec4dd2afa80d0f616460
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * "result": [
+        {
+            "field": "name",
+            "label": "Title",
+            "value": "",
+            "visible": true,
+            "editable": true,
+            "validation": {
+                "required": true
+            },
+            "input": "text"
+        },{
+            "field": "description",
+            "label": "Description",
+            "value": "",
+            "visible": true,
+            "editable": true,
+            "input": "text",
+            "validation": {
+                "required": true
+            },
+            "min": "",
+            "max": ""
+        }
+    ]
+    */
+
+     /**
+   * Assessment meta form.
+   * @method
+   * @name metaForm
+   * @param {Object} req -request Data.
+   * @returns {JSON} - Assessment meta form.
+   */
+
+   async metaForm(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let assessmentForm = 
+            await assessmentsHelper.metaForm(
+                req.params._id
+            );
+
+            return resolve(assessmentForm);
+
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    });
+   }
+
+   /**
+     * @api {post} /assessment/api/v1/assessments/create?solutionId=solutionId Create assessment solution
+     * @apiVersion 1.0.0
+     * @apiName Create assessment solution
+     * @apiGroup Assessments
+     * @apiParamExample {json} Request-Body:
+     *  {
+     * "name" : "My Solution",
+     * "description" : "My Solution Description",
+     * "program" : {
+     * "_id" : "",
+     * "name" : "My program"
+     * },
+     * "entities" : ["5bfe53ea1d0c350d61b78d0a"]
+     * }
+     * @apiSampleRequest /assessment/api/v1/assessments/create?solutionId=5ed5ec4dd2afa80d0f616460
+     * @apiUse successBody
+     * @apiUse errorBody
+     * @apiParamExample {json} Response:
+     * {
+    "message": "Successfully created solution",
+    "status": 200,
+    "result": {
+        "_id": "5edf857ed56fc75d57d50a6c",
+        "externalId": "EF-DCPCR-2018-001-TEMPLATE-1591707006669",
+        "frameworkExternalId": "EF-DCPCR-2018-001",
+        "frameworkId": "5d15adc5fad01368a494cbd6",
+        "programExternalId": "My program-1591707006618",
+        "programId": "5edf857ed56fc75d57d50a6b",
+        "entityTypeId": "5d15a959e9185967a6d5e8a6",
+        "entityType": "school",
+        "isAPrivateProgram" : true
+    }
+     }
+     */
+     
+    /**
+    * Create solution from Assessment template
+    * @method
+    * @name create
+    * @param {Object} req -request Data.
+    * @returns {JSON} - Create solution from Assessment template
+    */
+
+   async create(req) {
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let solutionData = 
+            await assessmentsHelper.create(
+              req.query.solutionId,
+              req.userDetails,
+              req.body
+            );
+
+            return resolve(solutionData);
+
+        } catch (error) {
+
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    })
+   }
 
 }

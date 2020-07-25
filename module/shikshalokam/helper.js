@@ -135,4 +135,41 @@ module.exports = class shikshalokamHelper {
         })
     }
 
+     /**
+     * Organisation and root organisation data
+     * @method
+     * @name getOrganisationsAndRootOrganisations
+     * @param {String} token - token data.
+     * @param {String} userId - Logged in user id.
+     * @returns {Array} - Created for and root organisation details.
+     */
+
+    static getOrganisationsAndRootOrganisations(token,userId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let userOrganisations = 
+                await this.getUserOrganisation(token, userId);
+
+                let createdFor = new Array;
+                let rootOrganisations = new Array;
+
+                if(userOrganisations.success && userOrganisations.data) {
+                    createdFor = userOrganisations.data.organisations;
+                    rootOrganisations = userOrganisations.data.rootOrganisations;
+                } else {
+                    throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
+                }
+
+                return resolve({
+                    createdFor : createdFor,
+                    rootOrganisations : rootOrganisations
+                })
+
+            } catch(error) {
+                return reject(error);
+            }
+        })
+    }
+
 };

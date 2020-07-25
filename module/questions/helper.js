@@ -774,22 +774,32 @@ module.exports = class QuestionsHelper {
    * @method
    * @name questionDocument
    * @param {String} [questionFilter = "all"] -filter query.
-   * @param {Array} [fieldsArray = "all"] -projected fields.          
+   * @param {Array} [fieldsArray = "all"] -projected fields. 
+   * @param {Array} [skipFields = "none"] - fields to be skipped.         
    * @returns {Array} question data.  
    */
 
-  static questionDocument(questionFilter = "all", fieldsArray = "all") {
+  static questionDocument(
+    questionFilter = "all", 
+    fieldsArray = "all",
+    skipFields = "none"
+  ) {
     return new Promise(async (resolve, reject) => {
       try {
 
         let queryObject = (questionFilter != "all") ? questionFilter : {};
-
 
         let projectionObject = {};
 
         if (fieldsArray != "all") {
           fieldsArray.forEach(field => {
             projectionObject[field] = 1;
+          });
+        }
+
+        if (skipFields != "none") {
+          skipFields.forEach(element => {
+            projection[element] = 0;
           });
         }
 
