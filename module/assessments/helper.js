@@ -681,6 +681,14 @@ module.exports = class AssessmentsHelper {
                     }
 
                    })
+               } else {
+                   Object.keys(solutionDetails.evidenceMethods).forEach(evidenceMethodCode => {
+                        ecmQuestions.push({
+                            ecm : solutionDetails.evidenceMethods[evidenceMethodCode].externalId,
+                            name : solutionDetails.evidenceMethods[evidenceMethodCode].name,
+                            questions : []
+                        });
+                   })
                }
 
                let result = {
