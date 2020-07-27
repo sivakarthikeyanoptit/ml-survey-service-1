@@ -1,0 +1,2 @@
+"externalId","name","criteriaId","weightage","expressionVariables","L1","L2","L3","L4","status"
+"Z/TEST/100","Some Criteria","5beab110af0065f0e0a108cc","40.5","SCORE=5beab110af0065f0e0a108cc.scoreOfAllQuestionInCriteria()","0<=SCORE<6","6<=SCORE<10","10<=SCORE<15","16<=SCORE<100000","Invalid criteria external ID."

@@ -21,6 +21,8 @@ module.exports = {
     LEAD_ASSESSOR : "LEAD_ASSESSOR",
     MANUAL_RATING : "manual",
     AUTO_RATING : "auto",
-    SUBMISSION_STATUS : "ratingPending",
-    STATUS_COMPLETED : "completed"
+    SUBMISSION_STATUS_RATING_PENDING: "ratingPending",
+    SUBMISSION_STATUS_COMPLETED : "completed",
+    SUBMISSION_STATUS_STARTED : "started",
+    SUBMISSION_STATUS_IN_PROGRESS : "inProgess"
 }

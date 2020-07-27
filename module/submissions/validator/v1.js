@@ -27,10 +27,13 @@ module.exports = (req) => {
             .isMongoId().withMessage("Invalid entity id");
         },
         getCriteriaQuestions: function () {
-            req.checkParams('_id').exists().withMessage("required submission id");
+            req.checkParams('_id').exists().withMessage("required submission id")
+            .isMongoId().withMessage("Invalid submission id");
         },
         manualRating: function () {
-            req.checkParams('_id').exists().withMessage("required submission id");
+            req.checkParams('_id').exists().withMessage("required submission id")
+            .isMongoId().withMessage("Invalid submission id");
+            req.checkBody(Object.keys(req.body)).isEmpty().withMessage("required atleast one criteriaId");
         }       
     }
 

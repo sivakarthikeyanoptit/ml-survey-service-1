@@ -2627,8 +2627,9 @@ module.exports = class Submission extends Abstract {
       } catch (error) {
         return reject({
           status: error.status || httpStatusCode.internal_server_error.status,
+          success: false,
           message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
+          result: false
         });
       }
     })
@@ -2676,8 +2677,9 @@ module.exports = class Submission extends Abstract {
       } catch (error) {
         return reject({
           status: error.status || httpStatusCode.internal_server_error.status,
+          success: false,
           message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
+          result: false
         });
       }
     })

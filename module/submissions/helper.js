@@ -1495,6 +1495,15 @@ module.exports = class SubmissionsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
+                if (!submissionId) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        success: false,
+                        message: messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED,
+                        result: false
+                    })
+                }
+
                 let result = {};
 
                 let queryObject = {
@@ -1518,8 +1527,9 @@ module.exports = class SubmissionsHelper {
                 if (!submissionDocument.length > 0) {
                     return resolve({
                         status: httpStatusCode.bad_request.status,
+                        success: false,
                         message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                        result: []
+                        result: false
                     })
                 }
 
@@ -1693,6 +1703,7 @@ module.exports = class SubmissionsHelper {
 
                     return resolve({
                         message: messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
+                        success: true,
                         result: result
                     })
 
@@ -1700,8 +1711,9 @@ module.exports = class SubmissionsHelper {
                 else {
                     return resolve({
                         status: httpStatusCode.bad_request.status,
+                        success: false,
                         message: messageConstants.apiResponses.FETCH_CRITERIA_QUESTIONS_FAILURE,
-                        result: []
+                        result: false
                     })
                 }
 
@@ -1723,7 +1735,25 @@ module.exports = class SubmissionsHelper {
     static manualRating( req ) {
         return new Promise(async (resolve, reject) => {
             try {
- 
+                
+                if (!req.params._id) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        success: false,
+                        message: messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED,
+                        result: false
+                    })
+                }
+
+                if (Object.keys(req.body).length === 0) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        success: false,
+                        message: messageConstants.apiResponses.CRITERIA_OBJECT_MISSING,
+                        result: false
+                    })
+                }
+
                 let queryObject = {
                     _id: req.params._id,
                 };
@@ -1743,9 +1773,10 @@ module.exports = class SubmissionsHelper {
 
                 if ( !submissionDocument.length > 0 ) {
                     return resolve({
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                        result : []
+                        status: httpStatusCode.bad_request.status,
+                        success: false,
+                        message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                        result: false
                     })
                 }
 
@@ -1762,10 +1793,12 @@ module.exports = class SubmissionsHelper {
 
                if ( isValidAssessor == true && 
                     submissionDocument[0]["scoringSystem"] && submissionDocument[0].scoringSystem == messageConstants.common.MANUAL_RATING &&
-                    submissionDocument[0]["status"] && submissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS
+                    submissionDocument[0]["status"] && submissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS_RATING_PENDING
                 ) {
 
-                     if (submissionDocument[0]["criteria"] && submissionDocument[0].criteria.length > 0) {
+                     if (submissionDocument[0]["criteria"] &&
+                         submissionDocument[0].criteria.length > 0 &&
+                         submissionDocument[0].criteria.length === Object.keys(req.body).length) {
                         
                         for(let criteria = 0 ; criteria < submissionDocument[0].criteria.length; criteria ++) {
 
@@ -1779,23 +1812,34 @@ module.exports = class SubmissionsHelper {
                         {_id : req.params._id },
                         { $set : {
                              criteria: submissionDocument[0].criteria,
-                             status : messageConstants.common.STATUS_COMPLETED
+                             status : messageConstants.common.SUBMISSION_STATUS_COMPLETED
                             }
                         }
                         );
-                    }
 
-                    await this.pushCompletedSubmissionForReporting(req.params._id);
+                        await this.pushCompletedSubmissionForReporting(req.params._id);
                     
-                    return resolve({
-                        message : messageConstants.apiResponses.SUCCESSFULLY_SUBMITTED_MANUAL_RATING
-                    })
-
+                        return resolve({
+                            success: true,
+                            message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
+                            result: true
+                        })
+                    }
+                    else {
+                        return resolve({
+                            status: httpStatusCode.bad_request.status,
+                            success: false,
+                            message: messageConstants.apiResponses.CRITERIA_LENGTH_MISMATCH,
+                            result: false
+                        })
+                    }
                 }
                 else {
                     return resolve({
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.RATING_SUBMISSION_FAILURE
+                        status: httpStatusCode.bad_request.status,
+                        success: false,
+                        message: messageConstants.apiResponses.RATING_COULD_NOT_BE_SUBMITTED,
+                        result: false
                     })
                 }
     

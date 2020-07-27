@@ -206,7 +206,10 @@ module.exports = {
 "KENDRA_SERVICE_DOWN" : "Kendra service is down",
 "SUBMISSION_LIST_FETCHED" : "Submission list fetched successfully",
 "CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY" : "Criteria questions fetched successfully",
-"SUCCESSFULLY_SUBMITTED_MANUAL_RATING" : "submitted the manual rating successfully",
-"RATING_SUBMISSION_FAILURE" : "Could not submit the rating",
-"FETCH_CRITERIA_QUESTIONS_FAILURE" : "rating is already done / scoring system has to be manual"
+"MANUAL_RATING_SUBMITTED_SUCCESSFULLY" : "Manual rating submitted successfully",
+"RATING_COULD_NOT_BE_SUBMITTED" : "Rating could not be submitted",
+"FETCH_CRITERIA_QUESTIONS_FAILURE" : "Rating is already submitted or rating submission is not allowed.",
+"SUBMISSION_ID_IS_REQUIRED" : "SubmissionId is a required field",
+"CRITERIA_OBJECT_MISSING" : "Request body should contain atleast one criteriaId",
+"CRITERIA_LENGTH_MISMATCH" : "Criteria length is mismatching"
 }

@@ -278,6 +278,7 @@ module.exports = class Assessments {
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     scoringSystem : solutionDocument.scoringSystem,
+                    isRubricDriven : solutionDocument.isRubricDriven,
                     programId: programDocument._id,
                     programExternalId: programDocument.externalId,
                     isAPrivateProgram : programDocument.isAPrivateProgram, 
