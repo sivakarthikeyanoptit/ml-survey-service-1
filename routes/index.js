@@ -89,7 +89,8 @@ module.exports = function (app) {
             totalCount: result.totalCount,
             total: result.total,
             count: result.count,
-            failed: result.failed
+            failed: result.failed,
+            success: result.success
           });
         }
         if (ENABLE_BUNYAN_LOGGING === "ON") {
