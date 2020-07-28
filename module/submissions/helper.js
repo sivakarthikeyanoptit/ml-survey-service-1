@@ -19,6 +19,7 @@ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
+
 /**
     * SubmissionsHelper
     * @class
@@ -1731,8 +1732,7 @@ module.exports = class SubmissionsHelper {
                 ) {
 
                      if (submissionDocument[0]["criteria"] &&
-                         submissionDocument[0].criteria.length > 0 &&
-                         submissionDocument[0].criteria.length === Object.keys(req.body).length) {
+                         submissionDocument[0].criteria.length > 0 ) {
                         
                         for(let criteria = 0 ; criteria < submissionDocument[0].criteria.length; criteria ++) {
 
@@ -1757,14 +1757,6 @@ module.exports = class SubmissionsHelper {
                             success: true,
                             message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
                             result: true
-                        })
-                    }
-                    else {
-                        return resolve({
-                            status: httpStatusCode.bad_request.status,
-                            success: false,
-                            message: messageConstants.apiResponses.CRITERIA_LENGTH_MISMATCH,
-                            result: false
                         })
                     }
                 }
