@@ -1492,23 +1492,21 @@ module.exports = class SubmissionsHelper {
     * @returns {Object} - Criteria questions and answers 
     */
 
-    static getCriteriaQuestions(submissionId) {
+    static getCriteriaQuestions(submissionId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if (!submissionId) {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED,
-                        result: false
-                    })
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
                 }
 
                 let result = {};
 
                 let queryObject = {
-                    _id: submissionId
+                    _id: submissionId,
+                    scoringSytem : "manual",
+                    isRubricDriven : true,
+                    status : "ratingPending"
                 };
 
                 let projection = [
@@ -1526,12 +1524,7 @@ module.exports = class SubmissionsHelper {
                     );
 
                 if (!submissionDocument.length > 0) {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                        result: false
-                    })
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
                 }
 
                 if (submissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS_RATING_PENDING &&
@@ -1653,7 +1646,11 @@ module.exports = class SubmissionsHelper {
                 }
 
             } catch (error) {
-                return reject(error);
+                return resolve({
+                    success : false,
+                    message: error.message,
+                    data : false
+                });
             }
         });
     }
