@@ -1741,8 +1741,9 @@ module.exports = class SubmissionsHelper {
     * manual rating 
     * @method
     * @name manualRating
-    * @param {Object} req - request Data.
-    * @returns {Object} - criteria questions and answeres
+    * @param {String} submissionId - submissionId
+    * @param {Object} - CritriaId and level
+    * @returns {String} - success message
     */
 
     static manualRating(submissionId, criteriaObject, userDetails) {
@@ -1804,7 +1805,7 @@ module.exports = class SubmissionsHelper {
 
                         for (let criteria = 0; criteria < submissionDocument[0].criteria.length; criteria++) {
 
-                            if (req.body[submissionDocument[0].criteria[criteria]._id]) {
+                            if (criteriaObject[submissionDocument[0].criteria[criteria]._id]) {
 
                                 submissionDocument[0].criteria[criteria].score = criteriaObject[submissionDocument[0].criteria[criteria]._id];
                             }

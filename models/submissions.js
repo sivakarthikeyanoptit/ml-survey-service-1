@@ -38,6 +38,7 @@ module.exports = {
     submissionNumber : Number,
     scoringSystem : String,
     isRubricDriven: { type : Boolean, default: false },
+    numberOfAnsweredCriterias: { type : Number, default: 0 },
     title : { 
       type : String,
       default: function() {
