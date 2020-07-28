@@ -1493,7 +1493,7 @@ module.exports = class SubmissionsHelper {
     * @returns {Object} - Criteria questions and answers 
     */
 
-    static getCriteriaQuestions(submissionId) {
+    static getCriteriaQuestions(submissionId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1522,12 +1522,7 @@ module.exports = class SubmissionsHelper {
                     );
                 
                 if (!submissionDocument.length > 0) {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                        result: false
-                    })
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
                 }
 
                 let groupByCriteria = {};
@@ -1847,7 +1842,7 @@ module.exports = class SubmissionsHelper {
                 return resolve({
                     success: false,
                     message: error.message,
-                    result: false
+                    data: false
                 });
             }
         });
