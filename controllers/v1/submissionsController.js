@@ -2588,8 +2588,12 @@ module.exports = class Submission extends Abstract {
                 "value": [
                     "label of selected answer if options otherwise only answer" 
                 ],
-                "evidences": [],
-                "remarks":[]
+                "evidences": {
+                   "images": [],
+                   "videos": [],
+                   "documents": [],
+                   "remarks":[]
+                }
             }]
         }]
         "criteria": [{
@@ -2618,12 +2622,12 @@ module.exports = class Submission extends Abstract {
   async getCriteriaQuestions(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        
-        let submissionDocument =
-        await submissionsHelper.getCriteriaQuestions( req.params._id);
 
-        return resolve(submissionDocument);
-        
+        let criteriaQuestions =
+          await submissionsHelper.getCriteriaQuestions(req.params._id);
+
+          return resolve(criteriaQuestions);
+
       } catch (error) {
         return reject({
           status: error.status || httpStatusCode.internal_server_error.status,
@@ -2639,7 +2643,7 @@ module.exports = class Submission extends Abstract {
   /**
   * @api {post} /assessment/api/v1/submissions/manualRating/:submissionId
   * @apiVersion 1.0.0
-  * @apiName manual rating
+  * @apiName Manual rating
   * @apiGroup Submissions
   * @apiSampleRequest /assessment/api/v1/submissions/manualRating/5b98fa069f664f7e1ae7498c
   * @apiParamExample {json} Request-Body:
@@ -2652,25 +2656,26 @@ module.exports = class Submission extends Abstract {
   * @apiParamExample {json} Response:
   * {
      "status": 200,
-     "message": "submitted the manual rating successfully"
+     "message": "Manual rating submitted successfully"
     }
   
   */
-   /**
-   * manual rating
-   * @method
-   * @name  manualRating
-   * @param {Object} req - requested data.
-   * @param {String} req.params._id - submission id. 
-   * @returns {JSON} manual rating
-   */
+  /**
+  * Manual rating
+  * @method
+  * @name  manualRating
+  * @param {Object} req - requested data.
+  * @param {String} req.params._id - submission id.
+  * @param {Object} req.body - CriteriaId and level
+  * @returns {String}  Success message
+  */
 
   async manualRating(req) {
     return new Promise(async (resolve, reject) => {
       try {
-        
+
         let response =
-        await submissionsHelper.manualRating( req );
+          await submissionsHelper.manualRating(req.params._id, req.body, req.userDetails);
 
         return resolve(response);
         

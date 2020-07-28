@@ -210,7 +210,7 @@ module.exports = {
 "RATING_COULD_NOT_BE_SUBMITTED" : "Rating could not be submitted",
 "FETCH_CRITERIA_QUESTIONS_FAILURE" : "Rating is already submitted or rating submission is not allowed.",
 "SUBMISSION_ID_IS_REQUIRED" : "SubmissionId is a required field",
-"CRITERIA_OBJECT_MISSING" : "Request body should contain atleast one criteriaId",
+"CRITERIA_OBJECT_MISSING" : "Criteria Object should contain atleast one criteriaId",
 "CRITERIA_LENGTH_MISMATCH" : "Criteria length is mismatching",
 "CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND" : "Criteria questions could not be found"
 }

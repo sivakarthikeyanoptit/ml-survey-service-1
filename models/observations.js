@@ -27,6 +27,8 @@ module.exports = {
     isAPrivateProgram : {
       default : false,
       type : Boolean
-    }
+    },
+    scoringSystem: String,
+    isRubricDriven: { type : Boolean, default: false }
   }
 };
