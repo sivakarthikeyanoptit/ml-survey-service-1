@@ -1344,7 +1344,8 @@ module.exports = class Observations extends Abstract {
                     status: "active",
                     isDeleted: false,
                     isReusable: false,
-                    type: "observation"
+                    type: "observation",
+                    programId : { $exists : true }
                 };
 
                 let solutionProjection = [
