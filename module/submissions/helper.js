@@ -1718,12 +1718,7 @@ module.exports = class SubmissionsHelper {
                     })
                 }
                 else {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND,
-                        result: false
-                    })
+                    throw new Error(messageConstants.apiResponses.CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND);
                 }
 
             } catch (error) {
@@ -1812,7 +1807,7 @@ module.exports = class SubmissionsHelper {
                     })
 
                 } else {
-                    throw new Error("No criteria found.")
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_CRITERIA_NOT_FOUND)
                 }
 
             } catch (error) {

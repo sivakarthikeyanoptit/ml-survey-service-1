@@ -212,5 +212,6 @@ module.exports = {
 "SUBMISSION_ID_IS_REQUIRED" : "SubmissionId is a required field",
 "CRITERIA_OBJECT_MISSING" : "Criteria Object should contain atleast one criteriaId",
 "CRITERIA_LENGTH_MISMATCH" : "Criteria length is mismatching",
-"CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND" : "Criteria questions could not be found"
+"CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND" : "Criteria questions could not be found",
+"SUBMISSION_CRITERIA_NOT_FOUND" : "Criteria not found for the submissionId"
 }
