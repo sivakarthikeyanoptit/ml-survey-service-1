@@ -2586,7 +2586,7 @@ module.exports = class Submission extends Abstract {
                 "questionId": "5de4ac761f6a980ca737c735",
                 "responseType": "radio",
                 "value": [
-                    "label of selected answer if options otherwise only answer" 
+                    "yes" 
                 ],
                 "evidences": {
                    "images": [],
