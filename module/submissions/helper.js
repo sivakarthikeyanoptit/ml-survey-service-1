@@ -1497,7 +1497,7 @@ module.exports = class SubmissionsHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if (!submissionId) {
+                if (submissionId == "") {
                     throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
                 }
 
@@ -1506,7 +1506,8 @@ module.exports = class SubmissionsHelper {
                 let queryObject = {
                     _id: submissionId,
                     status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
-                    scoringSystem: messageConstants.common.MANUAL_RATING
+                    scoringSystem: messageConstants.common.MANUAL_RATING,
+                    isRubricDriven : true
                 };
 
                 let projection = [
@@ -1742,20 +1743,25 @@ module.exports = class SubmissionsHelper {
     * @method
     * @name manualRating
     * @param {String} submissionId - submissionId
-    * @param {Object} - CritriaId and level
+    * @param {Object} criteriaObject - An object of critieria id to level value
+    * @param {String} userId - ID of the user who is submitting the manual rating
     * @returns {String} - success message
     */
 
-    static manualRating(submissionId, criteriaObject, userDetails) {
+    static manualRating(submissionId = "", criteriaObject = {}, userId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if (!submissionId) {
+                if (submissionId == "") {
                     throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
                 }
 
                 if (Object.keys(criteriaObject).length === 0) {
                     throw new Error(messageConstants.apiResponses.CRITERIA_OBJECT_MISSING);
+                }
+
+                if (userId == "") {
+                    throw new Error("User ID is required.");
                 }
 
                 let queryObject = {

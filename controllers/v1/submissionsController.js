@@ -2675,7 +2675,7 @@ module.exports = class Submission extends Abstract {
       try {
 
         let response =
-          await submissionsHelper.manualRating(req.params._id, req.body, req.userDetails);
+          await submissionsHelper.manualRating(req.params._id, req.body, req.userDetails.userId);
 
         return resolve(response);
         
