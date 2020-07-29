@@ -1532,14 +1532,6 @@ module.exports = class SubmissionsHelper {
 
                 let criteriaIdMap = _.keyBy(submissionDocument[0].criteria, '_id');
 
-                // if (submissionDocument[0].criteria.length > 0) {
-                //     submissionDocument[0].criteria.forEach(singleCriteria => {
-                //         if (!groupByCriteria[singleCriteria._id]) {
-                //             groupByCriteria[singleCriteria._id] = singleCriteria;
-                //         }
-                //     });
-                // }
-                
                 let criteriaQuestionObject = {};
                 let questionIdArray = [];
                 let fileSourcePath = [];
@@ -1569,37 +1561,20 @@ module.exports = class SubmissionsHelper {
                     );
 
                 let questionIdMap = _.keyBy(questionDocuments, '_id');
-                    
-                // https://lodash.com/docs/#keyBy
-
-
-                // if (questionDocuments.length > 0) {
-                //     questionDocuments.forEach(singleQuestion => {
-                //         if (!groupByQuestion[singleQuestion._id]) {
-                //             groupByQuestion[singleQuestion._id] = singleQuestion;
-                //         }
-                //     });
-                // }
                 
-                let filePathTOoURLMap = {};
-
+                let filePathToURLMap = {};
                 if (fileSourcePath.length > 0) {
-                    
                     let evidenceUrls = await kendraService.getDownloadableUrl(
                         {
                             filePaths: fileSourcePath
                         }
                     );
-
                     if (evidenceUrls.status == httpStatusCode.ok.status) {
-                        filePathTOoURLMap = _.keyBy(evidenceUrls.result, 'filePath');
-                        // evidenceUrls.result.forEach(evidenceUrl => {
-                        //     if (!groupedEvidenceData[evidenceUrl.filePath]) {
-                        //         groupedEvidenceData[evidenceUrl.filePath] = evidenceUrl;
-                        //     }
-                        // });
+                        filePathToURLMap = _.keyBy(evidenceUrls.result, 'filePath');
                     }
                 }
+
+                result.criteria = [];
 
                 if (Object.keys(submissionDocument[0].answers).length > 0) {
 
@@ -1614,6 +1589,11 @@ module.exports = class SubmissionsHelper {
                                 criteriaQuestionObject[answer.criteriaId]["name"] = criteriaIdMap[answer.criteriaId].name;
                                 criteriaQuestionObject[answer.criteriaId]["score"] = "";
                                 criteriaQuestionObject[answer.criteriaId]["questions"] = [];
+
+                                result.criteria.push({
+                                    id: answer.criteriaId,
+                                    name: criteriaIdMap[answer.criteriaId].name
+                                })
                             }
 
                             let questionAnswerObj = {};
@@ -1638,19 +1618,19 @@ module.exports = class SubmissionsHelper {
                                     if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
                                         questionAnswerObj.evidences.images.push({
                                             filePath: file.sourcePath,
-                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            url: filePathToURLMap[file.sourcePath]["url"],
                                             extension: extension
                                         })
                                     } else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
                                         questionAnswerObj.evidences.videos.push({
                                             filePath: file.sourcePath,
-                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            url: filePathToURLMap[file.sourcePath]["url"],
                                             extension: extension
                                         })
                                     } else {
                                         questionAnswerObj.evidences.documents.push({
                                             filePath: file.sourcePath,
-                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            url: filePathToURLMap[file.sourcePath]["url"],
                                             extension: extension
                                         })
                                     }
@@ -1662,9 +1642,9 @@ module.exports = class SubmissionsHelper {
                                     answer.value = [answer.value];
                                 }
                                 
-                                if (groupByQuestion[answer.qid]["options"].length > 0 && answer.value.length > 0) {
+                                if (questionIdMap[answer.qid]["options"].length > 0 && answer.value.length > 0) {
                                     answer.value.forEach(singleValue => {
-                                        groupByQuestion[answer.qid]["options"].forEach(option => {
+                                        questionIdMap[answer.qid]["options"].forEach(option => {
                                             if (singleValue == option.value) {
                                                 questionAnswerObj.value.push(option.label);
                                             }
@@ -1682,19 +1662,7 @@ module.exports = class SubmissionsHelper {
                     });
 
                     result.criteriaQuestions = Object.values(criteriaQuestionObject)
-                    result.criteria = [];
                     result.levelToScoreMapping = [];
-
-                    // Do it in above loop
-
-                    // Object.keys(criteriaQuestionObject).forEach(singleCriteria => {
-                    //     result.criteriaQuestions.push(criteriaQuestionObject[singleCriteria]);
-
-                    //     result.criteria.push({
-                    //         id: criteriaQuestionObject[singleCriteria].id,
-                    //         name: criteriaQuestionObject[singleCriteria].name
-                    //     })
-                    // });
 
                     let solutionDocument = await solutionsHelper.solutionDocuments
                         (
@@ -1767,7 +1735,7 @@ module.exports = class SubmissionsHelper {
                 }
 
                 if (userId == "") {
-                    throw new Error("User ID is required.");
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK);
                 }
 
                 let queryObject = {
