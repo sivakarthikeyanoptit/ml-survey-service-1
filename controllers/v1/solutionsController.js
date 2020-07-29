@@ -797,7 +797,7 @@ module.exports = class Solutions extends Abstract {
 
             const criteriaId = allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]._id;
 
-            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow);
+            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow, solutionLevelKeys);
             
             if(criteriaRubricUpdation.success) {
               criteriaRow.status = "Success.";
