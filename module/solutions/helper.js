@@ -1023,7 +1023,6 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.updatedAt = startDate;
           newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
           newSolutionDocument.isReusable = false;
-          newSolutionDocument.isDeleted = false;
   
           let duplicateSolutionDocument = 
           await database.models.solutions.create(
