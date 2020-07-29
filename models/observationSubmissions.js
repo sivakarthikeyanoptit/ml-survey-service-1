@@ -50,6 +50,6 @@ module.exports = {
       type : Boolean
     },
     scoringSystem: String,
-    isRubricDriven: { type : Boolean, default: false },
+    isRubricDriven: { type : Boolean, default: false }
   }
 };

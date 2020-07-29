@@ -1768,7 +1768,7 @@ module.exports = class SubmissionsHelper {
                 };
 
                 let projection = [
-                    "criteria"
+                    "criteria._id"
                 ];
 
                 let submissionDocument = await this.submissionDocuments
@@ -1778,33 +1778,28 @@ module.exports = class SubmissionsHelper {
                     );
 
                 if (!submissionDocument.length > 0) {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
-                        result: false
-                    })
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
                 }
-                if (submissionDocument[0]["criteria"] &&
-                    submissionDocument[0].criteria.length > 0) {
 
-                    for (let criteria = 0; criteria < submissionDocument[0].criteria.length; criteria++) {
+                if (submissionDocument[0]["criteria"] && submissionDocument[0].criteria.length > 0) {
 
-                        if (criteriaObject[submissionDocument[0].criteria[criteria]._id]) {
+                    let submissionUpdateObject  = {};
 
-                            submissionDocument[0].criteria[criteria].score = criteriaObject[submissionDocument[0].criteria[criteria]._id];
+                    for (let pointerToSubmissionCriteriaArray = 0; pointerToSubmissionCriteriaArray < submissionDocument[0].criteria.length; pointerToSubmissionCriteriaArray++) {
+                        const criteria = submissionDocument[0].criteria[pointerToSubmissionCriteriaArray];
+                        if(criteriaObject[criteria._id.toString()]) {
+                            submissionUpdateObject[`criteria.${pointerToSubmissionCriteriaArray}.score`] = criteriaObject[criteria._id.toString()];
                         }
                     }
-
+                    
+                    submissionUpdateObject.status = messageConstants.common.SUBMISSION_STATUS_COMPLETED;
+                    submissionUpdateObject.ratingCompletedAt = new Date();
+                    submissionUpdateObject.completedDate = new Date();
+                    
                     await database.models.submissions.updateOne(
                         { _id: submissionId },
                         {
-                            $set: {
-                                criteria: submissionDocument[0].criteria,
-                                status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
-                                ratingCompletedAt: new Date(),
-                                completedDate: new Date()
-                            }
+                            $set: submissionUpdateObject
                         }
                     );
 
@@ -1813,8 +1808,11 @@ module.exports = class SubmissionsHelper {
                     return resolve({
                         success: true,
                         message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
-                        result: true
+                        data: true
                     })
+
+                } else {
+                    throw new Error("No criteria found.")
                 }
 
             } catch (error) {
