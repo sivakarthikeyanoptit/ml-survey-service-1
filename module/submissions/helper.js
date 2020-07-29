@@ -1761,13 +1761,14 @@ module.exports = class SubmissionsHelper {
                 let queryObject = {
                     _id: submissionId,
                     scoringSystem: messageConstants.common.MANUAL_RATING,
-                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING
+                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
+                    "assessors.userId": userDetails.userId,
+                    "assessors.role": messageConstants.common.LEAD_ASSESSOR,
+                    numberOfAnsweredCriterias: Object.keys(criteriaObject).length
                 };
 
                 let projection = [
-                    "assessors",
-                    "criteria",
-                    "numberOfAnsweredCriterias"
+                    "criteria"
                 ];
 
                 let submissionDocument = await this.submissionDocuments
@@ -1784,58 +1785,35 @@ module.exports = class SubmissionsHelper {
                         result: false
                     })
                 }
+                if (submissionDocument[0]["criteria"] &&
+                    submissionDocument[0].criteria.length > 0) {
 
-                let isValidAssessor = false;
+                    for (let criteria = 0; criteria < submissionDocument[0].criteria.length; criteria++) {
 
-                if (submissionDocument[0]["assessors"] && submissionDocument[0].assessors.length > 0) {
-                    submissionDocument[0].assessors.forEach(assessor => {
+                        if (criteriaObject[submissionDocument[0].criteria[criteria]._id]) {
 
-                        if (assessor.userId == userDetails.userId && assessor.role == messageConstants.common.LEAD_ASSESSOR) {
-                            isValidAssessor = true;
+                            submissionDocument[0].criteria[criteria].score = criteriaObject[submissionDocument[0].criteria[criteria]._id];
                         }
-                    });
-                }
-
-                if (isValidAssessor == true &&
-                    submissionDocument[0]["numberOfAnsweredCriterias"] &&
-                    submissionDocument[0].numberOfAnsweredCriterias == Object.keys(criteriaObject).length) {
-
-                    if (submissionDocument[0]["criteria"] &&
-                        submissionDocument[0].criteria.length > 0) {
-
-                        for (let criteria = 0; criteria < submissionDocument[0].criteria.length; criteria++) {
-
-                            if (criteriaObject[submissionDocument[0].criteria[criteria]._id]) {
-
-                                submissionDocument[0].criteria[criteria].score = criteriaObject[submissionDocument[0].criteria[criteria]._id];
-                            }
-                        }
-
-                        await database.models.submissions.updateOne(
-                            { _id: submissionId},
-                            {
-                                $set: {
-                                    criteria: submissionDocument[0].criteria,
-                                    status: messageConstants.common.SUBMISSION_STATUS_COMPLETED
-                                }
-                            }
-                        );
-
-                        await this.pushCompletedSubmissionForReporting(submissionId);
-
-                        return resolve({
-                            success: true,
-                            message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
-                            result: true
-                        })
                     }
-                }
-                else {
+
+                    await database.models.submissions.updateOne(
+                        { _id: submissionId },
+                        {
+                            $set: {
+                                criteria: submissionDocument[0].criteria,
+                                status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                                ratingCompletedAt: new Date(),
+                                completedDate: new Date()
+                            }
+                        }
+                    );
+
+                    await this.pushCompletedSubmissionForReporting(submissionId);
+
                     return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        success: false,
-                        message: messageConstants.apiResponses.RATING_COULD_NOT_BE_SUBMITTED,
-                        result: false
+                        success: true,
+                        message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
+                        result: true
                     })
                 }
 

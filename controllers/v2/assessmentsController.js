@@ -288,8 +288,6 @@ module.exports = class Assessments {
                 let solutionDocumentFieldList = await assessmentsHelper.solutionDocumentFieldListInResponse()
 
                 response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
-                response.result.scoringSystem = solutionDocument.scoringSystem;
-                response.result.isRubricDriven = solutionDocument.isRubricDriven;
 
                 let submissionDocument = {
                     entityId: entityDocument._id,

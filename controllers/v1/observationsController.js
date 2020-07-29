@@ -821,6 +821,8 @@ module.exports = class Observations extends Abstract {
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     observationId: observationDocument._id,
+                    scoringSystem: solutionDocument.scoringSystem,
+                    isRubricDriven: solutionDocument.isRubricDriven,
                     observationInformation: {
                         ..._.omit(observationDocument, ["_id", "entities", "deleted", "__v"])
                     },
