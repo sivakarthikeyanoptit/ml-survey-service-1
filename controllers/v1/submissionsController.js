@@ -2626,7 +2626,10 @@ module.exports = class Submission extends Abstract {
         let criteriaQuestions =
           await submissionsHelper.getCriteriaQuestions(req.params._id);
 
-          return resolve(criteriaQuestions);
+          return resolve({
+            message :criteriaQuestions.message,
+            result : criteriaQuestions.data
+          });
 
       } catch (error) {
         return reject({

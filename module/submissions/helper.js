@@ -1507,12 +1507,16 @@ module.exports = class SubmissionsHelper {
                     _id: submissionId,
                     status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
                     scoringSystem: messageConstants.common.MANUAL_RATING,
-                    isRubricDriven : true
+                    isRubricDriven : true,
+                    answers : {
+                        $exists : true
+                    }
                 };
 
                 let projection = [
                     "answers",
-                    "criteria",
+                    "criteria._id",
+                    "criteria.name",
                     "solutionId"
                 ];
 
@@ -1526,15 +1530,15 @@ module.exports = class SubmissionsHelper {
                     throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
                 }
 
-                let groupByCriteria = {};
+                let criteriaIdMap = _.keyBy(submissionDocument[0].criteria, '_id');
 
-                if (submissionDocument[0].criteria.length > 0) {
-                    submissionDocument[0].criteria.forEach(singleCriteria => {
-                        if (!groupByCriteria[singleCriteria._id]) {
-                            groupByCriteria[singleCriteria._id] = singleCriteria;
-                        }
-                    });
-                }
+                // if (submissionDocument[0].criteria.length > 0) {
+                //     submissionDocument[0].criteria.forEach(singleCriteria => {
+                //         if (!groupByCriteria[singleCriteria._id]) {
+                //             groupByCriteria[singleCriteria._id] = singleCriteria;
+                //         }
+                //     });
+                // }
                 
                 let criteriaQuestionObject = {};
                 let questionIdArray = [];
@@ -1564,18 +1568,23 @@ module.exports = class SubmissionsHelper {
                         ]
                     );
 
-                let groupByQuestion = {};
+                let questionIdMap = _.keyBy(questionDocuments, '_id');
+                    
+                // https://lodash.com/docs/#keyBy
 
-                if (questionDocuments.length > 0) {
-                    questionDocuments.forEach(singleQuestion => {
-                        if (!groupByQuestion[singleQuestion._id]) {
-                            groupByQuestion[singleQuestion._id] = singleQuestion;
-                        }
-                    });
-                }
+
+                // if (questionDocuments.length > 0) {
+                //     questionDocuments.forEach(singleQuestion => {
+                //         if (!groupByQuestion[singleQuestion._id]) {
+                //             groupByQuestion[singleQuestion._id] = singleQuestion;
+                //         }
+                //     });
+                // }
                 
-                let groupedEvidenceData = {};
+                let filePathTOoURLMap = {};
+
                 if (fileSourcePath.length > 0) {
+                    
                     let evidenceUrls = await kendraService.getDownloadableUrl(
                         {
                             filePaths: fileSourcePath
@@ -1583,107 +1592,109 @@ module.exports = class SubmissionsHelper {
                     );
 
                     if (evidenceUrls.status == httpStatusCode.ok.status) {
-                        evidenceUrls.result.forEach(evidenceUrl => {
-                            if (!groupedEvidenceData[evidenceUrl.filePath]) {
-                                groupedEvidenceData[evidenceUrl.filePath] = evidenceUrl;
-                            }
-                        });
+                        filePathTOoURLMap = _.keyBy(evidenceUrls.result, 'filePath');
+                        // evidenceUrls.result.forEach(evidenceUrl => {
+                        //     if (!groupedEvidenceData[evidenceUrl.filePath]) {
+                        //         groupedEvidenceData[evidenceUrl.filePath] = evidenceUrl;
+                        //     }
+                        // });
                     }
                 }
 
-                if (submissionDocument[0]["answers"] && Object.keys(submissionDocument[0].answers).length > 0) {
+                if (Object.keys(submissionDocument[0].answers).length > 0) {
 
                     Object.values(submissionDocument[0].answers).forEach(async answer => {
 
-                        if (answer.criteriaId && answer.qid) {
-                            if (answer.responseType !== "matrix") {
+                        if (answer.criteriaId && answer.qid && answer.responseType !== "matrix") {
 
-                                if (!criteriaQuestionObject[answer.criteriaId]) {
-                                    criteriaQuestionObject[answer.criteriaId] = {};
-                                    criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
-                                    criteriaQuestionObject[answer.criteriaId]["name"] = groupByCriteria[answer.criteriaId]["name"];
-                                    criteriaQuestionObject[answer.criteriaId]["score"] = "";
-                                    criteriaQuestionObject[answer.criteriaId]["questions"] = [];
-                                }
 
-                                let questionAnswerObj = {};
+                            if (!criteriaQuestionObject[answer.criteriaId]) {
+                                criteriaQuestionObject[answer.criteriaId] = {};
+                                criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
+                                criteriaQuestionObject[answer.criteriaId]["name"] = criteriaIdMap[answer.criteriaId].name;
+                                criteriaQuestionObject[answer.criteriaId]["score"] = "";
+                                criteriaQuestionObject[answer.criteriaId]["questions"] = [];
+                            }
 
-                                questionAnswerObj.questionId = answer.qid;
-                                questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
-                                questionAnswerObj.question = groupByQuestion[answer.qid]["question"];
-                                questionAnswerObj.value = [];
-                                questionAnswerObj.evidences = {
-                                    images: [],
-                                    videos: [],
-                                    documents: [],
-                                    remarks: answer.remarks ? [answer.remarks] : []
-                                };
+                            let questionAnswerObj = {};
 
-                                if (answer.fileName && answer.fileName.length > 0) {
-                                    answer.fileName.forEach(file => {
+                            questionAnswerObj.questionId = answer.qid;
+                            questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
+                            questionAnswerObj.question = questionIdMap[answer.qid]["question"];
+                            questionAnswerObj.value = [];
+                            questionAnswerObj.evidences = {
+                                images: [],
+                                videos: [],
+                                documents: [],
+                                remarks: answer.remarks ? [answer.remarks] : []
+                            };
 
-                                        let extension = path.extname(file.sourcePath).split('.').join("");
+                            if (answer.fileName && answer.fileName.length > 0) {
+                                
+                                answer.fileName.forEach(file => {
 
-                                        if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
-                                            questionAnswerObj.evidences.images.push({
-                                                filePath: file.sourcePath,
-                                                url: groupedEvidenceData[file.sourcePath]["url"],
-                                                extension: extension
-                                            })
-                                        }
-                                        else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
-                                            questionAnswerObj.evidences.videos.push({
-                                                filePath: file.sourcePath,
-                                                url: groupedEvidenceData[file.sourcePath]["url"],
-                                                extension: extension
-                                            })
-                                        }
-                                        else {
-                                            questionAnswerObj.evidences.documents.push({
-                                                filePath: file.sourcePath,
-                                                url: groupedEvidenceData[file.sourcePath]["url"],
-                                                extension: extension
-                                            })
-                                        }
-                                    })
-                                }
+                                    let extension = path.extname(file.sourcePath).split('.').join("");
 
-                                if (answer.responseType == "radio" || answer.responseType == "multiselect") {
-                                    if (answer.responseType == "radio") {
-                                        answer.value = [answer.value];
-                                    }
-                                   
-                                    if (groupByQuestion[answer.qid]["options"].length > 0 && answer.value.length > 0) {
-                                        answer.value.forEach(singleValue => {
-                                            groupByQuestion[answer.qid]["options"].forEach(option => {
-                                                if (singleValue == option.value) {
-                                                    questionAnswerObj.value.push(option.label);
-                                                }
-                                            })
+                                    if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.images.push({
+                                            filePath: file.sourcePath,
+                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.videos.push({
+                                            filePath: file.sourcePath,
+                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else {
+                                        questionAnswerObj.evidences.documents.push({
+                                            filePath: file.sourcePath,
+                                            url: groupedEvidenceData[file.sourcePath]["url"],
+                                            extension: extension
                                         })
                                     }
-                                }
-                                else {
-                                    questionAnswerObj.value.push(answer.value);
-                                }
-
-                                criteriaQuestionObject[answer.criteriaId]["questions"].push(questionAnswerObj);
+                                })
                             }
+
+                            if (answer.responseType == "radio" || answer.responseType == "multiselect") {
+                                if (answer.responseType == "radio") {
+                                    answer.value = [answer.value];
+                                }
+                                
+                                if (groupByQuestion[answer.qid]["options"].length > 0 && answer.value.length > 0) {
+                                    answer.value.forEach(singleValue => {
+                                        groupByQuestion[answer.qid]["options"].forEach(option => {
+                                            if (singleValue == option.value) {
+                                                questionAnswerObj.value.push(option.label);
+                                            }
+                                        })
+                                    })
+                                }
+                            } else {
+                                questionAnswerObj.value.push(answer.value);
+                            }
+
+                            criteriaQuestionObject[answer.criteriaId]["questions"].push(questionAnswerObj);
+                            
                         }
+
                     });
 
-                    result.criteriaQuestions = [];
+                    result.criteriaQuestions = Object.values(criteriaQuestionObject)
                     result.criteria = [];
                     result.levelToScoreMapping = [];
 
-                    Object.keys(criteriaQuestionObject).forEach(singleCriteria => {
-                        result.criteriaQuestions.push(criteriaQuestionObject[singleCriteria]);
+                    // Do it in above loop
 
-                        result.criteria.push({
-                            id: criteriaQuestionObject[singleCriteria].id,
-                            name: criteriaQuestionObject[singleCriteria].name
-                        })
-                    });
+                    // Object.keys(criteriaQuestionObject).forEach(singleCriteria => {
+                    //     result.criteriaQuestions.push(criteriaQuestionObject[singleCriteria]);
+
+                    //     result.criteria.push({
+                    //         id: criteriaQuestionObject[singleCriteria].id,
+                    //         name: criteriaQuestionObject[singleCriteria].name
+                    //     })
+                    // });
 
                     let solutionDocument = await solutionsHelper.solutionDocuments
                         (
@@ -1715,10 +1726,10 @@ module.exports = class SubmissionsHelper {
                     return resolve({
                         message: messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
                         success: true,
-                        result: result
+                        data: result
                     })
-                }
-                else {
+
+                } else {
                     throw new Error(messageConstants.apiResponses.CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND);
                 }
 
