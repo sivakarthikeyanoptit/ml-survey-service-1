@@ -898,8 +898,7 @@ module.exports = class SolutionsHelper {
                 templateId,
                 program._id.toString(),
                 userId,
-                solutionData,
-                false
+                solutionData
               );
 
               return resolve(
@@ -941,8 +940,7 @@ module.exports = class SolutionsHelper {
       solutionId,
       programId,
       userId,
-      data,
-      isReusable
+      data
     ) {
       return new Promise(async (resolve, reject) => {
         try {
@@ -962,7 +960,9 @@ module.exports = class SolutionsHelper {
           );
   
           if (!solutionDocument[0]) {
-            throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+            throw {
+              message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+            };
           }
 
           let programQuery = {};
@@ -982,7 +982,9 @@ module.exports = class SolutionsHelper {
           );
   
           if (!programDocument[0]) {
-            throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+            throw {
+              message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+            };
           }
   
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
@@ -1020,8 +1022,8 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.createdAt = startDate;
           newSolutionDocument.updatedAt = startDate;
           newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
-          newSolutionDocument.isReusable = 
-          isReusable !== undefined ? isReusable : newSolutionDocument.isReusable;
+          newSolutionDocument.isReusable = false;
+          newSolutionDocument.isDeleted = false;
   
           let duplicateSolutionDocument = 
           await database.models.solutions.create(
@@ -1035,7 +1037,9 @@ module.exports = class SolutionsHelper {
             return resolve(duplicateSolutionDocument);
   
           } else {
-            throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
+            throw {
+              message : messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
+            }
           }
 
         } catch(error) {
