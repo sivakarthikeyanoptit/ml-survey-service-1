@@ -1624,21 +1624,21 @@ module.exports = class SubmissionsHelper {
                                         let extension = path.extname(file.sourcePath).split('.').join("");
 
                                         if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
-                                            questionAnswerObj.evidence.images.push({
+                                            questionAnswerObj.evidences.images.push({
                                                 filePath: file.sourcePath,
                                                 url: groupedEvidenceData[file.sourcePath]["url"],
                                                 extension: extension
                                             })
                                         }
                                         else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
-                                            questionAnswerObj.evidence.videos.push({
+                                            questionAnswerObj.evidences.videos.push({
                                                 filePath: file.sourcePath,
                                                 url: groupedEvidenceData[file.sourcePath]["url"],
                                                 extension: extension
                                             })
                                         }
                                         else {
-                                            questionAnswerObj.evidence.documents.push({
+                                            questionAnswerObj.evidences.documents.push({
                                                 filePath: file.sourcePath,
                                                 url: groupedEvidenceData[file.sourcePath]["url"],
                                                 extension: extension
