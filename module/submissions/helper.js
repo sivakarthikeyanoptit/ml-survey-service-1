@@ -1615,11 +1615,11 @@ module.exports = class SubmissionsHelper {
                             questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
                             questionAnswerObj.question = questionIdMap[answer.qid]["question"];
                             questionAnswerObj.value = [];
+                            questionAnswerObj.remarks = (answer.remarks) ? [answer.remarks] : [];
                             questionAnswerObj.evidences = {
                                 images: [],
                                 videos: [],
-                                documents: [],
-                                remarks: answer.remarks ? [answer.remarks] : []
+                                documents: []
                             };
 
                             if (answer.fileName && answer.fileName.length > 0) {
