@@ -20,6 +20,7 @@ const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/help
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const path = require("path");
+const { null } = require("mathjs");
 
 /**
     * SubmissionsHelper
@@ -1648,6 +1649,8 @@ module.exports = class SubmissionsHelper {
                                         })
                                     }
                                 })
+                            } else {
+                                questionAnswerObj.evidences = null;
                             }
 
                             if (answer.responseType == "radio" || answer.responseType == "multiselect") {
