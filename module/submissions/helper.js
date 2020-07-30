@@ -1595,7 +1595,6 @@ module.exports = class SubmissionsHelper {
 
                         if (answer.criteriaId && answer.qid && answer.responseType !== "matrix") {
 
-
                             if (!criteriaQuestionObject[answer.criteriaId]) {
                                 criteriaQuestionObject[answer.criteriaId] = {};
                                 criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
@@ -1649,7 +1648,7 @@ module.exports = class SubmissionsHelper {
                                     }
                                 })
                             } else {
-                                questionAnswerObj.evidences = NULL;
+                                delete questionAnswerObj.evidences;
                             }
 
                             if (answer.responseType == "radio" || answer.responseType == "multiselect") {
@@ -1670,7 +1669,7 @@ module.exports = class SubmissionsHelper {
                                 questionAnswerObj.value.push(answer.value);
                             }
 
-                            criteriaQuestionObject[answer.criteriaId]["questions"].push(questionAnswerObj);
+                            criteriaQuestionObject[answer.criteriaId].questions.push(questionAnswerObj);
                             
                         }
 
