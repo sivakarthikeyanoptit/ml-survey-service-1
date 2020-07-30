@@ -384,7 +384,9 @@ module.exports = class AssessmentsHelper {
                 entityType: 1,
                 captureGpsLocationAtQuestionLevel : 1,
                 enableQuestionReadOut : 1,
-                allowMultipleAssessemts : 1
+                allowMultipleAssessemts : 1,
+                scoringSystem: 1,
+                isRubricDriven: 1
             });
         })
     }
@@ -407,7 +409,9 @@ module.exports = class AssessmentsHelper {
                 "registry",
                 "captureGpsLocationAtQuestionLevel",
                 "enableQuestionReadOut",
-                "allowMultipleAssessemts"
+                "allowMultipleAssessemts",
+                "scoringSystem",
+                "isRubricDriven"
             ]);
         })
     }
@@ -680,6 +684,14 @@ module.exports = class AssessmentsHelper {
                         ecmQuestions[ecmIndex].questions.push(questionData.question[0]);
                     }
 
+                   })
+               } else {
+                   Object.keys(solutionDetails.evidenceMethods).forEach(evidenceMethodCode => {
+                        ecmQuestions.push({
+                            ecm : solutionDetails.evidenceMethods[evidenceMethodCode].externalId,
+                            name : solutionDetails.evidenceMethods[evidenceMethodCode].name,
+                            questions : []
+                        });
                    })
                }
 

@@ -821,6 +821,8 @@ module.exports = class Observations extends Abstract {
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     observationId: observationDocument._id,
+                    scoringSystem: solutionDocument.scoringSystem,
+                    isRubricDriven: solutionDocument.isRubricDriven,
                     observationInformation: {
                         ..._.omit(observationDocument, ["_id", "entities", "deleted", "__v"])
                     },
@@ -1167,7 +1169,7 @@ module.exports = class Observations extends Abstract {
                         templateId : newBaseSolution._id
                     };
 
-                    if( programDocument[0]._id ) {
+                    if( programDocument && programDocument[0]._id ) {
 
                         newSolutionDocument["programId"] = programDocument[0]._id;
                         newSolutionDocument["programName"] = programDocument[0].name;
@@ -1344,7 +1346,8 @@ module.exports = class Observations extends Abstract {
                     status: "active",
                     isDeleted: false,
                     isReusable: false,
-                    type: "observation"
+                    type: "observation",
+                    programId : { $exists : true }
                 };
 
                 let solutionProjection = [

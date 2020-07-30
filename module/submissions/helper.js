@@ -18,6 +18,8 @@ const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
+const path = require("path");
 
 /**
     * SubmissionsHelper
@@ -1496,4 +1498,325 @@ module.exports = class SubmissionsHelper {
    }
 
 
+    /**
+    * Get criteria questions 
+    * @method
+    * @name getCriteriaQuestions
+    * @param {String} submissionId - submissionId.
+    * @returns {Object} - Criteria questions and answers 
+    */
+
+    static getCriteriaQuestions(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
+                }
+
+                let result = {};
+
+                let queryObject = {
+                    _id: submissionId,
+                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
+                    scoringSystem: messageConstants.common.MANUAL_RATING,
+                    isRubricDriven : true,
+                    answers : {
+                        $exists : true
+                    }
+                };
+
+                let projection = [
+                    "answers",
+                    "criteria._id",
+                    "criteria.name",
+                    "solutionId"
+                ];
+
+                let submissionDocument = await this.submissionDocuments
+                    (
+                        queryObject,
+                        projection
+                    );
+                
+                if (!submissionDocument.length > 0) {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
+                }
+
+                let criteriaIdMap = _.keyBy(submissionDocument[0].criteria, '_id');
+
+                let criteriaQuestionObject = {};
+                let questionIdArray = [];
+                let fileSourcePath = [];
+
+                if (submissionDocument[0]["answers"] && Object.keys(submissionDocument[0].answers).length > 0) {
+                    Object.values(submissionDocument[0].answers).forEach(async answer => {
+                        if (answer.qid) {
+                            questionIdArray.push(answer.qid);
+                            if (answer.fileName && answer.fileName.length > 0) {
+                                answer.fileName.forEach(file => {
+                                    fileSourcePath.push(file.sourcePath);
+                                });
+                            }
+                        }
+                    })
+                }
+                
+                let questionDocuments = await questionsHelper.questionDocument
+                    (
+                        {
+                            _id: { $in: questionIdArray }
+                        },
+                        [
+                            "question",
+                            "options"
+                        ]
+                    );
+
+                let questionIdMap = _.keyBy(questionDocuments, '_id');
+                
+                let filePathToURLMap = {};
+                if (fileSourcePath.length > 0) {
+                    let evidenceUrls = await kendraService.getDownloadableUrl(
+                        {
+                            filePaths: fileSourcePath
+                        }
+                    );
+                    if (evidenceUrls.status == httpStatusCode.ok.status) {
+                        filePathToURLMap = _.keyBy(evidenceUrls.result, 'filePath');
+                    }
+                }
+
+                result.criteria = [];
+
+                if (Object.keys(submissionDocument[0].answers).length > 0) {
+
+                    Object.values(submissionDocument[0].answers).forEach(async answer => {
+
+                        if (answer.criteriaId && answer.qid && answer.responseType !== "matrix") {
+
+
+                            if (!criteriaQuestionObject[answer.criteriaId]) {
+                                criteriaQuestionObject[answer.criteriaId] = {};
+                                criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
+                                criteriaQuestionObject[answer.criteriaId]["name"] = criteriaIdMap[answer.criteriaId].name;
+                                criteriaQuestionObject[answer.criteriaId]["score"] = "";
+                                criteriaQuestionObject[answer.criteriaId]["questions"] = [];
+
+                                result.criteria.push({
+                                    id: answer.criteriaId,
+                                    name: criteriaIdMap[answer.criteriaId].name
+                                })
+                            }
+
+                            let questionAnswerObj = {};
+
+                            questionAnswerObj.questionId = answer.qid;
+                            questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
+                            questionAnswerObj.question = questionIdMap[answer.qid]["question"];
+                            questionAnswerObj.value = [];
+                            questionAnswerObj.evidences = {
+                                images: [],
+                                videos: [],
+                                documents: [],
+                                remarks: answer.remarks ? [answer.remarks] : []
+                            };
+
+                            if (answer.fileName && answer.fileName.length > 0) {
+                                
+                                answer.fileName.forEach(file => {
+
+                                    let extension = path.extname(file.sourcePath).split('.').join("");
+
+                                    if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.images.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.videos.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else {
+                                        questionAnswerObj.evidences.documents.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    }
+                                })
+                            }
+
+                            if (answer.responseType == "radio" || answer.responseType == "multiselect") {
+                                if (answer.responseType == "radio") {
+                                    answer.value = [answer.value];
+                                }
+                                
+                                if (questionIdMap[answer.qid]["options"].length > 0 && answer.value.length > 0) {
+                                    answer.value.forEach(singleValue => {
+                                        questionIdMap[answer.qid]["options"].forEach(option => {
+                                            if (singleValue == option.value) {
+                                                questionAnswerObj.value.push(option.label);
+                                            }
+                                        })
+                                    })
+                                }
+                            } else {
+                                questionAnswerObj.value.push(answer.value);
+                            }
+
+                            criteriaQuestionObject[answer.criteriaId]["questions"].push(questionAnswerObj);
+                            
+                        }
+
+                    });
+
+                    result.criteriaQuestions = Object.values(criteriaQuestionObject)
+                    result.levelToScoreMapping = [];
+
+                    let solutionDocument = await solutionsHelper.solutionDocuments
+                        (
+                            { _id: submissionDocument[0].solutionId },
+                            [
+                                "levelToScoreMapping"
+                            ]
+                        );
+
+                    if (solutionDocument.length > 0 && Object.keys(solutionDocument[0].levelToScoreMapping).length > 0) {
+                        Object.keys(solutionDocument[0].levelToScoreMapping).forEach(level => {
+                            result.levelToScoreMapping.push({
+                                level: level,
+                                points: solutionDocument[0].levelToScoreMapping[level].points,
+                                label: solutionDocument[0].levelToScoreMapping[level].label
+                            })
+                        });
+                    }
+                   
+                    await database.models.submissions.update(
+                        { _id: submissionId },
+                        {
+                            $set: {
+                                "numberOfAnsweredCriterias" : Object.keys(criteriaQuestionObject).length
+                            }
+                        }
+                    );
+                    
+                    return resolve({
+                        message: messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
+                        success: true,
+                        data: result
+                    })
+
+                } else {
+                    throw new Error(messageConstants.apiResponses.CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND);
+                }
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
+
+    /**
+    * manual rating 
+    * @method
+    * @name manualRating
+    * @param {String} submissionId - submissionId
+    * @param {Object} criteriaObject - An object of critieria id to level value
+    * @param {String} userId - ID of the user who is submitting the manual rating
+    * @returns {String} - success message
+    */
+
+    static manualRating(submissionId = "", criteriaObject = {}, userId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
+                }
+
+                if (Object.keys(criteriaObject).length === 0) {
+                    throw new Error(messageConstants.apiResponses.CRITERIA_OBJECT_MISSING);
+                }
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK);
+                }
+
+                let queryObject = {
+                    _id: submissionId,
+                    scoringSystem: messageConstants.common.MANUAL_RATING,
+                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
+                    "assessors.userId": userDetails.userId,
+                    "assessors.role": messageConstants.common.LEAD_ASSESSOR,
+                    numberOfAnsweredCriterias: Object.keys(criteriaObject).length
+                };
+
+                let projection = [
+                    "criteria._id"
+                ];
+
+                let submissionDocument = await this.submissionDocuments
+                    (
+                        queryObject,
+                        projection,
+                    );
+
+                if (!submissionDocument.length > 0) {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+                }
+
+                if (submissionDocument[0]["criteria"] && submissionDocument[0].criteria.length > 0) {
+
+                    let submissionUpdateObject  = {};
+
+                    for (let pointerToSubmissionCriteriaArray = 0; pointerToSubmissionCriteriaArray < submissionDocument[0].criteria.length; pointerToSubmissionCriteriaArray++) {
+                        const criteria = submissionDocument[0].criteria[pointerToSubmissionCriteriaArray];
+                        if(criteriaObject[criteria._id.toString()]) {
+                            submissionUpdateObject[`criteria.${pointerToSubmissionCriteriaArray}.score`] = criteriaObject[criteria._id.toString()];
+                        }
+                    }
+                    
+                    submissionUpdateObject.status = messageConstants.common.SUBMISSION_STATUS_COMPLETED;
+                    submissionUpdateObject.ratingCompletedAt = new Date();
+                    submissionUpdateObject.completedDate = new Date();
+                    
+                    await database.models.submissions.updateOne(
+                        { _id: submissionId },
+                        {
+                            $set: submissionUpdateObject
+                        }
+                    );
+
+                    await this.pushCompletedSubmissionForReporting(submissionId);
+
+                    return resolve({
+                        success: true,
+                        message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
+                        data: true
+                    })
+
+                } else {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_CRITERIA_NOT_FOUND)
+                }
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
 };
+
