@@ -1169,7 +1169,7 @@ module.exports = class Observations extends Abstract {
                         templateId : newBaseSolution._id
                     };
 
-                    if( programDocument[0]._id ) {
+                    if( programDocument && programDocument[0]._id ) {
 
                         newSolutionDocument["programId"] = programDocument[0]._id;
                         newSolutionDocument["programName"] = programDocument[0].name;
@@ -1346,7 +1346,8 @@ module.exports = class Observations extends Abstract {
                     status: "active",
                     isDeleted: false,
                     isReusable: false,
-                    type: "observation"
+                    type: "observation",
+                    programId : { $exists : true }
                 };
 
                 let solutionProjection = [
