@@ -20,6 +20,7 @@ module.exports = {
     STARTED : "started",
     LEAD_ASSESSOR : "LEAD_ASSESSOR",
     MANUAL_RATING : "manual",
+    POINTS_BASED_SCORING_SYSTEM : "pointsBasedScoring",
     AUTO_RATING : "auto",
     SUBMISSION_STATUS_RATING_PENDING: "ratingPending",
     SUBMISSION_STATUS_COMPLETED : "completed",

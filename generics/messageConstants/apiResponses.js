@@ -157,6 +157,7 @@ module.exports = {
 "ALL_ECM_NOT_SUBMITTED" : "All ECM are not submitted",
 "SUBMISSION_ID_NOT_FOUND" : "No submission id found",
 "SUBMISSION_RATING_COMPLETED" : "Submission rating completed successfully.",
+"SUBMISSION_PROCESSED_FOR_MANUAL_RATING" : "Submission processed for manual rating successfully.",
 "SUBMISSION_AUTO_RATING_SUCCESS" : "Submission Auto Rating Successful - ",
 "SUBMISSION_AUTO_RATING_FAILED" : "Submission Auto Rating FAILED - ",
 "INVALID_ROLE_CODE" : "Invalid role code.",

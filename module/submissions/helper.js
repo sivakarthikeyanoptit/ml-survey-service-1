@@ -756,9 +756,9 @@ module.exports = class SubmissionsHelper {
                     emailRecipients = solutionDocument.sendSubmissionRatingEmailsTo;
                 }
 
-                if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+                if(solutionDocument.scoringSystem == messageConstants.common.POINTS_BASED_SCORING_SYSTEM) {
 
-                    submissionDocument.scoringSystem = "pointsBasedScoring";
+                    submissionDocument.scoringSystem = messageConstants.common.POINTS_BASED_SCORING_SYSTEM;
 
                     let allCriteriaInSolution = new Array;
                     let allQuestionIdInSolution = new Array;
@@ -830,6 +830,8 @@ module.exports = class SubmissionsHelper {
                         })
                     }
 
+                } else if(solutionDocument.scoringSystem == messageConstants.common.MANUAL_RATING) {
+                    return resolve(messageConstants.apiResponses.SUBMISSION_PROCESSED_FOR_MANUAL_RATING)
                 }
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
