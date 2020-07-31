@@ -1756,7 +1756,7 @@ module.exports = class SubmissionsHelper {
                     _id: submissionId,
                     scoringSystem: messageConstants.common.MANUAL_RATING,
                     status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
-                    "assessors.userId": userDetails.userId,
+                    "assessors.userId": userId,
                     "assessors.role": messageConstants.common.LEAD_ASSESSOR,
                     numberOfAnsweredCriterias: Object.keys(criteriaObject).length
                 };
