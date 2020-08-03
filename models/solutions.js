@@ -56,6 +56,10 @@ module.exports = {
     allowMultipleAssessemts : {
       default : false,
       type : Boolean
+    },
+    isDeleted: {
+        default : false,
+        type : Boolean
     }
   }
 };

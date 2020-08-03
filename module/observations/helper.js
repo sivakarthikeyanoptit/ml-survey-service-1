@@ -941,7 +941,9 @@ module.exports = class ObservationsHelper {
                 entityTypeId: 1,
                 entityType: 1,
                 captureGpsLocationAtQuestionLevel : 1,
-                enableQuestionReadOut : 1
+                enableQuestionReadOut : 1,
+                scoringSystem: 1,
+                isRubricDriven: 1
             });
         })
     }
@@ -963,7 +965,9 @@ module.exports = class ObservationsHelper {
                 "description",
                 "registry",
                 "captureGpsLocationAtQuestionLevel",
-                "enableQuestionReadOut"
+                "enableQuestionReadOut",
+                "scoringSystem",
+                "isRubricDriven"
             ]);
         })
     }
