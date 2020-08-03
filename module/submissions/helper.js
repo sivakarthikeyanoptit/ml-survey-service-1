@@ -1147,7 +1147,7 @@ module.exports = class SubmissionsHelper {
                 entityTypeId : solutionDocument[0].entityTypeId,
                 entityType : solutionDocument[0].entityType,
                 programId : solutionDocument[0].programId,
-                scoringSystem : solutionDocument[0].programId,
+                scoringSystem : solutionDocument[0].scoringSystem,
                 isRubricDriven : solutionDocument[0].isRubricDriven,
                 programExternalId: programDocument[0].externalId,
                 isAPrivateProgram : programDocument[0].isAPrivateProgram, 
