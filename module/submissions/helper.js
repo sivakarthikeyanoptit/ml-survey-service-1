@@ -19,6 +19,7 @@ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
+const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const path = require("path");
 
 /**
@@ -1066,21 +1067,15 @@ module.exports = class SubmissionsHelper {
     return new Promise(async (resolve, reject) => {
         try {
             
-            let solutionDocument = 
-            await solutionsHelper.solutionDocuments(
+
+            let solutionDocumentProjectionFields = await assessmentsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
+
+            let solutionDocument = await database.models.solutions.find(
                 {
                     _id : solutionId
-                },[
-                    "externalId",
-                    "frameworkId",
-                    "frameworkExternalId",
-                    "entityTypeId",
-                    "entityType",
-                    "programId",
-                    "themes",
-                    "evidenceMethods"
-                ]
-            );
+                },
+                solutionDocumentProjectionFields
+            ).lean();
 
             if( !solutionDocument[0] ) {
                 throw {
@@ -1144,6 +1139,8 @@ module.exports = class SubmissionsHelper {
                 frameworkExternalId : solutionDocument[0].frameworkExternalId,
                 entityTypeId : solutionDocument[0].entityTypeId,
                 entityType : solutionDocument[0].entityType,
+                scoringSystem : solutionDocument.scoringSystem,
+                isRubricDriven : solutionDocument.isRubricDriven,
                 programId : solutionDocument[0].programId,
                 programExternalId: programDocument[0].externalId,
                 isAPrivateProgram : programDocument[0].isAPrivateProgram, 
