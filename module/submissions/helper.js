@@ -1658,7 +1658,9 @@ module.exports = class SubmissionsHelper {
                             }
 
                             if (answer.responseType == "radio" || answer.responseType == "multiselect") {
-                                if (answer.responseType == "radio") {
+                                if(Array.isArray(answer.instanceResponses) && answer.instanceResponses.length >0) {
+                                    answer.value = answer.instanceResponses;
+                                } else if (answer.responseType == "radio") {
                                     answer.value = [answer.value];
                                 }
                                 
