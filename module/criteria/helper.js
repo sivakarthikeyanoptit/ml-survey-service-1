@@ -3,7 +3,7 @@ let criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/he
 
 module.exports = class criteriaHelper {
 
-    static setCriteriaRubricExpressions(criteriaId, existingCriteria, criteriaRubricData) {
+    static setCriteriaRubricExpressions(criteriaId, existingCriteria, criteriaRubricData, solutionLevelKeys) {
         return new Promise(async (resolve, reject) => {
             try {
                 
@@ -44,6 +44,8 @@ module.exports = class criteriaHelper {
 
                 existingCriteriaRubricLevels.forEach(levelObject => {
 
+                  if (solutionLevelKeys.includes(levelObject.level)) {
+
                   rubric.levels[levelObject.level] = {};
 
                   Object.keys(levelObject).forEach(level=>{
@@ -51,13 +53,15 @@ module.exports = class criteriaHelper {
                   })
 
                   rubric.levels[levelObject.level].expression = criteriaRubricData[levelObject.level];
+
+                  }
                 })
 
                  await database.models.criteria.findOneAndUpdate(
                     {_id : criteriaId},
                     {
                         rubric: rubric,
-                        criteriaType : "auto"
+                        criteriaType : messageConstants.common.AUTO_RATING
                     }
                 );
 
@@ -365,7 +369,7 @@ module.exports = class criteriaHelper {
             criteriaStructure["timesUsed"] = 12;
             criteriaStructure["weightage"] = 20;
             criteriaStructure["remarks"] = "";
-            criteriaStructure["criteriaType"] = "auto";
+            criteriaStructure["criteriaType"] = parsedCriteria.criteriaType ? parsedCriteria.criteriaType : messageConstants.common.MANUAL_RATING;
             criteriaStructure["score"] =  "";
             criteriaStructure["flag"] =  "";
 

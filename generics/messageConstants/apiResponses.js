@@ -157,6 +157,7 @@ module.exports = {
 "ALL_ECM_NOT_SUBMITTED" : "All ECM are not submitted",
 "SUBMISSION_ID_NOT_FOUND" : "No submission id found",
 "SUBMISSION_RATING_COMPLETED" : "Submission rating completed successfully.",
+"SUBMISSION_PROCESSED_FOR_MANUAL_RATING" : "Submission processed for manual rating successfully.",
 "SUBMISSION_AUTO_RATING_SUCCESS" : "Submission Auto Rating Successful - ",
 "SUBMISSION_AUTO_RATING_FAILED" : "Submission Auto Rating FAILED - ",
 "INVALID_ROLE_CODE" : "Invalid role code.",
@@ -204,5 +205,14 @@ module.exports = {
 "LIBRARY_CATEGORIES_NOT_FOUND" : "Could not found library categories",
 "URL_COULD_NOT_BE_FOUND" : "Could not found url from gcp",
 "KENDRA_SERVICE_DOWN" : "Kendra service is down",
-"SUBMISSION_LIST_FETCHED" : "Submission list fetched successfully"
+"SUBMISSION_LIST_FETCHED" : "Submission list fetched successfully",
+"CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY" : "Criteria questions fetched successfully",
+"MANUAL_RATING_SUBMITTED_SUCCESSFULLY" : "Manual rating submitted successfully",
+"RATING_COULD_NOT_BE_SUBMITTED" : "Rating could not be submitted",
+"FETCH_CRITERIA_QUESTIONS_FAILURE" : "Rating is already submitted or rating submission is not allowed.",
+"SUBMISSION_ID_IS_REQUIRED" : "SubmissionId is a required field",
+"CRITERIA_OBJECT_MISSING" : "Criteria Object should contain atleast one criteriaId",
+"CRITERIA_LENGTH_MISMATCH" : "Criteria length is mismatching",
+"CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND" : "Criteria questions could not be found",
+"SUBMISSION_CRITERIA_NOT_FOUND" : "Criteria not found for the submissionId"
 }

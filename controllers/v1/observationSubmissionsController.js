@@ -138,7 +138,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           "entityType",
           "programId",
           "programExternalId",
-          "isAPrivateProgram"
+          "isAPrivateProgram",
+          "scoringSystem",
+          "isRubricDriven"
         ]);
 
         if (!solutionDocument[0]) {
@@ -194,7 +196,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           createdBy: observationDocument.createdBy,
           evidenceSubmissions: [],
           entityProfile: {},
-          status: "started"
+          status: "started",
+          scoringSystem: solutionDocument.scoringSystem,
+          isRubricDriven: solutionDocument.isRubricDriven
       };
 
       let criteriaId = new Array;

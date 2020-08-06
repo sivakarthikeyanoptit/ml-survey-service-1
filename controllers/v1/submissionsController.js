@@ -2561,4 +2561,135 @@ module.exports = class Submission extends Abstract {
     })
   }
 
+
+   /**
+  * @api {get} /assessment/api/v1/submissions/getCriteriaQuestions/:submissionId
+  * @apiVersion 1.0.0
+  * @apiName Get Criteria Questions
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/getCriteriaQuestions/5b98fa069f664f7e1ae7498c
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "status": 200,
+    "message": "Criteria questions fetched successfully",
+    "result": {
+        "criteriaQuestions": [{
+            "id": "5de4a2811bbd650c9861a7b8",
+            "name": "प्रधान अध्यापक/ अध्यापक (कोची) के लिए आई डी पी का निर्माण करना",
+            "score": "",
+            "questions": [{
+                "question": [
+                    "आपको प्रधान अध्यापक/ अध्यापक (कोची) के व्यक्तिगत विकास (आई डी पी) को लेकर काम करने की जरुरत क्यों है?"
+                ],
+                "questionId": "5de4ac761f6a980ca737c735",
+                "responseType": "radio",
+                "value": [
+                    "yes" 
+                ],
+                "evidences": {
+                   "images": [],
+                   "videos": [],
+                   "documents": [],
+                   "remarks":[]
+                }
+            }]
+        }]
+        "criteria": [{
+            "id": "5de4a2811bbd650c9861a7b8",
+            "name": "प्रधान अध्यापक/ अध्यापक (कोची) के लिए आई डी पी का निर्माण करना"
+        }],
+        "levelToScoreMapping": [{
+                "level":"L1",
+                "points": 25,
+                "label": "Not Good"
+            }
+        ]
+      }
+    }
+  
+  */
+   /**
+   * Get criteria quetions
+   * @method
+   * @name getCriteriaQuestions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - submission id. 
+   * @returns {JSON} Criteia questions and answers.
+   */
+
+  async getCriteriaQuestions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let criteriaQuestions =
+          await submissionsHelper.getCriteriaQuestions(req.params._id);
+
+          return resolve({
+            message :criteriaQuestions.message,
+            result : criteriaQuestions.data
+          });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          success: false,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          result: false
+        });
+      }
+    })
+  }
+
+
+  /**
+  * @api {post} /assessment/api/v1/submissions/manualRating/:submissionId
+  * @apiVersion 1.0.0
+  * @apiName Manual rating
+  * @apiGroup Submissions
+  * @apiSampleRequest /assessment/api/v1/submissions/manualRating/5b98fa069f664f7e1ae7498c
+  * @apiParamExample {json} Request-Body:
+  * {
+  *  "5698fa069f664f7e1ae7499d" : "L1",
+  *  "58673e7b9f664f7e1ae7388e" : "L2"
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+     "status": 200,
+     "message": "Manual rating submitted successfully"
+    }
+  
+  */
+  /**
+  * Manual rating
+  * @method
+  * @name  manualRating
+  * @param {Object} req - requested data.
+  * @param {String} req.params._id - submission id.
+  * @param {Object} req.body - CriteriaId and level
+  * @returns {String}  Success message
+  */
+
+  async manualRating(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let response =
+          await submissionsHelper.manualRating(req.params._id, req.body, req.userDetails.userId);
+
+        return resolve(response);
+        
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          success: false,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          result: false
+        });
+      }
+    })
+  }
 };
