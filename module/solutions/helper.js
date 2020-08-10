@@ -885,7 +885,7 @@ module.exports = class SolutionsHelper {
                   solutionData.name + "-" + dateFormat,
                   
                   description : solutionData.description,
-                  name : program.name,
+                  name : program.name ? program.name : solutionData.name + "-" + dateFormat,
                   userId : userId,
                   isAPrivateProgram : isAPrivateProgram
                 });

@@ -178,7 +178,7 @@ module.exports = {
 "UNNATI_SERVICE_DOWN" : "Unnati service is down",
 "PROGRAM_NOT_MAPPED_TO_USER" : "No program mapped to user",
 "SOLUTION_NOT_MAPPED_TO_USER" : "No solution mapped to user",
-"ENTITIES_NOT_MAPPED_TO_USER" : "No solution mapped to user",
+"ENTITIES_NOT_MAPPED_TO_USER" : "No entities mapped to user",
 "USER_ENTITIES_FETCHED_SUCCESSFULLY" : "Successfully fetched user entities",
 "USER_PROGRAMS_LIST_FETCHED" : "Sucessfully fectched user programs",
 "OBSERVATION_SUBMISSIONS_LIST_FETCHED" : "Successfully fetched observation submissions",

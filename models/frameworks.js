@@ -20,6 +20,7 @@ module.exports = {
     isDeleted: Boolean,
     createdBy: String,
     entityTypeId: "ObjectId",
-    entityType: String
+    entityType: String,
+    rootOrganisations: [String]
   }
 };
