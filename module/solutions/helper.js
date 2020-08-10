@@ -8,6 +8,7 @@
 //Dependencies
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 
 /**
     * SolutionsHelper
@@ -755,7 +756,7 @@ module.exports = class SolutionsHelper {
      * @returns {Array} - Solution templates lists.
      */
 
-    static templates( type,searchText,limit,page) {
+    static templates( type,searchText,limit,page,userId,token) {
       return new Promise(async (resolve, reject) => {
           try {
 
@@ -771,6 +772,22 @@ module.exports = class SolutionsHelper {
             } else {
               matchQuery["$match"]["type"] = messageConstants.common.ASSESSMENT;
               matchQuery["$match"]["subType"] = type;
+            }
+
+            if( 
+              process.env.USE_USER_ORGANISATION_ID_FILTER && 
+              process.env.USE_USER_ORGANISATION_ID_FILTER === "ON" 
+            ) {
+              
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getUserOrganisation(
+                token,
+                userId
+              );
+              
+              matchQuery["$match"]["createdFor"] = {
+                $in : organisationAndRootOrganisation.createdFor
+              }
             }
 
             matchQuery["$match"]["$or"] = [
@@ -868,10 +885,20 @@ module.exports = class SolutionsHelper {
       program,
       userId,
       solutionData,
-      isAPrivateProgram = false
+      isAPrivateProgram = false,
+      requestingUserAuthToken = ""
   ) {
       return new Promise(async (resolve, reject) => {
           try {
+            
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                requestingUserAuthToken,
+                userId
+              );
+
+              let createdFor =  organisationAndRootOrganisation.createdFor;
+              let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
 
               let dateFormat = gen.utils.epochTime();
               let programData;
@@ -885,9 +912,11 @@ module.exports = class SolutionsHelper {
                   solutionData.name + "-" + dateFormat,
                   
                   description : solutionData.description,
-                  name : program.name,
+                  name : program.name ? program.name : solutionData.name,
                   userId : userId,
-                  isAPrivateProgram : isAPrivateProgram
+                  isAPrivateProgram : isAPrivateProgram,
+                  createdFor : createdFor,
+                  rootOrganisations : rootOrganisations
                 });
                 
                 program._id = programData._id;
@@ -898,7 +927,9 @@ module.exports = class SolutionsHelper {
                 templateId,
                 program._id.toString(),
                 userId,
-                solutionData
+                solutionData,
+                createdFor,
+                rootOrganisations
               );
 
               return resolve(
@@ -940,7 +971,9 @@ module.exports = class SolutionsHelper {
       solutionId,
       programId,
       userId,
-      data
+      data,
+      createdFor = "",
+      rootOrganisations = "" 
     ) {
       return new Promise(async (resolve, reject) => {
         try {
@@ -1003,7 +1036,7 @@ module.exports = class SolutionsHelper {
             data.entities = entitiesToAdd.entityIds;
 
           }
-  
+
           newSolutionDocument.externalId = 
           data.externalId ? data.externalId : solutionDocument[0].externalId +"-"+ gen.utils.epochTime();
           
@@ -1023,6 +1056,14 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.updatedAt = startDate;
           newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
           newSolutionDocument.isReusable = false;
+
+          if( createdFor !== "" ) {
+            newSolutionDocument.createdFor = createdFor;
+          } 
+
+          if ( rootOrganisations !== "" ) {
+            newSolutionDocument.rootOrganisations = rootOrganisations;
+          }
   
           let duplicateSolutionDocument = 
           await database.models.solutions.create(

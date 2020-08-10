@@ -19,6 +19,10 @@ module.exports = {
     isAPrivateProgram : {
       default : false,
       type : Boolean
+    },
+    rootOrganisations : {
+      type : [String],
+      default : []
     }
   }
 };

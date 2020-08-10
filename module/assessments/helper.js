@@ -580,7 +580,8 @@ module.exports = class AssessmentsHelper {
                 requestedData.program,
                 userDetails.userId,
                 solutionInformation,
-                true
+                true,
+                userDetails.userToken
               );
 
               await entityAssessorsHelper.createOrUpdate(
