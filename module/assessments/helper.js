@@ -11,6 +11,7 @@ const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 let entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 
 /**
     * AssessmentsHelper
@@ -573,6 +574,15 @@ module.exports = class AssessmentsHelper {
                 description : requestedData.description,
                 entities : requestedData.entities ? requestedData.entities: []
               };
+
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                userDetails.userToken,
+                userDetails.userId
+              );
+
+              let createdFor =  organisationAndRootOrganisation.createdFor;
+              let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
   
               let createdSolutionAndProgram = 
               await solutionsHelper.createProgramAndSolutionFromTemplate(
@@ -580,7 +590,9 @@ module.exports = class AssessmentsHelper {
                 requestedData.program,
                 userDetails.userId,
                 solutionInformation,
-                true
+                true,
+                createdFor,
+                rootOrganisations
               );
 
               await entityAssessorsHelper.createOrUpdate(

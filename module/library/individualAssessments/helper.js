@@ -26,7 +26,7 @@ module.exports = class IndividualAssessmentHelper {
       * @returns {Object} returns list of individual solutions
      */
 
-    static list(search,limit,pageNo) {
+    static list(search,limit,pageNo,userId,token) {
         return new Promise(async (resolve, reject) => {
             try {
                 
@@ -35,7 +35,9 @@ module.exports = class IndividualAssessmentHelper {
                   messageConstants.common.INDIVIDUAL,
                   search, 
                   limit, 
-                  pageNo,  
+                  pageNo,
+                  userId,
+                  token  
                 );
 
                 return resolve({
