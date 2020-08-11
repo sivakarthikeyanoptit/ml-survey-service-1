@@ -56,6 +56,7 @@ module.exports = class UserHelper {
                         solutionIds.push(assessor.solutionId);
                         entityIds = entityIds.concat(assessor.entities);
                     })
+
                 }
 
                 let submissions = await submissionsHelper.submissionDocuments({
@@ -144,13 +145,6 @@ module.exports = class UserHelper {
                     }
                 }
                 
-                if( !entityIds.length > 0 ) {
-                    throw {
-                        status : httpStatusCode.bad_request.status,
-                        message : messageConstants.apiResponses.ENTITIES_NOT_MAPPED_TO_USER
-                    }
-                }
-                
                 let programs = 
                 await programsHelper.programDocument(
                     programIds,
@@ -198,6 +192,11 @@ module.exports = class UserHelper {
                         [solution._id.toString()]: solution
                     }), {});
 
+                let entitiesData = {};
+
+                if( entityIds.length > 0 ) {
+
+
                     let entities = await entitiesHelper.entityDocuments({
                         _id : { $in : entityIds }
                     }, [
@@ -209,28 +208,26 @@ module.exports = class UserHelper {
                         "entityType"
                     ]);
 
-                    if ( !entities.length > 0 ) {
-                        throw {
-                            status : httpStatusCode.bad_request.status,
-                            message : messageConstants.apiResponses.ENTITY_NOT_FOUND
-                        }
+                    if ( entities.length > 0 ) {
+                        
+                        entitiesData = entities.reduce(
+                            (ac, entity) => ({
+                                ...ac,
+                                [entity._id.toString()]: entity
+                        }), {});
                     }
 
-                    let entitiesData = entities.reduce(
-                        (ac, entity) => ({
-                            ...ac,
-                            [entity._id.toString()]: entity
-                        }), {});
+                }
 
-                    return resolve({
-                        entityAssessors : assessorsData,
-                        observations : observationsData,
-                        programsData : programsData,
-                        solutionsData : solutionsData,
-                        entitiesData : entitiesData,
-                        submissions : submissions,
-                        observationSubmissions : observationSubmissions
-                    });
+                return resolve({
+                    entityAssessors : assessorsData,
+                    observations : observationsData,
+                    programsData : programsData,
+                    solutionsData : solutionsData,
+                    entitiesData : entitiesData,
+                    submissions : submissions,
+                    observationSubmissions : observationSubmissions
+                });
                     
             } catch(error) {
                 return reject(error);

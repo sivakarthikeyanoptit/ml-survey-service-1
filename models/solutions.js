@@ -60,6 +60,10 @@ module.exports = {
     isDeleted: {
         default : false,
         type : Boolean
+    },
+    rootOrganisations : {
+      type : [String],
+      default : []
     }
   }
 };
