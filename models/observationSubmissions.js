@@ -50,8 +50,6 @@ module.exports = {
       type : Boolean
     },
     scoringSystem: String,
-    isRubricDriven: { type : Boolean, default: false },
-    createdFor: [String],
-    rootOrganisations: [String]
+    isRubricDriven: { type : Boolean, default: false }
   }
 };

@@ -48,8 +48,6 @@ module.exports = {
           return "Assessment";
         }
       }
-    },
-    createdFor: [String],
-    rootOrganisations: [String]
+    }
   }
 };
