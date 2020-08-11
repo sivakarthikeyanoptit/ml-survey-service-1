@@ -5,8 +5,6 @@
  * Description : Solution related helper functionality.
  */
 
-const apiResponses = require("../../generics/messageConstants/apiResponses");
-
 //Dependencies
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
@@ -1121,46 +1119,6 @@ module.exports = class SolutionsHelper {
           });
 
           return resolve(solutionRoles);
-
-        } catch(error) {
-          return reject(error);
-        }
-      })
-    }
-
-     /**
-     * Solution external ids to internal ids.
-     * @method
-     * @name externalIdsToInternalIds
-     * @param {Array} solutionIds - solution external ids.
-     * @returns {Object} List of solution external ids to internal ids.
-     */
-
-    static externalIdsToInternalIds( solutionIds ) {
-      return new Promise(async (resolve, reject) => {
-        try {
-
-          let solutions = 
-          await this.solutionDocuments({
-            externalId : solutionIds 
-          },["_id","externalId"]);
-
-          if ( !solutions.length > 0 ) {
-            throw {
-              message : messageConstants.apiResponses.SOLUTION_NOT_FOUND,
-              result : {}
-            }
-          }
-          
-          let solutionData = {};
-          solutions.forEach(solution=>{
-            solutionData[solution.externalId] = solution._id;
-          })
-
-          return resolve({
-            message : messageConstants.apiResponses.SOLUTION_FETCHED,
-            result : solutionData
-          });
 
         } catch(error) {
           return reject(error);

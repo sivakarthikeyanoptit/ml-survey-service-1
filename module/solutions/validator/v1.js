@@ -19,9 +19,6 @@ module.exports = (req) => {
             req.checkBody('name').exists().withMessage("required new solution name")
             req.checkBody('description').exists().withMessage("required new solution description")
             req.checkBody('programExternalId').exists().withMessage("required programExternalId")
-        },
-        externalIdsToInternalIds : function () {
-            req.checkBody('solutionIds').exists().withMessage("required solution external Ids");
         }
     }
 

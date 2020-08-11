@@ -1235,55 +1235,5 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
-
-   /**
-   * @api {post} /assessment/api/v1/solutions/externalIdsToInternalIds Solution externalIds to internal ids.
-   * Solution external ids to internal ids.
-   * @apiVersion 0.0.1
-   * @apiName Solution external ids to internal ids.
-   * @apiGroup Solutions
-   * @apiHeader {String} X-authenticated-user-token Authenticity token
-   * @apiParam {String} solutionId Solution External ID.
-   * @apiParamExample {json} Request-Body:
-   * {
-   * solutionIds : ["EF-DCPCR-2018-001"]
-   * }
-   * @apiParamExample {json} Response:
-   * {
-    "message": "Solutions fetched successfully",
-    "status": 200,
-    "result": {
-        "EF-DCPCR-2018-001": "5b98fa069f664f7e1ae7498c"
-    }}
-   * @apiSampleRequest /assessment/api/v1/solutions/externalIdsToInternalIds
-   * @apiUse successBody
-   * @apiUse errorBody
-   */
-
-  /**
-   * Solution external ids to internal ids.
-   * @method
-   * @name externalIdsToInternalIds
-   * @param {Object} req - requested data.
-   * @param {Array} req.body.solutionIds - Solution external ids.
-   * @returns {JSON} Solution external ids to internal ids.
-  */
-
- async externalIdsToInternalIds(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-
-      let solutionData = 
-      await solutionsHelper.externalIdsToInternalIds(
-        req.body.solutionIds
-      );
-
-      return resolve(solutionData);
-
-    } catch (error) {
-      return reject(error);
-    }
-  });
-}
   
 };
