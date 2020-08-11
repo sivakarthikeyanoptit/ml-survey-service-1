@@ -12,6 +12,7 @@ const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController");
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * Observations
@@ -139,15 +140,48 @@ module.exports = class Observations extends v1Observation {
                     }
                 }
 
-                let entityDocuments = await entitiesHelper.search(result.entityTypeId, req.searchText, req.pageSize, req.pageNo, userAllowedEntities && userAllowedEntities.length > 0 ? userAllowedEntities : false);
+                let userAclInformation = await userExtensionHelper.userAccessControlList(
+                    req.userDetails.userId
+                );
 
-                if ( result.entities && result.entities.length > 0 ) {
-                    let observationEntityIds = result.entities.map(entity => entity.toString());
-
-                    entityDocuments[0].data.forEach(eachMetaData => {
-                        eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                let tags = [];
+                
+                if( 
+                    userAclInformation.success && 
+                    Object.keys(userAclInformation.acl).length > 0 
+                ) {
+                    Object.values(userAclInformation.acl).forEach(acl=>{
+                        tags = tags.concat(acl);
                     })
                 }
+
+                let entityDocuments = await entitiesHelper.search(
+                    result.entityTypeId, 
+                    req.searchText, 
+                    req.pageSize, 
+                    req.pageNo, 
+                    
+                    userAllowedEntities && userAllowedEntities.length > 0 ? 
+                    userAllowedEntities : 
+                    false,
+                    tags
+                    );
+
+                let observationEntityIds = new Array;
+                if ( result.entities && result.entities.length > 0 ) {
+                    observationEntityIds = result.entities.map(entity => entity.toString());
+                }
+
+                entityDocuments[0].data.forEach(eachMetaData => {
+                    eachMetaData.selected = (observationEntityIds.length > 0 && observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                        eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
+
+                    if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
+                        eachMetaData.name += ", "+eachMetaData.externalId;
+                    }
+                })
 
                 let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if ( !(entityDocuments[0].count) ) {
@@ -174,7 +208,7 @@ module.exports = class Observations extends v1Observation {
 
     /**
      * @api {get} /assessment/api/v2/observations/list Observations list
-     * @apiVersion 1.0.0
+     * @apiVersion 2.0.0
      * @apiName Observations list
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
@@ -512,6 +546,26 @@ module.exports = class Observations extends v1Observation {
                     });
                 }
 
+                let programQueryObject = {
+                    _id: observationDocument.programId,
+                    status: "active",
+                    components: { $in: [ObjectId(observationDocument.solutionId)] }
+                };
+
+                let programDocument = await programsHelper.list(
+                    programQueryObject,[
+                        "externalId",
+                        "name",
+                        "description",
+                        "imageCompression",
+                        "isAPrivateProgram"
+                    ]
+                );
+
+                if ( !programDocument[0]._id ) {
+                    throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+                }
+
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
                 let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
 
@@ -564,6 +618,7 @@ module.exports = class Observations extends v1Observation {
                 let solutionDocumentFieldList = await observationsHelper.solutionDocumentFieldListInResponse()
 
                 response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
+                response.result.program = programDocument[0];
 
                 let submissionDocument = {
                     entityId: entityDocument._id,
@@ -571,10 +626,18 @@ module.exports = class Observations extends v1Observation {
                     entityInformation: entityDocument.metaInformation,
                     solutionId: solutionDocument._id,
                     solutionExternalId: solutionDocument.externalId,
+                    programId : programDocument[0]._id,
+                    programExternalId : programDocument[0].externalId,
+                    isAPrivateProgram : programDocument[0].isAPrivateProgram,
+                    programInformation : {
+                        ..._.omit(programDocument[0], ["_id", "components","isAPrivateProgram"])
+                    },
                     frameworkId: solutionDocument.frameworkId,
                     frameworkExternalId: solutionDocument.frameworkExternalId,
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
+                    scoringSystem: solutionDocument.scoringSystem,
+                    isRubricDriven: solutionDocument.isRubricDriven,
                     observationId: observationDocument._id,
                     observationInformation: {
                         ..._.omit(observationDocument, ["_id", "entities", "deleted", "__v"])
@@ -584,7 +647,7 @@ module.exports = class Observations extends v1Observation {
                     entityProfile: {},
                     status: "started"
                 };
-
+                
                 let assessment = {};
 
                 assessment.name = solutionDocument.name;
@@ -698,7 +761,8 @@ module.exports = class Observations extends v1Observation {
                     Object.values(evidenceMethodArray),
                     entityDocumentQuestionGroup,
                     submissionDoc.result.evidences,
-                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
+                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false,
+                    entityDocument.metaInformation
                 );
 
                 assessment.evidences = parsedAssessment.evidences;
@@ -723,5 +787,78 @@ module.exports = class Observations extends v1Observation {
         });
 
     }
+
+    /**
+     * @api {post} /assessment/api/v2/observation/create?solutionId=:solutionId Create observation
+     * @apiVersion 2.0.0
+     * @apiName Create observation
+     * @apiGroup Observations
+     * @apiParamExample {json} Request-Body:
+     *  {
+     * "name" : "My Solution",
+     * "description" : "My Solution Description",
+     * "program" : {
+     * "_id" : "",
+     * "name" : "My program"
+     * },
+     * "entities" : ["5bfe53ea1d0c350d61b78d0a"],
+     * "status" : "Published" 
+     * }
+     * @apiSampleRequest /assessment/api/v2/observation/create?solutionId=5ed5ec4dd2afa80d0f616460
+     * @apiUse successBody
+     * @apiUse errorBody
+     * @apiParamExample {json} Response:
+     * {
+    "message": "Successfully created solution",
+    "status": 200,
+    "result": {
+        "_id": "5edf880baf0d3261e4af7f7e",
+        "externalId": "AFRICA-ME-TEST-FRAMEWORK-TEMPLATE-1591707659674",
+        "frameworkExternalId": "AFRICA-ME-TEST-FRAMEWORK",
+        "frameworkId": "5d15adc5fad01368a494cbd7",
+        "programExternalId": "My program-1591707659613",
+        "programId": "5edf880baf0d3261e4af7f7d",
+        "entityTypeId": "5d15a959e9185967a6d5e8a6",
+        "entityType": "school",
+        "isAPrivateProgram": true,
+        "observationName": "My Solution",
+        "observationId": "5edf880caf0d3261e4af7f7f"
+    }
+    }
+     */
+     
+    /**
+    * Create observation
+    * @method
+    * @name create
+    * @param {Object} req -request Data.
+    * @returns {Object} - created solution,programs and observation from given solution id. 
+    */
+
+   async create(req) {
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let solutionData = 
+            await observationsHelper.createV2(
+              req.query.solutionId,
+              req.userDetails.userId,
+              req.body,
+              req.rspObj.userToken 
+            );
+
+            return resolve(solutionData);
+
+        } catch (error) {
+
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    })
+   }
 }
 

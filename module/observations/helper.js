@@ -6,10 +6,14 @@
  */
 
 // Dependencies
-const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
+const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfObservationSubmissionsLength = 500;
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+
 
 /**
     * ObservationsHelper
@@ -18,13 +22,13 @@ const chunkOfObservationSubmissionsLength = 500;
 module.exports = class ObservationsHelper {
 
     /**
-   * Get Observation document based on filtered data provided.
-   * @method
-   * @name observationDocuments
-   * @param {Object} [findQuery = "all"] -filter data.
-   * @param {Array} [fields = "all"] - Projected fields.
-   * @returns {Array} - List of observations.
-   */
+     * Get Observation document based on filtered data provided.
+     * @method
+     * @name observationDocuments
+     * @param {Object} [findQuery = "all"] -filter data.
+     * @param {Array} [fields = "all"] - Projected fields.
+     * @returns {Array} - List of observations.
+     */
 
     static observationDocuments(findQuery = "all", fields = "all") {
         return new Promise(async (resolve, reject) => {
@@ -54,55 +58,57 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-   * Create observation.
-   * @method
-   * @name create
-   * @param {String} solutionId -solution id.
-   * @param {Object} data - Observation creation data.
-   * @param {Object} data - Observation creation data. 
-   * @param {Object} userDetails - Logged in user details.
-   * @returns {Object} observation creation data.
-   */
+     * Create observation.
+     * @method
+     * @name create
+     * @param {String} solutionId -solution id.
+     * @param {Object} data - Observation creation data.
+     * @param {Object} userId - User id.
+     * @param {String} requestingUserAuthToken - Requesting user auth token.
+     * @param {String} [programId = ""] - program id
+     * @returns {Object} observation creation data.
+     */
 
-    static create(solutionId, data, userDetails) {
+    static create(
+        solutionId,
+        data, 
+        userId, 
+        requestingUserAuthToken = "",
+        programId = ""
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let solutionDocument = await database.models.solutions.findOne({
-                    _id: ObjectId(solutionId),
-                    isReusable: true
-                }, {
-                        _id: 1,
-                        frameworkId: 1,
-                        frameworkExternalId: 1,
-                        externalId: 1,
-                        entityTypeId: 1,
-                        entityType: 1
-                    }).lean();
-
-                if (!solutionDocument) {
-                    throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+                if( requestingUserAuthToken == "" ) {
+                    throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN);
                 }
 
-                if (data.entities) {
-                    let entitiesToAdd = await entitiesHelper.validateEntities(data.entities, solutionDocument.entityTypeId);
+                let organisationAndRootOrganisation = 
+                await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                    requestingUserAuthToken,
+                    userId
+                );
 
-                    data.entities = entitiesToAdd.entityIds;
+                let duplicateSolution = 
+                await solutionHelper.createProgramAndSolutionFromTemplate
+                (
+                    solutionId,
+                    {
+                        _id : programId
+                    },
+                    userId,
+                    _.omit(data,["entities"]),
+                    true,
+                    organisationAndRootOrganisation.createdFor,
+                    organisationAndRootOrganisation.rootOrganisations
+                );
 
-                }
-
-                let observationData = await database.models.observations.create(
-                    _.merge(data, {
-                        "solutionId": solutionDocument._id,
-                        "solutionExternalId": solutionDocument.externalId,
-                        "frameworkId": solutionDocument.frameworkId,
-                        "frameworkExternalId": solutionDocument.frameworkExternalId,
-                        "entityTypeId": solutionDocument.entityTypeId,
-                        "entityType": solutionDocument.entityType,
-                        "author": userDetails.id,
-                        "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id
-                    })
+                let observationData = 
+                await this.createObservation(
+                    data,
+                    userId,
+                    duplicateSolution,
+                    organisationAndRootOrganisation
                 );
 
                 return resolve(_.pick(observationData, ["_id", "name", "description"]));
@@ -111,9 +117,111 @@ module.exports = class ObservationsHelper {
                 return reject(error);
             }
         })
-
     }
 
+    /**
+     * Create observation.
+     * @method
+     * @name createObservation
+     * @param {Object} data - Observation creation data.
+     * @param {String} userId - Logged in user id.
+     * @param {Object} solution - Solution detail data.
+     * @param {Object} solution - Solution detail data.
+     * @param {String} organisationAndRootOrganisation - organisation and root organisation details. 
+     * @returns {Object} observation creation data.
+     */
+
+    static createObservation(data,userId,solution,organisationAndRootOrganisation) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (data.entities) {
+                    let entitiesToAdd = 
+                    await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
+                    data.entities = entitiesToAdd.entityIds;
+                }
+
+                let observationData = 
+                await database.models.observations.create(
+                    _.merge(data, {
+                        "solutionId": solution._id,
+                        "solutionExternalId": solution.externalId,
+                        "programId" : solution.programId,
+                        "programExternalId" : solution.programExternalId,
+                        "frameworkId": solution.frameworkId,
+                        "frameworkExternalId": solution.frameworkExternalId,
+                        "entityTypeId": solution.entityTypeId,
+                        "entityType": solution.entityType,
+                        "updatedBy": userId,
+                        "createdBy": userId,
+                        "createdFor": organisationAndRootOrganisation.createdFor,
+                        "rootOrganisations": organisationAndRootOrganisation.rootOrganisations,
+                        "isAPrivateProgram" : solution.isAPrivateProgram
+                    })
+                );
+
+                if( !observationData._id ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.OBSERVATION_NOT_CREATED
+                    }
+                }
+
+                return resolve(observationData);
+            } catch(error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Fetch user organisation details.
+     * @method
+     * @name getUserOrganisationDetails
+     * @param {Array} userIds - Array of user ids required..
+     * @param {String} requestingUserAuthToken - Requesting user auth token. 
+     * @returns {Object} User organisation details.
+     */
+
+    static getUserOrganisationDetails(userIds = [], requestingUserAuthToken = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(requestingUserAuthToken == "") {
+                    throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN);
+                }
+
+                let userOrganisationDetails = {};
+
+                if(userIds.length > 0) {
+                    for (let pointerToUserIds = 0; pointerToUserIds < userIds.length; pointerToUserIds++) {
+                        
+                        const user = userIds[pointerToUserIds];
+                        let userOrganisations = 
+                        await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                            requestingUserAuthToken, 
+                            userIds[pointerToUserIds]
+                        );
+                        
+                        userOrganisationDetails[user] = userOrganisations;
+                    }
+                }
+
+                return resolve({
+                    success : true,
+                    message : "User organisation details fetched successfully.",
+                    data : userOrganisationDetails
+                });
+
+            } catch (error) {
+                return reject({
+                    success : false,
+                    message : error.message
+                });
+            }
+        })
+
+    }
 
     /**
      * list observation v1.
@@ -141,7 +249,6 @@ module.exports = class ObservationsHelper {
         })
     }
 
-
     /**
      * list observation v2.
      * @method
@@ -167,7 +274,6 @@ module.exports = class ObservationsHelper {
             }
         })
     }
-
 
     /**
      * list observation v2.
@@ -301,17 +407,17 @@ module.exports = class ObservationsHelper {
         })
     }
 
-     /**
-   * find observation submission. 
-   * @method
-   * @name findSubmission
-   * @param {Object} document
-   * @param {Object} document.entityId - entity id.
-   * @param {Object} document.solutionId - solution id.
-   * @param {Object} document.observationId - observation id.
-   * @param {Object} document.submissionNumber - submission number.     
-   * @returns {Object} Submission document.
-   */
+    /**
+     * find observation submission. 
+     * @method
+     * @name findSubmission
+     * @param {Object} document
+     * @param {Object} document.entityId - entity id.
+     * @param {Object} document.solutionId - solution id.
+     * @param {Object} document.observationId - observation id.
+     * @param {Object} document.submissionNumber - submission number.     
+     * @returns {Object} Submission document.
+     */
 
     static findSubmission(document) {
 
@@ -334,6 +440,8 @@ module.exports = class ObservationsHelper {
                         document
                     );
 
+                    // Push new observation submission to kafka for reporting/tracking.
+                    observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(submissionDocument._id);
                 }
 
                 return resolve({
@@ -351,13 +459,13 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-   * find last submission for observation entity. 
-   * @method
-   * @name findLastSubmissionForObservationEntity
-   * @param {String} [observationId = ""] - observation id.
-   * @param {String} [entityId = ""] - entity id.       
-   * @returns {Object} submissionNumber.
-   */
+     * find last submission for observation entity. 
+     * @method
+     * @name findLastSubmissionForObservationEntity
+     * @param {String} [observationId = ""] - observation id.
+     * @param {String} [entityId = ""] - entity id.       
+     * @returns {Object} submissionNumber.
+     */
 
     static findLastSubmissionForObservationEntity(observationId = "", entityId = "") {
 
@@ -402,35 +510,43 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-   * Bulk create observation. 
-   * @method
-   * @name bulkCreate
-   * @param {Object} solution - solution document.
-   * @param {String} solution.externalId - solution external id.
-   * @param {String} solution.frameworkId - framework id.
-   * @param {String} solution.frameworkExternalId - framework external id.
-   * @param {String} solution.name - solution name.   
-   * @param {String} solution.description - solution description.  
-   * @param {String} solution.type - solution type. 
-   * @param {String} solution._id - solution id. 
-   * @param {Object} entityDocument - entity document. 
-   * @param {String} entityDocument._id - entity id.
-   * @param {String} entityDocument.entityTypeId - entity type id.
-   * @param {String} entityDocument.entityType - entity type.
-   * @param {String} entityDocument.parentId - parent id.
-   * @param {String} userId - logged in user id.      
-   * @returns {Object} status.
-   */
-
-    static bulkCreate(solution, entityDocument, userId) {
+     * Bulk create observation. 
+     * @method
+     * @name bulkCreate
+     * @param {Object} solution - solution document.
+     * @param {String} solution.externalId - solution external id.
+     * @param {String} solution.frameworkId - framework id.
+     * @param {String} solution.frameworkExternalId - framework external id.
+     * @param {String} solution.name - solution name.   
+     * @param {String} solution.description - solution description.  
+     * @param {String} solution.type - solution type. 
+     * @param {String} solution.entityTypeId - entity type id.
+     * @param {String} solution.entityType - entity type.
+     * @param {String} solution._id - solution id. 
+     * @param {Object} entityDocument - entity document. 
+     * @param {String} entityDocument._id - entity id.
+     * @param {String} entityDocument.parentId - parent id.
+     * @param {String} userId - logged in user id.      
+     * @param {Array} userOrganisations - User organisations
+     * @returns {Object} status.
+     */
+    
+    static bulkCreate(userId, solution, entityDocument = {}, userOrganisations) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let status
-
-                let startDate = new Date()
-                let endDate = new Date()
+                let status;
+                let startDate = new Date();
+                let endDate = new Date();
+                let isEntityDocumentValid = false;
+                
                 endDate.setFullYear(endDate.getFullYear() + 1);
+
+                if(entityDocument._id && entityDocument._id.toString() != "") {
+                    if(solution.entityTypeId.toString() === entityDocument.entityTypeId.toString() && solution.entityType === entityDocument.entityType) {
+                        isEntityDocumentValid = true
+                    }
+                }
 
                 let observationDocument = await database.models.observations.findOne({
                     solutionExternalId: solution.externalId,
@@ -439,40 +555,53 @@ module.exports = class ObservationsHelper {
                 }, { _id: 1 }).lean()
 
                 if (observationDocument) {
-                    let updateObservationData = await database.models.observations.findOneAndUpdate({ _id: observationDocument._id }, {
-                        $addToSet: { entities: entityDocument._id }
-                    }).lean();
-                    updateObservationData ? status = `${updateObservationData._id.toString()} Updated Successfully` : status = `${updateObservationData._id.toString()} Could not be Updated`
+                    if(isEntityDocumentValid) {
+                        let updateObservationData = await database.models.observations.findOneAndUpdate({
+                             _id: observationDocument._id
+                            }, {
+                            $addToSet: { entities: entityDocument._id }
+                        }).lean();
+                        updateObservationData ? status = `${updateObservationData._id.toString()} Updated Successfully` : status = `${updateObservationData._id.toString()} Could not be Updated`;
+                    } else {
+                        status = messageConstants.apiResponses.INVALID_ENTITY_TYPE;
+                    }
                 } else {
 
                     let observation = {}
 
-                    observation["status"] = "published"
-                    observation["deleted"] = "false"
-                    observation["solutionId"] = solution._id
-                    observation["solutionExternalId"] = solution.externalId
-                    observation["frameworkId"] = solution.frameworkId
-                    observation["frameworkExternalId"] = solution.frameworkExternalId
-                    observation["entityTypeId"] = entityDocument.entityTypeId
-                    observation["entityType"] = entityDocument.entityType
-                    observation["parentId"] = entityDocument.parentId ? entityDocument.parentId : ""
-                    observation["createdBy"] = userId
-                    observation["startDate"] = startDate
-                    observation["endDate"] = endDate
-                    observation["name"] = solution.name
-                    observation["description"] = solution.description
-                    observation["entities"] = []
-                    observation["entities"].push(entityDocument._id)
+                    observation["createdFor"] = userOrganisations.createdFor;
+                    observation["rootOrganisations"] = userOrganisations.rootOrganisations;
+                    observation["status"] = "published";
+                    observation["deleted"] = "false";
+                    observation["solutionId"] = solution._id;
+                    observation["solutionExternalId"] = solution.externalId;
+                    observation["programId"] = solution.programId;
+                    observation["programExternalId"] = solution.programExternalId;
+                    observation["frameworkId"] = solution.frameworkId;
+                    observation["frameworkExternalId"] = solution.frameworkExternalId;
+                    observation["entityTypeId"] = solution.entityTypeId;
+                    observation["entityType"] = solution.entityType;
+                    observation["createdBy"] = userId;
+                    observation["startDate"] = startDate;
+                    observation["endDate"] = endDate;
+                    observation["name"] = solution.name;
+                    observation["description"] = solution.description;
+                    observation["entities"] = new Array;
+                    
+                    if(isEntityDocumentValid) {
+                        observation["entities"].push(entityDocument._id);
+                    }
 
                     let observationDocument = await database.models.observations.create(
                         observation
                     );
-                    observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`
+                    observationDocument._id ? status = `${observationDocument._id} created` : status = `${observationDocument._id} could not be created`;
 
                     if (observationDocument._id) {
                         await this.sendUserNotifications(userId, {
                             solutionType: solution.type,
                             solutionId: solution._id.toString(),
+                            programId : solution.programId,
                             observationId: observationDocument._id.toString()
                         });
                     }
@@ -489,13 +618,13 @@ module.exports = class ObservationsHelper {
     }
 
     /**
-   * Send user notifications. 
-   * @method
-   * @name sendUserNotifications
-   * @param {Object} [observationData = {}] - .
-   * @param {String} [userId = ""] - logged in user id.      
-   * @returns {Object} message and success status.
-   */
+     * Send user notifications. 
+     * @method
+     * @name sendUserNotifications
+     * @param {Object} [observationData = {}] - .
+     * @param {String} [userId = ""] - logged in user id.      
+     * @returns {Object} message and success status.
+     */
 
     static sendUserNotifications(userId = "", observationData = {}) {
         return new Promise(async (resolve, reject) => {
@@ -600,7 +729,8 @@ module.exports = class ObservationsHelper {
                         observationId: 1, 
                         createdBy: 1, 
                         "entityInformation.name": 1, 
-                        "entityInformation.externalId": 1 
+                        "entityInformation.externalId": 1,
+                        programId : 1 
                     }).lean();
 
                     await Promise.all(observationSubmissionsDocument.map(async eachObservationData => {
@@ -619,7 +749,8 @@ module.exports = class ObservationsHelper {
                             createdAt: eachObservationData.createdAt,
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
-                            entityName: entityName
+                            entityName: entityName,
+                            programId : eachObservationData.programId
                         });
 
                     })
@@ -634,7 +765,6 @@ module.exports = class ObservationsHelper {
             }
         })
     }
-
 
     /**
      * Completed observations.
@@ -700,7 +830,8 @@ module.exports = class ObservationsHelper {
                         "createdBy": 1, 
                         "entityInformation.name": 1, 
                         "entityInformation.externalId": 1,
-                        "completedDate" : 1 
+                        "completedDate" : 1,
+                        programId : 1  
                     }).lean();
                     await Promise.all(
                         observationSubmissionsDocument.map(async eachObservationData => {
@@ -729,7 +860,8 @@ module.exports = class ObservationsHelper {
                             entityId: eachObservationData.entityId,
                             observationId: eachObservationData.observationId,
                             entityName: entityName,
-                            completedDate : eachObservationData.completedDate
+                            completedDate : eachObservationData.completedDate,
+                            programId : eachObservationData.programId
                         });
 
                     })
@@ -797,6 +929,8 @@ module.exports = class ObservationsHelper {
             return resolve({
                 name: 1,
                 externalId: 1,
+                programId : 1,
+                programExternalId : 1,
                 description: 1,
                 themes: 1,
                 entityProfileFieldsPerEntityTypes: 1,
@@ -810,7 +944,9 @@ module.exports = class ObservationsHelper {
                 entityTypeId: 1,
                 entityType: 1,
                 captureGpsLocationAtQuestionLevel : 1,
-                enableQuestionReadOut : 1
+                enableQuestionReadOut : 1,
+                scoringSystem: 1,
+                isRubricDriven: 1
             });
         })
     }
@@ -832,9 +968,83 @@ module.exports = class ObservationsHelper {
                 "description",
                 "registry",
                 "captureGpsLocationAtQuestionLevel",
-                "enableQuestionReadOut"
+                "enableQuestionReadOut",
+                "scoringSystem",
+                "isRubricDriven"
             ]);
         })
+    }
+
+     /**
+     * Create solution from library template. 
+     * @method
+     * @name createV2
+     * @param {String} templateId - observation solution library id. 
+     * @param {String} userId - Logged in user id.
+     * @param {Object} requestedData - request body data.
+     * @param {String} token - logged in token.    
+     * @returns {Array} - Create solution from library template.
+     */
+
+    static createV2( templateId,userId,requestedData,token ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+  
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                token,
+                userId
+              );
+
+              let solutionInformation =  {
+                name : requestedData.name,
+                description : requestedData.description
+              };
+  
+              let createdSolutionAndProgram = 
+              await solutionHelper.createProgramAndSolutionFromTemplate(
+                templateId,
+                requestedData.program,
+                userId,
+                solutionInformation,
+                true,
+                token
+              );
+
+              let startDate = new Date();
+              let endDate = new Date();
+              endDate.setFullYear(endDate.getFullYear() + 1);
+
+              let observationData = {
+                name : requestedData.name,
+                description : requestedData.description,
+                status : requestedData.status,
+                startDate : startDate,
+                endDate : endDate,
+                entities : requestedData.entities
+              };
+
+              let observation = 
+              await this.createObservation(
+                observationData,
+                userId,
+                createdSolutionAndProgram,
+                organisationAndRootOrganisation
+              );
+
+              createdSolutionAndProgram["observationName"] = observation.name;
+              createdSolutionAndProgram["observationId"] = observation._id;
+              createdSolutionAndProgram["observationExternalId"] = observation.externalId;
+
+              return resolve({
+                message: messageConstants.apiResponses.CREATED_SOLUTION,
+                result : createdSolutionAndProgram
+              });
+  
+            } catch (error) {
+                return reject(error);
+            }
+        });
     }
 
 };

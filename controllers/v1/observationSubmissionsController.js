@@ -14,6 +14,7 @@ const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 
 /**
     * ObservationSubmissions
@@ -30,7 +31,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/observationSubmissions/create:observationId?entityId=:entityId Create A New Observation Submission
+  * @api {post} /assessment/api/v1/observationSubmissions/create/:observationId?entityId=:entityId Create A New Observation Submission
   * @apiVersion 1.0.0
   * @apiName Create A New Observation Submission
   * @apiGroup Observation Submissions
@@ -134,7 +135,12 @@ module.exports = class ObservationSubmissions extends Abstract {
           "frameworkExternalId",
           "evidenceMethods",
           "entityTypeId",
-          "entityType"
+          "entityType",
+          "programId",
+          "programExternalId",
+          "isAPrivateProgram",
+          "scoringSystem",
+          "isRubricDriven"
         ]);
 
         if (!solutionDocument[0]) {
@@ -161,7 +167,8 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let lastSubmissionNumber = 0;
 
-        const lastSubmissionForObservationEntity = await observationsHelper.findLastSubmissionForObservationEntity(req.params._id, req.query.entityId);
+        const lastSubmissionForObservationEntity = 
+        await observationsHelper.findLastSubmissionForObservationEntity(req.params._id, req.query.entityId);
         
         if(!lastSubmissionForObservationEntity.success) {
           throw new Error(lastSubmissionForObservationEntity.message);
@@ -175,6 +182,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           entityInformation: entityDocument.metaInformation,
           solutionId: solutionDocument._id,
           solutionExternalId: solutionDocument.externalId,
+          programId : solutionDocument.programId,
+          programExternalId : solutionDocument.programExternalId,
+          isAPrivateProgram : solutionDocument.isAPrivateProgram,
           frameworkId: solutionDocument.frameworkId,
           frameworkExternalId: solutionDocument.frameworkExternalId,
           entityTypeId: solutionDocument.entityTypeId,
@@ -186,7 +196,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           createdBy: observationDocument.createdBy,
           evidenceSubmissions: [],
           entityProfile: {},
-          status: "started"
+          status: "started",
+          scoringSystem: solutionDocument.scoringSystem,
+          isRubricDriven: solutionDocument.isRubricDriven
       };
 
       let criteriaId = new Array;
@@ -247,8 +259,11 @@ module.exports = class ObservationSubmissions extends Abstract {
       submissionDocument.criteria = submissionDocumentCriterias;
       submissionDocument.submissionNumber = lastSubmissionNumber;
 
-      await database.models.observationSubmissions.create(submissionDocument);
+      let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
       
+      // Push new observation submission to kafka for reporting/tracking.
+      observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(newObservationSubmissionDocument._id);
+
       let observations = new Array;
 
       observations = await observationsHelper.listV2(req.userDetails.userId);
@@ -607,6 +622,77 @@ module.exports = class ObservationSubmissions extends Abstract {
   }
 
   /**
+  * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
+  * @apiVersion 1.0.0
+  * @apiName Set Observation Submission Title
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "title" : "Observation Submission Title",
+  * }
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Observation submission updated successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Set Observation Submission Title.
+   * @method
+   * @name title
+   * @param {String} req.params._id -observation submissions id.
+   * @returns {JSON} - message that observation submission title is set.
+   */
+
+  async title(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_UPDATED;
+
+        let submissionDocument = await database.models.observationSubmissions.findOneAndUpdate(
+          {
+            _id: req.params._id,
+            createdBy: req.userDetails.id
+          },
+          {
+            $set : {
+              title : req.body.title
+            }
+          }, {
+            projection : {
+              _id : 1
+            }
+          }
+        );
+
+        if (!submissionDocument || !submissionDocument._id) {
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+        }
+
+        let response = {
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+  /**
   * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
   * @apiVersion 1.0.0
   * @apiName Push Observation Submission to Kafka
@@ -629,6 +715,48 @@ module.exports = class ObservationSubmissions extends Abstract {
       try {
 
         let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+
+        if(pushObservationSubmissionToKafka.status != "success") {
+          throw pushObservationSubmissionToKafka.message;
+        }
+
+        return resolve({
+          message: pushObservationSubmissionToKafka.message
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+        });
+      }
+    })
+  }
+
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/pushInCompleteObservationSubmissionForReporting/:observationSubmissionId Push Incomplete Observation Submission for Reporting
+  * @apiVersion 1.0.0
+  * @apiName Push Incomplete Observation Submission for Reporting
+  * @apiGroup Observation Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  /**
+   * Push incomplete observation submissions to kafka for reporting.
+   * @method
+   * @name pushInCompleteObservationSubmissionForReporting
+   * @param {Object} req -request data. 
+   * @param {String} req.params._id -observation submissions id.
+   * @returns {JSON} - message that observation submission is pushed to kafka.
+   */
+
+  async pushInCompleteObservationSubmissionForReporting(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let pushObservationSubmissionToKafka = await observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(req.params._id);
 
         if(pushObservationSubmissionToKafka.status != "success") {
           throw pushObservationSubmissionToKafka.message;
@@ -800,13 +928,15 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
             }
-            submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore
+            submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
 
-        let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi")
-
+        let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi")
+        if(resultingArray.result.runUpdateQuery) {
+          await observationSubmissionsHelper.markCompleteAndPushForReporting(submissionDocument._id)
+        }
         return resolve(resultingArray)
 
       } catch (error) {
@@ -980,7 +1110,7 @@ module.exports = class ObservationSubmissions extends Abstract {
               questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
               commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
             }
-            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = questionMaxScore;
+            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
           })
         }
 
@@ -990,8 +1120,15 @@ module.exports = class ObservationSubmissions extends Abstract {
           })
         }
 
-        let resultingArray = await submissionsHelper.rateEntities(submissionDocuments, "multiRateApi");
+        let resultingArray = await scoringHelper.rateEntities(submissionDocuments, "multiRateApi");
 
+        for (let pointerToResultingArray = 0; pointerToResultingArray < resultingArray.length; pointerToResultingArray++) {
+          const submission = resultingArray[pointerToResultingArray];
+          if(submission.runUpdateQuery) {
+            await observationSubmissionsHelper.markCompleteAndPushForReporting(submission.submissionId)
+          }
+        }
+        
         return resolve({ result: resultingArray });
 
       } catch (error) {
@@ -1002,6 +1139,62 @@ module.exports = class ObservationSubmissions extends Abstract {
         });
       }
 
+    })
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/list/:observationId?entityId:entityId List Observation Submissions
+  * @apiVersion 1.0.0
+  * @apiName List Observation Submissions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/list/5d1a002d2dfd8135bc8e1615?entityId=5cee7d1390013936552f6a8d
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Successfully fetched observation submissions",
+    "status": 200,
+    "result": [
+        {
+             "_id": "5d8de379bccbfb51d4450d05",
+            "entityId": "5bfe53ea1d0c350d61b78d0f",
+            "entityExternalId": "1208138",
+            "entityType": "school",
+            "status": "started",
+            "submissionNumber": 1,
+            "updatedAt": "2019-09-27T10:24:57.182Z",
+            "createdAt": "2019-09-27T10:24:57.182Z"
+        }
+    ]
+  }
+
+  */
+   /**
+   * List observation submissions
+   * @method
+   * @name list
+   * @param {Object} req - requested data.
+   * @param {String} req.query.entityId - entity id.
+   * @param {String} req.params._id - observation id. 
+   * @returns {JSON} consists of list of observation submissions.
+   */
+  async list(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let submissionDocument =
+         await observationSubmissionsHelper.list
+          (
+          req.query.entityId,
+          req.params._id
+          );
+        return resolve(submissionDocument);
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
     })
   }
 

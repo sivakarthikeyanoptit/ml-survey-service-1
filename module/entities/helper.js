@@ -7,6 +7,7 @@
 
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
  /**
     * EntitiesHelper
@@ -36,8 +37,15 @@ module.exports = class EntitiesHelper {
                 }
 
                 let entityDocuments = data.map(singleEntity => {
-                    singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
-                    singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+
+                    if( singleEntity.createdByProgramId ) {
+                        singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
+                    }
+
+                    if( singleEntity.createdBySolutionId ) {
+                        singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
+                    }
+
                     return {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
@@ -45,7 +53,8 @@ module.exports = class EntitiesHelper {
                         "groups": {},
                         "metaInformation": singleEntity,
                         "updatedBy": userDetails.id,
-                        "createdBy": userDetails.id
+                        "createdBy": userDetails.id,
+                        "userId" : userDetails.id
                     }
 
                 });
@@ -53,15 +62,34 @@ module.exports = class EntitiesHelper {
                 let entityData = await database.models.entities.create(
                     entityDocuments
                 );
+                
+                let entities = [];
 
                 //update entity id in parent entity
-                for (let eachEntityData = 0; eachEntityData < entityData.length; eachEntityData++) {
-                    await this.addSubEntityToParent(queryParams.parentEntityId, entityData[eachEntityData]._id.toString(), queryParams.programId);
+                
+                for (
+                    let eachEntityData = 0; 
+                    eachEntityData < entityData.length; 
+                    eachEntityData++
+                ) {
+
+                    if( queryParams.parentEntityId && queryParams.programId ) {
+
+                        await this.addSubEntityToParent(
+                            queryParams.parentEntityId, 
+                            entityData[eachEntityData]._id.toString(), 
+                            queryParams.programId
+                        );
+                    }
+                    
+                    entities.push(entityData[eachEntityData]._id);
                 }
 
                 if (entityData.length != data.length) {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
+               
+                await this.pushEntitiesToElasticSearch(entities);
 
                 return resolve(entityData);
 
@@ -83,14 +111,40 @@ module.exports = class EntitiesHelper {
    * @returns {JSON} - Details of entity.
    */
 
-    static list(entityType, entityId, limitingValue = "", skippingValue = "") {
+    static list(
+        entityType, 
+        entityId, 
+        limitingValue = "", 
+        skippingValue = "",
+        schoolTypes = "",
+        administrationTypes = ""
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let queryObject = { _id: ObjectId(entityId) };
                 let projectObject = { [`groups.${entityType}`]: 1 };
 
-                let result = await database.models.entities.findOne(queryObject, projectObject).lean();
+                let result = 
+                await database.models.entities.findOne(
+                    queryObject, 
+                    projectObject
+                ).lean();
+
+                if( !result ) {
+                    
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    })
+                }
+
+                if( !result.groups || !result.groups[entityType] ) {
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.ENTITY_GROUPS_NOT_FOUND
+                    })
+                }
 
                 let entityIds = result.groups[entityType];
 
@@ -107,42 +161,98 @@ module.exports = class EntitiesHelper {
                     })
                 }
 
-                let entityData = await database.models.entities.find({ _id: { $in: entityIds } }, {
-                    metaInformation: 1,
-                    groups: 1,
-                    entityType: 1,
-                    entityTypeId: 1
-                })
-                    .limit(limitingValue)
-                    .skip(skippingValue)
-                    .lean();
+                let filteredQuery = {
+                    $match : { _id : { $in: entityIds }}
+                }
 
-                result = entityData.map(entity => {
-                    entity.metaInformation.childrenCount = 0;
-                    entity.metaInformation.entityType = entity.entityType;
-                    entity.metaInformation.entityTypeId = entity.entityTypeId;
-                    entity.metaInformation.subEntityGroups = new Array;
+                let schoolOrAdministrationTypes = [];
+                
+                if( schoolTypes !== "" ) {
 
-                    entity.groups && Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
-                        if (entity.groups[immediateChildrenEntityType]) {
-                            entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
-                            entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(schoolTypes.split(","));
+                }
+                
+                if( administrationTypes !== "" ) {
+
+                    schoolOrAdministrationTypes = 
+                    schoolOrAdministrationTypes.concat(administrationTypes.split(","));
+                }
+
+                if( schoolOrAdministrationTypes.length > 0 ) {
+
+                    schoolOrAdministrationTypes = schoolOrAdministrationTypes.map(
+                        schoolOrAdministrationType=>schoolOrAdministrationType.toLowerCase()
+                    );
+
+                    filteredQuery["$match"]["metaInformation.tags"] = 
+                    { $in : schoolOrAdministrationTypes };
+                }
+                
+                let entityData = await database.models.entities.aggregate([
+                    filteredQuery,
+                    {
+                        $project: {
+                            metaInformation : 1,
+                            groups : 1,
+                            entityType : 1,
+                            entityTypeId : 1
+                        }
+                    },
+                    {
+                        $facet: {
+                            "totalCount": [
+                                { "$count": "count" }
+                            ],
+                            "data": [
+                                { $skip: skippingValue },
+                                { $limit: limitingValue }
+                            ],
+                        }
+                    },{
+                        $project: {
+                            "data": 1,
+                            "count": {
+                                $arrayElemAt: ["$totalCount.count", 0]
+                            }
+                        }
+                    }
+                ]);
+
+                let count = 0;
+                result = [];
+
+                if( entityData[0].data.length > 0 ) {
+
+                    result = entityData[0].data.map(entity => {
+                        entity.metaInformation.childrenCount = 0;
+                        entity.metaInformation.entityType = entity.entityType;
+                        entity.metaInformation.entityTypeId = entity.entityTypeId;
+                        entity.metaInformation.subEntityGroups = new Array;
+    
+                        entity.groups && Array.isArray(enityTypeToImmediateChildrenEntityMap[entity.entityType]) && enityTypeToImmediateChildrenEntityMap[entity.entityType].forEach(immediateChildrenEntityType => {
+                            if (entity.groups[immediateChildrenEntityType]) {
+                                entity.metaInformation.immediateSubEntityType = immediateChildrenEntityType;
+                                entity.metaInformation.childrenCount = entity.groups[immediateChildrenEntityType].length;
+                            }
+                        })
+    
+                        entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
+                            entity.metaInformation.subEntityGroups.push(subEntityType);
+                        })
+                        return {
+                            _id: entity._id,
+                            entityId: entity._id,
+                            ...entity.metaInformation
                         }
                     })
-
-                    entity.groups && Array.isArray(Object.keys(entity.groups)) && Object.keys(entity.groups).forEach(subEntityType => {
-                        entity.metaInformation.subEntityGroups.push(subEntityType);
-                    })
-                    return {
-                        _id: entity._id,
-                        entityId: entity._id,
-                        ...entity.metaInformation
-                    }
-                })
+                    count = entityData[0].count;
+                }
 
                 return resolve({
-                    entityData: result,
-                    count: entityIds.length
+                    message: messageConstants.apiResponses.ENTITY_INFORMATION_FETCHED,
+                    result: result,
+                    count: count
                 });
 
             } catch (error) {
@@ -195,7 +305,10 @@ module.exports = class EntitiesHelper {
 
             try {
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { profileForm: 1 }).lean();
+                let entityTypeDocument = 
+                await database.models.entityTypes.findOne({ 
+                    name: entityType 
+                }, { profileForm: 1 }).lean();
 
                 let entityForm = entityTypeDocument.profileForm;
 
@@ -422,7 +535,10 @@ module.exports = class EntitiesHelper {
                     }), {});
                 }
 
-                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 });
+                let entityTypeDocument = 
+                await database.models.entityTypes.findOne({ 
+                    name: entityType 
+                }, { _id: 1 });
 
                 if (!entityTypeDocument) {
                     throw messageConstants.apiResponses.INVALID_ENTITY_TYPE;
@@ -432,6 +548,7 @@ module.exports = class EntitiesHelper {
                     entityCSVData.map(async singleEntity => {
 
                         singleEntity = gen.utils.valueParser(singleEntity);
+                        addTagsInEntities(singleEntity);
 
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
@@ -456,6 +573,9 @@ module.exports = class EntitiesHelper {
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "" && newEntity.entityType == solutionsData[singleEntity._solutionId]["entityType"]) {
                             solutionsData[singleEntity._solutionId].newEntities.push(newEntity._id);
                         }
+                        
+                        await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
+
 
                         return singleEntity;
                     })
@@ -494,16 +614,21 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                const entityUploadedData = await Promise.all(entityCSVData.map(async singleEntity => {
+                const entityUploadedData = 
+                await Promise.all(entityCSVData.map(async singleEntity => {
 
                     singleEntity = gen.utils.valueParser(singleEntity);
+                    addTagsInEntities(singleEntity);
 
                     if(!singleEntity["_SYSTEM_ID"] || singleEntity["_SYSTEM_ID"] == "") {
                         singleEntity["UPDATE_STATUS"] = "Invalid or missing _SYSTEM_ID";
                         return singleEntity;
                     }
 
-                    let columnsToUpdate = _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") });
+                    let columnsToUpdate = 
+                    _.omitBy(singleEntity, (value, key) => { 
+                        return _.startsWith(key, "_") 
+                    });
                     
                     let metaInformationToSet = {};
 
@@ -528,6 +653,8 @@ module.exports = class EntitiesHelper {
                     } else {
                         singleEntity["UPDATE_STATUS"] = "No information to update.";
                     }
+                    
+                    await this.pushEntitiesToElasticSearch([singleEntity["_SYSTEM_ID"]]);
 
                     return singleEntity;
 
@@ -557,12 +684,13 @@ module.exports = class EntitiesHelper {
     static processEntityMappingUploadData(mappingData = []) {
         return new Promise(async (resolve, reject) => {
             try {
+                let entities = [];
 
                 if(mappingData.length < 1) {
                     throw new Error(messageConstants.apiResponses.INVALID_MAPPING_DATA);
                 }
 
-                this.entityMapProccessData = {
+                this.entityMapProcessData = {
                     entityTypeMap : {},
                     relatedEntities : {},
                     entityToUpdate : {}
@@ -571,17 +699,18 @@ module.exports = class EntitiesHelper {
                 for (let indexToEntityMapData = 0; indexToEntityMapData < mappingData.length; indexToEntityMapData++) {
                   if (mappingData[indexToEntityMapData].parentEntiyId != "" && mappingData[indexToEntityMapData].childEntityId != "") {
                     await this.addSubEntityToParent(mappingData[indexToEntityMapData].parentEntiyId, mappingData[indexToEntityMapData].childEntityId);
+                    entities.push(mappingData[indexToEntityMapData].childEntityId);
                   }
                 }
 
-                if(Object.keys(this.entityMapProccessData.entityToUpdate).length > 0) {
-                    await Promise.all(Object.keys(this.entityMapProccessData.entityToUpdate).map(async entityIdToUpdate => {
+                if(Object.keys(this.entityMapProcessData.entityToUpdate).length > 0) {
+                    await Promise.all(Object.keys(this.entityMapProcessData.entityToUpdate).map(async entityIdToUpdate => {
                         
                         let updateQuery = {"$addToSet" : {}};
 
-                        Object.keys(this.entityMapProccessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
+                        Object.keys(this.entityMapProcessData.entityToUpdate[entityIdToUpdate]).forEach(groupToUpdate => {
                             updateQuery["$addToSet"][groupToUpdate] = {
-                                $each: this.entityMapProccessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
+                                $each: this.entityMapProcessData.entityToUpdate[entityIdToUpdate][groupToUpdate]
                             };
                         })
 
@@ -593,7 +722,9 @@ module.exports = class EntitiesHelper {
                     }))
                 }
 
-                this.entityMapProccessData = {};
+                await this.pushEntitiesToElasticSearch(entities);
+
+                this.entityMapProcessData = {};
                 
                 return resolve({
                     success : true,
@@ -624,7 +755,8 @@ module.exports = class EntitiesHelper {
                     _id: ObjectId(childEntityId)
                 }, {
                     entityType: 1,
-                    groups: 1
+                    groups: 1,
+                    childHierarchyPath : 1
                 }).lean();
 
 
@@ -652,16 +784,31 @@ module.exports = class EntitiesHelper {
                         })
                     }
 
+                    let childHierarchyPathToUpdate = [
+                        childEntity.entityType
+                    ]
+                    if(childEntity.childHierarchyPath && childEntity.childHierarchyPath.length > 0) {
+                        childHierarchyPathToUpdate = childHierarchyPathToUpdate.concat(childEntity.childHierarchyPath);
+                    }
+                    updateQuery["$addToSet"][`childHierarchyPath`] = {
+                        "$each" : childHierarchyPathToUpdate
+                    }
+
                     let projectedData = {
                         _id: 1,
                         "entityType": 1,
                         "entityTypeId": 1,
+                        "childHierarchyPath": 1
                     }
 
                     let updatedParentEntity = await database.models.entities.findOneAndUpdate(
                         parentEntityQueryObject,
                         updateQuery,
-                        projectedData
+                        {
+                            projection: projectedData,
+                            new: true
+                        }
+                        
                     );
 
                     await this.mappedParentEntities(updatedParentEntity, childEntity);
@@ -683,9 +830,18 @@ module.exports = class EntitiesHelper {
    * @param {Number} pageSize - total page size.
    * @param {Number} pageNo - Page no.
    * @param {Array} [entityIds = false] - Array of entity ids.
+   * @param {Array} aclData - access control list for the logged in user.
+   * @returns {Array} searched entities
    */
 
-    static search(entityTypeId, searchText, pageSize, pageNo, entityIds = false) {
+    static search(
+        entityTypeId, 
+        searchText,
+        pageSize, 
+        pageNo, 
+        entityIds = false,
+        aclData = []
+    ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -696,6 +852,11 @@ module.exports = class EntitiesHelper {
                 if (entityIds && entityIds.length > 0) {
                     queryObject["$match"]["_id"] = {};
                     queryObject["$match"]["_id"]["$in"] = entityIds;
+                }
+
+                if( aclData.length > 0 ) {
+                    queryObject["$match"]["metaInformation.tags"] = 
+                    { $in : aclData };
                 }
 
                 queryObject["$match"]["entityTypeId"] = entityTypeId;
@@ -714,7 +875,8 @@ module.exports = class EntitiesHelper {
                             name: "$metaInformation.name",
                             externalId: "$metaInformation.externalId",
                             addressLine1: "$metaInformation.addressLine1",
-                            addressLine2: "$metaInformation.addressLine2"
+                            addressLine2: "$metaInformation.addressLine2",
+                            districtName: "$metaInformation.districtName"
                         }
                     },
                     {
@@ -857,8 +1019,8 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if(this.entityMapProccessData && this.entityMapProccessData.relatedEntities[entityId.toString()]) {
-                    return resolve(this.entityMapProccessData.relatedEntities[entityId.toString()]);
+                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities && this.entityMapProcessData.relatedEntities[entityId.toString()]) {
+                    return resolve(this.entityMapProcessData.relatedEntities[entityId.toString()]);
                 }
 
                 let relatedEntitiesQuery = {};
@@ -877,8 +1039,8 @@ module.exports = class EntitiesHelper {
                 let relatedEntitiesDocument = await this.entityDocuments(relatedEntitiesQuery, projection);
                 relatedEntitiesDocument = relatedEntitiesDocument ? relatedEntitiesDocument : [];
 
-                if(this.entityMapProccessData) {
-                    this.entityMapProccessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
+                if(this.entityMapProcessData && this.entityMapProcessData.relatedEntities) {
+                    this.entityMapProcessData.relatedEntities[entityId.toString()] = relatedEntitiesDocument;
                 }
 
                 return resolve(relatedEntitiesDocument);
@@ -911,10 +1073,10 @@ module.exports = class EntitiesHelper {
 
                 let updateParentHierarchy = false;
 
-                if(this.entityMapProccessData) {
+                if(this.entityMapProcessData) {
                     
-                    if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType]) {
-                        if(this.entityMapProccessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
+                    if(this.entityMapProcessData.entityTypeMap && this.entityMapProcessData.entityTypeMap[parentEntity.entityType]) {
+                        if(this.entityMapProcessData.entityTypeMap[parentEntity.entityType].updateParentHierarchy) {
                             updateParentHierarchy = true;
                         }
                     } else {
@@ -929,9 +1091,11 @@ module.exports = class EntitiesHelper {
                             updateParentHierarchy = true;
                         }
                         
-                        this.entityMapProccessData.entityTypeMap[parentEntity.entityType] = {
-                            updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
-                        };
+                        if(this.entityMapProcessData.entityTypeMap) {
+                            this.entityMapProcessData.entityTypeMap[parentEntity.entityType] = {
+                                updateParentHierarchy : (checkParentEntitiesMappedValue.toBeMappedToParentEntities) ? true : false
+                            };
+                        }
 
                     }
 
@@ -953,16 +1117,24 @@ module.exports = class EntitiesHelper {
                 if (updateParentHierarchy) {
                     let relatedEntities = await this.relatedEntities(parentEntity._id, parentEntity.entityTypeId, parentEntity.entityType, ["_id"]);
 
+                    let childHierarchyPathToUpdate = [
+                        parentEntity.entityType
+                    ]
+                    if(parentEntity.childHierarchyPath && parentEntity.childHierarchyPath.length > 0) {
+                        childHierarchyPathToUpdate = childHierarchyPathToUpdate.concat(parentEntity.childHierarchyPath);
+                    }
+
                     if (relatedEntities.length > 0) {
-                        if(this.entityMapProccessData) {
+                        if(this.entityMapProcessData && this.entityMapProcessData.entityToUpdate) {
                             relatedEntities.forEach(eachRelatedEntities => {
-                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
+                                if(!this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()]) {
+                                    this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()] = {};
                                 }
-                                if(!this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
-                                    this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
+                                if(!this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`]) {
+                                    this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`] = new Array;
                                 }
-                                this.entityMapProccessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
+                                this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`groups.${childEntity.entityType}`].push(childEntity._id);
+                                this.entityMapProcessData.entityToUpdate[eachRelatedEntities._id.toString()][`childHierarchyPath`] = childHierarchyPathToUpdate;
                             })
                         } else {
                             let updateQuery = {};
@@ -975,6 +1147,10 @@ module.exports = class EntitiesHelper {
                                 allEntities.push(eachRelatedEntities._id);
                             })
     
+                            updateQuery["$addToSet"][`childHierarchyPath`] = {
+                                "$each" : childHierarchyPathToUpdate
+                            }
+
                             await database.models.entities.updateMany(
                                 { _id: { $in: allEntities } },
                                 updateQuery
@@ -1048,4 +1224,162 @@ module.exports = class EntitiesHelper {
         }
     }
 
+     /**
+   * Push entities to elastic search
+   * @method
+   * @name pushEntitiesToElasticSearch
+   * @name entities - array of entity Id.
+   * @returns {Object} 
+   */
+
+    static pushEntitiesToElasticSearch(entities = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (entities.length > 0) {
+
+                    let entityDocuments = await this.entityDocuments({
+                        _id: {
+                            $in: entities
+                        }
+                    }, [
+                            "_id",
+                            "metaInformation",
+                            "entityType",
+                            "entityTypeId",
+                            "updatedAt",
+                            "createdAt",
+                        ]);
+
+                    for (let entity = 0; entity < entityDocuments.length; entity++) {
+
+                        let entityDocument = entityDocuments[entity];
+
+                        let telemetryEntities = [];
+
+                        let entityObj = {
+                            _id: entityDocument._id,
+                            entityType: entityDocument.entityType,
+                            entityTypeId: entityDocument.entityTypeId,
+                            updatedAt: entityDocument.updatedAt,
+                            createdAt: entityDocument.createdAt
+                        }
+
+                        for (let metaData in entityDocument.metaInformation) {
+                            entityObj[metaData] = entityDocument.metaInformation[metaData];
+                        }
+
+                        let telemetryObj = {
+                            [`${entityObj.entityType}_name`]: entityObj.name,
+                            [`${entityObj.entityType}_id`]: entityObj._id,
+                            [`${entityObj.entityType}_externalId`]: entityObj.externalId
+                        };
+
+                        let relatedEntities = await this.relatedEntities(
+                            entityObj._id,
+                            entityObj.entityTypeId,
+                            entityObj.entityType,
+                            [
+                                "metaInformation.externalId",
+                                "metaInformation.name",
+                                "entityType",
+                                "entityTypeId",
+                                "_id"
+                            ])
+
+                        if (relatedEntities.length > 0) {
+
+                            relatedEntities = relatedEntities.map(entity => {
+
+                                telemetryObj[`${entity.entityType}_name`] =
+                                    entity.metaInformation.name;
+
+                                telemetryObj[`${entity.entityType}_id`] =
+                                    entity._id;
+
+                                telemetryObj[`${entity.entityType}_externalId`] =
+                                    entity.metaInformation.externalId;
+
+                                return {
+                                    name: entity.metaInformation.name,
+                                    externalId: entity.metaInformation.externalId,
+                                    entityType: entity.entityType,
+                                    entityTypeId: entity.entityTypeId,
+                                    _id: entity._id
+                                }
+                            })
+
+                            entityObj["relatedEntities"] = relatedEntities;
+                        }
+
+                        telemetryEntities.push(telemetryObj);
+
+                        entityObj["telemetry_entities"] = telemetryEntities;
+
+                        await elasticSearchData.createOrUpdate(
+                            entityObj._id,
+                            process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                            process.env.ELASTICSEARCH_ENTITIES_INDEX_TYPE,
+                            {
+                                data: entityObj
+                            }
+                        );
+
+                    }
+
+                }
+
+                return resolve({
+                    success: true
+                });
+
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
 };
+
+
+  /**
+   * Add tags in entity meta information.
+   * @method
+   * @name addTagsInEntities
+   * @param {Object} entityMetaInformation - Meta information of the entity.
+   * @returns {JSON} - entities metainformation consisting of scool types,administration types 
+   * and tags.
+   */
+
+function addTagsInEntities(entityMetaInformation) {
+
+    if( entityMetaInformation.schoolTypes ) {
+        
+        entityMetaInformation.schoolTypes =  
+        entityMetaInformation.schoolTypes.map(
+            schoolType=>schoolType.toLowerCase()
+        );
+
+        entityMetaInformation["tags"] = [...entityMetaInformation.schoolTypes];
+    }
+
+    if( entityMetaInformation.administrationTypes ) {
+
+        entityMetaInformation.administrationTypes =  
+        entityMetaInformation.administrationTypes.map(
+            schoolType=>schoolType.toLowerCase()
+        );
+
+        if( entityMetaInformation.tags ) {
+            entityMetaInformation.tags = entityMetaInformation.tags.concat(
+                entityMetaInformation.administrationTypes
+            )
+        } else {
+            entityMetaInformation.tags = 
+            entityMetaInformation.administrationTypes;
+        }
+    }
+    return entityMetaInformation;
+}
+
+

@@ -10,6 +10,7 @@ const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const shikshalokamGenericHelper = require(ROOT_PATH + "/generics/helpers/shikshalokam");
+const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
 /**
     * UserExtensionHelper
@@ -87,7 +88,10 @@ module.exports = class UserExtensionHelper {
 
                     let roleMap = {};
 
-                    if( userExtensionData[0].entityDocuments && userExtensionData[0].entityDocuments.length >0 ) {
+                    if( 
+                        userExtensionData[0].entityDocuments && 
+                        userExtensionData[0].entityDocuments.length >0 
+                    ) {
                         
                         let projection = [
                             entitiesHelper.entitiesSchemaData().SCHEMA_METAINFORMATION+".externalId", 
@@ -110,7 +114,10 @@ module.exports = class UserExtensionHelper {
                         );
                     }
 
-                    if ( userExtensionData[0].roleDocuments && userExtensionData[0].roleDocuments.length > 0 ) {
+                    if ( 
+                        userExtensionData[0].roleDocuments && 
+                        userExtensionData[0].roleDocuments.length > 0 
+                    ) {
 
                         userExtensionData[0].roleDocuments.forEach(role => {
                             roleMap[role._id.toString()] = role;
@@ -137,8 +144,16 @@ module.exports = class UserExtensionHelper {
                             entityMap[entity._id.toString()] = entity;
                         })
 
-                        for (let userExtensionRoleCounter = 0; userExtensionRoleCounter < userExtensionData[0].roles.length; userExtensionRoleCounter++) {
-                            for (let userExtenionRoleEntityCounter = 0; userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; userExtenionRoleEntityCounter++) {
+                        for (
+                            let userExtensionRoleCounter = 0; 
+                            userExtensionRoleCounter < userExtensionData[0].roles.length; 
+                            userExtensionRoleCounter++
+                        ) {
+                            for (
+                                let userExtenionRoleEntityCounter = 0; 
+                                userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; 
+                                userExtenionRoleEntityCounter++
+                            ) {
                                 userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
                                     _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
                                     ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
@@ -149,6 +164,10 @@ module.exports = class UserExtensionHelper {
                         }
                     }
 
+                    let aclInformation = await this.roleBasedAclInformation(
+                        userExtensionData[0].roles
+                    );
+
                     return resolve(
                         _.merge(_.omit(
                             userExtensionData[0], 
@@ -158,7 +177,9 @@ module.exports = class UserExtensionHelper {
                             this.userExtensionSchemaData().USER_EXTENSION_ROLE_DOCUMENTS 
                             ]), 
                         { roles: _.isEmpty(roleMap) ? [] : Object.values(roleMap) },
-                        { relatedEntities : relatedEntities })
+                        { relatedEntities : relatedEntities },
+                        { acl : aclInformation }
+                    )
                     );
                 } else {
                     return resolve({});
@@ -226,12 +247,18 @@ module.exports = class UserExtensionHelper {
                 let userRole;
                 let existingEntity;
                 let existingUserRole;
-                const keycloakUserIdIsMandatoryInFile = (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false;
+                const keycloakUserIdIsMandatoryInFile = 
+                (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false;
 
-                for (let csvRowNumber = 0; csvRowNumber < userRolesCSVData.length; csvRowNumber++) {
+                for (
+                    let csvRowNumber = 0; 
+                    csvRowNumber < userRolesCSVData.length; 
+                    csvRowNumber++
+                ) {
 
                     userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
                     userRole["_SYSTEM_ID"] = "";
+                    aclData(userRole);
 
                     try {
 
@@ -246,6 +273,7 @@ module.exports = class UserExtensionHelper {
                         let entityQueryObject = {
                             _id: userRole.entity
                         };
+
                         if (userRoleAllowedEntityTypes[userRole.role] && userRoleAllowedEntityTypes[userRole.role].length > 0) {
                             entityQueryObject.entityTypeId = {
                                 $in: userRoleAllowedEntityTypes[userRole.role]
@@ -292,6 +320,8 @@ module.exports = class UserExtensionHelper {
                             }
                         );
 
+                        let user;
+
                         if (existingUserRole && existingUserRole._id) {
 
                             let userRoleToUpdate;
@@ -305,19 +335,30 @@ module.exports = class UserExtensionHelper {
                                 existingUserRole.roles.push(userRoleMap[userRole.role]);
                             }
 
-                            existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => eachEntity.toString());
+                            existingUserRole.roles[userRoleToUpdate].entities = 
+                            existingUserRole.roles[userRoleToUpdate].entities.map(
+                                eachEntity => eachEntity.toString()
+                            );
 
                             if (userRole.entityOperation == "OVERRIDE") {
+
                                 existingUserRole.roles[userRoleToUpdate].entities = [userRole.entity];
+                                existingUserRole.roles[userRoleToUpdate].acl = userRole.acl;
+
                             } else if (userRole.entityOperation == "APPEND" || userRole.entityOperation == "ADD") {
+
                                 existingUserRole.roles[userRoleToUpdate].entities.push(userRole.entity);
                                 existingUserRole.roles[userRoleToUpdate].entities = _.uniq(existingUserRole.roles[userRoleToUpdate].entities);
+
                             } else if (userRole.entityOperation == "REMOVE") {
+
                                 _.pull(existingUserRole.roles[userRoleToUpdate].entities, userRole.entity);
+                                
                             }
 
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => ObjectId(eachEntity));
 
+                            user =
                             await database.models.userExtension.findOneAndUpdate(
                                 {
                                     _id: existingUserRole._id
@@ -325,18 +366,22 @@ module.exports = class UserExtensionHelper {
                                 _.merge({
                                     "roles": existingUserRole.roles,
                                     "updatedBy": userDetails.id
-                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt"]))
+                                }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt"])),
+                                {
+                                    new : true,
+                                    returnNewDocument : true
+                                }
                             );
 
                             userRole["_SYSTEM_ID"] = existingUserRole._id;
                             userRole.status = "Success";
 
                         } else {
-
                             let roles = [userRoleMap[userRole.role]];
                             roles[0].entities = [ObjectId(userRole.entity)];
+                            roles[0].acl = userRole.acl
 
-                            let newRole = await database.models.userExtension.create(
+                            user = await database.models.userExtension.create(
                                 _.merge({
                                     "roles": roles,
                                     "userId": userKeycloakId,
@@ -347,8 +392,8 @@ module.exports = class UserExtensionHelper {
                                 }, _.omit(userRole, ["externalId", "userId", "createdBy", "updatedBy", "createdAt", "updatedAt", "status", "roles"]))
                             );
 
-                            if (newRole._id) {
-                                userRole["_SYSTEM_ID"] = newRole._id;
+                            if (user._id) {
+                                userRole["_SYSTEM_ID"] = user._id;
                                 userRole.status = "Success";
                             } else {
                                 userRole["_SYSTEM_ID"] = "";
@@ -357,15 +402,14 @@ module.exports = class UserExtensionHelper {
 
                         }
 
+                        await this.pushUserToElasticSearch(user._doc);
 
                     } catch (error) {
                         userRole.status = (error && error.message) ? error.message : error;
                     }
 
-
                     userRolesUploadedData.push(userRole);
                 }
-
 
                 return resolve(userRolesUploadedData);
 
@@ -398,15 +442,22 @@ module.exports = class UserExtensionHelper {
 
                 if (!userExtensionDoument) {
                     throw { 
-                        status: httpStatusCode.badrequest.status, 
+                        status: httpStatusCode.bad_request.status, 
                         message: messageConstants.apiResponses.USER_EXTENSION_NOT_FOUND 
                     };
                 }
 
                 let entities = [];
 
-                for (let pointerToUserExtension = 0; pointerToUserExtension < userExtensionDoument.roles.length; pointerToUserExtension++) {
-                    entities = _.concat(entities, userExtensionDoument.roles[pointerToUserExtension].entities);
+                for (
+                    let pointerToUserExtension = 0; 
+                    pointerToUserExtension < userExtensionDoument.roles.length; 
+                    pointerToUserExtension++
+                ) {
+                    entities = _.concat(
+                        entities, 
+                        userExtensionDoument.roles[pointerToUserExtension].entities
+                    );
                 }
 
                 return resolve(entities);
@@ -416,6 +467,113 @@ module.exports = class UserExtensionHelper {
             }
         })
     }
+
+    /**
+   * Role based acl information
+   * @method
+   * @name roleBasedAclInformation
+   * @param {String} roles - user roles
+   * @returns {object}  
+   */
+
+  static roleBasedAclInformation( roles ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let aclInformation = {};
+
+            for( let role = 0; role < roles.length ; role ++ ) {
+                
+                if( !aclInformation[roles[role].code] ) {
+                    aclInformation[roles[role].code] = {};
+                }
+
+                if( roles[role].acl ) {
+                    aclInformation[roles[role].code] = roles[role].acl;
+                }
+            }
+
+
+            return resolve(aclInformation);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+    /**
+   * user access control list
+   * @method
+   * @name userAccessControlList
+   * @param {String} userId - logged in user id.
+   * @returns {object}  
+   */
+
+  static userAccessControlList( userId ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!userId) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.USER_ID_REQUIRED_CHECK
+                }
+            }
+
+            let userExtensionDoument = await database.models.userExtension.findOne({
+                userId: userId
+            }, { "roles.acl" : 1 }).lean();
+
+            if (!userExtensionDoument) {
+                return resolve({
+                    success : false
+                });
+            }
+
+            let acl = {};
+
+            for (
+                let pointerToUserExtension = 0; 
+                pointerToUserExtension < userExtensionDoument.roles.length; 
+                pointerToUserExtension++
+            ) {
+
+                let currentUserRole = userExtensionDoument.roles[pointerToUserExtension];
+
+                if( currentUserRole.acl ) {
+                    
+                    let aclKeys = 
+                    Object.keys(currentUserRole.acl);
+    
+                    for( let aclKey = 0; aclKey < aclKeys.length ; aclKey ++ ) {
+                        let currentAclKey = aclKeys[aclKey];
+    
+                        if ( !acl[currentAclKey] ) {
+                            acl[currentAclKey] = [];
+                        }
+    
+                        if ( currentUserRole.acl[aclKeys[aclKey]].tags ) {
+                            acl[currentAclKey] = _.union(
+                                acl[currentAclKey],
+                                currentUserRole.acl[aclKeys[aclKey]].tags
+                            )
+                            
+                        }
+                    }
+                }
+
+            }
+
+            return resolve({
+                success : true,
+                acl : acl
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
     /**
    * Get user entity universe by entity type.
@@ -485,6 +643,159 @@ module.exports = class UserExtensionHelper {
     }
 
     /**
+    * Entities list 
+    * @method
+    * @name entities
+    * @param userId - logged in user Id
+    * @param entityType - entity type
+    * @param pageSize - Page limit
+    * @param pageNo - Page No
+    * @param search - search data
+    * @returns {JSON} List of entities of the given type. 
+    */
+
+  static entities( 
+      userId,
+      entityType,
+      pageSize,
+      pageNo,
+      search
+    ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let entities = 
+            await this.getUserEntities(userId);
+
+            if ( !entities.length > 0 ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                }
+            }
+            
+            let entitiesFound = await entitiesHelper.entityDocuments({
+                _id: { $in: entities },
+                entityType: entityType
+            }, ["_id"]);
+
+            let allEntities = [];
+
+            if ( entitiesFound.length > 0 ) {
+                entitiesFound.forEach(eachEntityData => {
+                    allEntities.push(eachEntityData._id);
+                });
+            }
+
+            let findQuery = {
+                _id: { $in: entities },
+                entityType: { $ne: entityType },
+                [`groups.${entityType}`] : { $exists: true }
+            };
+
+            let remainingEntities = 
+            await entitiesHelper.entityDocuments(
+                findQuery, 
+                [`groups.${entityType}`]
+            );
+            
+            if ( remainingEntities.length > 0 ) {
+                remainingEntities.forEach(entity => {
+                    allEntities = _.concat(
+                        allEntities, 
+                        entity.groups[entityType]
+                    );
+                })
+            }
+            
+            if (!allEntities.length > 0) {
+                throw { 
+                    status: httpStatusCode.bad_request.status,
+                    message: messageConstants.apiResponses.ENTITY_NOT_FOUND
+                };
+            }
+
+            let queryObject = {
+                $match : {
+                    _id : { $in : allEntities }
+                }
+            };
+
+            let userAccessControlList = await this.userAccessControlList(
+                userId
+            );
+
+            if( 
+                userAccessControlList.success &&
+                userAccessControlList.acl[entityType] && 
+                userAccessControlList.acl[entityType].length > 0 
+            ) {
+                queryObject["$match"]["metaInformation.tags"] = {
+                    $in : userAccessControlList.acl[entityType]
+                }
+            }
+
+            if ( search && search !== "" ) {
+                queryObject["$match"]["$or"] = [
+                    { "metaInformation.name": new RegExp(search, 'i') },
+                    { "metaInformation.externalId": new RegExp("^" + search, 'm') },
+                    { "metaInformation.addressLine1": new RegExp(search, 'i') },
+                    { "metaInformation.addressLine2": new RegExp(search, 'i') }
+                ]
+            }
+
+            let skippingValue = pageSize * (pageNo - 1);
+
+            let result = await database.models.entities.aggregate([
+                queryObject,
+                {
+                    $project: {
+                        "metaInformation.externalId" : 1, 
+                        "metaInformation.name" : 1, 
+                        "metaInformation.addressLine1" : 1, 
+                        "metaInformation.addressLine2" : 1, 
+                        "metaInformation.administration" : 1, 
+                        "metaInformation.city" : 1, 
+                        "metaInformation.country" : 1, 
+                        "entityTypeId" : 1, 
+                        "entityType" : 1
+                    }
+                },
+                {
+                    $facet : {
+                        "totalCount" : [
+                            { "$count" : "count" }
+                        ],
+                        "data" : [
+                            { $skip : skippingValue },
+                            { $limit : pageSize }
+                        ],
+                    }
+                }, {
+                    $project : {
+                        "data" : 1,
+                        "count" : {
+                            $arrayElemAt : ["$totalCount.count", 0]
+                        }
+                    }
+                }
+            ]);
+
+            return resolve({
+                message: messageConstants.apiResponses.USER_EXTENSION_ENTITIES_FETCHED,
+                result: result[0].data,
+                count: result[0].count ? result[0].count : 0
+            });
+
+           
+        } catch(error) {
+            return reject(error);
+        }
+    })
+    
+  }
+
+    /**
    * Default user extension schemas value.
    * @method
    * @name userExtensionSchemaData
@@ -499,4 +810,82 @@ module.exports = class UserExtensionHelper {
     }
   }
 
+    /**
+   * Push user data to elastic search
+   * @method
+   * @name pushUserToElasticSearch
+   * @name userData - created or modified user data.
+   * @returns {Object} 
+   */
+
+  static pushUserToElasticSearch(userData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+         let userInformation = _.pick(userData,[
+                "_id",
+                "status", 
+                "isDeleted",
+                "deleted",
+                "roles",
+                "userId",
+                "externalId",
+                "updatedBy",
+                "createdBy",
+                "updatedAt",
+                "createdAt"
+            ]);
+
+           
+            await elasticSearchData.createOrUpdate(
+                userData.userId,
+                process.env.ELASTICSEARCH_USER_EXTENSION_INDEX,
+                process.env.ELASTICSEARCH_USER_EXTENSION_INDEX_TYPE,
+                {
+                    data : userInformation
+                }
+            );
+
+            return resolve({
+                success : true
+            });
+            
+        }
+        catch(error) {
+            return reject(error);
+        }
+    })
+
+   }
+
 };
+
+ /**
+   * Add access control list for user.
+   * @method
+   * @name aclData 
+   * @param {Object} userRole 
+   * @returns {JSON} added acl data inside user roles.
+   */
+
+function aclData(userRole) {
+    let userRoleKeys = Object.keys(userRole);
+
+    for( let userRoleKey = 0; userRoleKey < userRoleKeys.length ; userRoleKey ++) {
+        let currentRoleKey = userRoleKeys[userRoleKey];
+
+        if( currentRoleKey.startsWith("acl") ) {
+            
+            if( !userRole["acl"] ) {
+                userRole["acl"] = {};
+            }
+            let aclData = currentRoleKey.split("_");
+
+            userRole.acl[aclData[1]] = {
+                tags : userRole[currentRoleKey].split(",")
+            }
+            delete userRole[currentRoleKey];
+        }
+    }
+    return userRole;
+}

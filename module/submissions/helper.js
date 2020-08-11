@@ -7,12 +7,19 @@
 
 // Dependencies
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
-const mathJs = require(ROOT_PATH + "/generics/helpers/mathFunctions");
 let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
+const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
+const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
+const path = require("path");
 
 /**
     * SubmissionsHelper
@@ -20,6 +27,79 @@ const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications")
 */
 
 module.exports = class SubmissionsHelper {
+
+     /**
+   * List submissions.
+   * @method
+   * @name submissionDocuments
+   * @param {Object} [findQuery = "all"] - filter query
+   * @param {Array} [fields = "all"] - fields to include.
+   * @param {Array} [skipFields = "none"] - field which can be skipped.
+   * @param {Object} [sort = "none"] - sorted data.
+   * @param {Number} [limitingValue = ""] - limitting value.
+   * @param {Number} [skippingValue = ""] - skip fields value.
+   * @returns {Array} list of submissions document. 
+   */
+
+  static submissionDocuments(
+      findQuery = "all", 
+      fields = "all",
+      skipFields = "none",
+      sort = "none",
+      limitingValue = "", 
+      skippingValue = "",
+ ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let queryObject = {};
+
+            if (findQuery != "all") {
+                queryObject = findQuery;
+            }
+
+            let projection = {};
+
+            if (fields != "all") {
+                fields.forEach(element => {
+                    projection[element] = 1;
+                });
+            }
+
+            if (skipFields != "none") {
+                skipFields.forEach(element => {
+                    projection[element] = 0;
+                });
+            }
+
+            let submissionDocuments;
+
+            if( sort !== "none" ) {
+                
+                submissionDocuments = 
+                await database.models.submissions.find(
+                    queryObject, 
+                    projection
+                ).sort(sort).limit(limitingValue).skip(skippingValue).lean();
+
+            } else {
+                
+                submissionDocuments = 
+                await database.models.submissions.find(
+                    queryObject, 
+                    projection
+                ).limit(limitingValue).skip(skippingValue).lean();
+            }
+          
+            return resolve(submissionDocuments);
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    });
+}
     
     /**
    * find submission by entity data.
@@ -27,59 +107,58 @@ module.exports = class SubmissionsHelper {
    * @name findSubmissionByEntityProgram
    * @param {Object} document
    * @param {String} document.entityId - entity id.
-   * @param {String} document.solutionId - solution id.   
-   * @param {Object} requestObject -requested object.
-   * @param {Object} requestObject.headers -requested header.
+   * @param {String} document.solutionId - solution id.
+   * @param {String} document.submissionNumber - submission number. Default to 1.   
+   * @param {Object} userAgent - user Agent.
+   * @param {Object} userId - logged in user id.
    * @returns {Object} submission document. 
    */
 
-    static findSubmissionByEntityProgram(document, requestObject) {
+    static findSubmissionByEntityProgram(document, userAgent,userId) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
                 let queryObject = {
-                    entityId: document.entityId,
-                    solutionId: document.solutionId
+                    entityId : document.entityId,
+                    solutionId : document.solutionId,
+                    submissionNumber : document.submissionNumber
                 };
 
-                let submissionDocument = await database.models.submissions.findOne(
-                    queryObject
-                );
+                let submissionDocument = 
+                await this.submissionDocuments(
+                    queryObject,["assessors"]
+                )
 
-                if (!submissionDocument) {
-                    let entityAssessorsQueryObject = [
-                        {
-                            $match: { entities: document.entityId, programId: document.programId }
-                        }
-                    ];
+                if (!submissionDocument[0]) {
 
-                    document.assessors = await database.models[
-                        "entityAssessors"
-                    ].aggregate(entityAssessorsQueryObject);
-
-                    let assessorElement = document.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
-                    if (assessorElement && assessorElement.externalId != "") {
-                        assessorElement.assessmentStatus = "started";
-                        assessorElement.userAgent = requestObject.headers['user-agent'];
-                    }
+                    document.assessors = 
+                    await this.assessors(
+                        document.solutionId,
+                        document.entityId,
+                        userAgent,
+                        userId
+                    );
 
                     submissionDocument = await database.models.submissions.create(
                         document
                     );
 
+                    // Push new submission to kafka for reporting/tracking.
+                    this.pushInCompleteSubmissionForReporting(submissionDocument._id);
                 } else {
 
-                    let assessorElement = submissionDocument.assessors.find(assessor => assessor.userId === requestObject.userDetails.userId)
+                    let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === userId)
                     if (assessorElement && assessorElement.externalId != "") {
                         assessorElement.assessmentStatus = "started";
-                        assessorElement.userAgent = requestObject.headers['user-agent'];
+                        assessorElement.userAgent = userAgent;
                         let updateObject = {};
                         updateObject.$set = {
-                            assessors: submissionDocument.assessors
+                            assessors: submissionDocument[0].assessors
                         };
-                        submissionDocument = await database.models.submissions.findOneAndUpdate(
+                        submissionDocument = 
+                        await database.models.submissions.findOneAndUpdate(
                             queryObject,
                             updateObject
                         );
@@ -209,30 +288,6 @@ module.exports = class SubmissionsHelper {
     }
 
     /**
-   * submissions auto rated.
-   * @method
-   * @name allSubmission
-   * @param {Object} allSubmission.isSubmitted - submission submitted value.
-   * @returns {Boolean} submitted or not. 
-   */
-
-    static allSubmission(allSubmission) {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-
-                return resolve(allSubmission.isSubmitted);
-
-
-            } catch (error) {
-                return reject(error);
-            }
-
-        })
-    }
-
-      /**
    * Question value conversion.
    * @method
    * @name questionValueConversion
@@ -481,6 +536,14 @@ module.exports = class SubmissionsHelper {
                         updateObject,
                         queryOptions
                     );
+                    
+                    if(modelName == "submissions") {
+                        // Push update submission to kafka for reporting/tracking.
+                        this.pushInCompleteSubmissionForReporting(updatedSubmissionDocument._id);
+                    } else {
+                        // Push updated submission to kafka for reporting/tracking.
+                        observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(updatedSubmissionDocument._id);
+                    }
 
                     let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument);
                     let { ratingsEnabled } = canRatingsBeEnabled;
@@ -560,862 +623,6 @@ module.exports = class SubmissionsHelper {
             })
         }
         return answer;
-    }
-
-    /**
-   * Rate entities.
-   * @method
-   * @name rateEntities
-   * @param {String} [sourceApiHelp = "multiRateApi"] - answer data.
-   * @param {Array} submissionDocuments - submission data.   
-   * @returns {Array}
-   */
-
-    static rateEntities(submissionDocuments, sourceApiHelp = "multiRateApi") {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-
-                let result = {};
-                let resultingArray = new Array;
-
-                await Promise.all(submissionDocuments.map(async eachSubmissionDocument => {
-
-                    result.runUpdateQuery = true;
-
-                    let answersToUpdate = {};
-
-                    let allSubmittedEvidence = eachSubmissionDocument.evidencesStatus.every(this.allSubmission);
-
-                    if (allSubmittedEvidence) {
-
-                        result.criteria = {};
-                        result.criteriaErrors = new Array;
-                        result.themes = {};
-
-                        let criteriaData = await Promise.all(eachSubmissionDocument.criteria.map(async (criteria) => {
-
-                            if (criteria.weightage > 0) {
-
-                                result.criteria[criteria.externalId] = {};
-                                result.criteria[criteria.externalId].criteriaName = criteria.name;
-                                result.criteria[criteria.externalId].criteriaExternalId = criteria.externalId;
-
-                                let allCriteriaLevels = Object.values(criteria.rubric.levels).every(eachRubricLevels => {
-                                    return eachRubricLevels.expression != "";
-                                })
-
-                                if (criteria.rubric.expressionVariables && allCriteriaLevels) {
-
-                                    let submissionAnswers = new Array;
-
-                                    const questionAndCriteriaValueExtractor = function (questionOrCriteria) {
-                                        let result;
-                                        const questionOrCriteriaArray = questionOrCriteria.split('.');
-
-                                        if (_.includes(questionOrCriteriaArray, "entityProfile")) {
-
-                                            if (eachSubmissionDocument.entityProfile && eachSubmissionDocument.entityProfile[questionOrCriteriaArray[1]]) {
-                                                result = eachSubmissionDocument.entityProfile[questionOrCriteriaArray[1]];
-                                            } else {
-                                                result = eachSubmissionDocument.entityInformation[questionOrCriteriaArray[1]];
-                                            }
-
-                                            if (!result || result == "" || !(result.length >= 0)) {
-                                                result = "NA";
-                                            }
-
-                                            submissionAnswers.push(result);
-                                            return result;
-                                        }
-
-
-                                        if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")) >= 0) {
-                                            
-                                            result = 0;
-
-                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "scoreOfAllQuestionInCriteria")));
-                                            let criteriaId = questionOrCriteriaArray[criteriaIdIndex];
-                                            if (criteriaIdIndex < 0) {
-                                                return "NA";
-                                            }
-
-                                            criteria.scoreAchieved = 0;
-                                            criteria.maxScore = 0;
-                                            criteria.percentageScore = 0;
-
-                                            let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-
-
-                                            let scoreOfAllQuestionInCriteria = {};
-                                            let totalWeightOfQuestionInCriteria = 0;
-                                            allCriteriaQuestions.forEach((question,questionIndexInArray) => {
-                                                if(question.value && (question.value != "" || Array.isArray(question.value)) && !question.notApplicable) {
-                                                    let questionOptionsSelected = (Array.isArray(question.value)) ? question.value : [question.value]
-                                                    if(questionOptionsSelected.length > 0) {
-                                                        let selectedOptionScoreFound = false;
-                                                        questionOptionsSelected.forEach(optionValue => {
-                                                            if(eachSubmissionDocument.questionDocuments && eachSubmissionDocument.questionDocuments[question.qid.toString()]) {
-                                                                
-                                                                let optionScore = "NA";
-                                                                
-                                                                if(`${optionValue}-score` in eachSubmissionDocument.questionDocuments[question.qid.toString()]) {  
-                                                                    optionScore = eachSubmissionDocument.questionDocuments[question.qid.toString()][`${optionValue}-score`];
-                                                                } else if (eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions && eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions.length > 0) {
-                                                                    let sliderOptionApplicable = _.find(eachSubmissionDocument.questionDocuments[question.qid.toString()].sliderOptions, { 'value': optionValue});
-                                                                    optionScore = (sliderOptionApplicable && sliderOptionApplicable.score) ? sliderOptionApplicable.score : "NA";
-                                                                }
-
-                                                                if(optionScore != "NA") {
-                                                                    if(scoreOfAllQuestionInCriteria[question.qid.toString()]) {
-                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved += optionScore;
-                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()].percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].score) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].score  / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0;
-                                                                    } else {
-                                                                        scoreOfAllQuestionInCriteria[question.qid.toString()] = {
-                                                                            scoreAchieved : optionScore,
-                                                                            weightage : (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage) ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1,
-                                                                            questionIndexInArray : questionIndexInArray,
-                                                                            percentageScore : (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && optionScore) ? ((optionScore / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0
-                                                                        };
-                                                                    }
-                                                                    selectedOptionScoreFound = true;
-                                                                }
-                                                            }
-                                                        })
-                                                        if(selectedOptionScoreFound) {
-                                                            totalWeightOfQuestionInCriteria += (eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage)  ? eachSubmissionDocument.questionDocuments[question.qid.toString()].weightage : 1;
-                                                        }
-                                                        if(selectedOptionScoreFound) {
-                                                            question.optionScores = eachSubmissionDocument.questionDocuments[question.qid.toString()];
-                                                            question.optionScores.percentageScore = (eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore > 0 && scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? ((scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved / eachSubmissionDocument.questionDocuments[question.qid.toString()].maxScore)*100) : 0;
-                                                            question.optionScores.scoreAchieved = (scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved) ? scoreOfAllQuestionInCriteria[question.qid.toString()].scoreAchieved : "";
-                                                        }
-                                                    }
-                                                }
-                                            })
-
-                                            if(totalWeightOfQuestionInCriteria > 0 && Object.keys(scoreOfAllQuestionInCriteria).length > 0) {
-                                                let criteriaMaxScore = 0;
-                                                let criteriaScoreAchieved = 0;
-                                                Object.keys(scoreOfAllQuestionInCriteria).forEach(questionId => {
-                                                    const questionPointsBasedScore = (scoreOfAllQuestionInCriteria[questionId].scoreAchieved*scoreOfAllQuestionInCriteria[questionId].weightage)/totalWeightOfQuestionInCriteria;
-
-                                                    result += questionPointsBasedScore
-                                                    if(answersToUpdate[questionId]) {
-                                                        answersToUpdate[questionId].pointsBasedScoreInParent = questionPointsBasedScore,
-                                                        answersToUpdate[questionId].scoreAchieved = scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
-                                                        answersToUpdate[questionId].weightage = scoreOfAllQuestionInCriteria[questionId].weightage
-                                                    } else {
-                                                        answersToUpdate[questionId] = {
-                                                            pointsBasedScoreInParent : questionPointsBasedScore,
-                                                            scoreAchieved: scoreOfAllQuestionInCriteria[questionId].scoreAchieved,
-                                                            weightage : scoreOfAllQuestionInCriteria[questionId].weightage,
-                                                            maxScore : eachSubmissionDocument.questionDocuments[questionId].maxScore,
-                                                            percentageScore : scoreOfAllQuestionInCriteria[questionId].percentageScore
-                                                        };
-                                                    }
-
-                                                    criteriaMaxScore += eachSubmissionDocument.questionDocuments[questionId].maxScore;
-                                                    criteriaScoreAchieved += scoreOfAllQuestionInCriteria[questionId].scoreAchieved;
-
-                                                    allCriteriaQuestions[scoreOfAllQuestionInCriteria[questionId].questionIndexInArray].pointsBasedScoreInParent = questionPointsBasedScore;
-                                                })
-
-                                                if(criteriaMaxScore > 0) {
-                                                    criteria.maxScore = criteriaMaxScore;
-                                                }
-
-                                                if(criteriaScoreAchieved > 0) {
-                                                    criteria.scoreAchieved = criteriaScoreAchieved;
-                                                }
-
-                                                if(criteriaMaxScore > 0 && criteriaScoreAchieved > 0) {
-                                                    criteria.percentageScore = ((criteriaScoreAchieved / criteriaMaxScore)*100);
-                                                }
-                                            }
-
-                                            submissionAnswers.push(...allCriteriaQuestions);
-
-                                            return result;
-                                        }
-
-                                        if (questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria")) >= 0) {
-                                            result = 0;
-
-                                            let criteriaIdIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => !(_.includes(questionOrCriteria, "countOfAllQuestionInCriteria")));
-                                            let criteriaId = questionOrCriteriaArray[criteriaIdIndex];
-                                            if (criteriaIdIndex < 0) {
-                                                return "NA";
-                                            }
-
-                                            let criteriaQuestionFunctionIndex = questionOrCriteriaArray.findIndex(questionOrCriteria => _.includes(questionOrCriteria, "countOfAllQuestionInCriteria"));
-                                            let criteriaQuestionFunction = questionOrCriteriaArray[criteriaQuestionFunctionIndex];
-                                            if (criteriaQuestionFunctionIndex < 0) {
-                                                return "NA";
-                                            }
-
-                                            criteriaQuestionFunction = criteriaQuestionFunction.substring(
-                                                criteriaQuestionFunction.lastIndexOf("(") + 1,
-                                                criteriaQuestionFunction.lastIndexOf(")")
-                                            );
-
-                                            criteriaQuestionFunction = criteriaQuestionFunction.replace(/\s/g, '');
-
-                                            let allCriteriaQuestions = _.filter(_.values(eachSubmissionDocument.answers), _.matchesProperty('criteriaId', criteriaId));
-
-
-                                            let criteriaQuestionFilter = criteriaQuestionFunction.split(",");
-                                            if (criteriaQuestionFilter[1]) {
-
-                                                // allCriteriaQuestions = _.filter(allCriteriaQuestions, _.matchesProperty(_.head(criteriaQuestionFilter[1].split("=")), _.last(criteriaQuestionFilter[1].split("="))));
-
-                                                let multipleConditionOperator = "";
-                                                if (_.includes(criteriaQuestionFilter[1], "AND") > 0) {
-                                                    multipleConditionOperator = "AND";
-                                                }
-                                                if (_.includes(criteriaQuestionFilter[1], "OR") > 0) {
-                                                    multipleConditionOperator = "OR";
-                                                }
-
-                                                let conditionArray = new Array;
-                                                if (multipleConditionOperator != "") {
-                                                    conditionArray = criteriaQuestionFilter[1].split(multipleConditionOperator);
-                                                } else {
-                                                    conditionArray.push(criteriaQuestionFilter[1]);
-                                                }
-
-
-                                                let tempAllQuestion = new Array;
-
-                                                allCriteriaQuestions.forEach(question => {
-
-                                                    let conditionMatch = 0;
-                                                    let conditionNotMatch = 0;
-
-                                                    for (let pointerToConditionArray = 0; pointerToConditionArray < conditionArray.length; pointerToConditionArray++) {
-                                                        let eachConditionArray = new Array;
-                                                        let questionMatchOperator = "==";
-                                                        if (_.includes(conditionArray[pointerToConditionArray], "!=") > 0) {
-                                                            eachConditionArray = conditionArray[pointerToConditionArray].split("!=");
-                                                            questionMatchOperator = "!=";
-                                                        } else {
-                                                            eachConditionArray = conditionArray[pointerToConditionArray].split("=");
-                                                        }
-
-                                                        let singleConditionOperator = "";
-                                                        if (_.includes(eachConditionArray[1], "&&") > 0) {
-                                                            singleConditionOperator = "&&";
-                                                        }
-                                                        if (_.includes(eachConditionArray[1], "||") > 0) {
-                                                            singleConditionOperator = "||";
-                                                        }
-
-
-                                                        let allPossibleValues = new Array;
-                                                        if (singleConditionOperator != "") {
-                                                            allPossibleValues = eachConditionArray[1].split(singleConditionOperator);
-                                                        } else {
-                                                            allPossibleValues.push(eachConditionArray[1]);
-                                                        }
-
-                                                        let conditionValueMatch = 0;
-                                                        let conditionValueNotMatch = 0;
-                                                        for (let pointerToAllPossibleValuesArray = 0; pointerToAllPossibleValuesArray < allPossibleValues.length; pointerToAllPossibleValuesArray++) {
-                                                            const eachValue = allPossibleValues[pointerToAllPossibleValuesArray];
-                                                            if (questionMatchOperator == "==" && _.isEqual(question[eachConditionArray[0]], eachValue)) {
-                                                                conditionValueMatch += 1;
-                                                            } else if (questionMatchOperator == "!=" && !_.isEqual(question[eachConditionArray[0]], eachValue)) {
-                                                                conditionValueMatch += 1;
-                                                            } else {
-                                                                conditionValueNotMatch += 1;
-                                                            }
-                                                        }
-
-                                                        if (singleConditionOperator == "||" && conditionValueMatch > 0) {
-                                                            conditionMatch += 1;
-                                                        } else if ((singleConditionOperator == "&&" || singleConditionOperator == "") && conditionValueNotMatch <= 0) {
-                                                            conditionMatch += 1;
-                                                        } else {
-                                                            conditionNotMatch += 1;
-                                                        }
-
-                                                    }
-
-                                                    if (multipleConditionOperator == "OR" && conditionMatch > 0) {
-                                                        tempAllQuestion.push(question);
-                                                    } else if ((multipleConditionOperator == "AND" || multipleConditionOperator == "") && conditionNotMatch <= 0) {
-                                                        tempAllQuestion.push(question);
-                                                    }
-
-                                                })
-
-                                                allCriteriaQuestions = tempAllQuestion;
-
-                                            }
-
-                                            submissionAnswers.push(...allCriteriaQuestions);
-
-                                            allCriteriaQuestions.forEach(question => {
-                                                if (question[_.head(criteriaQuestionFilter[0].split("="))] && question[_.head(criteriaQuestionFilter[0].split("="))] == _.last(criteriaQuestionFilter[0].split("="))) {
-                                                    result += 1;
-                                                }
-                                            })
-
-                                            return result;
-                                        }
-
-                                        eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && submissionAnswers.push(eachSubmissionDocument.answers[questionOrCriteriaArray[0]])
-                                        let inputTypes = ["value", "instanceResponses", "endTime", "startTime", "countOfInstances"];
-                                        inputTypes.forEach(inputType => {
-                                            if (questionOrCriteriaArray[1] === inputType) {
-                                                if (eachSubmissionDocument.answers[questionOrCriteriaArray[0]] && (!eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable || eachSubmissionDocument.answers[questionOrCriteriaArray[0]].notApplicable != true) && (eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] || eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType] == 0)) {
-
-                                                    result = eachSubmissionDocument.answers[questionOrCriteriaArray[0]][inputType];
-                                                } else {
-                                                    result = "NA";
-                                                }
-                                            }
-                                        })
-                                        return result;
-                                    }
-
-                                    let expressionVariables = {};
-                                    let expressionResult = {};
-                                    let allValuesAvailable = true;
-
-                                    Object.keys(criteria.rubric.expressionVariables).forEach(variable => {
-                                        if (variable != "default") {
-                                            expressionVariables[variable] = questionAndCriteriaValueExtractor(criteria.rubric.expressionVariables[variable]);
-                                            expressionVariables[variable] = (expressionVariables[variable] === "NA" && criteria.rubric.expressionVariables.default && criteria.rubric.expressionVariables.default[variable]) ? criteria.rubric.expressionVariables.default[variable] : expressionVariables[variable];
-                                            if (expressionVariables[variable] === "NA") {
-                                                allValuesAvailable = false;
-                                            }
-                                        }
-                                    })
-
-                                    let errorWhileParsingCriteriaExpression = false;
-                                    let errorExpression = {};
-
-                                    if (allValuesAvailable) {
-
-                                        Object.keys(criteria.rubric.levels).forEach(level => {
-
-                                            if (criteria.rubric.levels[level].expression != "") {
-
-                                                try {
-
-                                                    expressionResult[level] = {
-                                                        expressionParsed: criteria.rubric.levels[level].expression,
-                                                        result: mathJs.eval(criteria.rubric.levels[level].expression, expressionVariables)
-                                                    };
-
-                                                } catch (error) {
-                                                    log.error("---------------Some exception caught begins---------------")
-                                                    log.error("%o",error)
-                                                    log.error("%s",criteria.name)
-                                                    log.error("%s",criteria.rubric.levels[level].expression)
-                                                    log.error("%s",expressionVariables)
-                                                    log.error("%s",criteria.rubric.expressionVariables)
-                                                    log.error("---------------Some exception caught ends---------------")
-
-                                                    expressionResult[level] = {
-                                                        expressionParsed: criteria.rubric.levels[level].expression
-                                                    };
-
-                                                    let errorObject = {
-                                                        errorName: error.message,
-                                                        criteriaName: criteria.name,
-                                                        expression: criteria.rubric.levels[level].expression,
-                                                        expressionVariables: JSON.stringify(expressionVariables),
-                                                        errorLevels: criteria.rubric.levels[level].level,
-                                                        expressionVariablesDefined: JSON.stringify(criteria.rubric.expressionVariables)
-                                                    };
-
-                                                    result.criteriaErrors.push(errorObject);
-
-                                                    slackClient.rubricErrorLogs(errorObject);
-
-                                                    errorWhileParsingCriteriaExpression = true;
-
-                                                }
-
-                                            } else {
-
-                                                expressionResult[level] = {
-                                                    expressionParsed: criteria.rubric.levels[level].expression,
-                                                    result: false
-                                                };
-                                            }
-
-                                        })
-
-                                    }
-
-                                    let score = "NA";
-                                    if (allValuesAvailable && !errorWhileParsingCriteriaExpression) {
-                                        score = "No Level Matched";
-                                        if(expressionResult && Object.keys(expressionResult).length > 0) {
-                                            const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort());
-                                            for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
-                                                const levelKey = levelArrayFromHighToLow[levelIndex];
-                                                if(expressionResult[levelKey] && expressionResult[levelKey].result) {
-                                                    score = levelKey;
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    result.criteria[criteria.externalId].expressionVariablesDefined = criteria.rubric.expressionVariables;
-                                    result.criteria[criteria.externalId].expressionVariables = expressionVariables;
-
-                                    result.criteria[criteria.externalId].maxScore = criteria.maxScore;
-                                    result.criteria[criteria.externalId].percentageScore = criteria.percentageScore;
-                                    result.criteria[criteria.externalId].scoreAchieved = criteria.scoreAchieved;
-
-                                    if (score == "NA") {
-                                        result.criteria[criteria.externalId].valuesNotFound = true;
-                                        result.criteria[criteria.externalId].score = score;
-                                        criteria.score = score;
-                                    } else if (score == "No Level Matched") {
-                                        result.criteria[criteria.externalId].noExpressionMatched = true;
-                                        result.criteria[criteria.externalId].score = score;
-                                        criteria.score = score;
-                                    } else {
-                                        result.criteria[criteria.externalId].score = score;
-                                        criteria.score = score;
-                                    }
-
-                                    if(eachSubmissionDocument.scoringSystem == "pointsBasedScoring") {
-                                        criteria.pointsBasedScoreOfAllChildren = 0;
-                                        submissionAnswers.forEach(answer => {
-                                            if(answer.pointsBasedScoreInParent) criteria.pointsBasedScoreOfAllChildren += answer.pointsBasedScoreInParent;
-                                        })
-                                    }
-                                    
-
-                                    result.criteria[criteria.externalId].expressionResult = expressionResult;
-                                    result.criteria[criteria.externalId].submissionAnswers = submissionAnswers;
-                                }
-
-                                return criteria;
-
-                            }
-
-                        }));
-
-                        if (criteriaData.findIndex(criteria => criteria === undefined) >= 0) {
-                            result.runUpdateQuery = false;
-                        }
-
-                        let themes = {};
-
-                        if(result.runUpdateQuery && eachSubmissionDocument.scoringSystem == "pointsBasedScoring" && eachSubmissionDocument.themes && eachSubmissionDocument.themes.length > 0) {
-                                
-                            themes = await this.calulateThemeScores(eachSubmissionDocument.themes, criteriaData);
-                            
-                            if(!themes.success) {
-                                result.runUpdateQuery = false;
-                            }
-                            
-                            result.themes = themes.themeResult;
-                            result.themeErrors = themes.themeErrors;
-
-                        }
-
-                        if (result.runUpdateQuery) {
-
-                            let updateObject = {$set : {}};
-
-                            if(themes.success) {
-                                updateObject.$set.themes = themes.themeData;
-                                if(themes.criteriaToUpdate && Object.keys(themes.criteriaToUpdate).length > 0) {
-                                    criteriaData.forEach(criteria => {
-                                        if(themes.criteriaToUpdate[criteria._id.toString()]) {
-                                            Object.keys(themes.criteriaToUpdate[criteria._id.toString()]).forEach(criteriaKeyToUpdate => {
-                                                criteria[criteriaKeyToUpdate] = themes.criteriaToUpdate[criteria._id.toString()][criteriaKeyToUpdate];
-                                            })
-                                        }
-                                    })
-                                }
-                            }
-
-                            updateObject.$set.criteria = criteriaData;
-                            updateObject.$set.ratingCompletedAt =  new Date();
-
-                            if(answersToUpdate && Object.keys(answersToUpdate).length > 0) {
-                                updateObject.$set.pointsBasedMaxScore = 0;
-                                updateObject.$set.pointsBasedScoreAchieved = 0;
-                                Object.keys(answersToUpdate).forEach(questionId => {
-                                    if(Object.keys(answersToUpdate[questionId]).length > 0) {
-                                        Object.keys(answersToUpdate[questionId]).forEach(answerField => {
-                                            if(answerField == "maxScore") {
-                                                updateObject.$set.pointsBasedMaxScore += answersToUpdate[questionId][answerField];
-                                            }
-                                            if(answerField == "scoreAchieved") {
-                                                updateObject.$set.pointsBasedScoreAchieved += answersToUpdate[questionId][answerField];
-                                            }
-                                            if(answerField != "value" || answerField != "payload") {
-                                                updateObject.$set[`answers.${questionId}.${answerField}`] = answersToUpdate[questionId][answerField];
-                                            }
-                                        })
-                                    }
-                                })
-                                if(updateObject.$set.pointsBasedMaxScore > 0 && updateObject.$set.pointsBasedScoreAchieved >0) {
-                                    updateObject.$set.pointsBasedPercentageScore = ((updateObject.$set.pointsBasedScoreAchieved/updateObject.$set.pointsBasedMaxScore)*100);
-                                } else {
-                                    updateObject.$set.pointsBasedPercentageScore = 0;
-                                }
-                            }
-
-                            let submissionModel = (eachSubmissionDocument.submissionCollection) ? eachSubmissionDocument.submissionCollection : "submissions";
-
-                            let updatedSubmissionDocument = await database.models[submissionModel].findOneAndUpdate(
-                                {
-                                    _id: eachSubmissionDocument._id
-                                },
-                                updateObject
-                            );
-
-                        }
-
-                        let message = messageConstants.apiResponses.CRITERIA_RATING;
-
-                        if (sourceApiHelp == "singleRateApi") {
-                            return resolve({
-                                result: result,
-                                message: message
-                            });
-                        }
-
-                        resultingArray.push({
-                            entityId: eachSubmissionDocument.entityExternalId,
-                            message: message
-                        });
-
-                    } else {
-
-                        if (sourceApiHelp == "singleRateApi") {
-                            return resolve({
-                                status: httpStatusCode.not_found.status,
-                                message: messageConstants.apiResponses.ALL_ECM_NOT_SUBMITTED
-                            });
-                        }
-
-                        resultingArray.push({
-                            entityId: eachSubmissionDocument.entityExternalId,
-                            message: messageConstants.apiResponses.ALL_ECM_NOT_SUBMITTED
-                        });
-
-                    }
-
-                }))
-
-
-                return resolve(resultingArray);
-
-
-            } catch (error) {
-                return reject(error);
-            }
-
-        })
-
-    }
-
-    /**
-   * Calculate theme scores.
-   * @method
-   * @name calulateThemeScores
-   * @param {Array} themesWithRubric
-   * @param {Array} criteriaDataArray  
-   * @returns {JSON} consists of success,themeData,themeResult,themeErrors,
-   * criteriaToUpdate
-   */
-
-    static calulateThemeScores(themesWithRubric, criteriaDataArray) {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-                let themeScores = new Array;
-                let themeErrors = new Array;
-                let themeByHierarchyLevel = {};
-                let maxThemeDepth = 0;
-                let themeScoreCalculationCompleted = true;
-                let themeResult = {};
-                let criteriaMap = {};
-                let criteriaToUpdate = {};
-
-                for (let pointerToThemeArray = 0; pointerToThemeArray < themesWithRubric.length; pointerToThemeArray++) {
-                    const theme = themesWithRubric[pointerToThemeArray];
-                    if(theme.hierarchyLevel && theme.hierarchyLevel > maxThemeDepth) {
-                        maxThemeDepth = theme.hierarchyLevel;
-                    }
-                    (themeByHierarchyLevel[theme.hierarchyLevel]) ? themeByHierarchyLevel[theme.hierarchyLevel].push(theme):  themeByHierarchyLevel[theme.hierarchyLevel] = [theme];
-                }
-
-                criteriaDataArray.forEach(criteria => {
-                    criteriaMap[criteria._id.toString()] = criteria;
-                })
-
-                if(Object.keys(themeByHierarchyLevel).length > 0) {
-                    while (maxThemeDepth >= 0) {
-                        
-                        if(themeByHierarchyLevel[maxThemeDepth]) {
-
-                            let themeData = await Promise.all(themeByHierarchyLevel[maxThemeDepth].map(async (theme) => {
-
-                                themeResult[theme.externalId] = {};
-                                themeResult[theme.externalId].themeName = theme.name;
-                                themeResult[theme.externalId].themeExternalId = theme.externalId;
-
-                                if (theme.weightage > 0) {
-    
-                                    let allThemeLevelExpressions = Object.values(theme.rubric.levels).every(eachRubricLevels => {
-                                        return eachRubricLevels.expression != "";
-                                    })
-    
-                                    if (theme.rubric.expressionVariables && allThemeLevelExpressions) {
-    
-                                        let children = new Array;
-    
-                                        const subThemeValueExtractor = function (subTheme) {
-                                            
-                                            let result = "NA";
-                                            
-                                            const subThemeArray = subTheme.split('.');
-                                            
-                                            if (subThemeArray.findIndex(theme => _.includes(theme, "sumOfPointsOfAllChildren")) >= 0) {
-                                                
-                                                result = 0;
-    
-                                                let themeExternalIdIndex = subThemeArray.findIndex(theme => !(_.includes(theme, "sumOfPointsOfAllChildren")));
-                                                if (themeExternalIdIndex < 0) {
-                                                    return "NA";
-                                                }
-
-                                                let scoreOfAllSubthemeInTheme = {};
-                                                let totalWeightOfSubthemeInTheme = 0;
-
-                                                if(theme.immediateChildren) {
-                                                    theme.immediateChildren.forEach(subTheme => {
-                                                        const subThemeScore =  _.find(themeScores, { 'externalId': subTheme.externalId});
-                                                        if(subTheme.weightage > 0) {
-                                                            scoreOfAllSubthemeInTheme[subTheme.externalId] = {
-                                                                subThemeExternalId :subTheme.externalId,
-                                                                weightage : subTheme.weightage,
-                                                                pointsBasedScoreOfAllChildren : subThemeScore.pointsBasedScoreOfAllChildren,
-                                                                scoreAchieved : subThemeScore.scoreAchieved,
-                                                                maxScore : subThemeScore.maxScore
-                                                            };
-                                                            totalWeightOfSubthemeInTheme += subTheme.weightage;
-                                                        }
-                                                    })
-                                                }
-
-                                                theme.criteriaLevelCount = {};
-
-                                                theme.criteria.forEach(themeCriteria => {
-                                                    if(themeCriteria.weightage > 0) {
-                                                        if(criteriaMap[themeCriteria.criteriaId.toString()]) {
-                                                            (theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score]) ? theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] += 1 : theme.criteriaLevelCount[criteriaMap[themeCriteria.criteriaId.toString()].score] = 1;
-                                                        }
-
-                                                        if(!theme.immediateChildren && criteriaMap[themeCriteria.criteriaId.toString()]) {
-                                                            scoreOfAllSubthemeInTheme[themeCriteria.criteriaId.toString()] = {
-                                                                criteriaId :themeCriteria.criteriaId,
-                                                                criteriaExternalId :themeCriteria.externalId,
-                                                                weightage : themeCriteria.weightage,
-                                                                pointsBasedScoreOfAllChildren : criteriaMap[themeCriteria.criteriaId.toString()].pointsBasedScoreOfAllChildren,
-                                                                scoreAchieved : criteriaMap[themeCriteria.criteriaId.toString()].scoreAchieved,
-                                                                maxScore : criteriaMap[themeCriteria.criteriaId.toString()].maxScore
-                                                            };
-                                                            totalWeightOfSubthemeInTheme += themeCriteria.weightage;
-                                                        }
-
-                                                    }
-                                                })
-
-                                                theme.pointsBasedScore = 0;
-                                                theme.maxScore = 0;
-                                                theme.scoreAchieved = 0;
-                                                theme.percentageScore = 0;
-
-                                                Object.keys(scoreOfAllSubthemeInTheme).length > 0 && Object.keys(scoreOfAllSubthemeInTheme).forEach(subThemeKey => {
-                                                    result += (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme;
-                                                    theme.maxScore += scoreOfAllSubthemeInTheme[subThemeKey].maxScore;
-                                                    theme.scoreAchieved += scoreOfAllSubthemeInTheme[subThemeKey].scoreAchieved;
-                                                    scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent = (scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreOfAllChildren * scoreOfAllSubthemeInTheme[subThemeKey].weightage) / totalWeightOfSubthemeInTheme;
-                                                    if(scoreOfAllSubthemeInTheme[subThemeKey].criteriaId) {
-                                                        criteriaToUpdate[scoreOfAllSubthemeInTheme[subThemeKey].criteriaId.toString()] = {
-                                                            pointsBasedScoreInParent : scoreOfAllSubthemeInTheme[subThemeKey].pointsBasedScoreInParent,
-                                                        };
-                                                    }
-                                                })
-                                                
-                                                if(theme.maxScore > 0 && theme.scoreAchieved >0) {
-                                                    theme.percentageScore = ((theme.scoreAchieved/theme.maxScore)*100);
-                                                }
-                                                
-                                                children = Object.values(scoreOfAllSubthemeInTheme);
-                                                
-                                                
-                                            }
-
-                                            return result;
-                                        }
-    
-                                        let expressionVariables = {};
-                                        let expressionResult = {};
-                                        let allValuesAvailable = true;
-    
-                                        Object.keys(theme.rubric.expressionVariables).forEach(variable => {
-                                            if (variable != "default") {
-                                                expressionVariables[variable] = subThemeValueExtractor(theme.rubric.expressionVariables[variable]);
-                                                expressionVariables[variable] = (expressionVariables[variable] === "NA" && theme.rubric.expressionVariables.default && theme.rubric.expressionVariables.default[variable]) ? theme.rubric.expressionVariables.default[variable] : expressionVariables[variable];
-                                                if (expressionVariables[variable] === "NA") {
-                                                    allValuesAvailable = false;
-                                                }
-                                            }
-                                        })
-    
-                                        let errorWhileParsingThemeExpression = false;
-                                        let errorExpression = {};
-    
-                                        if (allValuesAvailable) {
-                                            
-                                            Object.keys(theme.rubric.levels).forEach(level => {
-    
-                                                if (theme.rubric.levels[level].expression != "") {
-    
-                                                    try {
-    
-                                                        expressionResult[level] = {
-                                                            expressionParsed: theme.rubric.levels[level].expression,
-                                                            result: mathJs.eval(theme.rubric.levels[level].expression, expressionVariables)
-                                                        };
-    
-                                                    } catch (error) {
-                                                        log.error("---------------Some exception caught begins---------------")
-                                                        log.error("%o",error)
-                                                        log.error("%s",theme.name)
-                                                        log.error("%s",theme.rubric.levels[level].expression)
-                                                        log.error("%s",expressionVariables)
-                                                        log.error("%s",theme.rubric.expressionVariables)
-                                                        log.error("---------------Some exception caught ends---------------")
-    
-                                                        expressionResult[level] = {
-                                                            expressionParsed: theme.rubric.levels[level].expression
-                                                        };
-    
-                                                        let errorObject = {
-                                                            errorName: error.message,
-                                                            themeName: theme.name,
-                                                            expression: theme.rubric.levels[level].expression,
-                                                            expressionVariables: JSON.stringify(expressionVariables),
-                                                            errorLevels: theme.rubric.levels[level].level,
-                                                            expressionVariablesDefined: JSON.stringify(theme.rubric.expressionVariables)
-                                                        };
-                                                        
-                                                        themeErrors.push(errorObject);
-
-                                                        slackClient.rubricErrorLogs(errorObject);
-    
-                                                        errorWhileParsingThemeExpression = true;
-    
-                                                    }
-    
-                                                } else {
-    
-                                                    expressionResult[level] = {
-                                                        expressionParsed: theme.rubric.levels[level].expression,
-                                                        result: false
-                                                    };
-                                                }
-    
-                                            })
-    
-                                        }
-    
-                                        let score = "NA";
-                                        if (allValuesAvailable && !errorWhileParsingThemeExpression) {
-                                            score = "No Level Matched";
-                                            if(expressionResult && Object.keys(expressionResult).length > 0) {
-                                                const levelArrayFromHighToLow = _.reverse(Object.keys(expressionResult).sort());
-                                                for (let levelIndex = 0; levelIndex < levelArrayFromHighToLow.length; levelIndex++) {
-                                                    const levelKey = levelArrayFromHighToLow[levelIndex];
-                                                    if(expressionResult[levelKey] && expressionResult[levelKey].result) {
-                                                        score = levelKey;
-                                                    }
-                                                }
-                                            }
-                                        }
-    
-                                        themeResult[theme.externalId].expressionVariablesDefined = theme.rubric.expressionVariables;
-                                        themeResult[theme.externalId].expressionVariables = expressionVariables;
-                                        themeResult[theme.externalId].maxScore = theme.maxScore;
-                                        themeResult[theme.externalId].percentageScore = theme.percentageScore;
-                                        themeResult[theme.externalId].scoreAchieved = theme.scoreAchieved;
-    
-                                        if (score == "NA") {
-                                            themeResult[theme.externalId].valuesNotFound = true;
-                                            themeResult[theme.externalId].pointsBasedLevel = score;
-                                            theme.pointsBasedLevel = score
-                                        } else if (score == "No Level Matched") {
-                                            themeResult[theme.externalId].noExpressionMatched = true;
-                                            themeResult[theme.externalId].pointsBasedLevel = score;
-                                            theme.pointsBasedLevel = score;
-                                        } else {
-                                            themeResult[theme.externalId].pointsBasedLevel = score;
-                                            theme.pointsBasedLevel = score;
-                                        }
-    
-
-                                        theme.pointsBasedScoreOfAllChildren = 0;
-                                        children.forEach(child => {
-                                            if(child.pointsBasedScoreInParent) {
-                                                theme.pointsBasedScoreOfAllChildren += child.pointsBasedScoreInParent;
-                                            }
-                                        })
-
-                                        themeResult[theme.externalId].expressionResult = expressionResult;
-                                        themeResult[theme.externalId].children = children;
-                                    }
-    
-                                    return theme;
-    
-                                }
-    
-                            }));
-
-                            if (themeData.findIndex(theme => theme === undefined) >= 0) {
-                                maxThemeDepth = -1;
-                                themeScoreCalculationCompleted = false;
-                                break;
-                            }
-
-                            themeScores = themeScores.concat(themeData);
-                        }
-
-                        maxThemeDepth -= 1;
-                    }
-                }
-
-                return resolve({
-                    success : themeScoreCalculationCompleted,
-                    themeData : themeScores,
-                    themeResult : themeResult,
-                    themeErrors : themeErrors,
-                    criteriaToUpdate : criteriaToUpdate
-                });
-
-
-            } catch (error) {
-                return reject(error);
-            }
-
-        })
     }
 
     /**
@@ -1510,12 +717,12 @@ module.exports = class SubmissionsHelper {
     }
 
      /**
-   * Rate submission by id.
-   * @method
-   * @name rateSubmissionById
-   * @param {String} [submissionId = ""] - submission id.
-   * @returns {Object} message regarding rating of submission. 
-   */
+     * Rate submission by id.
+     * @method
+     * @name rateSubmissionById
+     * @param {String} [submissionId = ""] - submission id.
+     * @returns {Object} message regarding rating of submission. 
+     */
 
     static rateSubmissionById(submissionId = "") {
         return new Promise(async (resolve, reject) => {
@@ -1549,9 +756,9 @@ module.exports = class SubmissionsHelper {
                     emailRecipients = solutionDocument.sendSubmissionRatingEmailsTo;
                 }
 
-                if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+                if(solutionDocument.scoringSystem == messageConstants.common.POINTS_BASED_SCORING_SYSTEM) {
 
-                    submissionDocument.scoringSystem = "pointsBasedScoring";
+                    submissionDocument.scoringSystem = messageConstants.common.POINTS_BASED_SCORING_SYSTEM;
 
                     let allCriteriaInSolution = new Array;
                     let allQuestionIdInSolution = new Array;
@@ -1619,13 +826,15 @@ module.exports = class SubmissionsHelper {
                             questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
                             submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
                         }
-                        submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore;
+                        submissionDocument.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
                         })
                     }
 
+                } else if(solutionDocument.scoringSystem == messageConstants.common.MANUAL_RATING) {
+                    return resolve(messageConstants.apiResponses.SUBMISSION_PROCESSED_FOR_MANUAL_RATING)
                 }
 
-                let resultingArray = await this.rateEntities([submissionDocument], "singleRateApi");
+                let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.submissions.updateOne(
@@ -1638,18 +847,985 @@ module.exports = class SubmissionsHelper {
                         }
                     );
                     await this.pushCompletedSubmissionForReporting(submissionId);
-                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_SUCCESS+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_SUCCESS+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
                 } else {
-                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
                 }
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
         })
     }
 
+
+    /**
+     * Mark submission complete and push to Kafka.
+     * @method
+     * @name markCompleteAndPushForReporting
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
+
+    static markCompleteAndPushForReporting(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+
+            let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
+
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND);
+                } else if (typeof submissionId !== "string") {
+                    submissionId = submissionId.toString()
+                }
+
+                let submissionDocument = await database.models.submissions.findOne(
+                    {_id : ObjectId(submissionId)},
+                    { "_id": 1}
+                ).lean();
+        
+                if (!submissionDocument._id) {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+                }
+
+                await database.models.submissions.updateOne(
+                    {
+                        _id: ObjectId(submissionId)
+                    },
+                    {
+                        status: "completed",
+                        completedDate: new Date()
+                    }
+                );
+                
+                await this.pushCompletedSubmissionForReporting(submissionId);
+
+                emailClient.pushMailToEmailService(emailRecipients,"Successfully marked submission " + submissionId + "complete and pushed for reporting","NO TEXT AVAILABLE");
+                return resolve(messageConstants.apiResponses.SUBMISSION_RATING_COMPLETED);
+
+
+            } catch (error) {
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.SUBMISSION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+   * Push incomplete submission for reporting.
+   * @method
+   * @name pushInCompleteSubmissionForReporting
+   * @param {String} submissionId - submission id.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+    static pushInCompleteSubmissionForReporting(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
+                }
+
+                if(typeof submissionId == "string") {
+                    submissionId = ObjectId(submissionId);
+                }
+
+                let submissionsDocument = await database.models.submissions.findOne({
+                    _id: submissionId,
+                    status: {$ne: "completed"}
+                }).lean();
+
+                if (!submissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND + "or" +SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+
+
+                const kafkaMessage = await kafkaClient.pushInCompleteSubmissionToKafka(submissionsDocument);
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            submissionId:submissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    };
+                    slackClient.kafkaErrorAlert(errorObject);
+                }
+
+                return resolve(kafkaMessage);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+     /**
+   * Delete submission.
+   * @method
+   * @name delete
+   * @param {String} submissionId - submission id.
+   * @param {String} userId - logged in user id.
+   * @returns {Object} status and deleted message
+   */
+
+  static delete(submissionId,userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let submissionDocument = 
+            await database.models.submissions.deleteOne(
+                {
+                    "_id" : submissionId,
+                    "assessors.userId" : userId,
+                    "status" : messageConstants.common.STARTED
+                }
+            );
+
+            if (!submissionDocument.n) {
+                throw {
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                }
+              }
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_DELETED
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+    /**
+   * Edit submission title.
+   * @method
+   * @name setTitle
+   * @param {String} submissionId - submission id.
+   * @param {String} updatedTitle - setTitle data to be updated.
+   * @param {String} userId - logged in user id.
+   * @returns {Object} status and updated message.
+   */
+
+  static setTitle(submissionId,updatedTitle,userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let submissionDocument = 
+            await database.models.submissions.findOneAndUpdate(
+                {
+                    "_id" : submissionId,
+                    "assessors.userId" : userId
+                },{
+                    $set : {
+                        title : updatedTitle
+                    }
+                }
+            );
+
+            if (!submissionDocument || !submissionDocument._id) {
+                throw {
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                }
+            }
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_UPDATED
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+     /**
+   * Create submission.
+   * @method
+   * @name create
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - Logged in userId.
+   * @returns {Object} status and updated message.
+   */
+
+  static create(
+      solutionId,
+      entityId,
+      userAgent,
+      userId
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let solutionDocument = 
+            await solutionsHelper.solutionDocuments(
+                {
+                    _id : solutionId
+                },[
+                    "externalId",
+                    "frameworkId",
+                    "frameworkExternalId",
+                    "entityTypeId",
+                    "entityType",
+                    "programId",
+                    "themes",
+                    "evidenceMethods",
+                    "scoringSystem",
+                    "isRubricDriven"
+                ]
+            );
+
+            if( !solutionDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                };
+            }
+
+            let programDocument = 
+            await programsHelper.list(
+                {
+                    _id : solutionDocument[0].programId
+                },
+                "all",
+                ["_id", "components","isAPrivateProgram"]
+            );
+
+            if( !programDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                }
+            }
+
+            let entityDocument = 
+            await entitiesHelper.entityDocuments({
+                _id : entityId
+            },
+            [
+                "metaInformation",
+                "entityTypeId",
+                "entityType"
+            ]);
+
+            if( !entityDocument[0] ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                }
+            }
+
+            let submissionDocumentEvidences = 
+            this.evidences(
+                solutionDocument[0].evidenceMethods
+            );
+
+            let submissionDocumentCriterias = 
+            await this.criterias(
+                solutionDocument[0].themes
+            );
+
+            let submissionData = {
+                entityId : entityDocument[0]._id,
+                entityExternalId : 
+                entityDocument[0].metaInformation.externalId ? 
+                entityDocument[0].metaInformation.externalId : "",
+                entityInformation : entityDocument[0].metaInformation,
+                solutionId : solutionDocument[0]._id,
+                solutionExternalId : solutionDocument[0].externalId,
+                frameworkId : solutionDocument[0].frameworkId,
+                frameworkExternalId : solutionDocument[0].frameworkExternalId,
+                entityTypeId : solutionDocument[0].entityTypeId,
+                entityType : solutionDocument[0].entityType,
+                programId : solutionDocument[0].programId,
+                scoringSystem : solutionDocument[0].scoringSystem,
+                isRubricDriven : solutionDocument[0].isRubricDriven,
+                programExternalId: programDocument[0].externalId,
+                isAPrivateProgram : programDocument[0].isAPrivateProgram, 
+                programInformation : programDocument[0],
+                evidenceSubmissions : [],
+                entityProfile : {},
+                status: "started",
+                evidences : submissionDocumentEvidences,
+                criteria : submissionDocumentCriterias,
+                evidencesStatus : Object.values(submissionDocumentEvidences)
+            };
+
+            let submissionDoc = await this.createASubmission(
+                submissionData,
+                userAgent,
+                userId
+            );
+
+            this.pushInCompleteSubmissionForReporting(submissionDoc._id);
+            
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_CREATED,
+                result : {
+                    _id : submissionDoc._id,
+                    title : submissionDoc.title,
+                    submissionNumber : submissionDoc.submissionNumber
+                }
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+   /**
+   * Create new submission.
+   * @method
+   * @name createASubmission
+   * @param {Object} submissionData - submission data.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - user id.
+   * @returns {Object} Create new submission.
+   */
+
+  static createASubmission( submissionData, userAgent,userId ) {
+      return new Promise(async (resolve,reject)=>{
+        try {
+            
+            const lastSubmission = 
+            await this.findLastSubmission(
+                submissionData.solutionId, 
+                submissionData.entityId
+            );
+
+            submissionData.submissionNumber = lastSubmission + 1;
+            submissionData.assessors = 
+            await this.assessors(
+                submissionData.solutionId, 
+                submissionData.entityId,
+                userAgent,
+                userId
+            );
+
+            let submissionDocument = await database.models.submissions.create(
+                submissionData
+            );
+
+            resolve(submissionDocument);
+
+        } catch(error) {
+            reject(error);
+        }
+      })
+  }
+
+   /**
+   * Generate submission evidences.
+   * @method
+   * @name evidences
+   * @param {Object} evidenceMethods - All evidences method.
+   * @returns {Object} Generated submission evidences.
+   */
+
+  static evidences(evidenceMethods) {
+    try {        
+        Object.keys(evidenceMethods).forEach(solutionEcm => {
+            if( evidenceMethods[solutionEcm].isActive ) {
+                evidenceMethods[solutionEcm].startTime = "";
+                evidenceMethods[solutionEcm].endTime = "";
+                evidenceMethods[solutionEcm].isSubmitted = false;
+                evidenceMethods[solutionEcm].submissions = new Array;
+            } else {
+                delete evidenceMethods[solutionEcm];
+            }
+        })
+    
+        return evidenceMethods;
+
+    } catch(error) {
+        
+        return {
+            message : error
+        }
+    }
+  }
+
+    /**
+   * Generate submission criterias.
+   * @method
+   * @name criterias
+   * @param {Object} themes - solution themes.
+   * @returns {Object} Generated submission criterias.
+   */
+
+  static criterias( 
+      themes
+    ) {
+      return new Promise( async (resolve,reject)=> {
+          try {
+            
+            let criteriaIdArray = 
+            gen.utils.getCriteriaIdsAndWeightage(
+                themes
+            );
+
+            let criteriaId = new Array;
+            let criteriaObject = {};
+
+            criteriaIdArray.forEach(eachCriteriaId => {
+                criteriaId.push(eachCriteriaId.criteriaId);
+                criteriaObject[eachCriteriaId.criteriaId.toString()] = {
+                    weightage: eachCriteriaId.weightage
+                };
+            });
+
+            let criteriaQuestionDocument = 
+            await criteriaQuestionsHelper.list(
+                { _id: { $in: criteriaId } },
+                "all",
+                [
+                    "resourceType",
+                    "language",
+                    "keywords",
+                    "concepts",
+                    "createdFor",
+                    "evidences"
+                ]
+            );
+
+            let submissionDocumentCriterias = 
+            criteriaQuestionDocument.map(criteria => {
+
+                criteria.weightage = 
+                criteriaObject[criteria._id.toString()].weightage;
+
+                return criteria;
+
+            });
+
+            return resolve(submissionDocumentCriterias)
+
+          } catch(error) {
+              reject(error);
+          }
+      })
+  }
+
+  /**
+   * Generate assessors for submission.
+   * @method
+   * @name assessors
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @param {String} userAgent - user agent.
+   * @param {String} userId - user id.
+   * @returns {Object} Generate assessors for submission.
+   */
+
+  static assessors(solutionId,entityId,userAgent,userId) {
+    return new Promise( async (resolve,reject)=> {
+        try {
+
+            let assessorDocument = 
+            await entityAssessorsHelper.assessorsDocument({
+                solutionId : solutionId,
+                entities : entityId
+            });
+
+            let assessorElement = assessorDocument.find(
+                assessor => assessor.userId === userId
+            );
+            
+            if (assessorElement && assessorElement.externalId != "") {
+                assessorElement.assessmentStatus = "started";
+                assessorElement.userAgent = userAgent;
+            }
+
+            resolve(assessorDocument);
+
+        } catch(error) {
+            reject(error);
+        }
+    })
+  }
+
+    /**
+   * Find last submission.
+   * @method
+   * @name findLastSubmission
+   * @param {String} solutionId - solution id.
+   * @param {String} entityId - entity id.
+   * @returns {Object} last submission number
+   */
+
+  static findLastSubmission(solutionId,entityId) {
+    return new Promise( async (resolve,reject)=> {
+        try {
+            
+            let submissionDocument = 
+            await this.submissionDocuments(
+                {
+                    solutionId : solutionId,
+                    entityId : entityId
+                },[
+                    "submissionNumber"
+                ],
+                "none",
+                { createdAt: -1 },
+                1 
+            );
+
+            return resolve(
+                submissionDocument[0] && submissionDocument[0].submissionNumber ?
+                submissionDocument[0].submissionNumber : 0
+            );
+
+        } catch(error) {
+            reject(error);
+        }
+    })
+  }
+
+    /**
+   * Return criteria from submissions.
+   * @method
+   * @name getCriteria
+   * @param {String} submissionId - submission id.
+   * @returns {JSON} consists of criteria of submission
+   */
+
+    static getCriteria(submissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw messageConstants.apiResponses.SUBMISSION_ID_NOT_FOUND;
+                }
+
+                if(typeof submissionId == "string") {
+                    submissionId = ObjectId(submissionId);
+                }
+
+                let submissionsDocument = await database.models.submissions.findOne({
+                    _id: submissionId
+                },{
+                    criteria : 1
+                }).lean();
+
+                if (!submissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
+                }
+
+                return resolve({
+                    success : true,
+                    message : "Submission criteria fetched successfully.",
+                    data : submissionsDocument.criteria
+                });
+
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message
+                });
+            }
+        })
+    }
+
+     /**
+    * List submissions
+    * @method
+    * @name list
+    * @param {String} entityId - entity id.
+    * @param {String} solutionId - solution id.
+    * @returns {Object} - list of submissions
+    */
+
+   static list(entityId,solutionId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let queryObject = {
+                entityId: entityId,
+                solutionId : solutionId
+            };
+
+            let projection = [
+                "status",
+                "submissionNumber",
+                "entityId",
+                "entityExternalId",
+                "entityType",
+                "createdAt",
+                "updatedAt",
+                "title",
+                "completedDate"
+            ];
+
+            let result = await this.submissionDocuments
+            (
+                 queryObject,
+                 projection,
+                 "none",
+                 {
+                     "createdAt" : -1 
+                }
+            );
+
+            if( !result.length > 0 ) {
+                return resolve({
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                    result : []
+                });
+            }
+
+            result = result.map(resultedData=>{
+                resultedData.submissionDate = 
+                resultedData.completedDate ? 
+                resultedData.completedDate : "";
+
+                return _.omit(resultedData,["completedDate"]);
+            })
+
+            return resolve({
+                message : messageConstants.apiResponses.SUBMISSION_LIST_FETCHED,
+                result : result
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    });
+   }
+
+
+    /**
+    * Get criteria questions 
+    * @method
+    * @name getCriteriaQuestions
+    * @param {String} submissionId - submissionId.
+    * @returns {Object} - Criteria questions and answers 
+    */
+
+    static getCriteriaQuestions(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
+                }
+
+                let result = {};
+
+                let queryObject = {
+                    _id: submissionId,
+                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
+                    scoringSystem: messageConstants.common.MANUAL_RATING,
+                    isRubricDriven : true,
+                    answers : {
+                        $exists : true
+                    }
+                };
+
+                let projection = [
+                    "answers",
+                    "criteria._id",
+                    "criteria.name",
+                    "solutionId"
+                ];
+
+                let submissionDocument = await this.submissionDocuments
+                    (
+                        queryObject,
+                        projection
+                    );
+                
+                if (!submissionDocument.length > 0) {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
+                }
+
+                let criteriaIdMap = _.keyBy(submissionDocument[0].criteria, '_id');
+
+                let criteriaQuestionObject = {};
+                let questionIdArray = [];
+                let fileSourcePath = [];
+
+                if (submissionDocument[0]["answers"] && Object.keys(submissionDocument[0].answers).length > 0) {
+                    Object.values(submissionDocument[0].answers).forEach(async answer => {
+                        if (answer.qid) {
+                            questionIdArray.push(answer.qid);
+                            if (answer.fileName && answer.fileName.length > 0) {
+                                answer.fileName.forEach(file => {
+                                    fileSourcePath.push(file.sourcePath);
+                                });
+                            }
+                        }
+                    })
+                }
+                
+                let questionDocuments = await questionsHelper.questionDocument
+                    (
+                        {
+                            _id: { $in: questionIdArray }
+                        },
+                        [
+                            "question",
+                            "options"
+                        ]
+                    );
+
+                let questionIdMap = _.keyBy(questionDocuments, '_id');
+                
+                let filePathToURLMap = {};
+                if (fileSourcePath.length > 0) {
+                    let evidenceUrls = await kendraService.getDownloadableUrl(
+                        {
+                            filePaths: fileSourcePath
+                        }
+                    );
+                    if (evidenceUrls.status == httpStatusCode.ok.status) {
+                        filePathToURLMap = _.keyBy(evidenceUrls.result, 'filePath');
+                    }
+                }
+
+                result.criteria = [];
+
+                if (Object.keys(submissionDocument[0].answers).length > 0) {
+
+                    Object.values(submissionDocument[0].answers).forEach(async answer => {
+
+                        if (answer.criteriaId && answer.qid && answer.responseType !== "matrix") {
+
+                            if (!criteriaQuestionObject[answer.criteriaId]) {
+                                criteriaQuestionObject[answer.criteriaId] = {};
+                                criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
+                                criteriaQuestionObject[answer.criteriaId]["name"] = criteriaIdMap[answer.criteriaId].name;
+                                criteriaQuestionObject[answer.criteriaId]["score"] = "";
+                                criteriaQuestionObject[answer.criteriaId]["questions"] = [];
+
+                                result.criteria.push({
+                                    id: answer.criteriaId,
+                                    name: criteriaIdMap[answer.criteriaId].name
+                                })
+                            }
+
+                            let questionAnswerObj = {};
+
+                            questionAnswerObj.questionId = answer.qid;
+                            questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
+                            questionAnswerObj.question = questionIdMap[answer.qid]["question"];
+                            questionAnswerObj.value = [];
+                            questionAnswerObj.remarks = (answer.remarks) ? [answer.remarks] : [];
+                            questionAnswerObj.evidences = {
+                                images: [],
+                                videos: [],
+                                documents: []
+                            };
+
+                            if (answer.fileName && answer.fileName.length > 0) {
+                                
+                                answer.fileName.forEach(file => {
+
+                                    let extension = path.extname(file.sourcePath).split('.').join("");
+
+                                    if (messageConstants.common.IMAGE_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.images.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else if (messageConstants.common.VIDEO_FORMATS.includes(extension)) {
+                                        questionAnswerObj.evidences.videos.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    } else {
+                                        questionAnswerObj.evidences.documents.push({
+                                            filePath: file.sourcePath,
+                                            url: filePathToURLMap[file.sourcePath]["url"],
+                                            extension: extension
+                                        })
+                                    }
+                                })
+                            } else {
+                                delete questionAnswerObj.evidences;
+                            }
+
+                            if (answer.responseType == "radio" || answer.responseType == "multiselect") {
+                                if(Array.isArray(answer.instanceResponses) && answer.instanceResponses.length >0) {
+                                    answer.value = answer.instanceResponses;
+                                } else if (answer.responseType == "radio") {
+                                    answer.value = [answer.value];
+                                }
+                                
+                                if (questionIdMap[answer.qid]["options"].length > 0 && answer.value.length > 0) {
+                                    answer.value.forEach(singleValue => {
+                                        questionIdMap[answer.qid]["options"].forEach(option => {
+                                            if (singleValue == option.value) {
+                                                questionAnswerObj.value.push(option.label);
+                                            }
+                                        })
+                                    })
+                                }
+                            } else {
+                                questionAnswerObj.value.push(answer.value);
+                            }
+
+                            criteriaQuestionObject[answer.criteriaId].questions.push(questionAnswerObj);
+                            
+                        }
+
+                    });
+
+                    result.criteriaQuestions = Object.values(criteriaQuestionObject)
+                    result.levelToScoreMapping = [];
+
+                    let solutionDocument = await solutionsHelper.solutionDocuments
+                        (
+                            { _id: submissionDocument[0].solutionId },
+                            [
+                                "levelToScoreMapping"
+                            ]
+                        );
+
+                    if (solutionDocument.length > 0 && Object.keys(solutionDocument[0].levelToScoreMapping).length > 0) {
+                        Object.keys(solutionDocument[0].levelToScoreMapping).forEach(level => {
+                            result.levelToScoreMapping.push({
+                                level: level,
+                                points: solutionDocument[0].levelToScoreMapping[level].points,
+                                label: solutionDocument[0].levelToScoreMapping[level].label
+                            })
+                        });
+                    }
+                   
+                    await database.models.submissions.update(
+                        { _id: submissionId },
+                        {
+                            $set: {
+                                "numberOfAnsweredCriterias" : Object.keys(criteriaQuestionObject).length
+                            }
+                        }
+                    );
+                    
+                    return resolve({
+                        message: messageConstants.apiResponses.CRITERIA_QUESTIONS_FETCHED_SUCCESSFULLY,
+                        success: true,
+                        data: result
+                    })
+
+                } else {
+                    throw new Error(messageConstants.apiResponses.CRITERIA_QUESTIONS_COULD_NOT_BE_FOUND);
+                }
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
+
+    /**
+    * manual rating 
+    * @method
+    * @name manualRating
+    * @param {String} submissionId - submissionId
+    * @param {Object} criteriaObject - An object of critieria id to level value
+    * @param {String} userId - ID of the user who is submitting the manual rating
+    * @returns {String} - success message
+    */
+
+    static manualRating(submissionId = "", criteriaObject = {}, userId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_ID_IS_REQUIRED);
+                }
+
+                if (Object.keys(criteriaObject).length === 0) {
+                    throw new Error(messageConstants.apiResponses.CRITERIA_OBJECT_MISSING);
+                }
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK);
+                }
+
+                let queryObject = {
+                    _id: submissionId,
+                    scoringSystem: messageConstants.common.MANUAL_RATING,
+                    status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
+                    "assessors.userId": userId,
+                    "assessors.role": messageConstants.common.LEAD_ASSESSOR,
+                    numberOfAnsweredCriterias: Object.keys(criteriaObject).length
+                };
+
+                let projection = [
+                    "criteria._id"
+                ];
+
+                let submissionDocument = await this.submissionDocuments
+                    (
+                        queryObject,
+                        projection,
+                    );
+
+                if (!submissionDocument.length > 0) {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+                }
+
+                if (submissionDocument[0]["criteria"] && submissionDocument[0].criteria.length > 0) {
+
+                    let submissionUpdateObject  = {};
+
+                    for (let pointerToSubmissionCriteriaArray = 0; pointerToSubmissionCriteriaArray < submissionDocument[0].criteria.length; pointerToSubmissionCriteriaArray++) {
+                        const criteria = submissionDocument[0].criteria[pointerToSubmissionCriteriaArray];
+                        if(criteriaObject[criteria._id.toString()]) {
+                            submissionUpdateObject[`criteria.${pointerToSubmissionCriteriaArray}.score`] = criteriaObject[criteria._id.toString()];
+                        }
+                    }
+                    
+                    submissionUpdateObject.status = messageConstants.common.SUBMISSION_STATUS_COMPLETED;
+                    submissionUpdateObject.ratingCompletedAt = new Date();
+                    submissionUpdateObject.completedDate = new Date();
+                    
+                    await database.models.submissions.updateOne(
+                        { _id: submissionId },
+                        {
+                            $set: submissionUpdateObject
+                        }
+                    );
+
+                    await this.pushCompletedSubmissionForReporting(submissionId);
+
+                    return resolve({
+                        success: true,
+                        message: messageConstants.apiResponses.MANUAL_RATING_SUBMITTED_SUCCESSFULLY,
+                        data: true
+                    })
+
+                } else {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_CRITERIA_NOT_FOUND)
+                }
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
 };
+

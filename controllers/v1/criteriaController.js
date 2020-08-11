@@ -8,7 +8,7 @@
 // Dependencies
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const criteriasHelper = require(MODULES_BASE_PATH + "/criteria/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 
  /**
     * Criteria
@@ -47,11 +47,13 @@ module.exports = class Criteria extends Abstract {
   async upload(req) {
     return new Promise(async (resolve, reject) => {
       try {
+        
         if (!req.files || !req.files.criteria) {
           throw messageConstants.apiResponses.CRITERIA_FILE_NOT_FOUND;
         }
 
-        let criteriaData = await csv().fromString(req.files.criteria.data.toString());
+        let criteriaData = 
+        await csv().fromString(req.files.criteria.data.toString());
 
         const fileName = `Criteria-Upload`;
         let fileStream = new FileStream(fileName);
@@ -65,127 +67,17 @@ module.exports = class Criteria extends Abstract {
           });
         }());
 
+        let updatedCriteria = await criteriaHelper.upload(
+          criteriaData,
+          req.userDetails.id,
+          req.userDetails.userToken
+        );
 
-        await Promise.all(criteriaData.map(async criteria => {
-
-          let csvData = {};
-          let rubric = {};
-          let parsedCriteria = gen.utils.valueParser(criteria);
-
-          rubric.name = parsedCriteria.criteriaName;
-          rubric.description = parsedCriteria.criteriaName;
-          rubric.type = parsedCriteria.type;
-          rubric.expressionVariables = {};
-          rubric.levels = {};
-          let countLabel = 1;
-
-          Object.keys(parsedCriteria).forEach(eachCriteriaKey => {
-
-            let regExpForLevels = /^L+[0-9]/;
-            if (regExpForLevels.test(eachCriteriaKey)) {
-
-              let label = "Level " + countLabel++;
-
-              rubric.levels[eachCriteriaKey] = {
-                level: eachCriteriaKey,
-                label: label,
-                description: parsedCriteria[eachCriteriaKey],
-                expression: ""
-              };
-            }
+        if( updatedCriteria.length > 0 ) {
+          updatedCriteria.forEach(criteria=>{
+            input.push(criteria);
           })
-
-          let criteriaStructure = {
-            owner: req.userDetails.id,
-            name: parsedCriteria.criteriaName,
-            description: parsedCriteria.criteriaName,
-            resourceType: [
-              "Program",
-              "Framework",
-              "Criteria"
-            ],
-            language: [
-              "English"
-            ],
-            keywords: [
-              "Keyword 1",
-              "Keyword 2"
-            ],
-            concepts: [
-              {
-                identifier: "LPD20100",
-                name: "Teacher_Performance",
-                objectType: "Concept",
-                relation: "associatedTo",
-                description: null,
-                index: null,
-                status: null,
-                depth: null,
-                mimeType: null,
-                visibility: null,
-                compatibilityLevel: null
-              },
-              {
-                identifier: "LPD20400",
-                name: "Instructional_Programme",
-                objectType: "Concept",
-                relation: "associatedTo",
-                description: null,
-                index: null,
-                status: null,
-                depth: null,
-                mimeType: null,
-                visibility: null,
-                compatibilityLevel: null
-              },
-              {
-                identifier: "LPD20200",
-                name: "Teacher_Empowerment",
-                objectType: "Concept",
-                relation: "associatedTo",
-                description: null,
-                index: null,
-                status: null,
-                depth: null,
-                mimeType: null,
-                visibility: null,
-                compatibilityLevel: null
-              }
-            ],
-            createdFor: [
-              "0125747659358699520",
-              "0125748495625912324"
-            ],
-            evidences: [],
-            deleted: false,
-            externalId: criteria.criteriaID,
-            owner: req.userDetails.id,
-            timesUsed: 12,
-            weightage: 20,
-            remarks: "",
-            name: parsedCriteria.criteriaName,
-            description: parsedCriteria.criteriaName,
-            criteriaType: "auto",
-            score: "",
-            flag: "",
-            rubric: rubric
-          };
-
-          let criteriaDocuments = await database.models.criteria.create(
-            criteriaStructure
-          );
-
-          csvData["Criteria Name"] = parsedCriteria.criteriaName;
-          csvData["Criteria External Id"] = parsedCriteria.criteriaID;
-
-          if (criteriaDocuments._id) {
-            csvData["Criteria Internal Id"] = criteriaDocuments._id;
-          } else {
-            csvData["Criteria Internal Id"] = "Not inserted";
-          }
-
-          input.push(csvData);
-        }))
+        }
 
         input.push(null);
 
@@ -221,7 +113,7 @@ module.exports = class Criteria extends Abstract {
   create(req){
     return new Promise(async (resolve, reject) => {
       try {
-        let criteriaDocuments = await criteriasHelper.create(req.body);
+        let criteriaDocuments = await criteriaHelper.create(req.body);
         return resolve({
           result : criteriaDocuments
         });
@@ -235,12 +127,22 @@ module.exports = class Criteria extends Abstract {
   }
 
     /**
-   * @api {post} /assessment/api/v1/criteria/update Create Questions 
+   * @api {post} /assessment/api/v1/criteria/update?externalId=:criteriaExternalId&frameworkIdExists=:FrameworkIdExists Create Questions 
    * @apiVersion 1.0.0
    * @apiName Update criteria
    * @apiGroup Criteria
+   * @apiSampleRequest /assessment/api/v1/criteria/update?externalId=SS/I/a2&frameworkIdExists=true
    * @apiUse successBody
    * @apiUse errorBody
+   * @apiParamExample {json} Request-Body:
+   * {
+   * "name" : "Construction,Potholes and Electricity "
+   * }
+   * @apiParamExample {json} Response:
+   * {
+    "message": "Criteria updated successfully",
+    "status": 200
+    }
    */
 
   /**
@@ -248,6 +150,8 @@ module.exports = class Criteria extends Abstract {
    * @method
    * @name create
    * @param {Object} req - requested data.
+   * @param {Object} req.query.externalId - criteria id.
+   * @param {Object} req.query.frameworkIdExists - framework criteria or not.
    * @param {Object} req.body - requested criteria update data. 
    * @returns {Object} 
    */
@@ -256,34 +160,15 @@ module.exports = class Criteria extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let queryObject = {
-          externalId: req.query.externalId
-        }
-
-        if(req.query.frameworkIdExists) {
-          queryObject["frameworkCriteriaId"] = {
-            $exists : true
-          }
-        };
-
-        let updateObject = {
-          "$set" : {}
-        };
-
-        let criteriaUpdateData = req.body;
-
-        Object.keys(criteriaUpdateData).forEach(criteriaData=>{
-          updateObject["$set"][criteriaData] = criteriaUpdateData[criteriaData];
-        })
-
-        updateObject["$set"]["updatedBy"] = req.userDetails.id;
-
-        await database.models.criteria.findOneAndUpdate(queryObject, updateObject)
-
-        return resolve({
-          status: httpStatusCode.ok.status,
-          message: messageConstants.apiResponses.CRITERIA_UPDATED
-        });
+          let criteriaData = 
+          await criteriaHelper.update(
+            req.query.externalId,
+            req.query.frameworkIdExists ? Boolean(req.query.frameworkIdExists) : false,
+            req.body,
+            req.userDetails.id
+          );
+          
+          return resolve(criteriaData);
       }
       catch (error) {
         reject({

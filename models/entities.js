@@ -7,6 +7,8 @@ module.exports = {
       groups: Object,
       metaInformation : Object,
       updatedBy: String,
-      createdBy: String
+      createdBy: String,
+      childHierarchyPath : Array,
+      userId : String
     }
   };

@@ -10,9 +10,10 @@
 let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications");
-const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper")
+const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper")
 
 /**
     * ObservationSubmissionsHelper
@@ -21,10 +22,80 @@ const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 module.exports = class ObservationSubmissionsHelper {
 
       /**
+   * List of observation submissions
+   * @method
+   * @name observationSubmissionsDocument
+   * @param {Object} [findQuery = "all"] - filtered data.
+   * @param {Array} [fields = "all"] - projected data.
+   * @param {Array} [sortedData = "all"] - sorted field.
+   * @param {Array} [skipFields = "none"] - fields to skip.
+   * @returns {Array} - List of observation submissions data.
+   */
+
+  static observationSubmissionsDocument(
+      findQuery = "all", 
+      fields = "all",
+      sortedData = "all",
+      skipFields = "none"
+    ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let queryObject = {};
+
+            if (findQuery != "all") {
+                queryObject = findQuery;
+            }
+
+            let projection = {};
+
+            if (fields != "all") {
+                fields.forEach(element => {
+                    projection[element] = 1;
+                });
+            }
+
+            if (skipFields != "none") {
+                skipFields.forEach(element => {
+                    projection[element] = 0;
+                });
+            }
+
+            let submissionDocuments;
+
+            if ( sortedData !== "all" ) {
+                
+                submissionDocuments = 
+                await database.models.observationSubmissions.find(
+                    queryObject, 
+                    projection
+                ).sort(sortedData).lean();
+
+            } else {
+                
+                submissionDocuments = 
+                await database.models.observationSubmissions.find(
+                    queryObject, 
+                    projection
+                ).lean();
+            }   
+            
+            return resolve(submissionDocuments);
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+    });
+}
+
+      /**
    * Push completed observation submission in kafka for reporting.
    * @method
    * @name pushCompletedObservationSubmissionForReporting
-   * @param {String} observationSubmissionId -observation submission id.
+   * @param {String} observationSubmissionId - observation submission id.
    * @returns {JSON} - message that observation submission is pushed to kafka.
    */
 
@@ -36,7 +107,7 @@ module.exports = class ObservationSubmissionsHelper {
                     throw "No observation submission id found";
                 }
 
-                if(typeof observationSubmissionId == "string") {
+                if( typeof observationSubmissionId == "string" ) {
                     observationSubmissionId = ObjectId(observationSubmissionId);
                 }
 
@@ -50,6 +121,56 @@ module.exports = class ObservationSubmissionsHelper {
                 }
 
                 const kafkaMessage = await kafkaClient.pushCompletedObservationSubmissionToKafka(observationSubmissionsDocument);
+
+                if(kafkaMessage.status != "success") {
+                    let errorObject = {
+                        formData: {
+                            observationSubmissionId:observationSubmissionsDocument._id.toString(),
+                            message:kafkaMessage.message
+                        }
+                    };
+                    slackClient.kafkaErrorAlert(errorObject);
+                }
+
+                return resolve(kafkaMessage);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+   * Push incomplete observation submission for reporting.
+   * @method
+   * @name pushInCompleteObservationSubmissionForReporting
+   * @param {String} observationSubmissionId - observation submission id.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+    static pushInCompleteObservationSubmissionForReporting(observationSubmissionId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (observationSubmissionId == "") {
+                    throw "No observation submission id found";
+                }
+
+                if(typeof observationSubmissionId == "string") {
+                    observationSubmissionId = ObjectId(observationSubmissionId);
+                }
+
+                let observationSubmissionsDocument = await database.models.observationSubmissions.findOne({
+                    _id: observationSubmissionId,
+                    status: {$ne : "completed"}
+                }).lean();
+
+                if (!observationSubmissionsDocument) {
+                    throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND+"or"+messageConstants.apiResponses.SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+            
+                const kafkaMessage = await kafkaClient.pushInCompleteObservationSubmissionToKafka(observationSubmissionsDocument);
 
                 if(kafkaMessage.status != "success") {
                     let errorObject = {
@@ -112,12 +233,12 @@ module.exports = class ObservationSubmissionsHelper {
     }
 
     /**
-   * Rate submission by id.
-   * @method
-   * @name rateSubmissionById
-   * @param {String} [submissionId = ""] -submission id.
-   * @returns {JSON} - message
-   */
+     * Rate submission by id.
+     * @method
+     * @name rateSubmissionById
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
 
     static rateSubmissionById(submissionId = "") {
         return new Promise(async (resolve, reject) => {
@@ -222,11 +343,11 @@ module.exports = class ObservationSubmissionsHelper {
                     questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
                     submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
                     }
-                    submissionDocument.questionDocuments[question._id.toString()].maxScore = questionMaxScore;
+                    submissionDocument.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
                 })
                 }
 
-                let resultingArray = await submissionsHelper.rateEntities([submissionDocument], "singleRateApi");
+                let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.observationSubmissions.updateOne(
@@ -239,19 +360,143 @@ module.exports = class ObservationSubmissionsHelper {
                         }
                     );
                     await this.pushCompletedObservationSubmissionForReporting(submissionId);
-                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_SUCCESS+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_SUCCESS+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 } else {
-                    emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,JSON.stringify(resultingArray));
+                    emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,JSON.stringify(resultingArray));
                     return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
                 }
 
             } catch (error) {
-                emailClient.pushMailToEmailService(emailRecipients,OBSERVATION_AUTO_RATING_FAILED+submissionId,error.message);
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
         })
     }
+
+    /**
+     * Mark observation submission complete and push to Kafka.
+     * @method
+     * @name markCompleteAndPushForReporting
+     * @param {String} [submissionId = ""] -submission id.
+     * @returns {JSON} - message
+     */
+
+    static markCompleteAndPushForReporting(submissionId = "") {
+        return new Promise(async (resolve, reject) => {
+
+            let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
+
+            try {
+
+                if (submissionId == "") {
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
+                } else if (typeof submissionId !== "string") {
+                    submissionId = submissionId.toString()
+                }
+
+                let submissionDocument = await database.models.observationSubmissions.findOne(
+                    {_id : ObjectId(submissionId)},
+                    { "_id": 1}
+                ).lean();
+        
+                if (!submissionDocument._id) {
+                    throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND);
+                }
+
+                await database.models.observationSubmissions.updateOne(
+                    {
+                        _id: ObjectId(submissionId)
+                    },
+                    {
+                        status: "completed",
+                        completedDate: new Date()
+                    }
+                );
+                
+                await this.pushCompletedObservationSubmissionForReporting(submissionId);
+                
+                emailClient.pushMailToEmailService(emailRecipients,"Successfully marked submission " + submissionId + "complete and pushed for reporting","NO TEXT AVAILABLE");
+                return resolve(messageConstants.apiResponses.OBSERVATION_RATING);
+
+            } catch (error) {
+                emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+    * List observation submissions
+    * @method
+    * @name list
+    * @param {String} - entityId
+    * @param {String} - solutionId
+    * @param {String} - observationId
+    * @returns {Object} - list of submissions
+    */
+
+   static list(entityId,observationId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let queryObject = {
+                entityId: entityId,
+                observationId: observationId
+            };
+
+            let projection = [
+                "status",
+                "submissionNumber",
+                "entityId",
+                "entityExternalId",
+                "entityType",
+                "createdAt",
+                "updatedAt",
+                "title",
+                "completedDate",
+                "ratingCompletedAt",
+                "observationInformation.name",
+                "observationId"
+            ];
+
+            let result = await this.observationSubmissionsDocument
+            (
+                 queryObject,
+                 projection,
+                 {
+                     "createdAt" : -1 
+                }
+            );
+
+            if( !result.length > 0 ) {
+                throw {
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                }
+            }
+
+            result = result.map(resultedData=>{
+                resultedData.observationName =  
+                resultedData.observationInformation && resultedData.observationInformation.name ? 
+                resultedData.observationInformation.name : "";
+
+                resultedData.submissionDate = resultedData.completedDate ? resultedData.completedDate : "";
+                resultedData.ratingCompletedAt = resultedData.ratingCompletedAt ? resultedData.ratingCompletedAt : "";
+
+                delete resultedData.observationInformation;
+                return _.omit(resultedData,["completedDate"]);
+            })
+
+            return resolve({
+                message : messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
+                result : result
+            })
+        } catch (error) {
+            return reject(error);
+        }
+    });
+   }
 
 };
 

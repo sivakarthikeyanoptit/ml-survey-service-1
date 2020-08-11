@@ -11,9 +11,11 @@ const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper")
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
-const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper")
+const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * Observations
@@ -91,7 +93,6 @@ module.exports = class Observations extends Abstract {
 
                 let solutionDocument = await solutionsHelper.search(matchQuery, req.pageSize, req.pageNo);
 
-
                 messageData = messageConstants.apiResponses.SOLUTION_FETCHED;
 
                 if (!solutionDocument[0].count) {
@@ -126,19 +127,57 @@ module.exports = class Observations extends Abstract {
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
+    * {
+    * "message": "Observation meta fetched successfully.",
+    * "status": 200,
     * "result": [
-        {
-            "field": "name",
-            "label": "Title",
-            "value": "",
-            "visible": true,
-            "editable": true,
-            "validation": {
-                "required": true
-            },
-            "input": "text"
-        }
-    ]
+    * {
+    * "field": "name",
+    * "label": "Title",
+    * "value": "",
+    * "visible": true,
+    * "editable": true,
+    * "input": "text",
+    * "validation": {
+    * "required": true
+    * }
+    * },
+    * {
+    * "field": "description",
+    * "label": "Description",
+    * "value": "",
+    * "visible": true,
+    * "editable": true,
+    * "input": "textarea",
+    * "validation": {
+    * "required": true
+    * }
+    * },{
+    * "field": "status",
+    * "label": "Status",
+    * "value": "draft",
+    * "visible": false,
+    * "editable": true,
+    * "input": "radio",
+    * "validation": {
+    * "required": true
+    * },
+    * "options": [
+    * {
+    * "value": "published",
+    * "label": "Published"
+    * },
+    * {
+    * "value": "draft",
+    * "label": "Published"
+    * },
+    * {
+    * "value": "completed",
+    * "label": "Completed"
+    * }
+    * ]
+    * }
+    * ]}
     */
 
      /**
@@ -157,7 +196,8 @@ module.exports = class Observations extends Abstract {
 
                 let solutionsData = await database.models.solutions.findOne({
                     _id: ObjectId(req.params._id),
-                    isReusable: true
+                    isReusable: true,
+                    type : messageConstants.common.OBSERVATION
                 }, {
                         observationMetaFormKey: 1
                     }).lean();
@@ -224,7 +264,13 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                let result = await observationsHelper.create(req.query.solutionId, req.body.data, req.userDetails);
+                let result = await observationsHelper.create(
+                    req.query.solutionId, 
+                    req.body.data, 
+                    req.userDetails.id, 
+                    req.rspObj.userToken,
+                    req.query.programId
+                );
 
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_CREATED,
@@ -472,12 +518,12 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&&limit=1&&page=1 Search Entities
+     * @api {get} /assessment/api/v1/observations/searchEntities/:observationId?search=:searchText&limit=1&page=1 Search Entities
      * @apiVersion 1.0.0
      * @apiName Search Entities
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
-     * @apiSampleRequest /assessment/api/v1/observations/search/:observationId
+     * @apiSampleRequest /assessment/api/v1/observations/searchEntities/5d1a002d2dfd8135bc8e1615?search=&limit=100&page=1
      * @apiUse successBody
      * @apiUse errorBody
      * @apiParamExample {json} Response:
@@ -519,7 +565,6 @@ module.exports = class Observations extends Abstract {
                     result: {}
                 };
 
-
                 let observationDocument = await database.models.observations.findOne(
                     {
                         _id: req.params._id,
@@ -539,12 +584,42 @@ module.exports = class Observations extends Abstract {
                     }
                 }
 
-                let entityDocuments = await entitiesHelper.search(observationDocument.entityTypeId, req.searchText, req.pageSize, req.pageNo);
+                let userAclInformation = await userExtensionHelper.userAccessControlList(
+                    req.userDetails.userId
+                );
+
+                let tags = [];
+                
+                if( 
+                    userAclInformation.success && 
+                    Object.keys(userAclInformation.acl).length > 0 
+                ) {
+                    Object.values(userAclInformation.acl).forEach(acl=>{
+                        tags = tags.concat(acl);
+                    });
+                }
+
+                let entityDocuments = 
+                await entitiesHelper.search(
+                    observationDocument.entityTypeId, 
+                    req.searchText, 
+                    req.pageSize, 
+                    req.pageNo,
+                    false,
+                    tags
+                );
 
                 let observationEntityIds = observationDocument.entities.map(entity => entity.toString());
 
                 entityDocuments[0].data.forEach(eachMetaData => {
                     eachMetaData.selected = (observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
+                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                        eachMetaData.name += ", "+eachMetaData.districtName;
+                    }
+
+                    if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
+                        eachMetaData.name += ", "+eachMetaData.externalId;
+                    }
                 })
 
                 let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
@@ -655,6 +730,26 @@ module.exports = class Observations extends Abstract {
                         message: responseMessage 
                     });
                 }
+                
+                let programQueryObject = {
+                    _id: observationDocument.programId,
+                    status: "active",
+                    components: { $in: [ObjectId(observationDocument.solutionId)] }
+                };
+
+                let programDocument = await programsHelper.list(
+                    programQueryObject,[
+                        "externalId",
+                        "name",
+                        "description",
+                        "imageCompression",
+                        "isAPrivateProgram"
+                    ]
+                );
+                
+                if ( !programDocument[0]._id ) {
+                    throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+                }
 
                 let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
                 let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
@@ -707,6 +802,7 @@ module.exports = class Observations extends Abstract {
                 let solutionDocumentFieldList = await observationsHelper.solutionDocumentFieldListInResponse()
 
                 response.result.solution = await _.pick(solutionDocument, solutionDocumentFieldList);
+                response.result.program = programDocument[0];
 
                 let submissionDocument = {
                     entityId: entityDocument._id,
@@ -714,11 +810,19 @@ module.exports = class Observations extends Abstract {
                     entityInformation: entityDocument.metaInformation,
                     solutionId: solutionDocument._id,
                     solutionExternalId: solutionDocument.externalId,
+                    programId : programDocument[0]._id,
+                    programExternalId : programDocument[0].externalId,
+                    isAPrivateProgram : programDocument[0].isAPrivateProgram,
+                    programInformation : {
+                        ..._.omit(programDocument[0], ["_id", "components","isAPrivateProgram"])
+                    },
                     frameworkId: solutionDocument.frameworkId,
                     frameworkExternalId: solutionDocument.frameworkExternalId,
                     entityTypeId: solutionDocument.entityTypeId,
                     entityType: solutionDocument.entityType,
                     observationId: observationDocument._id,
+                    scoringSystem: solutionDocument.scoringSystem,
+                    isRubricDriven: solutionDocument.isRubricDriven,
                     observationInformation: {
                         ..._.omit(observationDocument, ["_id", "entities", "deleted", "__v"])
                     },
@@ -845,7 +949,8 @@ module.exports = class Observations extends Abstract {
                     Object.values(evidenceMethodArray),
                     entityDocumentQuestionGroup,
                     submissionDoc.result.evidences,
-                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false
+                    (solutionDocument && solutionDocument.questionSequenceByEcm) ? solutionDocument.questionSequenceByEcm : false,
+                    entityDocument.metaInformation
                 );
 
                 assessment.evidences = parsedAssessment.evidences;
@@ -928,14 +1033,14 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/importFromFramework?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
+     * @api {get} /assessment/api/v1/observations/importFromFramework?programId:programExternalId&frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
      * @apiVersion 1.0.0
      * @apiName Create observation solution from framework.
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiParam {String} frameworkId Framework External ID.
      * @apiParam {String} entityType Entity Type.
-     * @apiSampleRequest /assessment/api/v1/observations/importFromFramework?frameworkId=EF-SMC&entityType=school
+     * @apiSampleRequest /assessment/api/v1/observations/importFromFramework?programId=CRO-VERSION2-2019-TEMPLATE&frameworkId=CRO-VERSION2-2019&entityType=school
      * @apiUse successBody
      * @apiUse errorBody
      */
@@ -946,7 +1051,8 @@ module.exports = class Observations extends Abstract {
     * @name importFromFramework
     * @param {Object} req -request Data.
     * @param {String} req.query.frameworkId -framework id.
-    * @param {String} req.query.entityType - entity type name.   
+    * @param {String} req.query.entityType - entity type name. 
+    * @param {String} req.query.programId - program id is optional.  
     * @returns {JSON} 
     */
 
@@ -958,12 +1064,31 @@ module.exports = class Observations extends Abstract {
                     throw messageConstants.apiResponses.INVALID_PARAMETER;
                 }
 
+                let programDocument;
+
+                if( req.query.programId ) {
+                    
+                    programDocument = await programsHelper.list(
+                    {
+                        externalId : req.query.programId
+                    },[
+                        "externalId",
+                        "name",
+                        "description"
+                    ]);
+                    
+                    if ( !programDocument[0]._id ) {
+                        throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
+                    }
+
+                }
+
                 let frameworkDocument = await database.models.frameworks.findOne({
                     externalId: req.query.frameworkId
                 }).lean();
 
                 if (!frameworkDocument._id) {
-                    throw messageConstants.apiResponses.INVALID_PARAMETER;
+                    throw messageConstants.apiResponses.FRAMEWORK_NOT_FOUND;
                 }
 
                 let entityTypeDocument = await database.models.entityTypes.findOne({
@@ -975,7 +1100,7 @@ module.exports = class Observations extends Abstract {
                     }).lean();
 
                 if (!entityTypeDocument._id) {
-                    throw messageConstants.apiResponses.INVALID_PARAMETER;
+                    throw messageConstants.apiResponses.ENTITY_TYPES_NOT_FOUND;
                 }
 
                 let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
@@ -1020,7 +1145,8 @@ module.exports = class Observations extends Abstract {
                 newSolutionDocument.type = "observation";
                 newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name;
 
-                newSolutionDocument.externalId = frameworkDocument.externalId + "-OBSERVATION-TEMPLATE";
+                newSolutionDocument.externalId = 
+                frameworkDocument.externalId + "-OBSERVATION-TEMPLATE";
 
                 newSolutionDocument.frameworkId = frameworkDocument._id;
                 newSolutionDocument.frameworkExternalId = frameworkDocument.externalId;
@@ -1029,13 +1155,60 @@ module.exports = class Observations extends Abstract {
                 newSolutionDocument.entityType = entityTypeDocument.name;
                 newSolutionDocument.isReusable = true;
 
-                let newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
+                let newBaseSolution = 
+                await database.models.solutions.create(
+                    _.omit(
+                        newSolutionDocument, 
+                        ["_id"]
+                    )
+                );
 
-                if (newSolutionId._id) {
+                if (newBaseSolution._id) {
+
+                    let result = {
+                        templateId : newBaseSolution._id
+                    };
+
+                    if( programDocument && programDocument[0]._id ) {
+
+                        newSolutionDocument["programId"] = programDocument[0]._id;
+                        newSolutionDocument["programName"] = programDocument[0].name;
+                        newSolutionDocument["programDescription"] = 
+                        programDocument[0].description;
+                        newSolutionDocument["programExternalId"] = 
+                        programDocument[0].externalId;
+
+                        newSolutionDocument.parentSolutionId = newBaseSolution._id;
+                        newSolutionDocument.isReusable = false;
+                        newSolutionDocument.externalId = frameworkDocument.externalId;
+
+                        let newSolution = 
+                        await database.models.solutions.create(
+                            _.omit(
+                                newSolutionDocument, 
+                                ["_id"]
+                            )
+                        );
+
+                        if ( newSolution._id ) {
+
+                            result["observationSolutionId"] =  newSolution._id;
+
+                            await database.models.programs.updateOne(
+                                { 
+                                    _id: programDocument[0]._id 
+                                }, { 
+                                    $addToSet: { components : newSolution._id } 
+                                }
+                            );
+
+                        }
+
+                    }
 
                     let response = {
-                        message: messageConstants.apiResponses.OBSERVATION_SOLUTION,
-                        result: newSolutionId._id
+                        message : messageConstants.apiResponses.OBSERVATION_SOLUTION,
+                        result : result
                     };
 
                     return resolve(response);
@@ -1078,6 +1251,7 @@ module.exports = class Observations extends Abstract {
     async bulkCreate(req) {
         return new Promise(async (resolve, reject) => {
             try {
+                
                 if (!req.files || !req.files.observation) {
                     let responseMessage = httpStatusCode.bad_request.message;
                     return resolve({ 
@@ -1098,57 +1272,99 @@ module.exports = class Observations extends Abstract {
                     });
                 })();
 
-                let observationData = await csv().fromString(req.files.observation.data.toString());
+                let observationData = 
+                await csv().fromString(req.files.observation.data.toString());
 
                 let users = [];
+                let usersKeycloakIdMap = {};
                 let solutionExternalIds = [];
                 let entityIds = [];
 
                 observationData.forEach(eachObservationData => {
                     if (!eachObservationData["keycloak-userId"] && eachObservationData.user && !users.includes(eachObservationData.user)) {
                         users.push(eachObservationData.user);
+                    } else if (eachObservationData["keycloak-userId"] && eachObservationData["keycloak-userId"] != "") {
+                        usersKeycloakIdMap[eachObservationData["keycloak-userId"]] = true;
                     }
                     solutionExternalIds.push(eachObservationData.solutionExternalId);
-                    entityIds.push(ObjectId(eachObservationData.entityId));
+                    if(eachObservationData.entityId && eachObservationData.entityId != "") {
+                        entityIds.push(ObjectId(eachObservationData.entityId));
+                    }
                 })
 
                 let userIdByExternalId;
 
                 if (users.length > 0) {
                     userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                    if(Object.keys(userIdByExternalId).length > 0) {
+                        Object.values(userIdByExternalId).forEach(userDetails => {
+                            usersKeycloakIdMap[userDetails.userId] = true;
+                        })
+                    }
                 }
 
-                let entityDocument = await database.models.entities.find({
-                    _id: {
-                        $in: entityIds
-                    }
-                }, { _id: 1, entityTypeId: 1, entityType: 1 }).lean();
+                if(Object.keys(usersKeycloakIdMap).length > 0) {
+                    
+                    let userOrganisationDetails = await observationsHelper.getUserOrganisationDetails(
+                        Object.keys(usersKeycloakIdMap), 
+                        req.rspObj.userToken
+                    );
+
+                    usersKeycloakIdMap = userOrganisationDetails.data;
+                }
+
+                let entityDocument;
+
+                if (entityIds.length > 0) {
+                    
+                    let entityQuery = {
+                        _id: {
+                            $in: entityIds
+                        }
+                    };
+
+                    let entityProjection = [
+                        "entityTypeId",
+                        "entityType"
+                    ];
+
+                    entityDocument = await entitiesHelper.entityDocuments(entityQuery, entityProjection);
+                }
 
                 let entityObject = {};
 
-                if (entityDocument.length > 0) {
+                if (entityDocument && Array.isArray(entityDocument) && entityDocument.length > 0) {
                     entityDocument.forEach(eachEntityDocument => {
                         entityObject[eachEntityDocument._id.toString()] = eachEntityDocument;
                     })
                 }
 
-                let solutionDocument = await database.models.solutions.find({
+                let solutionQuery = {
                     externalId: {
                         $in: solutionExternalIds
                     },
                     status: "active",
                     isDeleted: false,
-                    isReusable: true,
-                    type: "observation"
-                }, {
-                        externalId: 1,
-                        frameworkExternalId: 1,
-                        frameworkId: 1,
-                        name: 1,
-                        description: 1,
-                        type: 1,
-                        subType: 1
-                    }).lean();
+                    isReusable: false,
+                    type: "observation",
+                    programId : { $exists : true }
+                };
+
+                let solutionProjection = [
+                    "externalId",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "name",
+                    "description",
+                    "type",
+                    "subType",
+                    "entityTypeId",
+                    "entityType",
+                    "programId",
+                    "programExternalId"
+                ];
+
+                let solutionDocument = await solutionsHelper.solutionDocuments(solutionQuery, solutionProjection);
 
                 let solutionObject = {};
 
@@ -1158,49 +1374,74 @@ module.exports = class Observations extends Abstract {
                     })
                 }
 
-
                 for (let pointerToObservation = 0; pointerToObservation < observationData.length; pointerToObservation++) {
+                    
                     let solution;
-                    let entityDocument;
+                    let entityDocument = {};
                     let observationHelperData;
                     let currentData = observationData[pointerToObservation];
                     let csvResult = {};
                     let status;
+                    let userId;
+                    let userOrganisations;
 
                     Object.keys(currentData).forEach(eachObservationData => {
                         csvResult[eachObservationData] = currentData[eachObservationData];
                     })
 
-                    let userId;
+                    try {
 
-                    if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
-                        userId = currentData["keycloak-userId"];
-                    } else {
+                        if (currentData["keycloak-userId"] && currentData["keycloak-userId"] !== "") {
+                            userId = currentData["keycloak-userId"];
+                        } else {
 
-                        if (userIdByExternalId[currentData.user] === "") {
-                            throw { status: httpStatusCode.bad_request.status, message: "Keycloak id for user is not present" };
+                            if (userIdByExternalId[currentData.user] === "") {
+                                throw new Error("Keycloak id for user is not present");
+                            }
+
+                            userId = userIdByExternalId[currentData.user];
                         }
 
-                        userId = userIdByExternalId[currentData.user]
-                    }
+                        if(userId == "") {
+                            throw new Error(messageConstants.apiResponses.USER_NOT_FOUND);
+                        }
 
-                    if (solutionObject[currentData.solutionExternalId] !== undefined) {
-                        solution = solutionObject[currentData.solutionExternalId];
-                    }
+                        if(!usersKeycloakIdMap[userId]  || !Array.isArray(usersKeycloakIdMap[userId].rootOrganisations) || usersKeycloakIdMap[userId].rootOrganisations.length < 1) {
+                            throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
+                        } else {
+                            userOrganisations = usersKeycloakIdMap[userId];
+                        }
 
-                    if (entityObject[currentData.entityId.toString()] !== undefined) {
-                        entityDocument = entityObject[currentData.entityId.toString()];
-                    }
-                    if (entityDocument !== undefined && solution !== undefined && userId !== "") {
-                        observationHelperData = await observationsHelper.bulkCreate(solution, entityDocument, userId);
+                        if (solutionObject[currentData.solutionExternalId] !== undefined) {
+                            solution = solutionObject[currentData.solutionExternalId];
+                        } else {
+                            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+                        }
+
+                        if (currentData.entityId && currentData.entityId != "") {
+                            if(entityObject[currentData.entityId.toString()] !== undefined) {
+                                entityDocument = entityObject[currentData.entityId.toString()];
+                            } else {
+                                throw new Error(messageConstants.apiResponses.ENTITY_NOT_FOUND);
+                            }
+                        }
+
+                        observationHelperData = await observationsHelper.bulkCreate(
+                            userId, 
+                            solution, 
+                            entityDocument, 
+                            userOrganisations
+                        );
                         status = observationHelperData.status;
-                    } else {
-                        status = messageConstants.apiResponses.ENTITY_SOLUTION_USER_NOT_FOUND;
-                    }
 
+                    } catch (error) {
+                        status = error.message;
+                    }
+                    
                     csvResult["status"] = status;
                     input.push(csvResult);
                 }
+
                 input.push(null);
             } catch (error) {
                 return reject({
@@ -1449,7 +1690,7 @@ module.exports = class Observations extends Abstract {
         });
     }
 
-           /**
+    /**
 * @api {get} /assessment/api/v1/observations/details/:observationId 
 * Observations details.
 * @apiVersion 1.0.0

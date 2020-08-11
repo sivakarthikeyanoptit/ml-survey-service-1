@@ -8,6 +8,13 @@
  * Author           : Yogesh Sinoriya <yogesh.sinoriya@above-inc.com>
  */
 
+/**
+ * Mongodb Database configuration.
+ * @method
+ * @name db_connect
+ * @param {Object} configData  - configuration data for mongodb.
+*/
+
 let db_connect = function(configData) {
   global.database = require("./dbConfig")(
     configData.DB_Config.connection.mongodb
@@ -16,6 +23,39 @@ let db_connect = function(configData) {
   global.Abstract = require("../generics/abstract");
 };
 
+/**
+  * Cassandra Database configuration.
+  * @method
+  * @name cassandra_connect
+  * @param {Object} cassandraConfigurationData  - configuration data for cassandra.
+*/
+
+let cassandra_connect = function (cassandraConfigurationData) {
+  global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
+  if( !global.Abstract ){
+    global.Abstract = require("../generics/abstract");
+  }
+};
+
+/**
+  * Elastic search configuration.
+  * @function
+  * @name elasticsearch_connect
+  * @param {Object} elasticSearchConfigurations  - elastic search configuration.
+*/
+
+let elasticsearch_connect = function (elasticSearchConfigurations) {
+  global.elasticsearch = require("./db/elasticSearch")(
+    elasticSearchConfigurations
+  );
+};
+
+/**
+  * Kafka connection information.
+  * @method
+  * @name kafka_connect
+  * @param {Object} configData  - configuration data for kafka.
+*/
 
 let kafka_connect = function(configData) {
   global.kafkaClient = require("./kafkaConfig")(
@@ -41,6 +81,14 @@ const configuration = {
         options: {
           useNewUrlParser: true
         }
+      }, 
+      cassandra: {
+        host: process.env.CASSANDRA_HOST,
+        port:process.env.CASSANDRA_PORT,
+        keyspace: process.env.CASSANDRA_DB,
+      },
+      elasticSearch: {
+        host: process.env.ELASTICSEARCH_HOST_URL 
       }
     },
     plugins: {
@@ -68,5 +116,9 @@ const configuration = {
 db_connect(configuration);
 
 kafka_connect(configuration);
+
+cassandra_connect(configuration.DB_Config.connection.cassandra);
+
+elasticsearch_connect(configuration.DB_Config.connection.elasticSearch);
 
 module.exports = configuration;

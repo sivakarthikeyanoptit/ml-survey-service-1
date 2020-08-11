@@ -7,12 +7,26 @@ module.exports = {
     frameworkId: "ObjectId",
     frameworkExternalId: String,
     solutionId: "ObjectId",
+    programId: {
+      type: "ObjectId",
+      required: true
+    },
+    programExternalId: {
+      type: String,
+      required: true
+    },
     solutionExternalId: String,
     startDate: Date,
     endDate: Date,
     status: String,
     entityTypeId: "ObjectId",
     entityType : String,
-    entities: Array
+    entities: Array,
+    createdFor: [String],
+    rootOrganisations: [String],
+    isAPrivateProgram : {
+      default : false,
+      type : Boolean
+    }
   }
 };

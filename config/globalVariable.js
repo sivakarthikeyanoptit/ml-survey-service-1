@@ -47,19 +47,30 @@ module.exports = function () {
 
   //load base v1 controllers
   fs.readdirSync(ROOT_PATH + '/controllers/v1/').forEach(function (file) {
-    if (file.match(/\.js$/) !== null) {
-      var name = file.replace('Controller.js', '');
-      global[name + 'BaseController'] = require(ROOT_PATH + '/controllers/v1/' + file);
-    }
+    checkWhetherFolderExistsOrNor(ROOT_PATH + '/controllers/v1/', file);
   });
 
   //load base v2 controllers
   fs.readdirSync(ROOT_PATH + '/controllers/v2/').forEach(function (file) {
-    if (file.match(/\.js$/) !== null) {
-      var name = file.replace('Controller.js', '');
-      global[name + 'BaseController'] = require(ROOT_PATH + '/controllers/v2/' + file);
-    }
+    checkWhetherFolderExistsOrNor(ROOT_PATH + '/controllers/v2/', file);
   });
+
+  function checkWhetherFolderExistsOrNor(pathToFolder, file) {
+
+    let folderExists = fs.lstatSync(pathToFolder + file).isDirectory();
+
+    if (folderExists) {
+      fs.readdirSync(pathToFolder + file).forEach(function (folderOrFile) {
+        checkWhetherFolderExistsOrNor(pathToFolder + file + "/", folderOrFile);
+      })
+
+    } else {
+      if (file.match(/\.js$/) !== null) {
+        require(pathToFolder + file);
+      }
+    }
+
+  }
 
   //load schema files
   fs.readdirSync(ROOT_PATH + '/models/').forEach(function (file) {
@@ -91,7 +102,6 @@ module.exports = function () {
       }
     });
 
-
   // Load all kafka consumer files
   fs.readdirSync(ROOT_PATH + '/generics/kafkaConsumers/').forEach(function (file) {
     if (file.match(/\.js$/) !== null) {
@@ -99,6 +109,14 @@ module.exports = function () {
       global[name + 'Consumer'] = require(ROOT_PATH + '/generics/kafkaConsumers/' + file);
     }
   });
+
+  global.sessions = {};
+
+  const libraryCategoriesHelper = require(MODULES_BASE_PATH+"/library/categories/helper");
+
+  (async () => {
+    await libraryCategoriesHelper.setLibraryCategories();
+  })();
 
 };
 

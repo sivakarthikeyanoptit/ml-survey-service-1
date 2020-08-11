@@ -18,11 +18,19 @@ module.exports = function (app) {
   var router = async function (req, res, next) {
 
     //req.params.controller = (req.params.controller).toLowerCase();
-    req.params.controller += "Controller";
+    if(req.params.file) {
+      req.params.file += "Controller";
+    } else {
+      req.params.controller += "Controller";
+    }
+
     if (!req.params.version) next();
     else if (!controllers[req.params.version]) next();
     else if (!controllers[req.params.version][req.params.controller]) next();
-    else if (!controllers[req.params.version][req.params.controller][req.params.method]) next();
+    else if (!(
+      controllers[req.params.version][req.params.controller][req.params.method] 
+      || controllers[req.params.version][req.params.controller][req.params.file][req.params.method]
+    )) next();
     else if (req.params.method.startsWith("_")) next();
     else {
 
@@ -30,10 +38,24 @@ module.exports = function (app) {
 
         let validationError = req.validationErrors();
 
-        if (validationError.length)
-          throw { status: httpStatusCode.bad_request.status, message: validationError }
+        if (validationError.length) {
+          throw { 
+            status: httpStatusCode.bad_request.status, 
+            message: validationError 
+          }
+        }
 
-        var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
+        let result;
+
+        if (req.params.file) {
+          result = 
+          await controllers[req.params.version][req.params.controller][req.params.file][req.params.method](req);
+        } else {
+          result = 
+          await controllers[req.params.version][req.params.controller][req.params.method](req);
+        }
+
+        // var result = await controllers[req.params.version][req.params.controller][req.params.method](req);
 
         if (result.isResponseAStream == true) {
           // Check if file specified by the filePath exists 
@@ -117,8 +139,10 @@ module.exports = function (app) {
   };
 
   app.all(applicationBaseUrl + "api/:version/:controller/:method", inputValidator, router);
+  app.all(applicationBaseUrl + "api/:version/:controller/:file/:method", inputValidator, router);
 
   app.all(applicationBaseUrl + "api/:version/:controller/:method/:_id", inputValidator, router);
+  app.all(applicationBaseUrl + "api/:version/:controller/:file/:method/:_id", inputValidator, router);
 
   app.use((req, res, next) => {
     res.status(httpStatusCode.not_found.status).send(messageConstants.apiResponses.NOT_FOUND);

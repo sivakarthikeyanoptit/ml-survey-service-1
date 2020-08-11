@@ -797,7 +797,7 @@ module.exports = class Solutions extends Abstract {
 
             const criteriaId = allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId]._id;
 
-            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow);
+            let criteriaRubricUpdation = await criteriaHelper.setCriteriaRubricExpressions(criteriaId, allCriteriaExternalIdToInternalIdMap[criteriaRow.externalId], criteriaRow, solutionLevelKeys);
             
             if(criteriaRubricUpdation.success) {
               criteriaRow.status = "Success.";
@@ -1209,65 +1209,22 @@ module.exports = class Solutions extends Abstract {
           });
         }
 
-        let solutionDocument = await database.models.solutions.findOne({
-          externalId: req.query.solutionId
-        }).lean();
+        let duplicateSolution = 
+        await solutionsHelper.importFromSolution(
+          req.query.solutionId,
+          req.body.programExternalId,
+          req.userDetails.id,
+          {
+            externalId : req.body.externalId,
+            name : req.body.name,
+            description : req.body.description
+          }
+        );
 
-        if (!solutionDocument._id) {
-          throw messageConstants.apiResponses.SOLUTION_NOT_FOUND;
-        }
-
-        let programDocument = await database.models.programs.findOne({
-          externalId: req.body.programExternalId
-        }, {
-            _id: 1,
-            externalId: 1,
-            name: 1,
-            description: 1
-          }).lean();
-
-        if (!programDocument._id) {
-          throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
-        }
-
-
-        let newSolutionDocument = _.cloneDeep(solutionDocument);
-        let startDate = new Date();
-        let endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
-        newSolutionDocument.externalId = req.body.externalId;
-        newSolutionDocument.name = req.body.name;
-        newSolutionDocument.description = req.body.description;
-        newSolutionDocument.programId = programDocument._id;
-        newSolutionDocument.programExternalId = programDocument.externalId;
-        newSolutionDocument.programName = programDocument.name;
-        newSolutionDocument.programDescription = programDocument.description;
-        newSolutionDocument.author = req.userDetails.id ? req.userDetails.id : process.env.DEFAULT_USER_ID;
-        newSolutionDocument.createdBy = req.userDetails.id ? req.userDetails.id : process.env.DEFAULT_USER_ID;
-        newSolutionDocument.entities = [];
-        newSolutionDocument.parentSolutionId = solutionDocument._id;
-        newSolutionDocument.startDate = startDate;
-        newSolutionDocument.endDate = endDate;
-        newSolutionDocument.createdAt = startDate;
-        newSolutionDocument.updatedAt = startDate;
-
-        let duplicateSolutionDocument = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
-
-        if (duplicateSolutionDocument._id) {
-
-          await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: duplicateSolutionDocument._id } });
-
-          let response = {
-            message: messageConstants.apiResponses.DUPLICATE_SOLUTION,
-            result: duplicateSolutionDocument._id
-          };
-
-          return resolve(response);
-
-        } else {
-          throw messageConstants.apiResponses.ERROR_CREATING_DUPLICATE
-        }
+        return resolve({
+          message: messageConstants.apiResponses.DUPLICATE_SOLUTION,
+          result : _.pick(duplicateSolution,["_id"])
+        })
 
       } catch (error) {
         return reject({
@@ -1278,5 +1235,5 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
-
+  
 };

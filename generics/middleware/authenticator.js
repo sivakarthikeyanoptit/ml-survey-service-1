@@ -190,7 +190,7 @@ module.exports = async function (req, res, next) {
     if (err) {
       rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
       rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
-      rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS.status;
+      rspObj.responseCode = responseCode.unauthorized.status;
       tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION WITH KEYCLOAK FAILED")
       return res.status(401).send(respUtil(rspObj));
     } else {
@@ -213,7 +213,7 @@ module.exports = async function (req, res, next) {
             tokenAuthenticationFailureMessageToSlack(req, token, "TOKEN VERIFICATION - FAILED TO GET USER DETAIL FROM LEARNER SERVICE")
             rspObj.errCode = reqMsg.TOKEN.INVALID_CODE;
             rspObj.errMsg = reqMsg.TOKEN.INVALID_MESSAGE;
-            rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS.status;
+            rspObj.responseCode = responseCode.unauthorized.status;
             return res.status(401).send(respUtil(rspObj));
           }
         })

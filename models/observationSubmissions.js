@@ -23,9 +23,33 @@ module.exports = {
     submissionsUpdatedHistory: Array,
     entityTypeId: "ObjectId",
     entityType: String,
+    programId: {
+      type: "ObjectId",
+      required: true
+    },
+    programExternalId: {
+      type: String,
+      required: true
+    },
     submissionNumber: Number,
     pointsBasedMaxScore : { type : Number, default: 0 },
     pointsBasedScoreAchieved : { type : Number, default: 0 },
-    pointsBasedPercentageScore : { type : Number, default: 0 }
+    pointsBasedPercentageScore : { type : Number, default: 0 },
+    title : { 
+      type : String,
+      default: function() {
+        if (this.submissionNumber && this.submissionNumber > 0) {
+          return "Observation "+this.submissionNumber;
+        } else {
+          return "Observation";
+        }
+      }
+    },
+    isAPrivateProgram : {
+      default : false,
+      type : Boolean
+    },
+    scoringSystem: String,
+    isRubricDriven: { type : Boolean, default: false }
   }
 };
