@@ -63,7 +63,9 @@ module.exports = class IndividualAssessments {
                 await libraryIndividualAssessmentsHelper.list( 
                   req.searchText, 
                   req.pageSize, 
-                  req.pageNo,  
+                  req.pageNo,
+                  req.userDetails.userId,
+                  req.rspObj.userToken 
                 );
 
                 return resolve(individualAssessmentSolutions);

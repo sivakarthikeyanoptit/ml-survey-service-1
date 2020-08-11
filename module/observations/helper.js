@@ -97,7 +97,10 @@ module.exports = class ObservationsHelper {
                         _id : programId
                     },
                     userId,
-                    _.omit(data,["entities"])
+                    _.omit(data,["entities"]),
+                    true,
+                    organisationAndRootOrganisation.createdFor,
+                    organisationAndRootOrganisation.rootOrganisations
                 );
 
                 let observationData = 
@@ -1004,7 +1007,8 @@ module.exports = class ObservationsHelper {
                 requestedData.program,
                 userId,
                 solutionInformation,
-                true
+                true,
+                token
               );
 
               let startDate = new Date();

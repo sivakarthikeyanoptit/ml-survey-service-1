@@ -25,7 +25,7 @@ module.exports = class InstitutionalAssessmentHelper {
       * @returns {Object} returns list of institutional solutions
      */
 
-    static list(search,limit,pageNo) {
+    static list(search,limit,pageNo,userId,token) {
         return new Promise(async (resolve, reject) => {
             try {
                 
@@ -35,6 +35,8 @@ module.exports = class InstitutionalAssessmentHelper {
                   search, 
                   limit, 
                   pageNo,  
+                  userId,
+                  token  
                 );
 
                 return resolve({
