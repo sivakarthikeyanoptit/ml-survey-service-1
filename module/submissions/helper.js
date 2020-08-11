@@ -756,9 +756,9 @@ module.exports = class SubmissionsHelper {
                     emailRecipients = solutionDocument.sendSubmissionRatingEmailsTo;
                 }
 
-                if(solutionDocument.scoringSystem == "pointsBasedScoring") {
+                if(solutionDocument.scoringSystem == messageConstants.common.POINTS_BASED_SCORING_SYSTEM) {
 
-                    submissionDocument.scoringSystem = "pointsBasedScoring";
+                    submissionDocument.scoringSystem = messageConstants.common.POINTS_BASED_SCORING_SYSTEM;
 
                     let allCriteriaInSolution = new Array;
                     let allQuestionIdInSolution = new Array;
@@ -830,6 +830,8 @@ module.exports = class SubmissionsHelper {
                         })
                     }
 
+                } else if(solutionDocument.scoringSystem == messageConstants.common.MANUAL_RATING) {
+                    return resolve(messageConstants.apiResponses.SUBMISSION_PROCESSED_FOR_MANUAL_RATING)
                 }
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
@@ -1076,7 +1078,9 @@ module.exports = class SubmissionsHelper {
                     "entityType",
                     "programId",
                     "themes",
-                    "evidenceMethods"
+                    "evidenceMethods",
+                    "scoringSystem",
+                    "isRubricDriven"
                 ]
             );
 
@@ -1143,6 +1147,8 @@ module.exports = class SubmissionsHelper {
                 entityTypeId : solutionDocument[0].entityTypeId,
                 entityType : solutionDocument[0].entityType,
                 programId : solutionDocument[0].programId,
+                scoringSystem : solutionDocument[0].scoringSystem,
+                isRubricDriven : solutionDocument[0].isRubricDriven,
                 programExternalId: programDocument[0].externalId,
                 isAPrivateProgram : programDocument[0].isAPrivateProgram, 
                 programInformation : programDocument[0],
@@ -1595,7 +1601,6 @@ module.exports = class SubmissionsHelper {
 
                         if (answer.criteriaId && answer.qid && answer.responseType !== "matrix") {
 
-
                             if (!criteriaQuestionObject[answer.criteriaId]) {
                                 criteriaQuestionObject[answer.criteriaId] = {};
                                 criteriaQuestionObject[answer.criteriaId]["id"] = answer.criteriaId;
@@ -1615,11 +1620,11 @@ module.exports = class SubmissionsHelper {
                             questionAnswerObj.responseType = answer.responseType ? answer.responseType : "";
                             questionAnswerObj.question = questionIdMap[answer.qid]["question"];
                             questionAnswerObj.value = [];
+                            questionAnswerObj.remarks = (answer.remarks) ? [answer.remarks] : [];
                             questionAnswerObj.evidences = {
                                 images: [],
                                 videos: [],
-                                documents: [],
-                                remarks: answer.remarks ? [answer.remarks] : []
+                                documents: []
                             };
 
                             if (answer.fileName && answer.fileName.length > 0) {
@@ -1648,10 +1653,14 @@ module.exports = class SubmissionsHelper {
                                         })
                                     }
                                 })
+                            } else {
+                                delete questionAnswerObj.evidences;
                             }
 
                             if (answer.responseType == "radio" || answer.responseType == "multiselect") {
-                                if (answer.responseType == "radio") {
+                                if(Array.isArray(answer.instanceResponses) && answer.instanceResponses.length >0) {
+                                    answer.value = answer.instanceResponses;
+                                } else if (answer.responseType == "radio") {
                                     answer.value = [answer.value];
                                 }
                                 
@@ -1668,7 +1677,7 @@ module.exports = class SubmissionsHelper {
                                 questionAnswerObj.value.push(answer.value);
                             }
 
-                            criteriaQuestionObject[answer.criteriaId]["questions"].push(questionAnswerObj);
+                            criteriaQuestionObject[answer.criteriaId].questions.push(questionAnswerObj);
                             
                         }
 
@@ -1755,7 +1764,7 @@ module.exports = class SubmissionsHelper {
                     _id: submissionId,
                     scoringSystem: messageConstants.common.MANUAL_RATING,
                     status: messageConstants.common.SUBMISSION_STATUS_RATING_PENDING,
-                    "assessors.userId": userDetails.userId,
+                    "assessors.userId": userId,
                     "assessors.role": messageConstants.common.LEAD_ASSESSOR,
                     numberOfAnsweredCriterias: Object.keys(criteriaObject).length
                 };

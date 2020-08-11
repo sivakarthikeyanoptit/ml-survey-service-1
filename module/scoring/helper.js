@@ -474,7 +474,7 @@ module.exports = class ScoringHelper {
                                         criteria.score = score;
                                     }
 
-                                    if(eachSubmissionDocument.scoringSystem == "pointsBasedScoring") {
+                                    if(eachSubmissionDocument.scoringSystem == messageConstants.common.POINTS_BASED_SCORING_SYSTEM) {
                                         criteria.pointsBasedScoreOfAllChildren = 0;
                                         submissionAnswers.forEach(answer => {
                                             if(answer.pointsBasedScoreInParent) criteria.pointsBasedScoreOfAllChildren += answer.pointsBasedScoreInParent;
@@ -498,7 +498,7 @@ module.exports = class ScoringHelper {
 
                         let themes = {};
 
-                        if(result.runUpdateQuery && eachSubmissionDocument.scoringSystem == "pointsBasedScoring" && eachSubmissionDocument.themes && eachSubmissionDocument.themes.length > 0) {
+                        if(result.runUpdateQuery && eachSubmissionDocument.scoringSystem == messageConstants.common.POINTS_BASED_SCORING_SYSTEM && eachSubmissionDocument.themes && eachSubmissionDocument.themes.length > 0) {
                                 
                             themes = await this.calulateThemeScores(eachSubmissionDocument.themes, criteriaData);
                             

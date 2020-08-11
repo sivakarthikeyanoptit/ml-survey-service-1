@@ -61,7 +61,9 @@ module.exports = class Observations {
                 await libraryObservationsHelper.list( 
                   req.searchText, 
                   req.pageSize, 
-                  req.pageNo,  
+                  req.pageNo,
+                  req.userDetails.userId,
+                  req.rspObj.userToken  
                 );
 
                 return resolve(observationSolutions);
