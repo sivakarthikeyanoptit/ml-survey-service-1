@@ -891,15 +891,6 @@ module.exports = class SolutionsHelper {
   ) {
       return new Promise(async (resolve, reject) => {
           try {
-            
-              let organisationAndRootOrganisation = 
-              await shikshalokamHelper.getOrganisationsAndRootOrganisations(
-                requestingUserAuthToken,
-                userId
-              );
-
-              let createdFor =  organisationAndRootOrganisation.createdFor;
-              let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
 
               let dateFormat = gen.utils.epochTime();
               let programData;

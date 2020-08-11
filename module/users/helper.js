@@ -57,12 +57,6 @@ module.exports = class UserHelper {
                         entityIds = entityIds.concat(assessor.entities);
                     })
 
-                    if( !entityIds.length > 0 ) {
-                        throw {
-                            status : httpStatusCode.bad_request.status,
-                            message : messageConstants.apiResponses.ENTITIES_NOT_MAPPED_TO_USER
-                        };
-                    }
                 }
 
                 let submissions = await submissionsHelper.submissionDocuments({
