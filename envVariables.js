@@ -242,6 +242,11 @@ let enviromentVariables = {
   "SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT" : {
     "message" : "Required user profile fetch API endpoint",
     "optional" : true
+  },
+  "USE_USER_ORGANISATION_ID_FILTER" : {
+    "message" : "Required",
+    "optional" : true,
+    "default" : "OFF" 
   }
 }
 
@@ -251,25 +256,66 @@ module.exports = function() {
   Object.keys(enviromentVariables).forEach(eachEnvironmentVariable=>{
   
     let tableObj = {
-      [eachEnvironmentVariable] : ""
+      [eachEnvironmentVariable] : "PASSED"
     };
   
-    if( !(process.env[eachEnvironmentVariable]) && !(enviromentVariables[eachEnvironmentVariable].optional)) {
-      success = false;
+    let keyCheckPass = true;
 
-      if(enviromentVariables[eachEnvironmentVariable] && enviromentVariables[eachEnvironmentVariable].message !== "") {
+
+    if(enviromentVariables[eachEnvironmentVariable].optional === true
+      && enviromentVariables[eachEnvironmentVariable].requiredIf
+      && enviromentVariables[eachEnvironmentVariable].requiredIf.key
+      && enviromentVariables[eachEnvironmentVariable].requiredIf.key != ""
+      && enviromentVariables[eachEnvironmentVariable].requiredIf.operator
+      && validRequiredIfOperators.includes(enviromentVariables[eachEnvironmentVariable].requiredIf.operator)
+      && enviromentVariables[eachEnvironmentVariable].requiredIf.value
+      && enviromentVariables[eachEnvironmentVariable].requiredIf.value != "") {
+        switch (enviromentVariables[eachEnvironmentVariable].requiredIf.operator) {
+          case "EQUALS":
+            if(process.env[enviromentVariables[eachEnvironmentVariable].requiredIf.key] === enviromentVariables[eachEnvironmentVariable].requiredIf.value) {
+              enviromentVariables[eachEnvironmentVariable].optional = false;
+            }
+            break;
+          case "NOT_EQUALS":
+              if(process.env[enviromentVariables[eachEnvironmentVariable].requiredIf.key] != enviromentVariables[eachEnvironmentVariable].requiredIf.value) {
+                enviromentVariables[eachEnvironmentVariable].optional = false;
+              }
+              break;
+          default:
+            break;
+        }
+    }
+      
+    if(enviromentVariables[eachEnvironmentVariable].optional === false) {
+      if(!(process.env[eachEnvironmentVariable])
+        || process.env[eachEnvironmentVariable] == "") {
+        environmentVariablesCheckSuccessful = false;
+        keyCheckPass = false;
+      } else if (enviromentVariables[eachEnvironmentVariable].possibleValues
+        && Array.isArray(enviromentVariables[eachEnvironmentVariable].possibleValues)
+        && enviromentVariables[eachEnvironmentVariable].possibleValues.length > 0) {
+        if(!enviromentVariables[eachEnvironmentVariable].possibleValues.includes(process.env[eachEnvironmentVariable])) {
+          environmentVariablesCheckSuccessful = false;
+          keyCheckPass = false;
+          enviromentVariables[eachEnvironmentVariable].message += ` Valid values - ${enviromentVariables[eachEnvironmentVariable].possibleValues.join(", ")}`
+        }
+      }
+    }
+
+    if((!(process.env[eachEnvironmentVariable])
+      || process.env[eachEnvironmentVariable] == "")
+      && enviromentVariables[eachEnvironmentVariable].default
+      && enviromentVariables[eachEnvironmentVariable].default != "") {
+      process.env[eachEnvironmentVariable] = enviromentVariables[eachEnvironmentVariable].default;
+    }
+
+    if(!keyCheckPass) {
+      if(enviromentVariables[eachEnvironmentVariable].message !== "") {
         tableObj[eachEnvironmentVariable] = 
         enviromentVariables[eachEnvironmentVariable].message;
       } else {
-        tableObj[eachEnvironmentVariable] = "required";
+        tableObj[eachEnvironmentVariable] = `FAILED - ${eachEnvironmentVariable} is required`;
       }
-    } else {
-
-      tableObj[eachEnvironmentVariable] = "success";
-      if(enviromentVariables[eachEnvironmentVariable].optional) {
-        tableObj[eachEnvironmentVariable] = enviromentVariables[eachEnvironmentVariable].message;
-      }
-      
     }
 
     tableData.push(tableObj);
