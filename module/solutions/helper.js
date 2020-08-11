@@ -886,7 +886,8 @@ module.exports = class SolutionsHelper {
       userId,
       solutionData,
       isAPrivateProgram = false,
-      requestingUserAuthToken = ""
+      createdFor = [],
+      rootOrganisations = []
   ) {
       return new Promise(async (resolve, reject) => {
           try {

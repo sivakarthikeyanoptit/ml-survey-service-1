@@ -99,7 +99,8 @@ module.exports = class ObservationsHelper {
                     userId,
                     _.omit(data,["entities"]),
                     true,
-                    requestingUserAuthToken
+                    organisationAndRootOrganisation.createdFor,
+                    organisationAndRootOrganisation.rootOrganisations
                 );
 
                 let observationData = 

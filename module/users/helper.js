@@ -214,18 +214,14 @@ module.exports = class UserHelper {
                         "entityType"
                     ]);
 
-                    if ( !entities.length > 0 ) {
-                        throw {
-                            status : httpStatusCode.bad_request.status,
-                            message : messageConstants.apiResponses.ENTITY_NOT_FOUND
-                        };
+                    if ( entities.length > 0 ) {
+                        
+                        entitiesData = entities.reduce(
+                            (ac, entity) => ({
+                                ...ac,
+                                [entity._id.toString()]: entity
+                        }), {});
                     }
-
-                    entitiesData = entities.reduce(
-                        (ac, entity) => ({
-                            ...ac,
-                            [entity._id.toString()]: entity
-                    }), {});
 
                 }
 
