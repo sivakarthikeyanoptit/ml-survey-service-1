@@ -61,6 +61,9 @@ module.exports = {
         default : false,
         type : Boolean
     },
-    rootOrganisations: [String]
+    rootOrganisations : {
+      type : [String],
+      default : []
+    }
   }
 };

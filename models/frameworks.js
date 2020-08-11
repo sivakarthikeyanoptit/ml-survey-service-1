@@ -21,6 +21,9 @@ module.exports = {
     createdBy: String,
     entityTypeId: "ObjectId",
     entityType: String,
-    rootOrganisations: [String]
+    rootOrganisations : {
+      type : [String],
+      default : []
+    }
   }
 };

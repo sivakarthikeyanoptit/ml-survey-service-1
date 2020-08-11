@@ -25,7 +25,7 @@ module.exports = class ObservationHelper {
       * @returns {Object} returns list of observation solutions
      */
 
-    static list(search,limit,pageNo) {
+    static list(search,limit,pageNo,userId,token) {
         return new Promise(async (resolve, reject) => {
             try {
                 
@@ -34,7 +34,9 @@ module.exports = class ObservationHelper {
                   messageConstants.common.OBSERVATION,
                   search, 
                   limit, 
-                  pageNo,  
+                  pageNo, 
+                  userId,
+                  token   
                 );
 
                 return resolve({
