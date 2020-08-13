@@ -133,14 +133,14 @@ module.exports = class UserHelper {
 
                 if ( !programIds.length > 0 ) {
                     throw {
-                        status : httpStatusCode.bad_request.status,
+                        status : httpStatusCode.ok.status,
                         message : messageConstants.apiResponses.PROGRAM_NOT_MAPPED_TO_USER
                     }
                 }
 
                 if( !solutionIds.length > 0 ) {
                     throw {
-                        status : httpStatusCode.bad_request.status,
+                        status : httpStatusCode.ok.status,
                         message : messageConstants.apiResponses.SOLUTION_NOT_MAPPED_TO_USER
                     }
                 }
@@ -153,7 +153,7 @@ module.exports = class UserHelper {
                 
                 if ( !programs.length > 0 ) {
                     throw {
-                        status : httpStatusCode.bad_request.status,
+                        status : httpStatusCode.ok.status,
                         message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
                     }
                 }
@@ -181,7 +181,7 @@ module.exports = class UserHelper {
 
                 if ( !solutions.length > 0 ) {
                     throw {
-                        status : httpStatusCode.bad_request.status,
+                        status : httpStatusCode.ok.status,
                         message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     }
                 }
