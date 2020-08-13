@@ -1008,7 +1008,8 @@ module.exports = class ObservationsHelper {
                 userId,
                 solutionInformation,
                 true,
-                token
+                organisationAndRootOrganisation.createdFor,
+                organisationAndRootOrganisation.rootOrganisations
               );
 
               let startDate = new Date();
