@@ -566,52 +566,56 @@ module.exports = class Observations extends v1Observation {
                     throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
                 }
 
-                let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
-                let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
+                /*
+                <- Currently not required for bodh-2:10 as roles is not given in user 
+                */
 
-                let entityProfileForm = await database.models.entityTypes.findOne(
-                    solutionDocument.entityTypeId,
-                    {
-                        profileForm: 1
-                    }
-                ).lean();
+                // let currentUserAssessmentRole = await assessmentsHelper.getUserRole(req.userDetails.allRoles);
+                // let profileFieldAccessibility = (solutionDocument.roles && solutionDocument.roles[currentUserAssessmentRole] && solutionDocument.roles[currentUserAssessmentRole].acl && solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile) ? solutionDocument.roles[currentUserAssessmentRole].acl.entityProfile : "";
 
-                if (!entityProfileForm) {
-                    let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
-                    return resolve({ 
-                        status: httpStatusCode.bad_request.status, 
-                        message: responseMessage 
-                    });
-                }
+                // let entityProfileForm = await database.models.entityTypes.findOne(
+                //     solutionDocument.entityTypeId,
+                //     {
+                //         profileForm: 1
+                //     }
+                // ).lean();
 
-                let form = [];
-                let entityDocumentTypes = (entityDocument.metaInformation.types) ? entityDocument.metaInformation.types : ["A1"];
+                // if (!entityProfileForm) {
+                //     let responseMessage = messageConstants.apiResponses.ENTITY_PROFILE_FORM_NOT_FOUND;
+                //     return resolve({ 
+                //         status: httpStatusCode.bad_request.status, 
+                //         message: responseMessage 
+                //     });
+                // }
+
+                // let form = [];
+                // let entityDocumentTypes = (entityDocument.metaInformation.types) ? entityDocument.metaInformation.types : ["A1"];
                 let entityDocumentQuestionGroup = (entityDocument.metaInformation.questionGroup) ? entityDocument.metaInformation.questionGroup : ["A1"];
-                let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes;
-                let filteredFieldsToBeShown = [];
+                // let entityProfileFieldsPerEntityTypes = solutionDocument.entityProfileFieldsPerEntityTypes;
+                // let filteredFieldsToBeShown = [];
 
-                if (entityProfileFieldsPerEntityTypes) {
-                    entityDocumentTypes.forEach(entityType => {
-                        if (entityProfileFieldsPerEntityTypes[entityType]) {
-                            filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType]);
-                        }
-                    })
-                }
+                // if (entityProfileFieldsPerEntityTypes) {
+                //     entityDocumentTypes.forEach(entityType => {
+                //         if (entityProfileFieldsPerEntityTypes[entityType]) {
+                //             filteredFieldsToBeShown.push(...entityProfileFieldsPerEntityTypes[entityType]);
+                //         }
+                //     })
+                // }
 
-                entityProfileForm.profileForm.forEach(profileFormField => {
-                    if (filteredFieldsToBeShown.includes(profileFormField.field)) {
-                        profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : "";
-                        profileFormField.visible = profileFieldAccessibility ? (profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1) : true;
-                        profileFormField.editable = profileFieldAccessibility ? (profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1) : true;
-                        form.push(profileFormField);
-                    }
-                })
+                // entityProfileForm.profileForm.forEach(profileFormField => {
+                //     if (filteredFieldsToBeShown.includes(profileFormField.field)) {
+                //         profileFormField.value = (entityDocument.metaInformation[profileFormField.field]) ? entityDocument.metaInformation[profileFormField.field] : "";
+                //         profileFormField.visible = profileFieldAccessibility ? (profileFieldAccessibility.visible.indexOf("all") > -1 || profileFieldAccessibility.visible.indexOf(profileFormField.field) > -1) : true;
+                //         profileFormField.editable = profileFieldAccessibility ? (profileFieldAccessibility.editable.indexOf("all") > -1 || profileFieldAccessibility.editable.indexOf(profileFormField.field) > -1) : true;
+                //         form.push(profileFormField);
+                //     }
+                // })
 
                 response.result.entityProfile = {
                     _id: entityDocument._id,
                     entityTypeId: entityDocument.entityTypeId,
                     entityType: entityDocument.entityType,
-                    form: form
+                    // form: form
                 };
 
 
