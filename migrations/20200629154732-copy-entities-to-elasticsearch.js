@@ -27,12 +27,6 @@ module.exports = {
       throw new Error("Error while creating entities index.")
     }
 
-    let entitiesIndexType = process.env.ELASTICSEARCH_ENTITIES_INDEX_TYPE;
-
-    if (!entitiesIndexType || entitiesIndexType == "") {
-      throw new Error("Invalid entities index type");
-    }
-
     let entities =
       await db.collection('entities').find({}).project({ _id: 1 }).toArray();
 
@@ -127,7 +121,6 @@ module.exports = {
         await es.update({
           id: entityObj._id,
           index: entitiesIndex,
-          type: entitiesIndexType,
           body: {
             doc: { data: entityObj },
             doc_as_upsert: true
