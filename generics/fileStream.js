@@ -8,8 +8,20 @@ let FileStream = class FileStream {
   constructor(fileName) {
     const currentDate = new Date();
     const fileExtensionWithTime = moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD_HH_mm") + ".csv";
-    const filePath = `${process.env.CSV_REPORTS_PATH}/${moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD")}/`;
-    if (!fs.existsSync(filePath)) fs.mkdirSync(filePath);
+
+    if( !fs.existsSync(process.env.PUBLIC_FOLDER_PATH)) {
+      fs.mkdirSync(process.env.PUBLIC_FOLDER_PATH);
+    }
+
+    if( !fs.existsSync(process.env.PUBLIC_FOLDER_PATH + "/" + process.env.CSV_REPORTS_PATH)) {
+      fs.mkdirSync(process.env.PUBLIC_FOLDER_PATH + "/" + process.env.CSV_REPORTS_PATH);
+    }
+
+    const filePath = `${process.env.PUBLIC_FOLDER_PATH}/${process.env.CSV_REPORTS_PATH}/${moment(currentDate).tz("Asia/Kolkata").format("YYYY_MM_DD")}/`;
+
+    if (!fs.existsSync(filePath)) {
+      fs.mkdirSync(filePath);
+    }
     this.input = new stream.Readable({ objectMode: true });
     this.fileName = filePath + fileName + "_" + fileExtensionWithTime;
     this.output = fs.createWriteStream(this.fileName, { encoding: 'utf8' });

@@ -27,12 +27,6 @@ module.exports = {
       throw new Error("Error while creating user extension index.")
     }
 
-    let userExtensionIndexType = process.env.ELASTICSEARCH_USER_EXTENSION_INDEX_TYPE;
-
-    if(!userExtensionIndexType || userExtensionIndexType == "") {
-      throw new Error("Invalid user extension index type");
-    }
-
     let userExtensions = 
     await db.collection('userExtension').find({}).project({ _id : 1 }).toArray();
 
@@ -66,7 +60,6 @@ module.exports = {
         await es.update({
           id : userDocument.userId,
           index: userExtensionIndex,
-          type: userExtensionIndexType,
           body: {
             doc : { data : userDocument },
             doc_as_upsert : true
