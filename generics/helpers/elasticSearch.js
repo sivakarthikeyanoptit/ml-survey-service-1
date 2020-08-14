@@ -32,15 +32,9 @@ var get = function (
         throw new Error("Index is required");
       }
 
-      if (type == "") {
-        throw new Error("Type is required");
-      }
-
       const result = await elasticsearch.client.get({
         id: data.id,
-        index: data.index,
-        type: data.type,
-        include_type_name : true
+        index: data.index
       }, {
           ignore: [httpStatusCode["not_found"].status],
           maxRetries: 3
@@ -60,7 +54,6 @@ var get = function (
   * @name createOrUpdate
   * @param {String} id - a unique document id
   * @param {String} index - elastic search index
-  * @param {String} type - elastic search type
   * @param {String} data - requested data
   * @returns {Object} created or updated user data.
 */
@@ -68,7 +61,6 @@ var get = function (
 var createOrUpdate = function (
   id = "",
   index = "",
-  type = "",
   data = ""
 ) {
 
@@ -83,10 +75,6 @@ var createOrUpdate = function (
         throw new Error("Index is required");
       }
 
-      if (type == "") {
-        throw new Error("Type is required");
-      }
-
       if (Object.keys(data).length == 0) {
         throw new Error("Data is required");
       }
@@ -95,12 +83,10 @@ var createOrUpdate = function (
       await elasticsearch.client.update({
         id : id,
         index : index,
-        type : type,
         body : {
           doc : data ,
           doc_as_upsert : true
-        },
-        include_type_name : true
+        }
       });
 
       return resolve(result);

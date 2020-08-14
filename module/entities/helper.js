@@ -7,7 +7,7 @@
 
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
-const elasticSearchData = require(ROOT_PATH + "/generics/helpers/elasticSearch");
+const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 
  /**
     * EntitiesHelper
@@ -1316,7 +1316,7 @@ module.exports = class EntitiesHelper {
 
                         entityObj["telemetry_entities"] = telemetryEntities;
 
-                        await elasticSearchData.createOrUpdate(
+                        await elasticSearch.createOrUpdate(
                             entityObj._id,
                             process.env.ELASTICSEARCH_ENTITIES_INDEX,
                             process.env.ELASTICSEARCH_ENTITIES_INDEX_TYPE,
