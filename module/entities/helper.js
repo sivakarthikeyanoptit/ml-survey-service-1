@@ -1319,7 +1319,6 @@ module.exports = class EntitiesHelper {
                         await elasticSearch.createOrUpdate(
                             entityObj._id,
                             process.env.ELASTICSEARCH_ENTITIES_INDEX,
-                            process.env.ELASTICSEARCH_ENTITIES_INDEX_TYPE,
                             {
                                 data: entityObj
                             }
