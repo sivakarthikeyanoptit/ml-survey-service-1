@@ -76,7 +76,8 @@ module.exports = class UserExtensionHelper {
                             "entityDocuments.metaInformation.name": 1,
                             "entityDocuments.groups": 1,
                             "entityDocuments.entityType": 1,
-                            "entityDocuments.entityTypeId": 1
+                            "entityDocuments.entityTypeId": 1,
+                            "improvementProjects" : 1
                         }
                     }
                 ];
@@ -856,6 +857,41 @@ module.exports = class UserExtensionHelper {
     })
 
    }
+
+    /**
+   * Update user profile data.
+   * @method
+   * @name update
+   * @param {Object} updateData - Update user profile data.
+   * @returns {Object} 
+   */
+
+  static update(userId,updateData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let updatedData = 
+            await database.models.userExtension.findOneAndUpdate({
+                userId : userId
+            },{
+                $set : updateData
+            },{
+                new : true
+            });
+
+
+            return resolve({
+                message : messageConstants.apiResponses.USER_EXTENSION_FETCHED,
+                result : updatedData
+            });
+            
+        } catch (error) {
+            return reject(error);
+        }
+    })
+
+
+}
 
 };
 

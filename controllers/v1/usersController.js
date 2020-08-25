@@ -258,4 +258,121 @@ module.exports = class Users {
     });
   }
 
+     /**
+     * @api {post} /assessment/api/v1/users/createProgramAndSolution/:userId Users created program and solution.
+     * @apiVersion 2.0.0
+     * @apiName Users created program and solution.
+     * @apiGroup Programs
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/users/createProgramAndSolution/e97b5582-471c-4649-8401-3cc4249359bb
+     * @apiParamExample {json} Request-Body:
+     * {
+     * "programId" : "",
+     * "programName" : "Test project program",
+     * "solutionName" : "Test project solution"
+     }
+     * @apiUse successBody
+     * @apiUse errorBody
+     * @apiParamExample {json} Response:
+     * {
+    "status": 200,
+    "result": {
+        "program": {
+            "resourceType": [
+                "Program"
+            ],
+            "language": [
+                "English"
+            ],
+            "keywords": [
+                "keywords 1",
+                "keywords 2"
+            ],
+            "concepts": [],
+            "createdFor": [],
+            "components": [],
+            "isAPrivateProgram": true,
+            "rootOrganisations": [],
+            "_id": "5f44b08cdbe917732246149f",
+            "deleted": false,
+            "externalId": "Test project program-1598337164794",
+            "name": "Test project program",
+            "description": "Test project program",
+            "status": "active",
+            "imageCompression": {
+                "quality": 10
+            },
+            "updatedAt": "2020-08-25T06:32:44.796Z",
+            "createdAt": "2020-08-25T06:32:44.796Z",
+            "__v": 0
+        },
+        "solution": {
+            "resourceType": [],
+            "language": [],
+            "keywords": [],
+            "concepts": [],
+            "createdFor": [],
+            "themes": [],
+            "flattenedThemes": [],
+            "entities": [],
+            "registry": [],
+            "isRubricDriven": false,
+            "enableQuestionReadOut": false,
+            "captureGpsLocationAtQuestionLevel": false,
+            "isAPrivateProgram": false,
+            "allowMultipleAssessemts": false,
+            "isDeleted": false,
+            "rootOrganisations": [],
+            "_id": "5f44b08cdbe91773224614a0",
+            "deleted": false,
+            "name": "Test project solution",
+            "externalId": "Test project solution-1598337164794",
+            "description": "Test project solution",
+            "programId": "5f44b08cdbe917732246149f",
+            "programExternalId": "Test project program-1598337164794",
+            "programName": "Test project program",
+            "programDescription": "Test project program",
+            "updatedAt": "2020-08-25T06:32:44.801Z",
+            "createdAt": "2020-08-25T06:32:44.801Z",
+            "__v": 0
+        }
+    }}
+     */
+
+    /**
+    * Create user program and solution.
+    * @method
+    * @name createProgramAndSolution
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id - user id
+    * @returns {JSON} - Created user program and solution.
+    */
+
+   async createProgramAndSolution(req) {
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let createdProgramAndSolution = 
+            await usersHelper.createProgramAndSolution(
+                (req.params._id && req.params._id != "") ? 
+                req.params._id : 
+                req.userDetails.id,
+                req.body,
+                req.userDetails.userToken
+            );
+
+            return resolve(createdProgramAndSolution);
+
+        } catch (error) {
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+
+    });
+  }
+
 }

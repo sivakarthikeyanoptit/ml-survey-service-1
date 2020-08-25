@@ -1235,5 +1235,71 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
+
+  /**
+   * @api {post} /assessment/api/v1/solutions/find
+   * Find solutions.
+   * @apiVersion 0.0.1
+   * @apiName Find solutions.
+   * @apiGroup Solutions
+   * @apiHeader {String} X-authenticated-user-token Authenticity token
+   * @apiParamExample {json} Request-Body:
+   * {
+    "query" : {
+        "externalId" : "EF-DCPCR-2018-001"
+    },
+    "projection" : ["_id","name"]
+    }
+   * @apiSampleRequest /assessment/api/v1/solutions/find
+   * @apiUse successBody
+   * @apiUse errorBody
+   * @apiParamExample {json} Response: 
+   * {
+   * "status": 200,
+    "result": [
+        {
+            "_id": "5b98fa069f664f7e1ae7498c",
+            "name": "DCPCR Assessment Framework 2018"
+        }
+    ]
+    }
+   */
+
+  /**
+   * Find solutions.
+   * @method
+   * @name find
+   * @param {Object} req - Requested data.
+   * @param {Object} req.body.query - Filtered data.
+   * @param {Array} req.body.projection - Projected data.
+   * @param {Array} req.body.skipFields - Field to skip.
+   * @returns {JSON} Find solutions data.
+  */
+
+ async find(req) {
+  return new Promise(async (resolve, reject) => {
+    try {
+
+      let solutionData = 
+      await solutionsHelper.solutionDocuments(
+        req.body.query,
+        req.body.projection,
+        req.body.skipFields
+      );
+
+      return resolve({
+        message : messageConstants.apiResponses.SOLUTION_FETCHED,
+        result : solutionData
+      });
+
+    } catch (error) {
+      return reject({
+        status: error.status || httpStatusCode.internal_server_error.status,
+        message: error.message || httpStatusCode.internal_server_error.message,
+        errorObject: error
+      });
+    }
+  });
+}
   
 };

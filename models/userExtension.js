@@ -25,6 +25,10 @@ module.exports = {
       isDeleted: {
         type: Boolean,
         default: false
+      },
+      improvementProjects : {
+        type : Array,
+        default : []
       }
     }
   }

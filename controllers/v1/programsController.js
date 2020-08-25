@@ -9,6 +9,7 @@
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 const insightsHelper = require(MODULES_BASE_PATH + "/insights/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * Programs
@@ -639,6 +640,72 @@ module.exports = class Programs extends Abstract {
         })
       }
     })
+  }
+
+   /**
+   * @api {post} /assessment/api/v1/programs/find
+   * Find programs.
+   * @apiVersion 0.0.1
+   * @apiName Find programs.
+   * @apiGroup Program
+   * @apiHeader {String} X-authenticated-user-token Authenticity token
+   * @apiParamExample {json} Request-Body:
+   * {
+    "query" : {
+        "externalId" : "PROGID01"
+    },
+    "projection" : ["_id","name"]
+    }
+   * @apiSampleRequest /assessment/api/v1/programs/find
+   * @apiUse successBody
+   * @apiUse errorBody
+   * @apiParamExample {json} Response: 
+   * {
+    "message": "Program information list fetched successfully.",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5b98d7b6d4f87f317ff615ee",
+            "name": "DCPCR School Development Index 2018-19"
+        }
+    ]
+  }
+   */
+
+  /**
+   * Find programs.
+   * @method
+   * @name find
+   * @param {Object} req - Requested data.
+   * @param {Object} req.body.query - Filtered data.
+   * @param {Array} req.body.projection - Projected data.
+   * @param {Array} req.body.skipFields - Field to skip.
+   * @returns {JSON} Find programs data.
+  */
+
+  async find(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let programData = await programsHelper.list(
+          req.body.query,
+          req.body.projection,
+          req.body.skipFields
+        );
+        
+        return resolve({
+          message : messageConstants.apiResponses.PROGRAM_LIST,
+          result : programData
+        });
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
   }
 
 };

@@ -102,7 +102,7 @@ module.exports = async function (req, res, next) {
     delete req.headers[e];
   });
 
-  let paths = ["reports", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails"]
+  let paths = ["reports", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails","find"]
 
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
