@@ -149,18 +149,20 @@ module.exports = class UserExtensionHelper {
                             userExtensionRoleCounter < userExtensionData[0].roles.length; 
                             userExtensionRoleCounter++
                         ) {
-                            for (
-                                let userExtenionRoleEntityCounter = 0; 
-                                userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; 
-                                userExtenionRoleEntityCounter++
-                            ) {
-                                userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
-                                    _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
-                                    ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
-                                };
+                            if (userExtensionData[0].roles[userExtensionRoleCounter]["entities"] && userExtensionData[0].roles[userExtensionRoleCounter].entities.length > 0) {
+                                for (
+                                    let userExtenionRoleEntityCounter = 0;
+                                    userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length;
+                                    userExtenionRoleEntityCounter++
+                                ) {
+                                    userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
+                                        _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
+                                        ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
+                                    };
+                                }
+                                roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : "";
+                                roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities;
                             }
-                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : "";
-                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities;
                         }
                     }
 
