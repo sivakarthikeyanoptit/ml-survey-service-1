@@ -1,8 +1,8 @@
 /**
  * name : helper.js
- * author : Aman
- * created-date : 04-Jun-2020
- * Description : Observation solutions helper functionality.
+ * author : Deepa
+ * created-date : 0-Sep-2020
+ * Description : Survey solutions helper functionality.
  */
 
 // Dependencies 
@@ -10,10 +10,10 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 
  /**
-    * ObservationHelper
+    * SurveyHelper
     * @class
 */
-module.exports = class ObservationHelper {
+module.exports = class SurveyHelper {
 
     /**
       * List of library solution
@@ -22,16 +22,16 @@ module.exports = class ObservationHelper {
       * @param {String} search - Search Data.
       * @param {Number} limit - limitting value.
       * @param {Number} pageNo
-      * @returns {Object} returns list of observation solutions
+      * @returns {Object} returns list of survey solutions
      */
 
     static list(search,limit,pageNo,userId,token) {
         return new Promise(async (resolve, reject) => {
             try {
                 
-                let observationSolution = 
+                let librarySolution = 
                 await solutionsHelper.templates( 
-                  messageConstants.common.OBSERVATION,
+                  messageConstants.common.SURVEY,
                   search, 
                   limit, 
                   pageNo, 
@@ -40,48 +40,53 @@ module.exports = class ObservationHelper {
                 );
 
                 return resolve({
-                  message : messageConstants.apiResponses.OBSERVATION_SOLUTIONS_LIST,
-                  result : observationSolution
+                  success: true,
+                  message : messageConstants.apiResponses.SURVEY_SOLUTIONS_LIST_FETCHED,
+                  data : librarySolution
                 });
+
             } catch (error) {
-                return reject({
-                    status: error.status || httpStatusCode.internal_server_error.status,
-                    message: error.message || httpStatusCode.internal_server_error.message,
-                    errorObject: error
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
                 });
             }
         })
     }
 
     /**
-      * Observation solution details information
+      * Survey solution details information
       * @method
       * @name details
       * @param {String} templateId - Template id.
-      * @returns {Object} returns creator,about and questions of observation solutions.
+      * @returns {Object} returns creator,about and questions of survey solutions.
      */
 
     static details(templateId) {
         return new Promise(async (resolve, reject) => {
             try {
                 
-              let observationSolutionDetails = 
+              let surveySolutionDetails = 
               await assessmentsHelper.templateDetails(
                 templateId,
                 false,
                 false
               );
-                
+              
+              surveySolutionDetails.allowImport = false;
+              
               return resolve({
-                message : messageConstants.apiResponses.OBSERVATION_SOLUTION_DETAILS,
-                result : observationSolutionDetails
+                success: true,
+                message : messageConstants.apiResponses.SURVEY_SOLUTION_DETAILS_FETCHED,
+                data : surveySolutionDetails
               });
-
+                
             } catch (error) {
-                return reject({
-                    status: error.status || httpStatusCode.internal_server_error.status,
-                    message: error.message || httpStatusCode.internal_server_error.message,
-                    errorObject: error
+                return resolve({
+                   success: false,
+                   message: error.message,
+                   data: false
                 });
             }
         })

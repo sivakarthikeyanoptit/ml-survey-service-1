@@ -16,12 +16,12 @@ module.exports = class CriteriaQuestionsHelper {
       * @method
       * @name list
       * @param {Object} [ findQuery = "all" ] - filtered query data.
-      * @param {Array} [ fields = "all" ] - fields to include.
+      * @param {Array} [ fieldsArray = "all" ] - fields to include.
       * @param {Array} [ skipFields = "none" ] - skip fields.   
       * @returns {Array} List of criteria questions.
      */
 
-    static list( findQuery = "all", fields = "all", skipFields = "none" ) {
+    static list( findQuery = "all", fieldsArray = "all", skipFields = "none" ) {
         return new Promise(async (resolve, reject) => {
             try {
         
@@ -33,7 +33,7 @@ module.exports = class CriteriaQuestionsHelper {
         
                 let projection = {};
         
-                if (fields != "all") {
+                if (fieldsArray != "all") {
                     fieldsArray.forEach(field => {
                         projection[field] = 1;
                     });

@@ -634,7 +634,7 @@ module.exports = class ObservationsHelper {
                     throw new Error(messageConstants.apiResponses.INVALID_USER_ID)
                 }
 
-                const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                const kafkaMessage = await kafkaClient.pushUserMappingNotificationToKafka({
                     user_id: userId,
                     internal: false,
                     text: `New observation available now (Observation form)`,

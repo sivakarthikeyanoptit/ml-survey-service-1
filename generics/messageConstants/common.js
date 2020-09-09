@@ -34,5 +34,11 @@ module.exports = {
     POLL_QUESTION_METAFORM : "defaultPollQuestionForm",
     EMOJI : "emoji",
     GESTURE : "gesture",
-    TAKE_POLL : "/take-poll/"
+    TAKE_POLL : "/take-poll/",
+    SURVEY : "survey",
+    TAKE_SURVEY : "/take-survey/",
+    EXPIRED: "expired",
+    SURVEY_SUBMISSIONS: "surveySubmissions",
+    OBSERVATION_SUBMISSIONS: "observationSubmissions",
+    SUBMISSIONS: "submissions"
 }
