@@ -108,11 +108,23 @@ module.exports = async function (req, res, next) {
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
 
-  if (req.path.includes("solutionDetails") && (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN)) {
-    rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-    rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.unauthorized.status;
-    return res.status(401).send(respUtil(rspObj));
+  
+  let internalAccessApiPaths = ["createGesture", "createEmoji", "solutionDetails"];
+  let performInternalAccessTokenCheck = false;
+  await Promise.all(internalAccessApiPaths.map(async function (path) {
+    if (req.path.includes(path)) {
+      performInternalAccessTokenCheck = true;
+    }
+  }));
+
+  
+  if (performInternalAccessTokenCheck) {
+    if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN) {
+      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
+      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
+      rspObj.responseCode = responseCode.unauthorized.status;
+      return res.status(401).send(respUtil(rspObj));
+    }
   }
 
   for (let pointerToByPassPath = 0; pointerToByPassPath < paths.length; pointerToByPassPath++) {
