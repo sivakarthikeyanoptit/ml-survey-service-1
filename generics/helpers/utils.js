@@ -1,3 +1,6 @@
+const uuid = require('uuid/v4');
+const md5 = require("md5");
+
 function camelCaseToTitleCase(in_camelCaseString) {
   var result = in_camelCaseString // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456InRoom26AContainingABC26TimesIsNotAsEasyAs123ForC3POOrR2D2Or2R2D"
     .replace(/([a-z])([A-Z][a-z])/g, "$1 $2") // "To Get YourGEDIn TimeASong About The26ABCs IsOf The Essence ButAPersonalIDCard For User456In Room26AContainingABC26Times IsNot AsEasy As123ForC3POOrR2D2Or2R2D"
@@ -210,6 +213,52 @@ function isValidMongoId(id) {
   return ObjectId.isValid(id) && new ObjectId(id).toString() === id;
 }
 
+/**
+  * generate uuid
+  * @function
+  * @name generateUUId
+  * @returns {String} returns uuid.  
+*/
+
+function generateUUId() {
+  return uuid();
+}
+
+/**
+  * md5 hash
+  * @function
+  * @name md5Hash
+  * @returns {String} returns uuid.  
+*/
+
+function md5Hash(value) {
+  return md5(value);
+}
+
+/**
+  * Remove duplicates from array
+  * @function
+  * @name removeDuplicatesFromArray
+  * @returns {Array}  returns unique data in array.  
+*/
+
+function removeDuplicatesFromArray(data, key) {
+  let uniqueArray = [];
+  let newMap = new Map();
+ 
+  uniqueArray = data.filter((singleData) => {
+  const element = newMap.get(singleData[key].toString());
+  if (!element) {
+    newMap.set(singleData[key].toString(), singleData);
+    return true;
+  } else {
+      return false;
+    }
+  });
+ 
+  return uniqueArray;
+}
+
 module.exports = {
   camelCaseToTitleCase : camelCaseToTitleCase,
   lowerCase : lowerCase,
@@ -227,5 +276,8 @@ module.exports = {
   checkIfEnvDataExistsOrNot : checkIfEnvDataExistsOrNot,
   fetchAssessorsLeadAssessorRole : fetchAssessorsLeadAssessorRole,
   epochTime : epochTime,
-  isValidMongoId : isValidMongoId
+  isValidMongoId : isValidMongoId,
+  generateUUId : generateUUId,
+  md5Hash : md5Hash,
+  removeDuplicatesFromArray : removeDuplicatesFromArray
 };
