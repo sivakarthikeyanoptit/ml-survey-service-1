@@ -840,7 +840,6 @@ module.exports = class UserExtensionHelper {
             await elasticSearchData.createOrUpdate(
                 userData.userId,
                 process.env.ELASTICSEARCH_USER_EXTENSION_INDEX,
-                process.env.ELASTICSEARCH_USER_EXTENSION_INDEX_TYPE,
                 {
                     data : userInformation
                 }
