@@ -1061,6 +1061,7 @@ module.exports = class Observations extends Abstract {
     */
 
     async importFromFramework(req) {
+
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1185,6 +1186,8 @@ module.exports = class Observations extends Abstract {
                         newSolutionDocument.parentSolutionId = newBaseSolution._id;
                         newSolutionDocument.isReusable = false;
                         newSolutionDocument.externalId = frameworkDocument.externalId;
+                        let hashedLink = md5(newSolutionDocument._id+"###"+req.userDetails.userId);
+                        newSolutionDocument.link = hashedLink;
 
                         let newSolution = 
                         await database.models.solutions.create(
@@ -1794,6 +1797,6 @@ module.exports = class Observations extends Abstract {
                 });
             }
         });
-    }
+    } 
 
 }

@@ -1,6 +1,6 @@
 module.exports = (req) => {
 
-    let entityValidator = {
+    let observationsValidator = {
 
         add: function () {
             req.checkParams('_id').exists().withMessage("required solution id")
@@ -37,10 +37,12 @@ module.exports = (req) => {
         },
         completedObservations : function () {
             req.checkQuery('fromDate').exists().withMessage("required from date");
+        },
+        verifyLink : function () {
+            req.checkParams('_id').exists().withMessage("required link")
         }
-
     }
 
-    if (entityValidator[req.params.method]) entityValidator[req.params.method]();
+    if (observationsValidator[req.params.method]) observationsValidator[req.params.method]();
 
 };

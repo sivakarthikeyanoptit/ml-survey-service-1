@@ -34,5 +34,6 @@ module.exports = {
     POLL_QUESTION_METAFORM : "defaultPollQuestionForm",
     EMOJI : "emoji",
     GESTURE : "gesture",
-    TAKE_POLL : "/take-poll/"
+    TAKE_POLL : "/take-poll/",
+    CREATE_OBSERVATION : "/create-observation/"
 }

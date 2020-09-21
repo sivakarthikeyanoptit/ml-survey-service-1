@@ -7,12 +7,16 @@
 
 // Dependencies
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
+const moment = require("moment-timezone");
+const appsPortalBaseUrl = (process.env.OBSERVATION_SHARE_URL_ENDPOINT && process.env.OBSERVATION_SHARE_URL_ENDPOINT !== "") ? process.env.OBSERVATION_SHARE_URL_ENDPOINT : "https://apps.shikshalokam.org/";
 
 
 /**
@@ -50,6 +54,7 @@ module.exports = class ObservationsHelper {
                 let observationDocuments = await database.models.observations
                     .find(queryObject, projectionObject)
                     .lean();
+
                 return resolve(observationDocuments);
             } catch (error) {
                 return reject(error);
@@ -102,6 +107,7 @@ module.exports = class ObservationsHelper {
                     organisationAndRootOrganisation.createdFor,
                     organisationAndRootOrganisation.rootOrganisations
                 );
+
 
                 let observationData = 
                 await this.createObservation(
@@ -1046,6 +1052,178 @@ module.exports = class ObservationsHelper {
                 return reject(error);
             }
         });
+    }
+
+
+         /**
+      * observation link.
+      * @method
+      * @name getObservationLink
+      * @param  {String} observationSolutionId observation solution external Id.
+      * @param  {String} appName name of app.
+      * @returns {getObservationLink} observation getObservationLink.
+     */
+
+    static getObservationLink(observationSolutionId, appName) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let observationData = await solutionHelper.solutionDocuments({
+                        externalId : observationSolutionId,
+                        isReusable : false,
+                        type : messageConstants.common.OBSERVATION
+
+                        },[
+                            "link"
+                    ]);
+
+                if(!Array.isArray(observationData) || observationData.length < 1) {
+                    return resolve({
+                        message: messageConstants.apiResponses.OBSERVATION_NOT_FOUND,
+                        result: {}
+                    });
+                }
+
+                let appDetails = await kendraService.getAppDetails(appName);
+                
+                if(appDetails.result === false){
+                    throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
+                }
+                
+                let link = appsPortalBaseUrl+ appName+ messageConstants.common.CREATE_OBSERVATION + observationData[0].link;
+                return resolve({
+                    message: messageConstants.apiResponses.OBSERVATION_LINK_GENERATED,
+                    result: link
+                });
+               
+                
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Verfy observation link.
+     * @method
+     * @name verify
+     * @param {Object} data - observation link.
+     * @param {String} requestingUserAuthToken - Requesting user auth token.
+     * @returns {Object} observation data.
+     */
+
+    static verify(
+        link = "", 
+        requestingUserAuthToken,
+        userId
+        
+    ) {
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                if (link == "") {
+                    throw new Error(messageConstants.apiResponses.LINK_REQUIRED_CHECK)
+                }
+
+                let observationSolutionData = await solutionHelper.solutionDocuments({
+                    link: link,
+                    type : messageConstants.common.OBSERVATION,
+                    isReusable: false,
+                    status: messageConstants.common.ACTIVE_STATUS,
+                    endDate : {$gte: new Date()}
+                });
+
+                if(!Array.isArray(observationSolutionData) || observationSolutionData.length < 1){
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: []
+                    });
+                   
+                }
+
+                let observationData = await this.observationDocuments({
+                    solutionExternalId : observationSolutionData[0].externalId
+                });
+
+                if(observationData){
+                    return resolve({
+                        message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
+                        result: observationData
+                    });
+                }
+
+                
+                let entities = [];
+                if(userId){
+                    let userEntities = await userExtensionHelper.getUserEntities(userId);
+                    if(userEntities.length > 0){
+                        let entityIdsWithSolutionSubType = await entitiesHelper.entityDocuments({
+                            _id :  { $in : userEntities},
+                            entityType : observationSolutionData[0].subType
+                        }, [
+                            "_id"
+                        ]);
+
+                        for(let pointerToUserExtension = 0; pointerToUserExtension < entityIdsWithSolutionSubType.length; 
+                            pointerToUserExtension++){
+                            entities.push(entityIdsWithSolutionSubType[pointerToUserExtension]._id)
+                        }
+                    }
+                }
+                
+
+                let solutionId = observationSolutionData[0]._id;
+                let programId = observationSolutionData[0].programId;
+                let today = new Date();
+                let startDate= moment(today).format("YYYY-MM-DD");
+                let endDate = moment(startDate, "YYYY-MM-DD").add('years', 1).format("YYYY-MM-DD");
+                let dataObj = {
+                    "name": observationSolutionData[0].name ,
+                    "description": observationSolutionData[0].description,
+                    "startDate": startDate,
+                    "endDate": endDate,
+                    "status": messageConstants.common.ACTIVE_STATUS,
+                    "entities": entities
+                }
+
+                
+                let organisationAndRootOrganisation = 
+                await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                    requestingUserAuthToken,
+                    userId
+                );
+
+                let solution = {
+                    "_id":solutionId,
+                    "externalId": observationSolutionData[0].externalId,
+                    "frameworkExternalId": observationSolutionData[0].frameworkExternalId,
+                    "frameworkId": observationSolutionData[0].frameworkId,
+                    "programExternalId": observationSolutionData[0].programExternalId,
+                    "programId": programId,
+                    "entityTypeId": observationSolutionData[0].entityTypeId,
+                    "entityType": observationSolutionData[0].entityType,
+                    "isAPrivateProgram": true,
+                    "entities": entities
+                }
+
+                let result = await this.createObservation(
+                    dataObj,
+                    userId,
+                    solution,
+                    organisationAndRootOrganisation
+                );
+
+                return resolve({
+                    message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
+                    result: result
+                });                  
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 };

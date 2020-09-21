@@ -40,6 +40,9 @@ module.exports = {
 "SOLUTION_IMPORTED" : "Solution imported successfully.",
 "SOLUTION_FETCHED" : "Solutions fetched successfully",
 "SOLUTION_ID_NOT_FOUND" : "Solution Id is not found",
+"SOLUTION_ID_REQUIRED" : "Solution id is required",
+"SOLUTION_DELETED" : "Solution deleted successfully.",
+"SOLUTION_CANT_DELETE" : "Cannot delete solution.",
 "CRITERIA_FILE_NOT_FOUND" : "Csv file for criterias should be selected",
 "CRITERIA_INSERTED" : "Criterias inserted successfully.",
 "CRITERIA_RATING" : "Crtieria rating completed successfully",
@@ -70,6 +73,8 @@ module.exports = {
 "OBSERVATION_SUBMISSION_CHECK" : "Observation submission check completed successfully",
 "OBSERVATION_SUBMISSION_DELETED" : "Observation submission deleted successfully",
 "OBSERVATION_SUBMISSION_UPDATED" : "Observation submission updated successfully",
+"OBSERVATION_LINK_GENERATED" : "Observation Link generated successfully",
+"OBSERVATION_LINK_VERIFIED" : "Observation solution link verified successfully.",
 "SUBMISSION_NOT_FOUND" : "No submission found.",
 "SUBMISSION_FOUND" : "submission found.",
 "PARENT_INFORMATION_NOT_FOUND" : "No parent information found.",
@@ -249,5 +254,6 @@ module.exports = {
 "POLL_LINK_FETCHED" : "Poll link fetched successfully",
 "POLL_COULD_NOT_BE_DELETED" : "Poll could not be deleted",
 "POLL_UPDATE_QUERY_REQUIRED" : "Update query is required",
-"POLL_COULD_NOT_BE_UPDATED" : "Poll updation failed"
+"POLL_COULD_NOT_BE_UPDATED" : "Poll updation failed",
+"APP_NOT_FOUND" : "App not found",
 }
