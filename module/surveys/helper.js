@@ -16,6 +16,7 @@ const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL : "https://apps.shikshalokam.org/";
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 
 /**
     * SurveysHelper
@@ -155,7 +156,7 @@ module.exports = class SurveysHelper {
                 newSolutionDocument.type = messageConstants.common.SURVEY;  
                 newSolutionDocument.subType = messageConstants.common.SURVEY; 
                 newSolutionDocument.name = solutionData.name;
-                newSolutionDocument.externalId = solutionData.externalId + "-SURVEY-TEMPLATE";
+                newSolutionDocument.externalId = solutionData.externalId + surveySolutionTemplate;
                 newSolutionDocument.description = solutionData.description;
                 newSolutionDocument.linkTitle = solutionData.linkTitle;
                 newSolutionDocument.linkUrl = solutionData.linkUrl;
@@ -178,7 +179,7 @@ module.exports = class SurveysHelper {
                         "modeOfCollection" : "",
                         "canBeNotApplicable" : false,
                         "notApplicable" : false,
-                        "canBeNotAllowed" : true,
+                        "canBeNotAllowed" : false,
                         "remarks" : "",
                         "isActive" : true
                     }
@@ -290,7 +291,7 @@ module.exports = class SurveysHelper {
                 }
 
                 let newSolutionDocument = solutionDocument[0];
-                let solutionExternalId = solutionDocument[0].externalId.split("-SURVEY-TEMPLATE")[0];
+                let solutionExternalId = solutionDocument[0].externalId.split("-SURVEY-TEMPLATE")[0] + "-"+ gen.utils.epochTime();;
 
                 let criteriaId = gen.utils.getCriteriaIds(newSolutionDocument.themes);
 
@@ -539,7 +540,7 @@ module.exports = class SurveysHelper {
                     }
 
                     survey["status"] = messageConstants.common.PUBLISHED;
-                    survey["deleted"] = "false";
+                    survey["deleted"] = false;
                     survey["solutionId"] = solution._id;
                     survey["solutionExternalId"] = solution.externalId;
                     survey["createdBy"] = userId;
@@ -935,14 +936,11 @@ module.exports = class SurveysHelper {
                 let submissionDocumentCriterias = [];
 
                 Object.keys(solutionDocument.evidenceMethods).forEach(solutionEcm => {
-                    if (!(solutionDocument.evidenceMethods[solutionEcm].isActive === false)) {
-                        solutionDocument.evidenceMethods[solutionEcm].startTime = "";
-                        solutionDocument.evidenceMethods[solutionEcm].endTime = "";
-                        solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false;
-                        solutionDocument.evidenceMethods[solutionEcm].submissions = new Array;
-                    } else {
-                        delete solutionDocument.evidenceMethods[solutionEcm];
-                    }
+                   
+                    solutionDocument.evidenceMethods[solutionEcm].startTime = "";
+                    solutionDocument.evidenceMethods[solutionEcm].endTime = "";
+                    solutionDocument.evidenceMethods[solutionEcm].isSubmitted = false;
+                    solutionDocument.evidenceMethods[solutionEcm].submissions = new Array;
                 })
 
                 submissionDocumentEvidences = solutionDocument.evidenceMethods;
@@ -959,7 +957,7 @@ module.exports = class SurveysHelper {
 
                 criteria.evidences.forEach(evidenceMethod => {
 
-                    if (submissionDocumentEvidences[evidenceMethod.code] && evidenceMethod.code) {
+                    if (evidenceMethod.code) {
 
                         if (!evidenceMethodArray[evidenceMethod.code]) {
 
@@ -1006,7 +1004,7 @@ module.exports = class SurveysHelper {
                     }
                 }
                 
-                const parsedAssessment = await assessmentsHelper.parseQuestions(
+                const parsedAssessment = await assessmentsHelper.parseQuestionsV2(
                     Object.values(evidenceMethodArray),
                     ["A1"],
                     submissionDocumentEvidences,

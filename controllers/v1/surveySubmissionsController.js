@@ -211,6 +211,20 @@ module.exports = class SurveySubmissions extends Abstract {
     return new Promise(async (resolve, reject) => {
 
       try {
+
+        let validateSubmission = await surveySubmissionsHelper.surveySubmissionDocuments
+        (
+           { _id: req.params._id,
+             status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+             createdBy: req.userDetails.userId },
+             [
+               "_id"
+             ]
+        ) 
+
+        if (validateSubmission.length > 0) {
+            throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
+        }
           
         let response = await submissionsHelper.createEvidencesInSubmission
         (  
