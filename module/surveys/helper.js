@@ -17,6 +17,7 @@ const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL : "https://apps.shikshalokam.org/";
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
+const surveyAndFeedback = "SF";
 
 /**
     * SurveysHelper
@@ -173,7 +174,7 @@ module.exports = class SurveysHelper {
                 newSolutionDocument.sections = { "SQ" : "Survey Questions"};
                 newSolutionDocument.evidenceMethods = {
                     "SF" : {
-                        "externalId" : "SF",
+                        "externalId" : surveyAndFeedback,
                         "name" : "Survey And Feedback",
                         "description" : "Survey And Feedback",
                         "modeOfCollection" : "",
@@ -189,7 +190,7 @@ module.exports = class SurveysHelper {
                     {
                        type : "theme",
                        label : "theme",
-                       externalId : "SF",
+                       externalId : surveyAndFeedback,
                        name : "Survey and Feedback",
                        weightage : 0,
                     }
@@ -198,7 +199,7 @@ module.exports = class SurveysHelper {
                 let criteriaDocument = {
                     name: "Survey and Feedback",
                     description: "Survey and Feedback",
-                    externalId: newSolutionDocument.externalId + "-SF",
+                    externalId: newSolutionDocument.externalId + "-" + surveyAndFeedback,
                     owner: userId,
                     language: [
                         "English"
@@ -291,7 +292,7 @@ module.exports = class SurveysHelper {
                 }
 
                 let newSolutionDocument = solutionDocument[0];
-                let solutionExternalId = solutionDocument[0].externalId.split("-SURVEY-TEMPLATE")[0] + "-"+ gen.utils.epochTime();;
+                let solutionExternalId = solutionDocument[0].externalId.split(surveySolutionTemplate)[0] + "-"+ gen.utils.epochTime();;
 
                 let criteriaId = gen.utils.getCriteriaIds(newSolutionDocument.themes);
 
@@ -300,7 +301,7 @@ module.exports = class SurveysHelper {
                    { _id: criteriaId[0] }
                 )
                 
-                solutionCriteria[0].externalId = solutionExternalId + "-SF";
+                solutionCriteria[0].externalId = solutionExternalId + "-" + surveyAndFeedback;
                 let newCriteriaId = await criteriaHelper.create
                 (
                     _.omit(solutionCriteria[0], ["_id"])
@@ -548,6 +549,7 @@ module.exports = class SurveysHelper {
                     survey["endDate"] = solution.endDate ? solution.endDate : date.setFullYear(date.getFullYear() + 1);
                     survey["name"] = solution.name;
                     survey["description"] = solution.description;
+                    survey['isAPrivateProgram'] = solution.isAPrivateProgram;
                     
                     if (solution.programId) {
                        survey["programId"] = solution.programId;
@@ -687,7 +689,8 @@ module.exports = class SurveysHelper {
                     "endDate",
                     "status",
                     "programId",
-                    "programExternalId"
+                    "programExternalId",
+                    "isAPrivateProgram"
                   ] 
                 )
 
@@ -847,18 +850,7 @@ module.exports = class SurveysHelper {
                     isDeleted: false
                 };
 
-                let solutionDocumentProjectionFields = [
-                    "name",
-                    "externalId",
-                    "programId",
-                    "programExternalId",
-                    "description",
-                    "themes",
-                    "evidenceMethods",
-                    "sections",
-                    "captureGpsLocationAtQuestionLevel",
-                    "enableQuestionReadOut",
-                ]
+                let solutionDocumentProjectionFields = await this.solutionDocumentProjectionFieldsForDetailsAPI();
 
                 let solutionDocument = await solutionsHelper.solutionDocuments(
                     solutionQueryObject,
@@ -893,15 +885,7 @@ module.exports = class SurveysHelper {
                     );
                 }
 
-                let solutionDocumentFieldList = [
-                    "_id",
-                    "externalId",
-                    "name",
-                    "description",
-                    "registry",
-                    "captureGpsLocationAtQuestionLevel",
-                    "enableQuestionReadOut"
-                ]
+                let solutionDocumentFieldList = await this.solutionDocumentFieldListInResponse();
 
                 let result = {};
 
@@ -920,8 +904,9 @@ module.exports = class SurveysHelper {
                 let criteriaId = solutionDocument.themes[0].criteria[0].criteriaId;
                 let weightage = solutionDocument.themes[0].criteria[0].weightage;
 
-                let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
+                let criteriaQuestionDocument = await criteriaQuestionsHelper.list(
                     { _id: criteriaId },
+                    "all",
                     {
                         resourceType: 0,
                         language: 0,
@@ -987,6 +972,7 @@ module.exports = class SurveysHelper {
                         surveyInformation: {
                             ..._.omit(surveyDocument, ["_id", "deleted", "__v"])
                         },
+                        isAPrivateProgram: surveyDocument.isAPrivateProgram
                     };
                     surveyInformation.startDate = new Date();
 
@@ -1084,6 +1070,53 @@ module.exports = class SurveysHelper {
             }
         })
 
+    }
+
+    /**
+      *  Helper function for list of fields to be selected from solution document.
+      * @method
+      * @name solutionDocumentProjectionFieldsForDetailsAPI
+      * @returns {Array} - List of solution document fields.
+     */
+
+    static solutionDocumentProjectionFieldsForDetailsAPI() {
+        
+        return new Promise(async (resolve, reject) => {
+            return resolve([
+                "name",
+                "externalId",
+                "programId",
+                "programExternalId",
+                "description",
+                "themes",
+                "questionSequenceByEcm",
+                "evidenceMethods",
+                "sections",
+                "captureGpsLocationAtQuestionLevel",
+                "enableQuestionReadOut"
+              ])
+        })
+    }
+
+     /**
+      *  Helper function for list of solution fields to be sent in response.
+      * @method
+      * @name solutionDocumentFieldListInResponse
+      * @returns {Array} - list of solution document fields.
+     */
+
+    static solutionDocumentFieldListInResponse() {
+
+        return new Promise(async (resolve, reject) => {
+            return resolve([
+                "_id",
+                "externalId",
+                "name",
+                "description",
+                "captureGpsLocationAtQuestionLevel",
+                "enableQuestionReadOut"
+            ]);
+        })
     }
 
 

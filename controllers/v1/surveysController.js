@@ -296,7 +296,8 @@ module.exports = class Surveys extends Abstract {
                 "type",
                 "programId",
                 "programExternalId",
-                "endDate"
+                "endDate",
+                "isAPrivateProgram"
             ];
 
             let solutionDocument = await solutionsHelper.solutionDocuments
