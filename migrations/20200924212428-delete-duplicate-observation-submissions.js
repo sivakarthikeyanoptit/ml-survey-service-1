@@ -7,7 +7,15 @@ module.exports = {
 
     if (observationSubmissionDocuments.length > 0) {
 
-      observationSubmissionDocuments.forEach(async submissionDocument => {
+      let chunkOfSubmissionDocuments = _.chunk(observationSubmissionDocuments, 10);
+
+      for (
+        let pointerToSubmissionDocument = 0;
+        pointerToSubmissionDocument < chunkOfSubmissionDocuments.length;
+        pointerToSubmissionDocument++
+      ) {
+      
+        submissionDocument = chunkOfSubmissionDocuments[pointerToSubmissionDocument];
         submissionDocument.status = "completed";
 
         Object.keys(submissionDocument.evidences).forEach(evidence => {
@@ -27,7 +35,8 @@ module.exports = {
         })
 
         await db.collection('observationSubmissions').updateOne({ _id: submissionDocument._id }, { $set: { evidences: submissionDocument.evidences, status: submissionDocument.status, evidencesStatus: submissionDocument.evidencesStatus } })
-      });
+      
+      }
     }
   },
 
