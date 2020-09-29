@@ -1243,7 +1243,7 @@ module.exports = class Solutions extends Abstract {
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiParam {String} solutionId Solution External ID.
-  * @apiSampleRequest /assessment/api/v1/solutions/delete/AFRICA-ME-TEST-FRAMEWORK
+  * @apiSampleRequest /assessment/api/v1/solutions/delete/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
@@ -1259,7 +1259,7 @@ module.exports = class Solutions extends Abstract {
    * @method
    * @name deleteSolution
    * @param {Object} req - requested data.
-   * @param {String} req.params._id - solutiion external id.
+   * @param {String} req.params._id - solutiion internal id.
    * @returns {JSON} consists of solution id.
    */
 
@@ -1286,8 +1286,8 @@ module.exports = class Solutions extends Abstract {
   * @apiName Solution Move To Trash .
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} solutionId Solution External ID.
-  * @apiSampleRequest /assessment/api/v1/solutions/moveToTrash/AFRICA-ME-TEST-FRAMEWORK
+  * @apiParam {String} solutionId Solution Intenal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/moveToTrash/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
@@ -1330,7 +1330,7 @@ module.exports = class Solutions extends Abstract {
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiParam {String} solutionId Solution External ID.
-  * @apiSampleRequest /assessment/api/v1/solutions/restoreFromTrash/AFRICA-ME-TEST-FRAMEWORK
+  * @apiSampleRequest /assessment/api/v1/solutions/restoreFromTrash/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
@@ -1424,8 +1424,8 @@ module.exports = class Solutions extends Abstract {
   * @apiName Solution Remove From Home screen .
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} solutionId Solution External ID.
-  * @apiSampleRequest /assessment/api/v1/solutions/removeFromHomeScreen/AFRICA-ME-TEST-FRAMEWORK
+  * @apiParam {String} solutionId Solution Internal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/removeFromHomeScreen/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:

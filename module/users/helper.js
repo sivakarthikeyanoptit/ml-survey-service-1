@@ -15,6 +15,7 @@
  const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
  const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
  const surveysHelper = require(MODULES_BASE_PATH + "/surveys/helper");
+ const userExtensionsHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
  const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
 
 /**
@@ -240,18 +241,25 @@ module.exports = class UserHelper {
                         [solution._id.toString()]: solution
                     }), {});
 
+                let removedSolutions = await userExtensionsHelper.userExtensionDocuments({
+                    userId: userId
+                  },["removedFromHomeScreen"]);
+
                 for (var i in solutionsData) {
 
-                    var removedId = solutionsData[i]._id;
-                    var checkRemoved =  await database.models.userExtension.findOne({
-                        userId : userId,
-                        removedFromHomeScreen: {$exists: true, $in: [removedId]},
-                    }).count();
-
-                    if(checkRemoved > 0){
-                        solutionsData[i].showInHomeScreen = false;
-                    }else{
-                        solutionsData[i].showInHomeScreen = true;
+                    if(Array.isArray(removedSolutions) || removedSolutions.length > 0){
+                        if(removedSolutions[0].removedFromHomeScreen !== undefined){
+                            let found = removedSolutions[0].removedFromHomeScreen.some(el => el.equals(solutionsData[i]._id));
+                            
+                            if(found){
+                                solutionsData[i].showInHomeScreen = false;
+                            }else{
+                                solutionsData[i].showInHomeScreen = true;
+                            }
+                        
+                        }else{
+                           solutionsData[i].showInHomeScreen = true;
+                        }
                     }
                 }
 

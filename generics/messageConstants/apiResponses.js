@@ -43,6 +43,7 @@ module.exports = {
 "SOLUTION_ID_REQUIRED" : "Solution id is required",
 "SOLUTION_DELETED" : "Solution deleted successfully.",
 "SOLUTION_CANT_DELETE" : "Solution not found or Solution is private.",
+"SOLUTION_CANT_REMOVE" : "Solution cannot be removed  ",
 "SOLUTION_MOVED_TO_TRASH" : "Your solution has been moved to Trash.",
 "SOLUTION_REMOVED_FROM_HOME_SCREEN" : "Your solution has been removed.",
 "SOLUTION_RESTORED_FROM_TRASH" : "Solution restored successfully.",
@@ -291,5 +292,7 @@ module.exports = {
 "UPDATE_QUERY_REQUIRED" : "Update query is required",
 "UPDATE_OBJECT_REQUIRED" : "Update object is required",
 "FAILED_TO_UPDATE" : "Failed to update the document",
-"UPDATED_DOCUMENT_SUCCESSFULLY" : "Document updated successfully"
+"UPDATED_DOCUMENT_SUCCESSFULLY" : "Document updated successfully",
+"USER_EXTENSION_COULD_NOT_BE_UPDATED" : "User Extension updation failed",
+"USER_EXTENSION_UPDATED" : "User Extension updated"
 }
