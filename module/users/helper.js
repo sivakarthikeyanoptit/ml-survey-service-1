@@ -192,8 +192,22 @@ module.exports = class UserHelper {
                         [solution._id.toString()]: solution
                     }), {});
 
-                let entitiesData = {};
+                for (var i in solutionsData) {
 
+                    var removedId = solutionsData[i]._id;
+                    var checkRemoved =  await database.models.userExtension.findOne({
+                        userId : userId,
+                        removedFromHomeScreen: {$exists: true, $in: [removedId]},
+                    }).count();
+
+                    if(checkRemoved > 0){
+                        solutionsData[i].showInHomeScreen = false;
+                    }else{
+                        solutionsData[i].showInHomeScreen = true;
+                    }
+                }
+
+                let entitiesData = {};
                 if( entityIds.length > 0 ) {
 
 
@@ -745,7 +759,8 @@ function _solutionInformation(program,solution) {
         description : solution.description,
         type : solution.type,
         subType : solution.subType,
-        allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false 
+        allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false
     }
 }
 

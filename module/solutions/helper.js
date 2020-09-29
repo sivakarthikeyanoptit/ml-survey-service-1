@@ -1125,5 +1125,256 @@ module.exports = class SolutionsHelper {
         }
       })
     }
+
+  
+    /**
+     * Delete Solution.
+     * @method
+     * @name deleteSolution
+     * @param {String} solutionId - solution External id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static delete(
+      solutionId,
+      userId
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (!solutionId) {
+            return resolve({
+                message: messageConstants.apiResponses.SOLUTION_ID_REQUIRED,
+                result: {}
+            });
+          }
+
+          let solutionData = 
+          await database.models.solutions.findOneAndUpdate({
+              externalId: solutionId,
+              isAPrivateProgram: false,
+              author : userId,
+          },{
+            $set : {
+              isDeleted : true
+            }
+          });
+
+          let reponseMessage = null;
+          let result = {};
+          if(solutionData){
+            if(solutionData.isDeleted){
+              reponseMessage = messageConstants.apiResponses.SOLUTION_DELETED;
+              result = solutionData._id;
+            }else{
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+            }
+            
+          }else{
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Move To Trash.
+     * @method
+     * @name moveToTrash
+     * @param {String} solutionId - solution External id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static moveToTrash(
+      solutionId,
+      userId
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if(!solutionId) {
+            return resolve({
+                message: messageConstants.apiResponses.SOLUTION_ID_REQUIRED,
+                result: result
+            });
+          }
+
+          let solutionData = await database.models.solutions.findOneAndUpdate({
+              externalId: solutionId,
+              isAPrivateProgram: false,
+              author : userId,
+              isDeleted:true
+          },{
+            $set : {
+              status : messageConstants.common.INACTIVE_STATUS,
+            }
+          });
+
+          if(solutionData){
+            var reponseMessage = messageConstants.apiResponses.SOLUTION_MOVED_TO_TRASH;
+            var result = solutionData._id;
+          }else{
+            var reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+            var result = {};
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+     * Restore From Trash.
+     * @method
+     * @name restoreFromTrash
+     * @param {String} solutionId - solution External id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static restoreFromTrash(
+      solutionId,
+      userId
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if(!solutionId) {
+            return resolve({
+                message: messageConstants.apiResponses.SOLUTION_ID_REQUIRED,
+                result: result
+            });
+          }
+
+          let solutionData = await database.models.solutions.findOneAndUpdate({
+              externalId: solutionId,
+              isAPrivateProgram: false,
+              author : userId,
+          },{
+            $set : {
+              status : messageConstants.common.ACTIVE_STATUS,
+            }
+          });
+
+          if(solutionData){
+            var reponseMessage = messageConstants.apiResponses.SOLUTION_RESTORED_FROM_TRASH;
+            var result = solutionData._id;
+          }else{
+            var reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+            var result = {};
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Trash List.
+     * @method
+     * @name trashList
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static trashList(
+      userId
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          let trashData = await this.solutionDocuments({
+                        author : userId,
+                        isAPrivateProgram : false,
+                        status : messageConstants.common.INACTIVE_STATUS
+                    },["name","externalId"]);
+
+          return resolve({
+              message: messageConstants.apiResponses.SOLUTION_TRASH_LIST_FETCHED,
+              result: trashData
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+  /**
+     * Remove From Home Screen.
+     * @method
+     * @name removeFromHome
+     * @param {String} solutionId - solution External id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static removeFromHome(
+      solutionId,
+      userId
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if(!solutionId) {
+            return resolve({
+                message: messageConstants.apiResponses.SOLUTION_ID_REQUIRED,
+                result: result
+            });
+          }
+
+          let solutionData = await this.solutionDocuments({
+            externalId: solutionId
+          },["_id"]);
+
+          if(Array.isArray(solutionData) || solutionData.length > 0){
+
+            var removedOne = solutionData[0]._id;
+            let addRemovedToUser = await database.models.userExtension.updateOne({
+              userId: userId
+            },{
+                $addToSet: { removedFromHomeScreen: removedOne  } 
+            });
+
+            var reponseMessage = messageConstants.apiResponses.SOLUTION_REMOVED_FROM_HOME_SCREEN;
+            var result = solutionData[0]._id;
+
+          }else{
+              var reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+              var result = {};
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
   
 };

@@ -13,6 +13,8 @@ const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications")
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
+const moment = require("moment-timezone");  
 
 
 /**

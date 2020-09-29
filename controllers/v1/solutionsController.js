@@ -1235,5 +1235,231 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/delete/{{solutionId}} Delete solution .
+  * @apiVersion 1.0.0
+  * @apiName Delete Solution.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/delete/AFRICA-ME-TEST-FRAMEWORK
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Solution deleted successfully.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Delete Solution.
+   * @method
+   * @name deleteSolution
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solution = await solutionsHelper.delete(req.params._id,req.userDetails.userId);
+        return resolve(solution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/moveToTrash/{{solutionId}} Solution Move to Trash .
+  * @apiVersion 1.0.0
+  * @apiName Solution Move To Trash .
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/moveToTrash/AFRICA-ME-TEST-FRAMEWORK
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Your solution has been moved to Trash.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Move To Trash.
+   * @method
+   * @name moveToTrash
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async moveToTrash(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let trashSolution = await solutionsHelper.moveToTrash(req.params._id,req.userDetails.userId);
+        return resolve(trashSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+   /**
+  * @api {get} /assessment/api/v1/solutions/restoreFromTrash/{{solutionId}} Solution Restore FRom Trash .
+  * @apiVersion 1.0.0
+  * @apiName Solution Restore From Trash.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/restoreFromTrash/AFRICA-ME-TEST-FRAMEWORK
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Solution restored successfully.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Restore From Trash.
+   * @method
+   * @name restoreFromTrash
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async restoreFromTrash(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let restoreSolution = await solutionsHelper.restoreFromTrash(req.params._id,req.userDetails.userId);
+        return resolve(restoreSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/trashList Solution Trash List .
+  * @apiVersion 1.0.0
+  * @apiName Solution Trash List.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/solutions/trashList
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Trash Solution fetched successfully.",
+      "status": 200,
+      "result": [
+          {
+              "_id": "5f64601df5f6e432fe0f0575",
+              "externalId": "AFRICA-ME-TEST-FRAMEWORK",
+              "name": "AFRICA-ME-TEST-FRAMEWORK"
+          },
+          {
+              "_id": "5f64651f916c13367d8ff83f",
+              "externalId": "PRIYANKA-3-FRAMWORK-OBSERVATION-1",
+              "name": "Priyanka Observation solution"
+          }
+      ]
+    }
+  */
+
+   /**
+   * Solution Trash List
+   * @method
+   * @name trashList
+   * @returns {JSON} Trash List 
+   */
+
+  async trashList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let trashData = await solutionsHelper.trashList(req.userDetails.userId);
+        return resolve(trashData)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+/**
+  * @api {get} /assessment/api/v1/solutions/removeFromHomeScreen/{{solutionId}} Solution Remove From Library .
+  * @apiVersion 1.0.0
+  * @apiName Solution Remove From Home screen .
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution External ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/removeFromHomeScreen/AFRICA-ME-TEST-FRAMEWORK
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Your solution has been removed.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Remove From Home screen.
+   * @method
+   * @name removeFromHomeScreen
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async removeFromHomeScreen(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let removeSolution = await solutionsHelper.removeFromHome(req.params._id,req.userDetails.userId);
+        return resolve(removeSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  } 
   
 };

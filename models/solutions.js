@@ -64,6 +64,7 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
-    }
+    },
+    link: String,
   }
 };
