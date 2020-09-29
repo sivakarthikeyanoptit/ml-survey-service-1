@@ -1,64 +1,64 @@
 /**
- * name : observationsController.js
- * author : Aman
- * created-date : 04-Jun-2020
- * Description : Observations library related information.
+ * name : surveysController.js
+ * author : Deepa
+ * created-date : 04-Sep-2020
+ * Description : Surveys library related information.
  */
 
-const libraryObservationsHelper = 
-require(MODULES_BASE_PATH + "/library/observations/helper");
+const librarySurveysHelper = require(MODULES_BASE_PATH + "/library/surveys/helper");
 
  /**
-    * Observations
+    * Surveys
     * @class
 */
-module.exports = class Observations {
+module.exports = class Surveys {
     
     constructor() {}
 
     static get name() {
-        return "Observations";
+        return "Surveys";
     }
 
     /**
-    * @api {get} /assessment/api/v1/library/observations/list?search=:searchText&page=:page&limit=:limit List of observation solutions
+    * @api {get} /assessment/api/v1/library/surveys/list?search=:searchText&page=:page&limit=:limit List of survey solutions
     * @apiVersion 1.0.0
-    * @apiName List of observation solutions
-    * @apiGroup Observation Solutions Library
-    * @apiSampleRequest /assessment/api/v1/library/observations/list?search=A&page=1&limit=1
+    * @apiName List of survey solutions
+    * @apiGroup Survey Solutions Library
+    * @apiSampleRequest /assessment/api/v1/library/surveys/list?search=A&page=1&limit=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
     * {
-    "message": "Successfully fetched observations solutions list",
-    "status": 200,
-    "result": {
-        "data": [
-            {
-                "_id": "5d15b0d7463d3a6961f91746",
-                "externalId": "AFRICA-ME-TEST-FRAMEWORK-TEMPLATE",
-                "name": "AFRICA-ME-TEST-FRAMEWORK",
-                "description": "AFRICA-ME-TEST-FRAMEWORK"
-            }
-        ],
-        "count": 29
-    }}
+        "message": "Survey solutions list fetched successfully",
+        "status": 200,
+        "result": {
+           "data": [
+              {
+                "_id": "5f57ad1283096e7c4474417d",
+                "name": "Test survey",
+                "externalId": "Test-survey",
+                "description": "Survey and feedback"
+              }
+            ],
+           "count": 1
+        }
+      }
     */
 
       /**
-      * List of observation solutions
+      * List of survey solutions
       * @method
       * @name list
       * @param {Object} req - All requested Data.
-      * @returns {JSON} returns a list of templates observation solution.
+      * @returns {JSON} returns a list of survey solution.
      */
 
     async list(req) {
         return new Promise(async (resolve, reject) => {
             try {
                 
-                let observationSolutions = 
-                await libraryObservationsHelper.list( 
+                let surveySolutions = 
+                await librarySurveysHelper.list( 
                   req.searchText, 
                   req.pageSize, 
                   req.pageNo,
@@ -66,7 +66,11 @@ module.exports = class Observations {
                   req.rspObj.userToken  
                 );
 
-                return resolve(observationSolutions);
+                return resolve({
+                    message: surveySolutions.message,
+                    result: surveySolutions.data
+                });
+
             } catch (error) {
                 return reject({
                     status: error.status || httpStatusCode.internal_server_error.status,
@@ -78,21 +82,21 @@ module.exports = class Observations {
     }
 
     /**
-    * @api {get} /assessment/api/v1/library/observations/details/:librarySolutionId Details of observation solution.
+    * @api {get} /assessment/api/v1/library/surveys/details/:librarySolutionId Details of survey solution.
     * @apiVersion 1.0.0
-    * @apiName Details of observation solution
-    * @apiGroup Observation Solutions Library
-    * @apiSampleRequest /assessment/api/v1/library/observations/details/5ed5ec4dd2afa80d0f616460
+    * @apiName Details of survey solution
+    * @apiGroup Survey Solutions Library
+    * @apiSampleRequest /assessment/api/v1/library/surveys/details/5ed5ec4dd2afa80d0f616460
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
     * {
-    "message": "Successfully fetched observation solution details",
+    "message": "Survey solution details fetched successfully",
     "status": 200,
     "result": {
-        "name": "AFRICA-ME-TEST-FRAMEWORK",
+        "name": "Test survey",
         "creator": "",
-        "description": "AFRICA-ME-TEST-FRAMEWORK",
+        "description": "Survey and feedback",
         "linkTitle": "",
         "linkUrl": "",
         "questions": [
@@ -116,12 +120,16 @@ module.exports = class Observations {
         return new Promise(async (resolve, reject) => {
             try {
                 
-                let observationSolution = 
-                await libraryObservationsHelper.details( 
+                let surveySolution = 
+                await librarySurveysHelper.details( 
                     req.params._id
                 );
 
-                return resolve(observationSolution);
+                return resolve({
+                      message: surveySolution.message,
+                      result: surveySolution.data
+                });
+                
             } catch (error) {
                 return reject({
                     status: error.status || httpStatusCode.internal_server_error.status,

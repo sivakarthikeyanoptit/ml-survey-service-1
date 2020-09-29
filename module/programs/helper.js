@@ -210,4 +210,52 @@ module.exports = class ProgramsHelper {
 
     })
   }
+
+   /**
+    * Update program document.
+    * @method
+    * @name updateProgramDocument
+    * @param {Object} query - query to find document
+    * @param {Object} updateObject - fields to update
+    * @returns {String} - message.
+    */
+
+   static updateProgramDocument(query= {}, updateObject= {}) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (Object.keys(query).length == 0) {
+                throw new Error(messageConstants.apiResponses.UPDATE_QUERY_REQUIRED)
+            }
+
+            if (Object.keys(updateObject).length == 0) {
+                throw new Error (messageConstants.apiResponses.UPDATE_OBJECT_REQUIRED)
+            }
+
+            let updateResponse = await database.models.programs.updateOne
+            (
+                query,
+                updateObject
+            )
+            
+            if (updateResponse.nModified == 0) {
+                throw new Error(messageConstants.apiResponses.FAILED_TO_UPDATE)
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.UPDATED_DOCUMENT_SUCCESSFULLY,
+                data: true
+            });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+}
+
 };

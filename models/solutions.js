@@ -1,7 +1,11 @@
 module.exports = {
   name: "solutions",
   schema: {
-    externalId: String,
+    externalId: {
+      type: String,
+      index: true,
+      unique: true
+    },
     isReusable: Boolean,
     name: String,
     description: String,
@@ -22,8 +26,14 @@ module.exports = {
     type: String,
     subType: String,
     entities: Array,
-    programId: "ObjectId",
-    programExternalId: String,
+    programId: {
+      type: "ObjectId",
+      index: true
+    },
+    programExternalId: {
+      type: String,
+      index: true
+    },
     programName: String,
     programDescription: String,
     entityProfileFieldsPerEntityTypes: Object,
@@ -64,6 +74,11 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
+    },
+    link: {
+      type: String,
+      index: true,
+      unique: true
     }
   }
 };
