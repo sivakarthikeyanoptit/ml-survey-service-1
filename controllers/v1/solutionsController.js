@@ -12,7 +12,6 @@ const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
-var md5 = require('md5');
 
 /**
     * Solutions
@@ -1289,13 +1288,13 @@ module.exports = class Solutions extends Abstract {
     }
 
   /**
-    * @api {get} /assessment/api/v1/observations/verifyLink/{{link}} Verify Observation Link And get details
+    * @api {get} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
     * @apiVersion 1.0.0
     * @apiName Verify Observation Solution Link
     * @apiGroup Solutions
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiParam {String} link Observation Solution Link.
-    * @apiSampleRequest /assessment/api/v1/observations/verifyLink/38cd93bdb87489c3890fe0ab00e7d406
+    * @apiSampleRequest /assessment/api/v1/solutions/verifyLink/38cd93bdb87489c3890fe0ab00e7d406
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:

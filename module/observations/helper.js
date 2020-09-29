@@ -146,7 +146,7 @@ module.exports = class ObservationsHelper {
                     await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
                     data.entities = entitiesToAdd.entityIds;
                 }
-
+                
                 let observationData = 
                 await database.models.observations.create(
                     _.merge(data, {
@@ -162,7 +162,8 @@ module.exports = class ObservationsHelper {
                         "createdBy": userId,
                         "createdFor": organisationAndRootOrganisation.createdFor,
                         "rootOrganisations": organisationAndRootOrganisation.rootOrganisations,
-                        "isAPrivateProgram" : solution.isAPrivateProgram
+                        "isAPrivateProgram" : solution.isAPrivateProgram,
+                        "link": solution.link ? solution.link :"",
                     })
                 );
 
@@ -1089,8 +1090,8 @@ module.exports = class ObservationsHelper {
                 if(appDetails.result === false){
                     throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
                 }
-                
-                let link = appsPortalBaseUrl+ appName+ messageConstants.common.CREATE_OBSERVATION + observationData[0].link;
+
+                let link = await gen.utils.getLink(observationData[0].link);
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_GENERATED,
                     result: link
@@ -1123,7 +1124,7 @@ module.exports = class ObservationsHelper {
 
             try {
 
-                if (link == "") {
+                if (!link || link == "") {
                     throw new Error(messageConstants.apiResponses.LINK_REQUIRED_CHECK)
                 }
 
@@ -1131,9 +1132,21 @@ module.exports = class ObservationsHelper {
                     link: link,
                     type : messageConstants.common.OBSERVATION,
                     isReusable: false,
-                    status: messageConstants.common.ACTIVE_STATUS,
-                    endDate : {$gte: new Date()}
-                });
+                },[
+                    "externalId",
+                    "subType",
+                    "programId",
+                    "name",
+                    "description",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "entityTypeId",
+                    "entityType",
+                    "isAPrivateProgram",
+                    "programExternalId",
+                    "endDate",
+                    "status"
+                ]);
 
                 if(!Array.isArray(observationSolutionData) || observationSolutionData.length < 1){
                     return resolve({
@@ -1142,19 +1155,33 @@ module.exports = class ObservationsHelper {
                     });
                    
                 }
-
+                if (new Date() > new Date(observationSolutionData[0].endDate)) {
+                    if (observationSolutionData[0].status == messageConstants.common.ACTIVE_STATUS) {
+                        await solutionHelper.updateSolutionDocument
+                        (
+                            { link : link },
+                            { $set : { status: messageConstants.common.INACTIVE_STATUS } }
+                        )
+                    }
+                    
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: []
+                    });
+                }
+                
                 let observationData = await this.observationDocuments({
-                    solutionExternalId : observationSolutionData[0].externalId
+                    solutionExternalId : observationSolutionData[0].externalId,
+                    createdBy :userId
                 });
 
-                if(observationData){
+                if(observationData && observationData.length > 0){
                     return resolve({
                         message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
                         result: observationData
                     });
                 }
 
-                
                 let entities = [];
                 if(userId){
                     let userEntities = await userExtensionHelper.getUserEntities(userId);
@@ -1185,7 +1212,7 @@ module.exports = class ObservationsHelper {
                     "startDate": startDate,
                     "endDate": endDate,
                     "status": messageConstants.common.ACTIVE_STATUS,
-                    "entities": entities
+                    "entities": entities,
                 }
 
                 
@@ -1204,8 +1231,10 @@ module.exports = class ObservationsHelper {
                     "programId": programId,
                     "entityTypeId": observationSolutionData[0].entityTypeId,
                     "entityType": observationSolutionData[0].entityType,
-                    "isAPrivateProgram": true,
+                    "isAPrivateProgram": observationSolutionData[0].isAPrivateProgram,
+                    "link" : link,
                     "entities": entities
+                    
                 }
 
                 let result = await this.createObservation(
