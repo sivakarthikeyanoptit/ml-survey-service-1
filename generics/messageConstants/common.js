@@ -36,4 +36,10 @@ module.exports = {
     GESTURE : "gesture",
     TAKE_POLL : "/take-poll/",
     CREATE_OBSERVATION : "/create-observation/"
+    SURVEY : "survey",
+    TAKE_SURVEY : "/take-survey/",
+    EXPIRED: "expired",
+    SURVEY_SUBMISSIONS: "surveySubmissions",
+    OBSERVATION_SUBMISSIONS: "observationSubmissions",
+    SUBMISSIONS: "submissions"
 }

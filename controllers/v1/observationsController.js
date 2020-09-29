@@ -1305,7 +1305,7 @@ module.exports = class Observations extends Abstract {
                     userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
                     if(Object.keys(userIdByExternalId).length > 0) {
                         Object.values(userIdByExternalId).forEach(userDetails => {
-                            usersKeycloakIdMap[userDetails.userId] = true;
+                            usersKeycloakIdMap[userDetails] = true;
                         })
                     }
                 }

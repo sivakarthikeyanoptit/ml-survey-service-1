@@ -299,7 +299,7 @@ module.exports = class QuestionsHelper {
               );
 
             }
-
+            
             let newCriteria = await database.models.criteria.findOne(
               {
                 _id: criteriaObject[parsedQuestion["criteriaExternalId"]]._id
