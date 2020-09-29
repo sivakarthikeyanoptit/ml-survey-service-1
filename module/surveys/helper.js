@@ -952,6 +952,36 @@ module.exports = class SurveysHelper {
                             _.merge(evidenceMethod, submissionDocumentEvidences[evidenceMethod.code])
                             evidenceMethodArray[evidenceMethod.code] = evidenceMethod;
                         }
+                        else {
+
+                            evidenceMethod.sections.forEach(evidenceMethodSection => {
+
+                                let sectionExisitsInEvidenceMethod = 0;
+                                let existingSectionQuestionsArrayInEvidenceMethod = [];
+
+                                evidenceMethodArray[evidenceMethod.code].sections.forEach(exisitingSectionInEvidenceMethod => {
+
+                                    if (exisitingSectionInEvidenceMethod.code == evidenceMethodSection.code) {
+                                        sectionExisitsInEvidenceMethod = 1;
+                                        existingSectionQuestionsArrayInEvidenceMethod = exisitingSectionInEvidenceMethod.questions;
+                                    }
+
+                                });
+
+                                if (!sectionExisitsInEvidenceMethod) {
+                                    evidenceMethodSection.name = solutionDocument.sections[evidenceMethodSection.code];
+                                    evidenceMethodArray[evidenceMethod.code].sections.push(evidenceMethodSection);
+                                } else {
+                                    evidenceMethodSection.questions.forEach(questionInEvidenceMethodSection => {
+                                        existingSectionQuestionsArrayInEvidenceMethod.push(
+                                            questionInEvidenceMethodSection
+                                        );
+                                    });
+                                }
+
+                            });
+
+                        }
                     }
                 });
                 
