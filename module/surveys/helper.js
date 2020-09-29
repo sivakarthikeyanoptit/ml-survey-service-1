@@ -750,11 +750,22 @@ module.exports = class SurveysHelper {
 
                     surveyId = createSurveyDocument.data._id;
                 }
+
+                let validateSurvey = await this.validateSurvey
+                (
+                    surveyId,
+                    userId
+                )
+    
+                if (!validateSurvey.success) {
+                    return resolve(validateSurvey);
+                }
                 
                 let surveyDetails = await this.details
                 (
                     surveyId,
-                    userId
+                    userId,
+                    validateSurvey.data.submissionId
                 )
 
                 if (!surveyDetails.success) {
@@ -788,7 +799,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "") {
+    static details(surveyId = "", userId= "", submissionId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -798,35 +809,6 @@ module.exports = class SurveysHelper {
 
                 if (userId == "") {
                     throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
-                }
-
-                let surveySubmissionDocument = await surveySubmissionsHelper.surveySubmissionDocuments
-                (
-                    {
-                       surveyId: surveyId,
-                       createdBy: userId
-                    },
-                    [ 
-                      "status",
-                      "surveyInformation.endDate",
-                      "evidences"
-                    ]
-                )
-
-                if (surveySubmissionDocument.length > 0) {
-                    if (surveySubmissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS_COMPLETED) {
-                        return resolve({
-                            success: false,
-                            message: messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED,
-                            data: {
-                                status: surveySubmissionDocument[0].status
-                            }
-                        })
-                    }
-
-                    if (new Date > new Date(surveySubmissionDocument[0].surveyInformation.endDate)) {
-                        throw new Error(messageConstants.apiResponses.LINK_IS_EXPIRED)
-                    }
                 }
 
                 let surveyDocument = await this.surveyDocuments
@@ -985,8 +967,8 @@ module.exports = class SurveysHelper {
                     }
                 });
                 
-                if (surveySubmissionDocument.length > 0) {
-                    assessment.submissionId = surveySubmissionDocument[0]._id;
+                if (submissionId !== "") {
+                    assessment.submissionId = submissionId;
                 }
                 else {
                     let submissionDocument = {
@@ -1094,8 +1076,9 @@ module.exports = class SurveysHelper {
 
             } catch (error) {
                 return reject({
-                    success : false,
-                    message : error.message
+                    success: false,
+                    message: error.message,
+                    data: false
                 });
             }
         })
@@ -1150,4 +1133,75 @@ module.exports = class SurveysHelper {
     }
 
 
+    /**
+      * Validate survey.
+      * @method
+      * @name validateSurvey
+      * @param {String} surveyId - survey id.
+      * @param {String} userId - logged in user id. 
+      * @returns {Bollean} survey is valid or not.
+      */
+
+    static validateSurvey(surveyId, userId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (surveyId == "") {
+                    throw new Error(messageConstants.apiResponses.SURVEY_ID_REQUIRED)
+                }
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+                }
+
+                let surveySubmissionDocument = await surveySubmissionsHelper.surveySubmissionDocuments
+                (
+                    {
+                        surveyId: surveyId,
+                        createdBy: userId
+                    },
+                    [
+                        "status",
+                        "surveyInformation.endDate"
+                    ]
+                )
+
+                let submissionId = "";
+
+                if (surveySubmissionDocument.length > 0) {
+
+                    submissionId = surveySubmissionDocument[0]._id;
+
+                    if (surveySubmissionDocument[0].status == messageConstants.common.SUBMISSION_STATUS_COMPLETED) {
+                        return resolve({
+                            success: false,
+                            message: messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED,
+                            data: {
+                                status: surveySubmissionDocument[0].status
+                            }
+                        })
+                    }
+
+                    if (new Date() > new Date(surveySubmissionDocument[0].surveyInformation.endDate)) {
+                        throw new Error(messageConstants.apiResponses.LINK_IS_EXPIRED)
+                    }
+                }
+
+                return resolve({
+                    success: true,
+                    data: { 
+                          submissionId :submissionId
+                        }
+                })
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        })
+    }
+    
 }

@@ -801,10 +801,24 @@ module.exports = class Surveys extends Abstract {
     return new Promise(async (resolve, reject) => {
         try {
 
-            let surveyDetails = await surveysHelper.details
+            let validateSurvey = await surveysHelper.validateSurvey
             (
                 req.params._id,
                 req.userDetails.userId
+            )
+
+            if (!validateSurvey.success) {
+                return resolve({
+                    message: validateSurvey.message,
+                    result: validateSurvey.data
+                })
+            }
+
+            let surveyDetails = await surveysHelper.details
+            (
+                req.params._id,
+                req.userDetails.userId,
+                validateSurvey.data.submissionId
             );
 
             return resolve({
