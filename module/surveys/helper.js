@@ -907,14 +907,14 @@ module.exports = class SurveysHelper {
                 let criteriaQuestionDocument = await criteriaQuestionsHelper.list(
                     { _id: criteriaId },
                     "all",
-                    {
-                        resourceType: 0,
-                        language: 0,
-                        keywords: 0,
-                        concepts: 0,
-                        createdFor: 0
-                    }
-                ).lean();
+                    [
+                        "resourceType",
+                        "language",
+                        "keywords",
+                        "concepts",
+                        "createdFor"
+                    ]
+                )
 
                 let evidenceMethodArray = {};
                 let submissionDocumentEvidences = {};
