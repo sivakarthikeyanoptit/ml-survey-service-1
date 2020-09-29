@@ -7,13 +7,15 @@
 
  // Dependencies 
 
- let entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
- let programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
- let solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
- let observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
- let submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
- let entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
- let observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
+ const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
+ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+ const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
+ const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+ const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+ const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
+ const surveysHelper = require(MODULES_BASE_PATH + "/surveys/helper");
+ const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
 
 /**
     * UserHelper
@@ -131,6 +133,52 @@ module.exports = class UserHelper {
                 solutionIds = solutionIds.concat(observationSolutions);
                 entityIds = entityIds.concat(observationEntities);
 
+                let surveysData = 
+                await surveysHelper.surveyDocuments({
+                    createdBy : userId,
+                    status : messageConstants.common.PUBLISHED,
+                    programId : { $exists: true}
+                },[
+                    "solutionId",
+                    "programId",
+                    "name",
+                    "description",
+                    "status",
+                    "endDate",
+                    "createdAt",
+                    "updatedAt"
+                ]);
+
+                let surveyIds = [];
+                let surveySolutions = [];
+                
+                if ( surveysData.length > 0 ) {
+                    
+                    surveysData.forEach(survey=>{
+                        surveyIds.push(survey._id);
+                        survey["isSurvey"] = true;
+                        programIds.push(survey.programId);
+                        surveySolutions.push(survey.solutionId);
+                    });
+                }
+
+                let surveySubmissions = 
+                await surveySubmissionsHelper.surveySubmissionDocuments({
+                    surveyId : { $in : surveyIds }
+                },[
+                    "status",
+                    "createdAt",
+                    "updatedAt",
+                    "name",
+                    "surveyId", 
+                    "completedDate",
+                    "endDate"  
+                ],{
+                    createdAt : -1
+                });
+
+                solutionIds = solutionIds.concat(surveySolutions);
+
                 if ( !programIds.length > 0 ) {
                     throw {
                         status : httpStatusCode.ok.status,
@@ -236,11 +284,13 @@ module.exports = class UserHelper {
                 return resolve({
                     entityAssessors : assessorsData,
                     observations : observationsData,
+                    surveys : surveysData,
                     programsData : programsData,
                     solutionsData : solutionsData,
                     entitiesData : entitiesData,
                     submissions : submissions,
-                    observationSubmissions : observationSubmissions
+                    observationSubmissions : observationSubmissions,
+                    surveySubmissions: surveySubmissions
                 });
                     
             } catch(error) {
@@ -265,14 +315,13 @@ module.exports = class UserHelper {
                     userId
                 );
 
-                let users = userDetails.entityAssessors.concat(
-                    userDetails.observations
-                );
-
+                let users = [...userDetails.entityAssessors,...userDetails.observations,...userDetails.surveys];
+                
                 users = users.sort((a,b) => b.createdAt - a.createdAt);
 
                 let submissions = {};
                 let observationSubmissions = {};
+                let surveySubmissions = {};
 
                 if( userDetails.submissions.length > 0 ) {
                     submissions =  _submissions(userDetails.submissions);
@@ -283,6 +332,12 @@ module.exports = class UserHelper {
                     observationSubmissions = _observationSubmissions(
                         userDetails.observationSubmissions
                     );
+                }
+
+                if ( userDetails.surveySubmissions.length > 0 ) {
+                    surveySubmissions = _surveySubmissions
+                     ( userDetails.surveySubmissions
+                     );
                 }
 
                 let result = [];
@@ -314,25 +369,49 @@ module.exports = class UserHelper {
                             solutionData => solutionData.externalId === solution.externalId
                         );
 
-                        if( solutionIndex < 0 ) {
+                        if (solutionIndex < 0) {
 
-                            let solutionOrObservationInformation = 
-                            users[user].isObservation ? 
-                            _observationInformation(
-                                program,
-                                users[user],
-                                solution
-                            ) : _solutionInformation(program,solution); 
+                            let solutionInformation;
                             
-                            solutionOrObservationInformation["entities"] = [];
+                            if (users[user].isObservation) {
+                                solutionInformation = _observationInformation
+                                (
+                                    program,
+                                    users[user],
+                                    solution
+                                )
+                            }
+                            else if (users[user].isSurvey) {
+                                solutionInformation = _surveyInformation
+                                (
+                                    program,
+                                    users[user],
+                                    solution
+                                )
+                            }
+                            else {
+                                solutionInformation = _solutionInformation(program, solution);
+                            }
+                            
+                            if (!users[user].isSurvey) {
+                                solutionInformation["entities"] = [];
+                            }
+                                
                             result[programIndex].solutions.push(
-                                solutionOrObservationInformation
+                                solutionInformation
                             );
 
                             solutionIndex = 
                             result[programIndex].solutions.length - 1;
                         }
-
+                        
+                        if (users[user].isSurvey) {
+                          if (surveySubmissions[users[user]._id]) {
+                             result[programIndex].solutions[solutionIndex].submissions = (surveySubmissions[users[user]._id]["submissions"]);
+                          }
+                        }
+                        else {
+                            
                         let solutionOrObservationId = 
                         users[user].isObservation ?
                         users[user]._id 
@@ -350,6 +429,8 @@ module.exports = class UserHelper {
                             submissionData,
                             users[user].isObservation ? true : false
                         );
+
+                        }
                     }
                 }
 
@@ -794,6 +875,36 @@ function _observationInformation(program,observation,solution) {
     }
 }
 
+    /**
+   * survey information
+   * @method
+   * @name _surveyInformation - survey information
+   * @param {Object} program - program data.
+   * @param {String} program._id - program internal id.
+   * @param {String} program.name - program name.
+   * @param {Object} survey - survey data.
+   * @param {String} survey.externalId - survey external id.
+   * @param {String} survey._id - survey internal id.
+   * @param {String} survey.name - survey name.
+   * @param {String} survey.description - survey description.
+   * @returns {Object} - survey information
+   */
+
+function _surveyInformation(program,survey,solution) {
+    return {
+        programName : program.name,
+        programId : program._id,
+        _id : survey._id,
+        name : survey.name,
+        externalId : survey.externalId,
+        description : survey.description,
+        type : solution.type,
+        subType : solution.subType,
+        solutionExternalId : solution.externalId,
+        solutionId : solution._id
+    }
+}
+
 /**
    * Entities data
    * @method
@@ -887,4 +998,40 @@ function _entityInformation(entityDetails) {
         externalId : entityDetails.metaInformation.externalId,
         entityType : entityDetails.entityType
     }
+}
+
+
+ /**
+   * surveys submissions data.
+   * @method
+   * @name _surveySubmissions - surveys helper functionality
+   * @param {Array} surveySubmissions - survey submissions.
+   * @returns {Array} - surveys submissions data.
+   */
+
+function _surveySubmissions(surveySubmissions) {
+
+    let submissions = {};
+
+    surveySubmissions.forEach(submission=>{
+        
+        if ( !submissions[submission.surveyId.toString()]) {
+            submissions[submission.surveyId.toString()] = {}
+            submissions[submission.surveyId.toString()]["submissions"] = []
+        }
+        
+        submissions[submission.surveyId.toString()]["submissions"].push({ 
+                "_id" : submission._id,
+                "status" : submission.status,
+                "createdAt" : submission.createdAt,
+                "updatedAt" : submission.updatedAt,
+                "name" : submission.name,
+                "surveyId" : submission.surveyId,
+                "submissionDate" : submission.completedDate ? submission.completedDate : "",
+                "endDate" : submission.endDate
+        })
+
+    })
+
+    return submissions;
 }

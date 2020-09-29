@@ -512,7 +512,7 @@ module.exports = class EntityAssessorHelper {
 
                 const kafakResponses = await Promise.all(entities.map(async entity => {
 
-                    const kafkaMessage = await kafkaClient.pushEntityAssessorNotificationToKafka({
+                    const kafkaMessage = await kafkaClient.pushUserMappingNotificationToKafka({
                         user_id: userId,
                         internal: false,
                         text: `New ${entity.entityType} - ${entity.entityName} added for you in program ${entity.programName}`,
