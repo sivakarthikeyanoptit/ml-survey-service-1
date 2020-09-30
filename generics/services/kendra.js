@@ -118,8 +118,45 @@ const upload = function (file,filePath) {
     });
 }
 
+
+/**
+  * Get app Details.
+  * @function
+  * @name getAppDetails
+  * @param {String} appName - App Name.
+  * @returns {JSON} App Details.
+*/
+
+const getAppDetails = function (appName) {
+
+    let getAppDetailsUrl = process.env.KENDRA_APPLICATION_ENDPOINT + messageConstants.endpoints.GET_APP_DETAILS + "/" + appName;
+
+    return new Promise((resolve, reject) => {
+        try {
+
+            const kendraCallBack = function (err, response) {
+                if (err) {
+                    return reject({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.KENDRA_SERVICE_DOWN
+                    })
+                } else {
+                    let appDetails =  JSON.parse(response.body);
+                    return resolve(appDetails);
+                }
+            }
+
+            request.post(getAppDetailsUrl, kendraCallBack);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+}
+
 module.exports = {
     getDownloadableUrl : getDownloadableUrl,
-    upload : upload
+    upload : upload,
+    getAppDetails : getAppDetails
 };
 
