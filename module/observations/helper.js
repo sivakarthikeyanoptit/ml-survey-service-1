@@ -16,7 +16,7 @@ const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
-const appsPortalBaseUrl = (process.env.OBSERVATION_SHARE_URL_ENDPOINT && process.env.OBSERVATION_SHARE_URL_ENDPOINT !== "") ? process.env.OBSERVATION_SHARE_URL_ENDPOINT : "https://apps.shikshalokam.org";
+const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
 
 
 /**
@@ -1090,7 +1090,7 @@ module.exports = class ObservationsHelper {
                     throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
                 }
 
-                let link = appsPortalBaseUrl+ "/" + appName + messageConstants.common.CREATE_OBSERVATION + observationData[0].link;
+                let link = appsPortalBaseUrl+ appName + messageConstants.common.CREATE_OBSERVATION + observationData[0].link;
 
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_GENERATED,
