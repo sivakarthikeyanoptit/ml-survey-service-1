@@ -1243,7 +1243,7 @@ module.exports = class Solutions extends Abstract {
   * @apiName Delete Solution.
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} solutionId Solution Intenal ID.
   * @apiSampleRequest /assessment/api/v1/solutions/delete/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
@@ -1330,7 +1330,7 @@ module.exports = class Solutions extends Abstract {
   * @apiName Solution Restore From Trash.
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} solutionId Solution External ID.
+  * @apiParam {String} solutionId Solution Intenal ID.
   * @apiSampleRequest /assessment/api/v1/solutions/restoreFromTrash/5f64601df5f6e432fe0f0575
   * @apiUse successBody
   * @apiUse errorBody
