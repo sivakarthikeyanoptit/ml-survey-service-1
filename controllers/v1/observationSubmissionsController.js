@@ -469,6 +469,17 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
+        let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+        (
+          req.params._id,
+          req.body.evidence.externalId,
+          req.userDetails.userId
+        )
+
+        if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
+           throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
+        }
+
         let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
 
         if (response.result.status && response.result.status === "completed") {
@@ -523,38 +534,18 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       try {
 
-        let result = {
-          allowed: true
-        };
-
-        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_CHECK;
-
-        let submissionDocument = await database.models.observationSubmissions.findOne(
-          { "_id": req.params._id },
-          {
-            ["evidences." + req.query.evidenceId + ".isSubmitted"]: 1,
-            ["evidences." + req.query.evidenceId + ".submissions"]: 1
-          }
+        let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+        (
+          req.params._id,
+          req.query.evidenceId,
+          req.userDetails.userId
         );
 
-        if (!submissionDocument || !submissionDocument._id) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
-        } else {
-          if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
-            submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
-              if (submission.submittedBy == req.userDetails.userId) {
-                result.allowed = false;
-              }
-            })
-          }
-        }
+        return resolve({
+          message: isSubmissionAllowed.message,
+          result: isSubmissionAllowed.data
+        })
 
-        let response = {
-          message: message,
-          result: result
-        };
-
-        return resolve(response);
 
       } catch (error) {
         return reject({
