@@ -498,6 +498,77 @@ module.exports = class ObservationSubmissionsHelper {
     });
    }
 
+
+    /**
+    * Check if observation submission is allowed.
+    * @method
+    * @name isAllowed
+    * @param {String} submissionId - observation submissionId
+    * @param {String} evidenceId - evidence id
+    * @param {String} userId - logged in userId
+    * @returns {Json} - submission allowed or not.
+    */
+
+   static isAllowed(submissionId = "", evidenceId = "", userId = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (submissionId == "") {
+                throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_REQUIRED)
+            }
+
+            if (evidenceId == "") {
+                throw new Error(messageConstants.apiResponses.EVIDENCE_ID_REQUIRED)
+            }
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+
+            let result = {
+                allowed: true
+            };
+
+            let submissionDocument = await this.observationSubmissionsDocument
+            (
+                { "_id": submissionId,
+                  "evidencesStatus": {"$elemMatch": {externalId: evidenceId}}
+                },
+                [
+                    "evidencesStatus.isSubmitted",
+                    "evidencesStatus.submissions"
+                ]
+            );
+            
+            if (!submissionDocument.length) {
+                throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+            }
+
+            if (submissionDocument[0].evidencesStatus[0].isSubmitted && submissionDocument[0].evidencesStatus[0].isSubmitted == true) {
+                submissionDocument[0].evidencesStatus[0].submissions.forEach(submission => {
+                    if (submission.submittedBy == userId) {
+                        result.allowed = false;
+                    }
+                })
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.OBSERVATION_SUBMISSION_CHECK,
+                data: result
+            });
+        }
+  
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            })
+        }
+    })
+}
+
 };
 
 
