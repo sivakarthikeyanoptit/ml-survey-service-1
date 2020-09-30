@@ -16,7 +16,7 @@ const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
-const appsPortalBaseUrl = (process.env.OBSERVATION_SHARE_URL_ENDPOINT && process.env.OBSERVATION_SHARE_URL_ENDPOINT !== "") ? process.env.OBSERVATION_SHARE_URL_ENDPOINT : "https://apps.shikshalokam.org/";
+const appsPortalBaseUrl = (process.env.OBSERVATION_SHARE_URL_ENDPOINT && process.env.OBSERVATION_SHARE_URL_ENDPOINT !== "") ? process.env.OBSERVATION_SHARE_URL_ENDPOINT : "https://apps.shikshalokam.org";
 
 
 /**
@@ -1091,7 +1091,8 @@ module.exports = class ObservationsHelper {
                     throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
                 }
 
-                let link = await gen.utils.getLink(observationData[0].link);
+                let link = appsPortalBaseUrl+ "/" + appName + "/" + messageConstants.common.CREATE_OBSERVATION + "/" + observationData[0].link;
+                
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_GENERATED,
                     result: link
@@ -1108,30 +1109,38 @@ module.exports = class ObservationsHelper {
     /**
      * Verfy observation link.
      * @method
-     * @name verify
+     * @name verifyLink
      * @param {Object} data - observation link.
      * @param {String} requestingUserAuthToken - Requesting user auth token.
      * @returns {Object} observation data.
      */
 
-    static verify(
+    static verifyLink(
         link = "", 
-        requestingUserAuthToken,
-        userId
-        
+        requestingUserAuthToken = "",
+        userId = ""
     ) {
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                if (!link || link == "") {
+                if (link == "") {
                     throw new Error(messageConstants.apiResponses.LINK_REQUIRED_CHECK)
+                }
+
+                if (requestingUserAuthToken == "") {
+                    throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
+                }
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
                 }
 
                 let observationSolutionData = await solutionHelper.solutionDocuments({
                     link: link,
                     type : messageConstants.common.OBSERVATION,
-                    isReusable: false,
+                    isReusable : false,
+                    status : messageConstants.common.ACTIVE_STATUS
                 },[
                     "externalId",
                     "subType",
@@ -1152,9 +1161,9 @@ module.exports = class ObservationsHelper {
                     return resolve({
                         message: messageConstants.apiResponses.LINK_IS_EXPIRED,
                         result: []
-                    });
-                   
+                    });  
                 }
+
                 if (new Date() > new Date(observationSolutionData[0].endDate)) {
                     if (observationSolutionData[0].status == messageConstants.common.ACTIVE_STATUS) {
                         await solutionHelper.updateSolutionDocument
@@ -1182,21 +1191,21 @@ module.exports = class ObservationsHelper {
                     });
                 }
 
-                let entities = [];
-                if(userId){
-                    let userEntities = await userExtensionHelper.getUserEntities(userId);
-                    if(userEntities.length > 0){
-                        let entityIdsWithSolutionSubType = await entitiesHelper.entityDocuments({
-                            _id :  { $in : userEntities},
-                            entityType : observationSolutionData[0].subType
-                        }, [
-                            "_id"
-                        ]);
+                let entities = new Array;
 
-                        for(let pointerToUserExtension = 0; pointerToUserExtension < entityIdsWithSolutionSubType.length; 
-                            pointerToUserExtension++){
-                            entities.push(entityIdsWithSolutionSubType[pointerToUserExtension]._id)
-                        }
+                let userEntities = await userExtensionHelper.getUserEntities(userId);
+                
+                if(userEntities.length > 0){
+                    let entityIdsWithSolutionSubType = await entitiesHelper.entityDocuments({
+                        _id :  { $in : userEntities},
+                        entityType : observationSolutionData[0].subType
+                    }, [
+                        "_id"
+                    ]);
+
+                    for(let pointerToUserExtension = 0; pointerToUserExtension < entityIdsWithSolutionSubType.length; 
+                        pointerToUserExtension++) {
+                        entities.push(entityIdsWithSolutionSubType[pointerToUserExtension]._id);
                     }
                 }
                 

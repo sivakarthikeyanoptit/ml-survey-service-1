@@ -1347,7 +1347,7 @@ module.exports = class Solutions extends Abstract {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let result = await observationsHelper.verify(
+                let result = await observationsHelper.verifyLink(
                     req.params._id,
                     req.rspObj.userToken,
                     req.userDetails.userId
