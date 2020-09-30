@@ -1165,14 +1165,18 @@ module.exports = class SolutionsHelper {
      */
 
     static delete(
-      solutionId,
-      userId
+      solutionId = "",
+      userId = ""
     ) {
       return new Promise(async (resolve, reject) => {
         try {
 
-          if (!solutionId || solutionId == "") {
+          if (solutionId == "") {
             throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
           }
 
           let solutionData = await this.updateSolutionDocument({
@@ -1216,14 +1220,18 @@ module.exports = class SolutionsHelper {
      */
 
     static moveToTrash(
-      solutionId,
-      userId
+      solutionId = "",
+      userId = ""
     ) {
       return new Promise(async (resolve, reject) => {
         try {
 
-          if (!solutionId || solutionId == "") {
+          if (solutionId == "") {
             throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
           }
 
           let solutionData = await this.updateSolutionDocument({
@@ -1267,14 +1275,18 @@ module.exports = class SolutionsHelper {
      */
 
     static restoreFromTrash(
-      solutionId,
-      userId
+      solutionId = "",
+      userId = ""
     ) {
       return new Promise(async (resolve, reject) => {
         try {
 
-          if (!solutionId || solutionId == "") {
+          if (solutionId == "") {
             throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
           }
 
           let solutionData = await this.updateSolutionDocument({
@@ -1353,14 +1365,18 @@ module.exports = class SolutionsHelper {
      */
 
     static removeFromHome(
-      solutionId,
-      userId
+      solutionId = "",
+      userId = ""
     ) {
       return new Promise(async (resolve, reject) => {
         try {
 
-          if (!solutionId || solutionId == "") {
+          if (solutionId == "") {
             throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
           }
 
           let solutionData = await this.solutionDocuments({
