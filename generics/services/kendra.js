@@ -127,10 +127,8 @@ const upload = function (file,filePath) {
 */
 
 const getAppDetails = function (appName) {
-    
-    let url = process.env.KENDRA_APPLICATION_ENDPOINT; 
-    
-    var getDetailUrl = url + messageConstants.endpoints.GET_APP_DETAILS+"/"+appName;
+
+    let getAppDetailsUrl = process.env.KENDRA_APPLICATION_ENDPOINT + messageConstants.endpoints.GET_APP_DETAILS + "/" + appName;
 
     return new Promise((resolve, reject) => {
         try {
@@ -142,23 +140,17 @@ const getAppDetails = function (appName) {
                         message : messageConstants.apiResponses.KENDRA_SERVICE_DOWN
                     })
                 } else {
-                    let appDetails = response.body;
-                    var jsonAppDetails = JSON.parse(appDetails)
-                    return resolve(jsonAppDetails);
+                    let appDetails =  JSON.parse(response.body);
+                    return resolve(appDetails);
                 }
             }
 
-            request.post(getDetailUrl, {
-                headers: {
-                    "internal-access-token": process.env.INTERNAL_ACCESS_TOKEN
-                }
-            }, kendraCallBack);
+            request.post(getAppDetailsUrl, kendraCallBack);
 
         } catch (error) {
             return reject(error);
         }
     })
-
 }
 
 module.exports = {

@@ -287,5 +287,7 @@ module.exports = {
 "UPDATE_QUERY_REQUIRED" : "Update query is required",
 "UPDATE_OBJECT_REQUIRED" : "Update object is required",
 "FAILED_TO_UPDATE" : "Failed to update the document",
-"UPDATED_DOCUMENT_SUCCESSFULLY" : "Document updated successfully"
+"UPDATED_DOCUMENT_SUCCESSFULLY" : "Document updated successfully",
+"APP_DETAILS_NOT_FOUND" : "App not found",
+"OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required"
 }
