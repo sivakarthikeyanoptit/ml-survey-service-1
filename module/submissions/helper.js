@@ -20,6 +20,7 @@ const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/help
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const path = require("path");
+const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
 
 /**
     * SubmissionsHelper
@@ -537,12 +538,15 @@ module.exports = class SubmissionsHelper {
                         queryOptions
                     );
                     
-                    if(modelName == "submissions") {
+                    if(modelName == messageConstants.common.SUBMISSIONS) {
                         // Push update submission to kafka for reporting/tracking.
                         this.pushInCompleteSubmissionForReporting(updatedSubmissionDocument._id);
-                    } else {
+                    } else if (modelName == messageConstants.common.OBSERVATION_SUBMISSIONS) {
                         // Push updated submission to kafka for reporting/tracking.
                         observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(updatedSubmissionDocument._id);
+                    } else if (modelName == messageConstants.common.SURVEY_SUBMISSIONS) {
+                        // Push updated submission to kafka for reporting/tracking.
+                        surveySubmissionsHelper.pushInCompleteSurveySubmissionForReporting(updatedSubmissionDocument._id);
                     }
 
                     let canRatingsBeEnabled = await this.canEnableRatingQuestionsOfSubmission(updatedSubmissionDocument);

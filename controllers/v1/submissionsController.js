@@ -1342,22 +1342,23 @@ module.exports = class Submission extends Abstract {
         let message = messageConstants.apiResponses.SUBMISSION_CHECK;
 
         let queryObject = {
-          "_id": req.params._id
+          "_id": req.params._id,
+          "evidencesStatus": {"$elemMatch": {externalId: req.query.evidenceId}}
         };
 
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
           {
-            ["evidences." + req.query.evidenceId + ".isSubmitted"]: 1,
-            ["evidences." + req.query.evidenceId + ".submissions"]: 1
+            ["evidencesStatus.isSubmitted"]: 1,
+            ["evidencesStatus.submissions"]: 1
           }
         );
 
         if (!submissionDocument || !submissionDocument._id) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;
+          throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND);
         } else {
-          if (submissionDocument.evidences[req.query.evidenceId].isSubmitted && submissionDocument.evidences[req.query.evidenceId].isSubmitted == true) {
-            submissionDocument.evidences[req.query.evidenceId].submissions.forEach(submission => {
+          if (submissionDocument.evidencesStatus[0].isSubmitted && submissionDocument.evidencesStatus[0].isSubmitted == true) {
+            submissionDocument.evidencesStatus[0].submissions.forEach(submission => {
               if (submission.submittedBy == req.userDetails.userId) {
                 result.allowed = false;
               }
