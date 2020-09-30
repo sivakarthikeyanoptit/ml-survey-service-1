@@ -9,6 +9,7 @@
 
 const request = require('request');
 const fs = require("fs");
+const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + "/";
 
 /**
   * Get downloadable file.
@@ -20,7 +21,7 @@ const fs = require("fs");
 
 const getDownloadableUrl = function (bodyData) {
 
-    let fileDownloadUrl = process.env.KENDRA_APPLICATION_ENDPOINT; 
+    let fileDownloadUrl = kendraServiceBaseURL; 
     
     if ( process.env.CLOUD_STORAGE === "GC" ) {
         fileDownloadUrl = fileDownloadUrl + messageConstants.endpoints.DOWNLOADABLE_GCP_URL;
@@ -72,7 +73,7 @@ const getDownloadableUrl = function (bodyData) {
 
 const upload = function (file,filePath) {
 
-    let fileUploadUrl = process.env.KENDRA_APPLICATION_ENDPOINT; 
+    let fileUploadUrl = kendraServiceBaseURL; 
     let bucketName = "";
 
     if ( process.env.CLOUD_STORAGE === "GC" ) {
@@ -128,7 +129,7 @@ const upload = function (file,filePath) {
 
 const getAppDetails = function (appName) {
 
-    let getAppDetailsUrl = process.env.KENDRA_APPLICATION_ENDPOINT + messageConstants.endpoints.GET_APP_DETAILS + "/" + appName;
+    let getAppDetailsUrl = kendraServiceBaseURL + messageConstants.endpoints.GET_APP_DETAILS + "/" + appName;
 
     return new Promise((resolve, reject) => {
         try {

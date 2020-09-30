@@ -15,6 +15,7 @@
  const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
  const observationSubmissionsHelper = require(MODULES_BASE_PATH + "/observationSubmissions/helper");
  const surveysHelper = require(MODULES_BASE_PATH + "/surveys/helper");
+ const userExtensionsHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
  const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
 
 /**
@@ -234,14 +235,36 @@ module.exports = class UserHelper {
                     }
                 }
 
-                let solutionsData = solutions.reduce(
-                    (ac, solution) => ({
-                        ...ac,
-                        [solution._id.toString()]: solution
-                    }), {});
+                // let solutionsData = solutions.reduce(
+                //     (ac, solution) => ({
+                //         ...ac,
+                //         [solution._id.toString()]: solution
+                //     }), {});
+
+                let removedSolutions = await userExtensionsHelper.userExtensionDocuments({
+                    userId: userId
+                  },["removedFromHomeScreen"]);
+
+                let userRemovedSolutionsFromHomeScreen = new Array;
+
+                if(Array.isArray(removedSolutions) && removedSolutions.length > 0 && Array.isArray(removedSolutions[0].removedFromHomeScreen) && removedSolutions[0].removedFromHomeScreen.length >0) {
+                    removedSolutions[0].removedFromHomeScreen.forEach(solutionId => {
+                        userRemovedSolutionsFromHomeScreen.push(solutionId.toString());
+                    })
+                }
+
+                let solutionsData = {};
+
+                for (let pointerToSolutionsArray = 0; pointerToSolutionsArray < solutions.length; pointerToSolutionsArray++) {
+                    let solution = solutions[pointerToSolutionsArray];
+                    solution.showInHomeScreen = true;
+                    if(userRemovedSolutionsFromHomeScreen.length > 0 && userRemovedSolutionsFromHomeScreen.indexOf(solution._id.toString()) > -1) {
+                        solution.showInHomeScreen = false;
+                    }
+                    solutionsData[solution._id.toString()] = solution;
+                }
 
                 let entitiesData = {};
-
                 if( entityIds.length > 0 ) {
 
 
@@ -826,7 +849,8 @@ function _solutionInformation(program,solution) {
         description : solution.description,
         type : solution.type,
         subType : solution.subType,
-        allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false 
+        allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false
     }
 }
 

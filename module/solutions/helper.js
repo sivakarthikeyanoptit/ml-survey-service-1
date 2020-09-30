@@ -8,6 +8,7 @@
 //Dependencies
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 
 /**
@@ -1153,6 +1154,269 @@ module.exports = class SolutionsHelper {
         }
       })
     }
+  
+    /**
+     * Delete Solution.
+     * @method
+     * @name deleteSolution
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static delete(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { isDeleted : true}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_DELETED;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Move To Trash.
+     * @method
+     * @name moveToTrash
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static moveToTrash(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { status : messageConstants.common.INACTIVE_STATUS}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_MOVED_TO_TRASH;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+     * Restore From Trash.
+     * @method
+     * @name restoreFromTrash
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static restoreFromTrash(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { status : messageConstants.common.ACTIVE_STATUS}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+          
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_RESTORED_FROM_TRASH;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Trash List.
+     * @method
+     * @name trashList
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static trashList(
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let trashData = await this.solutionDocuments({
+                        author : userId,
+                        isAPrivateProgram : true,
+                        status : messageConstants.common.INACTIVE_STATUS
+                    },["name","externalId"]);
+
+          return resolve({
+              message: messageConstants.apiResponses.SOLUTION_TRASH_LIST_FETCHED,
+              result: trashData
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+  /**
+     * Remove From Home Screen.
+     * @method
+     * @name removeFromHome
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static removeFromHome(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.solutionDocuments({
+            _id: solutionId
+          },["_id"]);
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(Array.isArray(solutionData) || solutionData.length > 0){
+            
+            let addRemovedSolutionToUser = await userExtensionHelper.updateUserExtensionDocument({
+              userId: userId
+            },
+            {
+                $addToSet: { removedFromHomeScreen: solutionData[0]._id  }
+            })
+
+            if(!addRemovedSolutionToUser.success || !addRemovedSolutionToUser.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_REMOVE;
+            } else {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_REMOVED_FROM_HOME_SCREEN;
+              result = solutionId;
+            }
+
+          } else {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
 
      /**
     * Update solution document.
@@ -1200,5 +1464,6 @@ module.exports = class SolutionsHelper {
         }
     });
 }
+
   
 };
