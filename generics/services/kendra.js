@@ -118,7 +118,6 @@ const upload = function (file,filePath) {
     });
 }
 
-
 /**
   * Get app Details.
   * @function

@@ -35,6 +35,7 @@ module.exports = {
     EMOJI : "emoji",
     GESTURE : "gesture",
     TAKE_POLL : "/take-poll/",
+    CREATE_OBSERVATION : "/create-observation/",
     SURVEY : "survey",
     TAKE_SURVEY : "/take-survey/",
     EXPIRED: "expired",

@@ -23,8 +23,16 @@ module.exports = {
     questionSequenceByEcm: Object,
     entityTypeId: "ObjectId",
     entityType: String,
-    type: String,
-    subType: String,
+    type: {
+      type: String,
+      required: true,
+      index: true
+    },
+    subType: {
+      type: String,
+      required: true,
+      index: true
+    },
     entities: Array,
     programId: {
       type: "ObjectId",
@@ -58,6 +66,10 @@ module.exports = {
     creator: String,
     linkTitle: String,
     linkUrl: String,
+    link: {
+      type: String,
+      index: true
+    },
     isAPrivateProgram : {
       default : false,
       type : Boolean
