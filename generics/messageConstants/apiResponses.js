@@ -299,5 +299,6 @@ module.exports = {
 "USER_EXTENSION_COULD_NOT_BE_UPDATED" : "User Extension updation failed",
 "USER_EXTENSION_UPDATED" : "User Extension updated",
 "APP_DETAILS_NOT_FOUND" : "App not found",
-"OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required"
+"OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required",
+"INVALID_LINK" : "Invalid link"
 }

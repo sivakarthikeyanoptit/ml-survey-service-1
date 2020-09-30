@@ -1090,8 +1090,8 @@ module.exports = class ObservationsHelper {
                     throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
                 }
 
-                let link = appsPortalBaseUrl+ "/" + appName + "/" + messageConstants.common.CREATE_OBSERVATION + "/" + observationData[0].link;
-                
+                let link = appsPortalBaseUrl+ "/" + appName + messageConstants.common.CREATE_OBSERVATION + observationData[0].link;
+
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_GENERATED,
                     result: link
@@ -1138,8 +1138,7 @@ module.exports = class ObservationsHelper {
                 let observationSolutionData = await solutionHelper.solutionDocuments({
                     link: link,
                     type : messageConstants.common.OBSERVATION,
-                    isReusable : false,
-                    status : messageConstants.common.ACTIVE_STATUS
+                    isReusable : false
                 },[
                     "externalId",
                     "subType",
@@ -1158,9 +1157,16 @@ module.exports = class ObservationsHelper {
 
                 if(!Array.isArray(observationSolutionData) || observationSolutionData.length < 1){
                     return resolve({
-                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        message: messageConstants.apiResponses.INVALID_LINK,
                         result: []
                     });  
+                }
+
+                if(observationSolutionData[0].status != messageConstants.common.ACTIVE_STATUS) {
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: []
+                    });   
                 }
 
                 if (new Date() > new Date(observationSolutionData[0].endDate)) {
