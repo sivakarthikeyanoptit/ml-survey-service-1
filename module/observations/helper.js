@@ -162,8 +162,7 @@ module.exports = class ObservationsHelper {
                         "createdBy": userId,
                         "createdFor": organisationAndRootOrganisation.createdFor,
                         "rootOrganisations": organisationAndRootOrganisation.rootOrganisations,
-                        "isAPrivateProgram" : solution.isAPrivateProgram,
-                        "link": solution.link ? solution.link :"",
+                        "isAPrivateProgram" : solution.isAPrivateProgram
                     })
                 );
 
@@ -1222,6 +1221,7 @@ module.exports = class ObservationsHelper {
                     "endDate": endDate,
                     "status": messageConstants.common.ACTIVE_STATUS,
                     "entities": entities,
+                    "link" : link
                 }
 
                 
@@ -1241,9 +1241,7 @@ module.exports = class ObservationsHelper {
                     "entityTypeId": observationSolutionData[0].entityTypeId,
                     "entityType": observationSolutionData[0].entityType,
                     "isAPrivateProgram": observationSolutionData[0].isAPrivateProgram,
-                    "link" : link,
                     "entities": entities
-                    
                 }
 
                 let result = await this.createObservation(
