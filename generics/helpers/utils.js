@@ -1,6 +1,5 @@
 const uuid = require('uuid/v4');
 const md5 = require("md5");
-const appsPortalBaseUrl = (process.env.OBSERVATION_SHARE_URL_ENDPOINT && process.env.OBSERVATION_SHARE_URL_ENDPOINT !== "") ? process.env.OBSERVATION_SHARE_URL_ENDPOINT : "https://apps.shikshalokam.org/";
 
 function camelCaseToTitleCase(in_camelCaseString) {
   var result = in_camelCaseString // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456InRoom26AContainingABC26TimesIsNotAsEasyAs123ForC3POOrR2D2Or2R2D"
@@ -260,20 +259,6 @@ function removeDuplicatesFromArray(data, key) {
   return uniqueArray;
 }
 
-/**
-  * Get Observation Solution link
-  * @function
-  * @name getLink
-  * @returns {Array}  returns observation solution link.  
-*/
-function getLink( link, appName="samiksha") {
-  if(!link || link == ""){
-    return false;
-  }
-  let fullLink = appsPortalBaseUrl+ appName + messageConstants.common.CREATE_OBSERVATION + link;
-  return fullLink;
-}
-
 module.exports = {
   camelCaseToTitleCase : camelCaseToTitleCase,
   lowerCase : lowerCase,
@@ -294,6 +279,5 @@ module.exports = {
   isValidMongoId : isValidMongoId,
   generateUUId : generateUUId,
   md5Hash : md5Hash,
-  removeDuplicatesFromArray : removeDuplicatesFromArray,
-  getLink : getLink
+  removeDuplicatesFromArray : removeDuplicatesFromArray
 };

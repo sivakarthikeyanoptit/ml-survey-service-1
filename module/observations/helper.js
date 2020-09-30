@@ -1056,7 +1056,7 @@ module.exports = class ObservationsHelper {
     }
 
 
-         /**
+    /**
       * observation link.
       * @method
       * @name getObservationLink

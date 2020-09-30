@@ -1197,20 +1197,15 @@ module.exports = class Observations extends Abstract {
                         );
 
                         if ( newSolution._id ) {
-                            if(newSolution.isReusable == false){
-                                let link = await gen.utils.md5Hash(newSolution._id + "###" + req.userDetails.userId);
-                                 await solutionHelper.updateSolutionDocument(
-                                    { _id: newSolution._id },
-                                    { $set : { link: link } }
-                                )
-                            }
                             
-
+                            let link = await gen.utils.md5Hash(newSolution._id + "###" + req.userDetails.userId);
+                            
+                            await solutionHelper.updateSolutionDocument(
+                                { _id: newSolution._id },
+                                { $set : { link: link } }
+                            )
+                            
                             result["observationSolutionId"] =  newSolution._id;
-                            let shareLink = await gen.utils.getLink(newSolution.link);
-                            if(shareLink !== false){
-                                result["link"] =  shareLink;
-                            }
                             
                             await database.models.programs.updateOne(
                                 { 
