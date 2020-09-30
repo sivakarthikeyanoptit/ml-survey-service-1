@@ -235,32 +235,33 @@ module.exports = class UserHelper {
                     }
                 }
 
-                let solutionsData = solutions.reduce(
-                    (ac, solution) => ({
-                        ...ac,
-                        [solution._id.toString()]: solution
-                    }), {});
+                // let solutionsData = solutions.reduce(
+                //     (ac, solution) => ({
+                //         ...ac,
+                //         [solution._id.toString()]: solution
+                //     }), {});
 
                 let removedSolutions = await userExtensionsHelper.userExtensionDocuments({
                     userId: userId
                   },["removedFromHomeScreen"]);
 
-                for (var i in solutionsData) {
+                let userRemovedSolutionsFromHomeScreen = new Array;
 
-                    if(Array.isArray(removedSolutions) || removedSolutions.length > 0){
-                        if(removedSolutions[0].removedFromHomeScreen !== undefined){
-                            let found = removedSolutions[0].removedFromHomeScreen.some(el => el.equals(solutionsData[i]._id));
-                            
-                            if(found){
-                                solutionsData[i].showInHomeScreen = false;
-                            }else{
-                                solutionsData[i].showInHomeScreen = true;
-                            }
-                        
-                        }else{
-                           solutionsData[i].showInHomeScreen = true;
-                        }
+                if(Array.isArray(removedSolutions) && removedSolutions.length > 0 && Array.isArray(removedSolutions[0].removedFromHomeScreen) && removedSolutions[0].removedFromHomeScreen.length >0) {
+                    removedSolutions[0].removedFromHomeScreen.forEach(solutionId => {
+                        userRemovedSolutionsFromHomeScreen.push(solutionId.toString());
+                    })
+                }
+
+                let solutionsData = {};
+
+                for (let pointerToSolutionsArray = 0; pointerToSolutionsArray < solutions.length; pointerToSolutionsArray++) {
+                    let solution = solutions[pointerToSolutionsArray];
+                    solution.showInHomeScreen = true;
+                    if(userRemovedSolutionsFromHomeScreen.length > 0 && userRemovedSolutionsFromHomeScreen.indexOf(solution._id.toString()) > -1) {
+                        solution.showInHomeScreen = false;
                     }
+                    solutionsData[solution._id.toString()] = solution;
                 }
 
                 let entitiesData = {};
