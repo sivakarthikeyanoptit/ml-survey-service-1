@@ -27,6 +27,10 @@ module.exports = {
     isAPrivateProgram : {
       default : false,
       type : Boolean
+    },
+    link: {
+      type: String,
+      index: true
     }
   }
 };

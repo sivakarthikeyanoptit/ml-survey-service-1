@@ -278,7 +278,6 @@ module.exports = class SolutionsHelper {
 
               let themesSplittedArray = themes[pointerToTheme][themeKey].split("###");
 
-
               if (themeKey !== "criteriaInternalId") {
                 if (themesSplittedArray.length < 2) {
                   csvObject["status"] = messageConstants.apiResponses.MISSING_NAME_EXTERNALID;

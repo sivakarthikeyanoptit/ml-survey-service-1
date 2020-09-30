@@ -81,6 +81,8 @@ module.exports = {
 "OBSERVATION_SUBMISSION_CHECK" : "Observation submission check completed successfully",
 "OBSERVATION_SUBMISSION_DELETED" : "Observation submission deleted successfully",
 "OBSERVATION_SUBMISSION_UPDATED" : "Observation submission updated successfully",
+"OBSERVATION_LINK_GENERATED" : "Observation Link generated successfully",
+"OBSERVATION_LINK_VERIFIED" : "Observation solution link verified successfully.",
 "SUBMISSION_NOT_FOUND" : "No submission found.",
 "SUBMISSION_FOUND" : "submission found.",
 "PARENT_INFORMATION_NOT_FOUND" : "No parent information found.",
@@ -261,6 +263,7 @@ module.exports = {
 "POLL_COULD_NOT_BE_DELETED" : "Poll could not be deleted",
 "POLL_UPDATE_QUERY_REQUIRED" : "Update query is required",
 "POLL_COULD_NOT_BE_UPDATED" : "Poll updation failed",
+"APP_NOT_FOUND" : "App not found",
 "SOLUTION_NAME_REQUIRED" : "Solution name is required",
 "SOLUTION_EXTERNAL_ID_REQUIRED" : "Solution external id is required",
 "SOLUTION_DESCRIPTION_REQUIRED" : "Solution description is required",
@@ -294,5 +297,7 @@ module.exports = {
 "FAILED_TO_UPDATE" : "Failed to update the document",
 "UPDATED_DOCUMENT_SUCCESSFULLY" : "Document updated successfully",
 "USER_EXTENSION_COULD_NOT_BE_UPDATED" : "User Extension updation failed",
-"USER_EXTENSION_UPDATED" : "User Extension updated"
+"USER_EXTENSION_UPDATED" : "User Extension updated",
+"APP_DETAILS_NOT_FOUND" : "App not found",
+"OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required"
 }

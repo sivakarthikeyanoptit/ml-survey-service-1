@@ -11,6 +11,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
 
 /**
     * Solutions

@@ -14,8 +14,9 @@ const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications")
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
-const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL : "https://apps.shikshalokam.org/";
+const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 
@@ -342,6 +343,12 @@ module.exports = class SurveysHelper {
                             $set: { link: link }
                         }
                     )
+     
+                    let appDetails = await kendraService.getAppDetails(appName);
+                    
+                    if (appDetails.result == false) {
+                        throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
+                    }
 
                     return resolve({
                         success: true,
