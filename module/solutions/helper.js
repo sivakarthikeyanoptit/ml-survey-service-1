@@ -1184,11 +1184,13 @@ module.exports = class SolutionsHelper {
               $set : { isDeleted : true}
           })
 
-          let reponseMessage = null;
+          let reponseMessage = "";
+
           let result = {};
-          if(!solutionData.success && !solutionData.data) {
+
+          if(!solutionData.success || !solutionData.data) {
               reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
-          }else{
+          } else {
             reponseMessage = messageConstants.apiResponses.SOLUTION_DELETED;
             result = solutionId;
           }
@@ -1233,11 +1235,13 @@ module.exports = class SolutionsHelper {
               $set : { status : messageConstants.common.INACTIVE_STATUS}
           })
 
-          let reponseMessage = null;
+          let reponseMessage = "";
+
           let result = {};
-          if(!solutionData.success && !solutionData.data) {
+
+          if(!solutionData.success || !solutionData.data) {
               reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
-          }else{
+          } else {
             reponseMessage = messageConstants.apiResponses.SOLUTION_MOVED_TO_TRASH;
             result = solutionId;
           }
@@ -1282,11 +1286,13 @@ module.exports = class SolutionsHelper {
               $set : { status : messageConstants.common.ACTIVE_STATUS}
           })
 
-          let reponseMessage = null;
+          let reponseMessage = "";
+
           let result = {};
-          if(!solutionData.success && !solutionData.data) {
+          
+          if(!solutionData.success || !solutionData.data) {
               reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
-          }else{
+          } else {
             reponseMessage = messageConstants.apiResponses.SOLUTION_RESTORED_FROM_TRASH;
             result = solutionId;
           }
@@ -1311,12 +1317,12 @@ module.exports = class SolutionsHelper {
      */
 
     static trashList(
-      userId
+      userId = ""
     ) {
       return new Promise(async (resolve, reject) => {
         try {
 
-          if (!userId || userId == "") {
+          if (userId == "") {
             throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
           }
 
@@ -1361,26 +1367,27 @@ module.exports = class SolutionsHelper {
             _id: solutionId
           },["_id"]);
 
-          let reponseMessage = null;
+          let reponseMessage = "";
+
           let result = {};
+
           if(Array.isArray(solutionData) || solutionData.length > 0){
             
-            var removedOne = solutionData[0]._id;
-            let addRemovedToUser = await userExtensionHelper.updateUserExtensionDocument({
-             userId: userId
+            let addRemovedSolutionToUser = await userExtensionHelper.updateUserExtensionDocument({
+              userId: userId
             },
             {
-                $addToSet: { removedFromHomeScreen: removedOne  }
+                $addToSet: { removedFromHomeScreen: solutionData[0]._id  }
             })
 
-            if(!addRemovedToUser.success && !addRemovedToUser.data) {
+            if(!addRemovedSolutionToUser.success || !addRemovedSolutionToUser.data) {
               reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_REMOVE;
-            }else{
+            } else {
               reponseMessage = messageConstants.apiResponses.SOLUTION_REMOVED_FROM_HOME_SCREEN;
               result = solutionId;
             }
 
-          }else{
+          } else {
               reponseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
           }
 
