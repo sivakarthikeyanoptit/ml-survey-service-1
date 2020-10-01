@@ -224,7 +224,8 @@ module.exports = class UserHelper {
                         "type",
                         "subType",
                         "solutionId",
-                        "allowMultipleAssessemts"
+                        "allowMultipleAssessemts",
+                        "isAPrivateProgram"
                     ]
                 );
 
@@ -261,6 +262,7 @@ module.exports = class UserHelper {
                     if(userRemovedSolutionsFromHomeScreen.length > 0 && userRemovedSolutionsFromHomeScreen.indexOf(solution._id.toString()) > -1) {
                         solution.showInHomeScreen = false;
                     }
+
                     solutionsData[solution._id.toString()] = solution;
                 }
 
@@ -850,7 +852,8 @@ function _solutionInformation(program,solution) {
         type : solution.type,
         subType : solution.subType,
         allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
-        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false
     }
 }
 
