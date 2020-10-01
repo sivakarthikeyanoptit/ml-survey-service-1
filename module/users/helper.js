@@ -853,7 +853,6 @@ function _solutionInformation(program,solution) {
         allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
         showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
         isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false
-
     }
 }
 
@@ -883,7 +882,9 @@ function _observationInformation(program,observation,solution) {
         type : solution.type,
         subType : solution.subType,
         solutionExternalId : solution.externalId,
-        solutionId : solution._id
+        solutionId : solution._id,
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false 
     }
 }
 
