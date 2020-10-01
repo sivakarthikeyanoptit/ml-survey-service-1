@@ -216,7 +216,8 @@ module.exports = class UserHelper {
                 let solutions = 
                 await solutionsHelper.solutionDocuments(
                     {
-                        _id : { $in : solutionIds }
+                        _id : { $in : solutionIds },
+                        status : messageConstants.common.ACTIVE_STATUS
                     },[
                         "name",
                         "description",
