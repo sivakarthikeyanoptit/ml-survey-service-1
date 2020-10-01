@@ -224,7 +224,8 @@ module.exports = class UserHelper {
                         "type",
                         "subType",
                         "solutionId",
-                        "allowMultipleAssessemts"
+                        "allowMultipleAssessemts",
+                        "isAPrivateProgram"
                     ]
                 );
 
@@ -850,7 +851,9 @@ function _solutionInformation(program,solution) {
         type : solution.type,
         subType : solution.subType,
         allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
-        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false
+
     }
 }
 
