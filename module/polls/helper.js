@@ -7,7 +7,7 @@
 
 // Dependencies
 const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
-const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL : "https://apps.shikshalokam.org/";
+const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
 const mediaFilesHelper = require(MODULES_BASE_PATH + "/mediaFiles/helper");
 const pollSubmissionDocumentHelper = require(MODULES_BASE_PATH + "/pollSubmissions/documents");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
