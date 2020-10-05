@@ -216,7 +216,9 @@ module.exports = class UserHelper {
                 let solutions = 
                 await solutionsHelper.solutionDocuments(
                     {
-                        _id : { $in : solutionIds }
+                        _id : { $in : solutionIds },
+                        status : messageConstants.common.ACTIVE_STATUS,
+                        isDeleted : false 
                     },[
                         "name",
                         "description",
@@ -883,7 +885,9 @@ function _observationInformation(program,observation,solution) {
         type : solution.type,
         subType : solution.subType,
         solutionExternalId : solution.externalId,
-        solutionId : solution._id
+        solutionId : solution._id,
+        showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false 
     }
 }
 

@@ -993,7 +993,7 @@ module.exports = class SurveysHelper {
                         },
                         isAPrivateProgram: surveyDocument.isAPrivateProgram
                     };
-                    surveyInformation.startDate = new Date();
+                    submissionDocument.surveyInformation.startDate = new Date();
 
                     if (programDocument.length > 0) {
                         submissionDocument.programId = programDocument[0]._id;

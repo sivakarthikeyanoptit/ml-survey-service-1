@@ -1192,7 +1192,7 @@ module.exports = class ObservationsHelper {
                 if(observationData && observationData.length > 0){
                     return resolve({
                         message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
-                        result: observationData
+                        result: observationData[0]
                     });
                 }
 

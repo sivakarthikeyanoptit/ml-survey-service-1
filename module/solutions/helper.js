@@ -1342,7 +1342,7 @@ module.exports = class SolutionsHelper {
                         author : userId,
                         isAPrivateProgram : true,
                         status : messageConstants.common.INACTIVE_STATUS
-                    },["name","externalId"]);
+                    },["name"]);
 
           return resolve({
               message: messageConstants.apiResponses.SOLUTION_TRASH_LIST_FETCHED,
