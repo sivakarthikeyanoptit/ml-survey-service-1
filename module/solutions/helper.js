@@ -1341,8 +1341,9 @@ module.exports = class SolutionsHelper {
           let trashData = await this.solutionDocuments({
                         author : userId,
                         isAPrivateProgram : true,
-                        status : messageConstants.common.INACTIVE_STATUS
-                    },["name","externalId"]);
+                        status : messageConstants.common.INACTIVE_STATUS,
+                        isDeleted : false
+                    },["name"]);
 
           return resolve({
               message: messageConstants.apiResponses.SOLUTION_TRASH_LIST_FETCHED,
