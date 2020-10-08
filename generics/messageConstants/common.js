@@ -41,5 +41,7 @@ module.exports = {
     EXPIRED: "expired",
     SURVEY_SUBMISSIONS: "surveySubmissions",
     OBSERVATION_SUBMISSIONS: "observationSubmissions",
-    SUBMISSIONS: "submissions"
+    SUBMISSIONS: "submissions",
+    VERSION_1 : "v1",
+    VERSION_2 : "v2"
 }

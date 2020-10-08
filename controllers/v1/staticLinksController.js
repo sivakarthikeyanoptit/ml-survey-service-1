@@ -56,27 +56,17 @@ module.exports = class StaticLinks extends Abstract {
    * @returns {Array} List of all static links. 
    */
 
-  list() {
+  list(req) {
     return new Promise(async (resolve, reject) => {
 
       try {
 
-        let result = await staticLinksHelper.list({
-          link: {
-            $ne: ""
-          },
-          status: "active",
-          isDeleted: false
-        }, {
-            value: 1,
-            link: 1,
-            title: 1
-          });
+        let result = await staticLinksHelper.list(
+          req.headers.apptype,
+          req.headers.appname
+        )
 
-        return resolve({
-          message: messageConstants.apiResponses.STATIC_LINKS_FETCHED,
-          result: result
-        });
+        return resolve(result);
 
       } catch (error) {
 
