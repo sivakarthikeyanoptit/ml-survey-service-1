@@ -25,7 +25,6 @@ function ApiInterceptor(keyclock_config, cache_config) {
  * @return {[Function]} callback [its retrun err or object with fields(token, userId)]
  */
 ApiInterceptor.prototype.validateToken = function (token, callback) {
-    console.log(token,"ttt")
   if (process.env.OFFLINE_MODE === "ON") {
 
     if (!token) {
