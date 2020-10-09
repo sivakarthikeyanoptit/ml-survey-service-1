@@ -6,8 +6,11 @@
 
 var keyCloakAuthUtils = require("keycloak-auth-utils");
 var CacheManager = require("../cacheManager");
-var jwt = require('jsonwebtoken');
-var fs = require('fs');
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const accessTokenValidationMode = process.env.VALIDATE_ACCESS_TOKEN_OFFLINE ? process.env.VALIDATE_ACCESS_TOKEN_OFFLINE : "ON";
+const keyCloakPublicKeyPath = process.env.KEYCLOAK_PUBLIC_KEY_PATH ? process.env.KEYCLOAK_PUBLIC_KEY_PATH : "./keycloak/" ;
+
 
 function ApiInterceptor(keyclock_config, cache_config) {
   this.config = keyclock_config;
@@ -25,12 +28,8 @@ function ApiInterceptor(keyclock_config, cache_config) {
  * @return {[Function]} callback [its retrun err or object with fields(token, userId)]
  */
 ApiInterceptor.prototype.validateToken = function (token, callback) {
-  if (process.env.OFFLINE_MODE === "ON") {
-
-    if (!token) {
-      return callback(err, 'Token Not Found');
-    }
-
+  if (process.env.VALIDATE_ACCESS_TOKEN_OFFLINE === "ON") {
+    var self = this;
     var decoded = jwt.decode(token, { complete: true });
     const kid = decoded.header.kid
     let cert = "";
@@ -48,17 +47,30 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
           const expiry = decode.exp;
           const now = new Date();
           if (now.getTime() > expiry * 1000) {
-            return callback(err, 'Expired');
+            return callback('Expired', null);
           }
-          return callback(null, 'Valid Token');
 
+          self.grantManager.userInfo(token, function (err, userData) {
+            if (err) {
+              return callback(err, null);
+            } else {
+              if (self.cacheManagerConfig.ttl) {
+                self.cacheManager.set(
+                  { key: token, value: { token: token, userId: userData.sub } },
+                  function (err, res) { }
+                );
+              }
+              return callback(null, { token: token, userId: userData.sub });
+            }
+          });
+        
         } else {
-          return callback(err, 'Invalid Token');
+          return callback(err, null);
         }
 
       });
     } else {
-      return callback(null, 'Invalid Token');
+      return callback(err, null);
     }
   }else{
     var self = this;
