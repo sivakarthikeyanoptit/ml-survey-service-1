@@ -27,12 +27,12 @@ function ApiInterceptor(keyclock_config, cache_config) {
  * @return {[Function]} callback [its retrun err or object with fields(token, userId)]
  */
 ApiInterceptor.prototype.validateToken = function (token, callback) {
-  if (process.env.VALIDATE_ACCESS_TOKEN_OFFLINE === "ON") {
+  if (accessTokenValidationMode === "ON") {
     var self = this;
     var decoded = jwt.decode(token, { complete: true });
     const kid = decoded.header.kid
     let cert = "";
-    let path = process.env.KEYCLOAK_PUBLIC_KEY_PATH + kid + '.pem';
+    let path = keyCloakPublicKeyPath + kid + '.pem';
     cert = fs.readFileSync(path);
 
     if (fs.existsSync(path)) {
