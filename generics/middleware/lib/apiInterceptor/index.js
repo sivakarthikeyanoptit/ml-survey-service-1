@@ -30,7 +30,7 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
   if (accessTokenValidationMode === "ON") {
     var self = this;
     var decoded = jwt.decode(token, { complete: true });
-    if(decoded.header === undefined){
+    if(decoded === null || decoded.header === undefined){
       return callback("ERR_TOKEN_INVALID", null);
     }
     const kid = decoded.header.kid
