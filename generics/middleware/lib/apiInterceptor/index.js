@@ -30,16 +30,19 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
   if (accessTokenValidationMode === "ON") {
     var self = this;
     var decoded = jwt.decode(token, { complete: true });
+    if(decoded.header === undefined){
+      return callback("ERR_TOKEN_INVALID", null);
+    }
     const kid = decoded.header.kid
     let cert = "";
     let path = keyCloakPublicKeyPath + kid + '.pem';
-    cert = fs.readFileSync(path);
 
     if (fs.existsSync(path)) {
+      cert = fs.readFileSync(path);
       jwt.verify(token, cert, { algorithm: 'RS256' }, function (err, decode) {
-  
+    
         if (err) {
-          return callback(err.message, null);
+          return callback("ERR_TOKEN_INVALID", null);
         }
 
         if (decode !== undefined) {
@@ -64,12 +67,12 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
           });
         
         } else {
-          return callback(err, null);
+          return callback("ERR_TOKEN_INVALID", null);
         }
 
       });
     } else {
-      return callback(err, null);
+      return callback("ERR_TOKEN_INVALID", null);
     }
   }else{
     var self = this;
