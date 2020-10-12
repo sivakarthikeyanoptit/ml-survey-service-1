@@ -19,6 +19,7 @@ const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 
 /**
     * SurveysHelper
@@ -303,6 +304,25 @@ module.exports = class SurveysHelper {
                 )
                 
                 solutionCriteria[0].externalId = solutionExternalId + "-" + surveyAndFeedback;
+                
+                let criteriaQuestionIds = await gen.utils.getAllQuestionId(solutionCriteria);
+
+                let solutionQuestions = await questionsHelper.questionDocument
+                (
+                   { _id: { $in: criteriaQuestionIds } }
+                );
+                
+                let newSolutionCriteriaQuestionIds = [];
+
+                await Promise.all(solutionQuestions.map(async question => {
+                    question.externalId = question.externalId + "-" + gen.utils.epochTime();
+                    let newQuestionId = await questionsHelper.make(_.omit(question, ["_id"]));
+                    if (newQuestionId._id) {
+                        newSolutionCriteriaQuestionIds.push(newQuestionId._id);
+                    }
+                }))
+
+                solutionCriteria[0].evidences[0].sections[0].questions = newSolutionCriteriaQuestionIds;
                 let newCriteriaId = await criteriaHelper.create
                 (
                     _.omit(solutionCriteria[0], ["_id"])
