@@ -9,7 +9,7 @@ var CacheManager = require("../cacheManager");
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const accessTokenValidationMode = (process.env.VALIDATE_ACCESS_TOKEN_OFFLINE && process.env.VALIDATE_ACCESS_TOKEN_OFFLINE === "OFF")? "OFF" : "ON";
-const keyCloakPublicKeyPath = (process.env.KEYCLOAK_PUBLIC_KEY_PATH && process.env.KEYCLOAK_PUBLIC_KEY_PATH != "") ? ROOT_PATH+"/"+process.env.KEYCLOAK_PUBLIC_KEY_PATH : ROOT_PATH+"/"+"keycloak-public-keys/" ;
+const keyCloakPublicKeyPath = (process.env.KEYCLOAK_PUBLIC_KEY_PATH && process.env.KEYCLOAK_PUBLIC_KEY_PATH != "") ? ROOT_PATH+"/"+process.env.KEYCLOAK_PUBLIC_KEY_PATH+"/" : ROOT_PATH+"/"+"keycloak-public-keys/" ;
 
 function ApiInterceptor(keyclock_config, cache_config) {
   this.config = keyclock_config;
