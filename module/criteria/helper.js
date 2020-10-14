@@ -473,12 +473,11 @@ module.exports = class criteriaHelper {
    * Create copy of criterias
    * @method
    * @name createCopyOfCriterias
-   * @param {Array} criteriaIds - Array of criteria Id's     
-   * @param {Boolean} createCopyOfQuestions - createCopyOfQuestions    
+   * @param {Array} criteriaIds - Array of criteria Id's        
    * @returns {Object}  old and new Mapped criteria ids .  
   */
 
-  static createCopyOfCriterias(criteriaIds= [], createCopyOfQuestions= false) {
+  static createCopyOfCriterias(criteriaIds= []) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -497,27 +496,22 @@ module.exports = class criteriaHelper {
 
         let criteriaIdMap = {};
         
-        if (createCopyOfQuestions) {
-          await Promise.all(criteriaDocuments.map(async criteria => {
-            await Promise.all(criteria.evidences.map(async evidence => {
-              await Promise.all(evidence.sections.map(async section => {
-                if (section.questions.length > 0) {
-                  let criteriaQuestionIds = await questionsHelper.createCopyOfQuestions
-                    (
-                      section.questions
-                    )
-                  if (criteriaQuestionIds.success && Object.keys(criteriaQuestionIds.data).length > 0) {
-                    section.questions = Object.values(criteriaQuestionIds.data);
-                  }
+        await Promise.all(criteriaDocuments.map(async criteria => {
+          
+          await Promise.all(criteria.evidences.map(async evidence => {
+            await Promise.all(evidence.sections.map(async section => {
+              if (section.questions.length > 0) {
+                let criteriaQuestionIds = await questionsHelper.createCopyOfQuestions
+                  (
+                    section.questions
+                  )
+                if (criteriaQuestionIds.success && Object.keys(criteriaQuestionIds.data).length > 0) {
+                  section.questions = Object.values(criteriaQuestionIds.data);
                 }
-              }))
+              }
             }))
           }))
-        }
 
-        await Promise.all(criteriaDocuments.map(async criteria => {
-
-          criteria.frameworkCriteriaId = criteria.frameworkCriteriaId ? criteria.frameworkCriteriaId : criteria._id;
           criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
           let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
 
@@ -526,6 +520,13 @@ module.exports = class criteriaHelper {
           }
 
         }))
+
+        if (Object.keys(criteriaIdMap).length > 0) {
+          await criteriaQuestionsHelper.createOrUpdate(
+            Object.values(criteriaIdMap),
+            true
+          );
+        }
 
         return resolve({
           success: true,

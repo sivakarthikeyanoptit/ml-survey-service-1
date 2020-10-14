@@ -249,12 +249,18 @@ module.exports = class Solutions extends Abstract {
 
         let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
+        let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
         let solutionCriteriaToFrameworkCriteriaMap = {};
-        let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriasIdArray)
-        
-        if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
-            solutionCriteriaToFrameworkCriteriaMap = copyCriteriaResponse.data;
-        }
+
+        await Promise.all(frameworkCriteria.map(async (criteria) => {
+          criteria.frameworkCriteriaId = criteria._id;
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
+          if (newCriteriaId._id) {
+            solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
+          }
+        }))
+
 
         let updateThemes = function (themes) {
           themes.forEach(theme => {
@@ -291,7 +297,7 @@ module.exports = class Solutions extends Abstract {
 
         let newSolutionId;
 
-        if (newBaseSolutionId._id) {           
+        if (newBaseSolutionId._id) {
 
           newSolutionDocument.programId = programDocument._id;
           newSolutionDocument.programExternalId = programDocument.externalId;

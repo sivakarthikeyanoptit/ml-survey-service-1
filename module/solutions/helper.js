@@ -1049,13 +1049,6 @@ module.exports = class SolutionsHelper {
           
           let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriaIds,true);
 
-          if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
-            await criteriaQuestionsHelper.createOrUpdate(
-              Object.values(copyCriteriaResponse.data),
-              true
-            );
-          }
-
           let updateThemes = function (themes) {
             themes.forEach(theme => {
               let criteriaIdArray = new Array;

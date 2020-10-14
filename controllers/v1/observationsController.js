@@ -16,7 +16,6 @@ const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
-const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 
 /**
     * Observations
@@ -1111,12 +1110,20 @@ module.exports = class Observations extends Abstract {
 
                 let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
+                let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+
                 let solutionCriteriaToFrameworkCriteriaMap = {};
-                let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriasIdArray)
-                
-                if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
-                    solutionCriteriaToFrameworkCriteriaMap = copyCriteriaResponse.data;
-                }
+
+                await Promise.all(frameworkCriteria.map(async (criteria) => {
+                    criteria.frameworkCriteriaId = criteria._id;
+
+                    let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
+
+                    if (newCriteriaId._id) {
+                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
+                    }
+                }))
+
 
                 let updateThemes = function (themes) {
                     themes.forEach(theme => {
