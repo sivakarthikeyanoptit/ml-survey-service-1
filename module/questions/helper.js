@@ -856,15 +856,15 @@ module.exports = class QuestionsHelper {
       try {
 
         if (!questionIds.length) {
-           throw new Error(messageConstants.apiResponses.QUESTION_ID_REQUIRED)
+          throw new Error(messageConstants.apiResponses.QUESTION_ID_REQUIRED)
         }
 
         let questionIdMap = {};
 
         let questionDocuments = await this.questionDocument
-        (
-          { _id: { $in: questionIds } }
-        )
+          (
+            { _id: { $in: questionIds } }
+          )
 
         if (!questionDocuments.length) {
           throw new Error(messageConstants.apiResponses.QUESTION_NOT_FOUND)
@@ -872,12 +872,67 @@ module.exports = class QuestionsHelper {
 
         await Promise.all(questionDocuments.map(async question => {
 
+          // If question has instanceQuestions
+          if (question.responseType == messageConstants.common.MATRIX_RESPONSE_TYPE && 
+              question.instanceQuestions.length > 0) {
+            
+            let instanceQuestionDocuments = await this.questionDocument
+              (
+                { _id: { $in: question.instanceQuestions } }
+              )
+
+            if (instanceQuestionDocuments.length > 0) {
+
+              let newInstanceQuestionIdArray = [];
+
+              await Promise.all(instanceQuestionDocuments.map(async instanceQuestion => {
+                instanceQuestion.externalId = instanceQuestion.externalId + "-" + gen.utils.epochTime()
+                let newInstanceQuestionId = await this.make(_.omit(instanceQuestion, ["_id"]))
+
+                if (newInstanceQuestionId._id) {
+                  newInstanceQuestionIdArray.push(newInstanceQuestionId._id)
+                }
+              }))
+
+              if (newInstanceQuestionIdArray.length > 0) {
+                question.instanceQuestions = newInstanceQuestionIdArray;
+              }
+            }
+          }
+           
+          // Parent child question scenario
+          if (question.children && question.children.length > 0) {
+
+            let childrenQuestionDocuments = await this.questionDocument
+            (
+              { _id: { $in: question.children } }
+            )
+
+            if (childrenQuestionDocuments.length > 0) {
+              let newChildrenQuestionIdArray = [];
+
+              await Promise.all(childrenQuestionDocuments.map(async childrenQuestion => {
+                childrenQuestion.externalId = childrenQuestion.externalId + "-" + gen.utils.epochTime()
+                let newChildrenQuestionId = await this.make(_.omit(childrenQuestion, ["_id"]))
+
+                if (newChildrenQuestionId._id) {
+                  newChildrenQuestionIdArray.push(newChildrenQuestionId._id)
+                }
+              }))
+
+              if (newChildrenQuestionIdArray.length > 0) {
+                question.children = newChildrenQuestionIdArray;
+              }
+            }
+          }
+
           question.externalId = question.externalId + "-" + gen.utils.epochTime()
           let newQuestionId = await this.make(_.omit(question, ["_id"]))
 
           if (newQuestionId._id) {
             questionIdMap[question._id.toString()] = newQuestionId._id;
           }
+                    
         }))
 
         return resolve({
@@ -887,11 +942,11 @@ module.exports = class QuestionsHelper {
         });
 
       } catch (error) {
-         return resolve({
-            success: false,
-            message: error.message,
-            data: false
-         })
+        return resolve({
+          success: false,
+          message: error.message,
+          data: false
+        })
       }
     })
   }
