@@ -1047,7 +1047,7 @@ module.exports = class SolutionsHelper {
 
           let criteriaIds = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
           
-          let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriaIds,true);
+          let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriaIds);
 
           let updateThemes = function (themes) {
             themes.forEach(theme => {
