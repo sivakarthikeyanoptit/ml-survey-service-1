@@ -296,33 +296,23 @@ module.exports = class SurveysHelper {
                 let newSolutionDocument = solutionDocument[0];
                 let solutionExternalId = solutionDocument[0].externalId.split(surveySolutionTemplate)[0] + "-"+ gen.utils.epochTime();;
 
-                let criteriaId = gen.utils.getCriteriaIds(newSolutionDocument.themes);
+                let criteriaId = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
 
                 let solutionCriteria = await criteriaHelper.criteriaDocument
                 (
                    { _id: criteriaId[0] }
                 )
-                
+
                 solutionCriteria[0].externalId = solutionExternalId + "-" + surveyAndFeedback;
                 
                 let criteriaQuestionIds = await gen.utils.getAllQuestionId(solutionCriteria);
 
-                let solutionQuestions = await questionsHelper.questionDocument
-                (
-                   { _id: { $in: criteriaQuestionIds } }
-                );
+                let createCopyOfQuestions =  await questionsHelper.createCopyOfQuestions(criteriaQuestionIds);
                 
-                let newSolutionCriteriaQuestionIds = [];
+                if (createCopyOfQuestions.success && Object.keys(createCopyOfQuestions.data).length > 0) {
+                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(createCopyOfQuestions.data);
+                }
 
-                await Promise.all(solutionQuestions.map(async question => {
-                    question.externalId = question.externalId + "-" + gen.utils.epochTime();
-                    let newQuestionId = await questionsHelper.make(_.omit(question, ["_id"]));
-                    if (newQuestionId._id) {
-                        newSolutionCriteriaQuestionIds.push(newQuestionId._id);
-                    }
-                }))
-
-                solutionCriteria[0].evidences[0].sections[0].questions = newSolutionCriteriaQuestionIds;
                 let newCriteriaId = await criteriaHelper.create
                 (
                     _.omit(solutionCriteria[0], ["_id"])

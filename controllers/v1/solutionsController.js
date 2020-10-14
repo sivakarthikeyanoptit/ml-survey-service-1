@@ -249,23 +249,14 @@ module.exports = class Solutions extends Abstract {
 
         let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
-        let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
-
-        let createCriteria = async function (frameworkCriteria) {
-          let solutionCriteriaToFrameworkCriteriaMap = {};
-          await Promise.all(frameworkCriteria.map(async criteria => {
-            criteria.frameworkCriteriaId = criteria._id;
-            criteria.externalId = criteria.externalId.split("-")[0] + "-" + gen.utils.epochTime();
-            let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
-            if (newCriteriaId._id) {
-              solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
-            }
-        }))
-
-          return solutionCriteriaToFrameworkCriteriaMap;
+        let solutionCriteriaToFrameworkCriteriaMap = {};
+        let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriasIdArray)
+        
+        if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
+            solutionCriteriaToFrameworkCriteriaMap = copyCriteriaResponse.data;
         }
 
-        let updateThemes = function (themes, solutionCriteriaToFrameworkCriteriaMap) {
+        let updateThemes = function (themes) {
           themes.forEach(theme => {
             let criteriaIdArray = new Array;
             let themeCriteriaToSet = new Array;
@@ -285,9 +276,7 @@ module.exports = class Solutions extends Abstract {
 
         let newSolutionDocument = _.cloneDeep(frameworkDocument);
 
-        let solutionCriteriaToFrameworkCriteriaMap = await createCriteria(frameworkCriteria);
-
-        updateThemes(newSolutionDocument.themes, solutionCriteriaToFrameworkCriteriaMap);
+        updateThemes(newSolutionDocument.themes);
 
         newSolutionDocument.externalId = frameworkDocument.externalId + "-TEMPLATE";
 
@@ -302,11 +291,7 @@ module.exports = class Solutions extends Abstract {
 
         let newSolutionId;
 
-        if (newBaseSolutionId._id) {
-
-          solutionCriteriaToFrameworkCriteriaMap = await createCriteria(frameworkCriteria);
-          newSolutionDocument.themes = frameworkDocument.themes;
-          updateThemes(newSolutionDocument.themes, solutionCriteriaToFrameworkCriteriaMap);              
+        if (newBaseSolutionId._id) {           
 
           newSolutionDocument.programId = programDocument._id;
           newSolutionDocument.programExternalId = programDocument.externalId;

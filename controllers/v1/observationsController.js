@@ -16,6 +16,7 @@ const csv = require("csvtojson");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const assessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 
 /**
     * Observations
@@ -1110,24 +1111,14 @@ module.exports = class Observations extends Abstract {
 
                 let criteriasIdArray = gen.utils.getCriteriaIds(frameworkDocument.themes);
 
-                let frameworkCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
-
-                let createCriteria = async function (frameworkCriteria) {
-                    let solutionCriteriaToFrameworkCriteriaMap = {};
-                    await Promise.all(frameworkCriteria.map(async criteria => {
-                      criteria.frameworkCriteriaId = criteria._id;
-                      criteria.externalId = criteria.externalId.split("-")[0] + "-" + gen.utils.epochTime();
-                      let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
-                      if (newCriteriaId._id) {
-                        solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
-                      }
-                  }))
-          
-                    return solutionCriteriaToFrameworkCriteriaMap;
+                let solutionCriteriaToFrameworkCriteriaMap = {};
+                let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriasIdArray)
+                
+                if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
+                    solutionCriteriaToFrameworkCriteriaMap = copyCriteriaResponse.data;
                 }
 
-
-                let updateThemes = function (themes, solutionCriteriaToFrameworkCriteriaMap) {
+                let updateThemes = function (themes) {
                     themes.forEach(theme => {
                         let criteriaIdArray = new Array;
                         let themeCriteriaToSet = new Array;
@@ -1145,11 +1136,9 @@ module.exports = class Observations extends Abstract {
                     return true;
                 }
 
-                let solutionCriteriaToFrameworkCriteriaMap = await createCriteria(frameworkCriteria);
-
                 let newSolutionDocument = _.cloneDeep(frameworkDocument);
 
-                updateThemes(newSolutionDocument.themes, solutionCriteriaToFrameworkCriteriaMap);
+                updateThemes(newSolutionDocument.themes);
 
                 newSolutionDocument.type = "observation";
                 newSolutionDocument.subType = (frameworkDocument.subType && frameworkDocument.subType != "") ? frameworkDocument.subType : entityTypeDocument.name;
@@ -1179,10 +1168,6 @@ module.exports = class Observations extends Abstract {
                     };
 
                     if( programDocument && programDocument[0]._id ) {
-
-                        solutionCriteriaToFrameworkCriteriaMap = await createCriteria(frameworkCriteria);
-                        newSolutionDocument.themes = frameworkDocument.themes;
-                        updateThemes(newSolutionDocument.themes, solutionCriteriaToFrameworkCriteriaMap);              
 
                         newSolutionDocument["programId"] = programDocument[0]._id;
                         newSolutionDocument["programName"] = programDocument[0].name;

@@ -842,4 +842,58 @@ module.exports = class QuestionsHelper {
     }) 
   }
 
+
+  /**
+   * Create copy of questions.
+   * @method
+   * @name createCopyOfQuestions
+   * @param {Array} questionIds - Array of question Id's         
+   * @returns {Object}  old and new Mapped question ids .  
+  */
+
+  static createCopyOfQuestions(questionIds = []) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!questionIds.length) {
+           throw new Error(messageConstants.apiResponses.QUESTION_ID_REQUIRED)
+        }
+
+        let questionIdMap = {};
+
+        let questionDocuments = await this.questionDocument
+        (
+          { _id: { $in: questionIds } }
+        )
+
+        if (!questionDocuments.length) {
+          throw new Error(messageConstants.apiResponses.QUESTION_NOT_FOUND)
+        }
+
+        await Promise.all(questionDocuments.map(async question => {
+
+          question.externalId = question.externalId + "-" + gen.utils.epochTime()
+          let newQuestionId = await this.make(_.omit(question, ["_id"]))
+
+          if (newQuestionId._id) {
+            questionIdMap[question._id.toString()] = newQuestionId._id;
+          }
+        }))
+
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.COPIED_QUESTIONS_SUCCESSFULLY,
+          data: questionIdMap
+        });
+
+      } catch (error) {
+         return resolve({
+            success: false,
+            message: error.message,
+            data: false
+         })
+      }
+    })
+  }
+
 };

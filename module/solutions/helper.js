@@ -10,7 +10,7 @@ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
-const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
@@ -1045,46 +1045,13 @@ module.exports = class SolutionsHelper {
   
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
 
-          let criteriasIdArray = gen.utils.getCriteriaIds(newSolutionDocument.themes);
-
-          let solutionCriteria = await database.models.criteria.find({ _id: { $in: criteriasIdArray } }).lean();
+          let criteriaIds = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
           
-          let solutionCriteriaToFrameworkCriteriaMap = {};
-          
-          await Promise.all(solutionCriteria.map(async criteria => {
+          let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriaIds,true);
 
-            await Promise.all(criteria.evidences.map(async evidence => {
-             
-              await Promise.all(evidence.sections.map(async section => {
-                let criteriaQuestionIds = section.questions;
-                if (criteriaQuestionIds.length > 0) {
-                  let newQuestionIds = [];
-                  let criteriaQuestionDocuments = await questionsHelper.questionDocument({ _id: { $in: criteriaQuestionIds } })
-
-                  await Promise.all(criteriaQuestionDocuments.map(async question => {
-                    question.externalId = question.externalId + "-" + gen.utils.epochTime()
-                    let newQuestionId = await questionsHelper.make(_.omit(question, ["_id"]))
-                    if (newQuestionId._id) {
-                      newQuestionIds.push(newQuestionId._id);
-                    }
-                  }))
-                  if (newQuestionIds.length > 0) {
-                    section.questions = newQuestionIds;
-                  }
-                }
-              }))
-            }))
-
-              criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
-              let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
-              if (newCriteriaId._id) {
-                solutionCriteriaToFrameworkCriteriaMap[criteria._id.toString()] = newCriteriaId._id;
-              }
-          }))
-
-          if (Object.values(solutionCriteriaToFrameworkCriteriaMap).length > 0) {
+          if (copyCriteriaResponse.success && Object.keys(copyCriteriaResponse.data).length > 0) {
             await criteriaQuestionsHelper.createOrUpdate(
-              Object.values(solutionCriteriaToFrameworkCriteriaMap),
+              Object.values(copyCriteriaResponse.data),
               true
             );
           }
@@ -1098,7 +1065,7 @@ module.exports = class SolutionsHelper {
               } else {
                   criteriaIdArray = theme.criteria;
                   criteriaIdArray.forEach(eachCriteria => {
-                  eachCriteria.criteriaId = solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] ? solutionCriteriaToFrameworkCriteriaMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                  eachCriteria.criteriaId = copyCriteriaResponse.data[eachCriteria.criteriaId.toString()] ? copyCriteriaResponse.data[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
                     themeCriteriaToSet.push(eachCriteria);
                   })
                   theme.criteria = themeCriteriaToSet;

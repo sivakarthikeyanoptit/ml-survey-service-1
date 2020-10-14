@@ -1,5 +1,6 @@
 let improvementProjectService = require(ROOT_PATH+"/generics/services/improvement-project");
 let criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 
 module.exports = class criteriaHelper {
 
@@ -81,6 +82,14 @@ module.exports = class criteriaHelper {
 
     }
 
+    /**
+   * Criteria documents.
+   * @method
+   * @name criteriaDocument
+   * @param {String} [criteriaFilter = "all"] -filter query.
+   * @param {Array} [fieldsArray = "all"] -projected fields. 
+   * @returns {Array} criteria data.  
+   */
     static criteriaDocument(criteriaFilter = "all", fieldsArray = "all") {
         return new Promise(async (resolve, reject) => {
             try {
@@ -458,5 +467,80 @@ module.exports = class criteriaHelper {
       }
     })
 }
+
+
+  /**
+   * Create copy of criterias
+   * @method
+   * @name createCopyOfCriterias
+   * @param {Array} criteriaIds - Array of criteria Id's     
+   * @param {Boolean} createCopyOfQuestions - createCopyOfQuestions    
+   * @returns {Object}  old and new Mapped criteria ids .  
+  */
+
+  static createCopyOfCriterias(criteriaIds= [], createCopyOfQuestions= false) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!criteriaIds.length) {
+          throw new Error(messageConstants.apiResponses.CRITERIA_ID_REQUIRED)
+        }
+
+        let criteriaDocuments = await this.criteriaDocument
+        (
+          { _id: { $in : criteriaIds }}
+        )
+
+        if (!criteriaDocuments.length) {
+           throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
+        }
+
+        let criteriaIdMap = {};
+        
+        if (createCopyOfQuestions) {
+          await Promise.all(criteriaDocuments.map(async criteria => {
+            await Promise.all(criteria.evidences.map(async evidence => {
+              await Promise.all(evidence.sections.map(async section => {
+                if (section.questions.length > 0) {
+                  let criteriaQuestionIds = await questionsHelper.createCopyOfQuestions
+                    (
+                      section.questions
+                    )
+                  if (criteriaQuestionIds.success && Object.keys(criteriaQuestionIds.data).length > 0) {
+                    section.questions = Object.values(criteriaQuestionIds.data);
+                  }
+                }
+              }))
+            }))
+          }))
+        }
+
+        await Promise.all(criteriaDocuments.map(async criteria => {
+
+          criteria.frameworkCriteriaId = criteria.frameworkCriteriaId ? criteria.frameworkCriteriaId : criteria._id;
+          criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
+
+          if (newCriteriaId._id) {
+            criteriaIdMap[criteria._id.toString()] = newCriteriaId._id;
+          }
+
+        }))
+
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.COPIED_CRITERIA_SUCCESSFULLY,
+          data: criteriaIdMap
+        });
+
+      } catch (error) {
+        return resolve({
+          success: false,
+          message: error.message,
+          data: false
+        })
+      }
+    })
+  }
 
 };

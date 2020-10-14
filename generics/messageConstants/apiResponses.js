@@ -300,5 +300,9 @@ module.exports = {
 "USER_EXTENSION_UPDATED" : "User Extension updated",
 "APP_DETAILS_NOT_FOUND" : "App not found",
 "OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required",
-"INVALID_LINK" : "Invalid link"
+"INVALID_LINK" : "Invalid link",
+"CRITERIA_ID_REQUIRED" : "CriteriaIds are required",
+"COPIED_CRITERIA_SUCCESSFULLY" : "Created copy of criterias successfully",
+"QUESTION_ID_REQUIRED" : "QuestionIds are required",
+"COPIED_QUESTIONS_SUCCESSFULLY" : "Created copy of questions successfully"
 }
