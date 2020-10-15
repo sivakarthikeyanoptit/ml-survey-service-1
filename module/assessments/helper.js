@@ -636,85 +636,104 @@ module.exports = class AssessmentsHelper {
       * @method
       * @name templateDetails
       * @param {String} templateId - Template id.
+      * @param {Boolean} showEcmwiseQuestions - showEcmwiseQuestions
+      * @param {Boolean} filterPreviewQuestions - filterPreviewQuestions
       * @returns {Object} returns creator,about and list of questions.
      */
 
-    static templateDetails(templateId) {
+    static templateDetails(templateId,showEcmwiseQuestions= true,filterPreviewQuestions = false) {
         return new Promise(async (resolve, reject) => {
             try {
 
-              let solutionDetails = 
-              await solutionsHelper.details(
-                templateId
-              );
-
-              let criteriaIds = gen.utils.getCriteriaIds(solutionDetails.themes);
-
-              let questionDetails = 
-              await criteriaQuestionsHelper.details(
-                  criteriaIds,
-                  {
-                      $project : {
-                          "ecm" : "$evidences.code",
-                          "question" : "$evidences.sections.questions.question"
-                        }
-                  },
-                  {
-                      "evidences.sections.questions.showQuestionInPreview" : true 
-                  }
-               );
-
-               let ecmQuestions = [];
-
-               if( questionDetails.length > 0 ) {
-                   
-                   questionDetails.forEach(questionData=>{
-                    
-                    let ecmIndex = 
-                    ecmQuestions.findIndex(
-                        ecmQuestion=> ecmQuestion.ecm === questionData.ecm
+                let solutionDetails = 
+                    await solutionsHelper.details(
+                        templateId
                     );
 
-                    if( ecmIndex < 0 ) {
+                let criteriaIds = gen.utils.getCriteriaIds(solutionDetails.themes);
+                
+                let applyPreviewQuestionsOnlyFilter = false;
+
+                if (filterPreviewQuestions) {
+                    applyPreviewQuestionsOnlyFilter = {"evidences.sections.questions.showQuestionInPreview" : true }
+                }
+
+                let questionDetails = 
+                await criteriaQuestionsHelper.details(
+                    criteriaIds,
+                    {
+                        $project : {
+                            "ecm" : "$evidences.code",
+                            "question" : "$evidences.sections.questions.question"
+                            }
+                    },
+                    applyPreviewQuestionsOnlyFilter
+                );
+                
+
+                let templateQuestions = [];
+              
+                if (showEcmwiseQuestions) {
+
+                   if( questionDetails.length > 0 ) {
+
+                        questionDetails.forEach(questionData=>{
                         
-                        let ecmQuestion = {
-                            ecm : questionData.ecm,
-                            name : solutionDetails.evidenceMethods[questionData.ecm].name,
-                            questions : []
+                        let ecmIndex = 
+                        templateQuestions.findIndex(
+                            ecmQuestion=> ecmQuestion.ecm === questionData.ecm
+                        );
+    
+                        if( ecmIndex < 0 ) {
+                            
+                            let ecmQuestion = {
+                                ecm : questionData.ecm,
+                                name : solutionDetails.evidenceMethods[questionData.ecm].name,
+                                questions : []
+                            }
+    
+                            templateQuestions.push(ecmQuestion);
+                            ecmIndex = templateQuestions.length - 1;
                         }
+    
+                        let questionIndex = 
+                        templateQuestions[ecmIndex].questions.findIndex(
+                            question=> question === questionData.question[0]
+                        );
+    
+                        if( questionIndex < 0 ) {
+                            templateQuestions[ecmIndex].questions.push(questionData.question[0]);
+                        }
+    
+                        })
 
-                        ecmQuestions.push(ecmQuestion);
-                        ecmIndex = ecmQuestions.length - 1;
+                    } else {
+                        Object.keys(solutionDetails.evidenceMethods).forEach(evidenceMethodCode => {
+                            templateQuestions.push({
+                                ecm : solutionDetails.evidenceMethods[evidenceMethodCode].externalId,
+                                name : solutionDetails.evidenceMethods[evidenceMethodCode].name,
+                                questions : []
+                            });
+                        })
                     }
+                   
+                } else {
 
-                    let questionIndex = 
-                    ecmQuestions[ecmIndex].questions.findIndex(
-                        question=> question === questionData.question[0]
-                    );
-
-                    if( questionIndex < 0 ) {
-                        ecmQuestions[ecmIndex].questions.push(questionData.question[0]);
-                    }
-
-                   })
-               } else {
-                   Object.keys(solutionDetails.evidenceMethods).forEach(evidenceMethodCode => {
-                        ecmQuestions.push({
-                            ecm : solutionDetails.evidenceMethods[evidenceMethodCode].externalId,
-                            name : solutionDetails.evidenceMethods[evidenceMethodCode].name,
-                            questions : []
-                        });
-                   })
-               }
+                    templateQuestions = questionDetails.map(questionData=>{
+                        return questionData.question[0]
+                      });
+    
+                    templateQuestions = [...new Set(templateQuestions)]
+                }
 
                let result = {
                    name : solutionDetails.name,
                    creator : solutionDetails.creator ? solutionDetails.creator : "",
                    entityType : solutionDetails.entityType,
                    description : solutionDetails.description,
-                   ecmQuestions : ecmQuestions,
                    linkTitle : solutionDetails.linkTitle ? solutionDetails.linkTitle: "",
-                   linkUrl : solutionDetails.linkUrl ? solutionDetails.linkUrl: ""
+                   linkUrl : solutionDetails.linkUrl ? solutionDetails.linkUrl: "",
+                   questions : templateQuestions
                 };
 
               return resolve(result);

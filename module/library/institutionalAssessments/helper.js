@@ -67,9 +67,14 @@ module.exports = class InstitutionalAssessmentHelper {
 
               let institutionalAssessmentSolution = 
               await assessmentsHelper.templateDetails(
-                templateId
+                templateId,
+                true,
+                true
               );
              
+              institutionalAssessmentSolution.ecmQuestions = institutionalAssessmentSolution.questions;
+              delete institutionalAssessmentSolution['questions'];
+
               return resolve({
                 message : messageConstants.apiResponses.INSTITUTIONAL_SOLUTIONS_DETAILS,
                 result : institutionalAssessmentSolution

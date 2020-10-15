@@ -11,6 +11,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper");
 
 /**
     * Solutions
@@ -1235,5 +1236,363 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/delete/{{solutionId}} Delete solution .
+  * @apiVersion 1.0.0
+  * @apiName Delete Solution.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution Intenal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/delete/5f64601df5f6e432fe0f0575
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Solution deleted successfully.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Delete Solution.
+   * @method
+   * @name deleteSolution
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solutiion internal id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solution = await solutionsHelper.delete(req.params._id,req.userDetails.userId);
+        return resolve(solution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/moveToTrash/{{solutionId}} Solution Move to Trash .
+  * @apiVersion 1.0.0
+  * @apiName Solution Move To Trash .
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution Intenal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/moveToTrash/5f64601df5f6e432fe0f0575
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Your solution has been moved to Trash.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Move To Trash.
+   * @method
+   * @name moveToTrash
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async moveToTrash(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let trashSolution = await solutionsHelper.moveToTrash(req.params._id,req.userDetails.userId);
+        return resolve(trashSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+   /**
+  * @api {get} /assessment/api/v1/solutions/restoreFromTrash/{{solutionId}} Solution Restore FRom Trash .
+  * @apiVersion 1.0.0
+  * @apiName Solution Restore From Trash.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution Intenal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/restoreFromTrash/5f64601df5f6e432fe0f0575
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Solution restored successfully.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Restore From Trash.
+   * @method
+   * @name restoreFromTrash
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async restoreFromTrash(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let restoreSolution = await solutionsHelper.restoreFromTrash(req.params._id,req.userDetails.userId);
+        return resolve(restoreSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+  * @api {get} /assessment/api/v1/solutions/trashList Solution Trash List .
+  * @apiVersion 1.0.0
+  * @apiName Solution Trash List.
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/solutions/trashList
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Trash Solution fetched successfully.",
+      "status": 200,
+      "result": [
+          {
+              "_id": "5f64601df5f6e432fe0f0575",
+              "externalId": "AFRICA-ME-TEST-FRAMEWORK",
+              "name": "AFRICA-ME-TEST-FRAMEWORK"
+          },
+          {
+              "_id": "5f64651f916c13367d8ff83f",
+              "externalId": "PRIYANKA-3-FRAMWORK-OBSERVATION-1",
+              "name": "Priyanka Observation solution"
+          }
+      ]
+    }
+  */
+
+   /**
+   * Solution Trash List
+   * @method
+   * @name trashList
+   * @returns {JSON} Trash List 
+   */
+
+  async trashList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let trashData = await solutionsHelper.trashList(req.userDetails.userId);
+        return resolve(trashData)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+/**
+  * @api {get} /assessment/api/v1/solutions/removeFromHomeScreen/{{solutionId}} Solution Remove From Library .
+  * @apiVersion 1.0.0
+  * @apiName Solution Remove From Home screen .
+  * @apiGroup Solutions
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiParam {String} solutionId Solution Internal ID.
+  * @apiSampleRequest /assessment/api/v1/solutions/removeFromHomeScreen/5f64601df5f6e432fe0f0575
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+      "message": "Your solution has been removed.",
+      "status": 200,
+      "result": "5f64601df5f6e432fe0f0575"
+    }
+  */
+
+   /**
+   * Solution Remove From Home screen.
+   * @method
+   * @name removeFromHomeScreen
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solutiion external id.
+   * @returns {JSON} consists of solution id.
+   */
+
+  async removeFromHomeScreen(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+       let removeSolution = await solutionsHelper.removeFromHome(req.params._id,req.userDetails.userId);
+        return resolve(removeSolution)
+      
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+  
+  
+  /**
+    * @api {get} /assessment/api/v1/solutions/getObservationSolutionLink/{{observationsolutionId}}?appName:appName 
+    * @apiVersion 1.0.0
+    * @apiName Get observation shareable link
+    * @apiGroup Solutions
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiParam {String} observationsolutionId Observation Solution External ID.
+    * @apiParam {String} appName Name of App.
+    * @apiSampleRequest /assessment/api/v1/observations/getObservationSolutionLink/Mid-day_Meal_SMC_Observation-Aug2019?appName=samiksha
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    {
+      "message": "Observation Link generated successfully",
+      "status": 200,
+      "result": "https://apps.shikshalokam.org/samiksha/create-observation/38cd93bdb87489c3890fe0ab00e7d406"
+    }
+    */
+    /**
+   * Get Observation Solution Sharing Link.
+   * @method
+   * @name getObservationSolutionLink
+   * @param {Object} req -request Data.
+   * @param {String} req.params._id - observation solution externalId.
+   * @param {String} req.query.appName - app Name.
+   * @returns {JSON} 
+   */
+
+    async getObservationSolutionLink(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let observationSolutionDetails = await observationsHelper.getObservationLink(req.params._id, req.query.appName);
+                return resolve(observationSolutionDetails)
+
+            } catch (error) {
+        
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+    * @api {get} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
+    * @apiVersion 1.0.0
+    * @apiName Verify Observation Solution Link
+    * @apiGroup Solutions
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiParam {String} link Observation Solution Link.
+    * @apiSampleRequest /assessment/api/v1/solutions/verifyLink/38cd93bdb87489c3890fe0ab00e7d406
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    {
+        "message": "Observation solution link verified successfully",
+        "status": 200,
+        "result": [
+            {
+                "_id": "5f6853f293734140ccce90cf",
+                "entities": [
+                    "5f636fa2916c13367d8ff835"
+                ],
+                "createdFor": [],
+                "rootOrganisations": [],
+                "isAPrivateProgram": false,
+                "deleted": false,
+                "status": "published",
+                "solutionId": "5f64651f916c13367d8ff83f",
+                "solutionExternalId": "PRIYANKA-3-FRAMWORK-OBSERVATION-1",
+                "programId": "5f634e31577d2ce1ed942c65",
+                "programExternalId": "MY-ASSESSMENT-PROGRAM2",
+                "frameworkId": "5f6349c4577d2ce1ed942a56",
+                "frameworkExternalId": "PRIYANKA-3-FRAMWORK",
+                "entityTypeId": "5d15a959e9185967a6d5e8a6",
+                "entityType": "school",
+                "createdBy": "01c04166-a65e-4e92-a87b-a9e4194e771d",
+                "startDate": "2020-09-21T07:19:14.618Z",
+                "endDate": "2021-09-21T07:19:14.618Z",
+                "name": "Priyanka Observation solution",
+                "description": "Priyanka Observation description",
+                "updatedAt": "2020-09-21T07:19:14.648Z",
+                "createdAt": "2020-09-21T07:19:14.648Z",
+                "__v": 0,
+                "link": "a325411f49158bc21b7f08d33aad5c02"
+            }
+        ]
+    }
+    */
+
+     /**
+    * Verify Observation Solution Link.
+    * @method
+    * @name verifyLink 
+    * @param {Object} req request data
+    * @param {String} req.params._id observation solution link. 
+    * @returns {JSON} observation data.   
+    */
+    
+    async verifyLink(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let result = await observationsHelper.verifyLink(
+                    req.params._id,
+                    req.rspObj.userToken,
+                    req.userDetails.userId
+                );
+
+                return (resolve(result))
+
+            } catch (error) {
+
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+
+            }
+
+        })
+    }
   
 };

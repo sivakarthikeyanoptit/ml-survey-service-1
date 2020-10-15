@@ -1,7 +1,11 @@
 module.exports = {
   name: "solutions",
   schema: {
-    externalId: String,
+    externalId: {
+      type: String,
+      index: true,
+      unique: true
+    },
     isReusable: Boolean,
     name: String,
     description: String,
@@ -19,11 +23,25 @@ module.exports = {
     questionSequenceByEcm: Object,
     entityTypeId: "ObjectId",
     entityType: String,
-    type: String,
-    subType: String,
+    type: {
+      type: String,
+      required: true,
+      index: true
+    },
+    subType: {
+      type: String,
+      required: true,
+      index: true
+    },
     entities: Array,
-    programId: "ObjectId",
-    programExternalId: String,
+    programId: {
+      type: "ObjectId",
+      index: true
+    },
+    programExternalId: {
+      type: String,
+      index: true
+    },
     programName: String,
     programDescription: String,
     entityProfileFieldsPerEntityTypes: Object,
@@ -48,6 +66,10 @@ module.exports = {
     creator: String,
     linkTitle: String,
     linkUrl: String,
+    link: {
+      type: String,
+      index: true
+    },
     isAPrivateProgram : {
       default : false,
       type : Boolean
@@ -64,6 +86,11 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
+    },
+    link: {
+      type: String,
+      index: true,
+      unique: true
     }
   }
 };

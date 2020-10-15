@@ -9,6 +9,7 @@
 
 const request = require('request');
 const fs = require("fs");
+const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + "/";
 
 /**
   * Get downloadable file.
@@ -20,7 +21,7 @@ const fs = require("fs");
 
 const getDownloadableUrl = function (bodyData) {
 
-    let fileDownloadUrl = process.env.KENDRA_APPLICATION_ENDPOINT; 
+    let fileDownloadUrl = kendraServiceBaseURL; 
     
     if ( process.env.CLOUD_STORAGE === "GC" ) {
         fileDownloadUrl = fileDownloadUrl + messageConstants.endpoints.DOWNLOADABLE_GCP_URL;
@@ -72,7 +73,7 @@ const getDownloadableUrl = function (bodyData) {
 
 const upload = function (file,filePath) {
 
-    let fileUploadUrl = process.env.KENDRA_APPLICATION_ENDPOINT; 
+    let fileUploadUrl = kendraServiceBaseURL; 
     let bucketName = "";
 
     if ( process.env.CLOUD_STORAGE === "GC" ) {
@@ -118,8 +119,44 @@ const upload = function (file,filePath) {
     });
 }
 
+/**
+  * Get app Details.
+  * @function
+  * @name getAppDetails
+  * @param {String} appName - App Name.
+  * @returns {JSON} App Details.
+*/
+
+const getAppDetails = function (appName) {
+
+    let getAppDetailsUrl = kendraServiceBaseURL + messageConstants.endpoints.GET_APP_DETAILS + "/" + appName;
+
+    return new Promise((resolve, reject) => {
+        try {
+
+            const kendraCallBack = function (err, response) {
+                if (err) {
+                    return reject({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.KENDRA_SERVICE_DOWN
+                    })
+                } else {
+                    let appDetails =  JSON.parse(response.body);
+                    return resolve(appDetails);
+                }
+            }
+
+            request.post(getAppDetailsUrl, kendraCallBack);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+}
+
 module.exports = {
     getDownloadableUrl : getDownloadableUrl,
-    upload : upload
+    upload : upload,
+    getAppDetails : getAppDetails
 };
 

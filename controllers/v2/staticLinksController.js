@@ -23,20 +23,39 @@ module.exports = class StaticLinks extends v1StaticLinks {
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiSampleRequest /assessment/api/v2/staticLinks/list
   * @apiParamExample {json} Response:
-  * "result": [
-      {
-       "_id": "5d259439a9bc1209d0184390",
-       "value": "privacyPolicy",
-       "link": "https://shikshalokam.org/wp-content/uploads/2019/01/data_privacy_policy.html",
-       "title": "Privacy Policy"
-      },
-      {
-       "_id": "5d259439a9bc1209d0184391",
-       "value": "termsOfUse",
-       "link": "https://shikshalokam.org/wp-content/uploads/2019/05/Final-ShikshaLokam-Terms-of-Use-MCM-08052019-Clean-copy-1.html",
-       "title": "Terms of Use"
-      }
-    ]
+  * {
+    "message": "Static Links fetched successfully.",
+    "status": 200,
+    "result": {
+        "privacyPolicy": {
+            "_id": "5d259439a9bc1209d0184390",
+            "value": "privacyPolicy",
+            "link": "https://shikshalokam.org/wp-content/uploads/2019/01/data_privacy_policy.html",
+            "title": "Privacy Policy"
+        },
+        "faq": {
+            "_id": "5d259439a9bc1209d0184392",
+            "value": "faq",
+            "link": "",
+            "title": "FAQ"
+        },
+        "tutorial-video": {
+            "_id": "5e7c5cacf67cd8715381299f",
+            "value": "tutorial-video",
+            "link": "",
+            "title": "Tutorial Video",
+            "metaInformation": {
+                "videos": [
+                    {
+                        "value": "video1",
+                        "title": "How to create observations and see reports?",
+                        "link": "https://youtu.be/ovqDe_G7ct8"
+                    }
+                ]
+            }
+        }
+    }
+  }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -53,28 +72,13 @@ module.exports = class StaticLinks extends v1StaticLinks {
 
       try {
 
-        let linksFilter = {
-          status: "active",
-          isDeleted: false
-        }
+        let result = await staticLinksHelper.list(
+          req.headers.apptype,
+          req.headers.appname,
+          messageConstants.common.VERSION_2
+        );
 
-        if(req.headers.apptype && req.headers.apptype != "") {
-          linksFilter["appType"] = req.headers.apptype;
-        }
-
-        let result = await staticLinksHelper.list(linksFilter, {
-            value: 1,
-            link: 1,
-            title: 1,
-            metaInformation: 1
-        });
-
-        result = _.keyBy(result, 'value');
-
-        return resolve({
-          message: messageConstants.apiResponses.STATIC_LINKS_FETCHED,
-          result: result
-        });
+        return resolve(result);
 
       } catch (error) {
 

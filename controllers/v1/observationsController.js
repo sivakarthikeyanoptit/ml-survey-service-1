@@ -1061,6 +1061,7 @@ module.exports = class Observations extends Abstract {
     */
 
     async importFromFramework(req) {
+
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1185,6 +1186,7 @@ module.exports = class Observations extends Abstract {
                         newSolutionDocument.parentSolutionId = newBaseSolution._id;
                         newSolutionDocument.isReusable = false;
                         newSolutionDocument.externalId = frameworkDocument.externalId;
+                        
 
                         let newSolution = 
                         await database.models.solutions.create(
@@ -1195,9 +1197,16 @@ module.exports = class Observations extends Abstract {
                         );
 
                         if ( newSolution._id ) {
-
+                            
+                            let link = await gen.utils.md5Hash(newSolution._id + "###" + req.userDetails.userId);
+                            
+                            await solutionHelper.updateSolutionDocument(
+                                { _id: newSolution._id },
+                                { $set : { link: link } }
+                            )
+                            
                             result["observationSolutionId"] =  newSolution._id;
-
+                            
                             await database.models.programs.updateOne(
                                 { 
                                     _id: programDocument[0]._id 
@@ -1302,7 +1311,7 @@ module.exports = class Observations extends Abstract {
                     userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
                     if(Object.keys(userIdByExternalId).length > 0) {
                         Object.values(userIdByExternalId).forEach(userDetails => {
-                            usersKeycloakIdMap[userDetails.userId] = true;
+                            usersKeycloakIdMap[userDetails] = true;
                         })
                     }
                 }
@@ -1794,6 +1803,6 @@ module.exports = class Observations extends Abstract {
                 });
             }
         });
-    }
+    } 
 
 }
