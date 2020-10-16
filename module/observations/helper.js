@@ -1180,7 +1180,8 @@ module.exports = class ObservationsHelper {
                 
                 let observationData = await this.observationDocuments({
                     solutionExternalId : observationSolutionData[0].externalId,
-                    createdBy :userId
+                    createdBy : userId,
+                    status: messageConstants.common.PUBLISHED
                 });
 
                 if(observationData && observationData.length > 0){
@@ -1251,10 +1252,27 @@ module.exports = class ObservationsHelper {
                     organisationAndRootOrganisation
                 );
 
+                if(!result || result._id == undefined){
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: result
+                    });
+                }
+
+                let newObservationId = result._id;
+
+                let updateObservation = await database.models.observations.findOneAndUpdate({
+                    _id : newObservationId 
+                  },{
+                    $set : {
+                      status : messageConstants.common.PUBLISHED
+                    }
+                  });
+
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
-                    result: result
-                });                  
+                    result: updateObservation
+                });                    
 
             } catch (error) {
                 return reject(error);
