@@ -1225,7 +1225,7 @@ module.exports = class ObservationsHelper {
                     "description": observationSolutionData[0].description,
                     "startDate": startDate,
                     "endDate": endDate,
-                    "status": messageConstants.common.ACTIVE_STATUS,
+                    "status": messageConstants.common.PUBLISHED,
                     "entities": entities,
                     "link" : link
                 }
