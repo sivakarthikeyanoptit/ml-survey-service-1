@@ -296,6 +296,7 @@ module.exports = class SurveySubmissionsHelper {
                                     "$match": {
                                         "author": userId,
                                         "type": messageConstants.common.SURVEY,
+                                        "isReusable": false,
                                         "isDeleted": false,
                                     }
                                 },
