@@ -264,6 +264,7 @@ module.exports = class UserHelper {
                     if(userRemovedSolutionsFromHomeScreen.length > 0 && userRemovedSolutionsFromHomeScreen.indexOf(solution._id.toString()) > -1) {
                         solution.showInHomeScreen = false;
                     }
+
                     solutionsData[solution._id.toString()] = solution;
                 }
 
