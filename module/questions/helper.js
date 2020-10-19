@@ -927,7 +927,6 @@ module.exports = class QuestionsHelper {
           }
 
           question.externalId = question.externalId + "-" + gen.utils.epochTime()
-          question.parentQuestionId = question._id;
           let newQuestionId = await this.make(_.omit(question, ["_id"]))
 
           if (newQuestionId._id) {
