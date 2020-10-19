@@ -844,14 +844,14 @@ module.exports = class QuestionsHelper {
 
 
   /**
-   * Create copy of questions.
+   * Create duplicate questions.
    * @method
-   * @name createCopyOfQuestions
+   * @name duplicateQuestions
    * @param {Array} questionIds - Array of question Id's         
    * @returns {Object}  old and new Mapped question ids .  
   */
 
-  static createCopyOfQuestions(questionIds = []) {
+  static duplicateQuestions(questionIds = []) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -927,6 +927,7 @@ module.exports = class QuestionsHelper {
           }
 
           question.externalId = question.externalId + "-" + gen.utils.epochTime()
+          question.parentQuestionId = question._id;
           let newQuestionId = await this.make(_.omit(question, ["_id"]))
 
           if (newQuestionId._id) {

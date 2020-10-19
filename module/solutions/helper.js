@@ -11,7 +11,6 @@ const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
-const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
 
 /**
     * SolutionsHelper
@@ -1047,7 +1046,7 @@ module.exports = class SolutionsHelper {
 
           let criteriaIds = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
           
-          let copyCriteriaResponse = await criteriaHelper.createCopyOfCriterias(criteriaIds);
+          let duplicateCriteriasResponse = await criteriaHelper.duplicateCriterias(criteriaIds);
 
           let updateThemes = function (themes) {
             themes.forEach(theme => {
@@ -1058,7 +1057,7 @@ module.exports = class SolutionsHelper {
               } else {
                   criteriaIdArray = theme.criteria;
                   criteriaIdArray.forEach(eachCriteria => {
-                  eachCriteria.criteriaId = copyCriteriaResponse.data[eachCriteria.criteriaId.toString()] ? copyCriteriaResponse.data[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                  eachCriteria.criteriaId = duplicateCriteriasResponse.data[eachCriteria.criteriaId.toString()] ? duplicateCriteriasResponse.data[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
                     themeCriteriaToSet.push(eachCriteria);
                   })
                   theme.criteria = themeCriteriaToSet;

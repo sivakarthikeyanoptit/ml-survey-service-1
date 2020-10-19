@@ -307,10 +307,10 @@ module.exports = class SurveysHelper {
                 
                 let criteriaQuestionIds = await gen.utils.getAllQuestionId(solutionCriteria);
 
-                let createCopyOfQuestions =  await questionsHelper.createCopyOfQuestions(criteriaQuestionIds);
+                let duplicateQuestionsResponse =  await questionsHelper.duplicateQuestions(criteriaQuestionIds);
                 
-                if (createCopyOfQuestions.success && Object.keys(createCopyOfQuestions.data).length > 0) {
-                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(createCopyOfQuestions.data);
+                if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
+                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data);
                 }
 
                 let newCriteriaId = await criteriaHelper.create

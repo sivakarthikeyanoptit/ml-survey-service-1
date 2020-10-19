@@ -470,14 +470,14 @@ module.exports = class criteriaHelper {
 
 
   /**
-   * Create copy of criterias
+   * Create duplicate criterias
    * @method
-   * @name createCopyOfCriterias
+   * @name duplicateCriterias
    * @param {Array} criteriaIds - Array of criteria Id's        
    * @returns {Object}  old and new Mapped criteria ids .  
   */
 
-  static createCopyOfCriterias(criteriaIds= []) {
+  static duplicateCriterias(criteriaIds= []) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -495,24 +495,39 @@ module.exports = class criteriaHelper {
         }
 
         let criteriaIdMap = {};
+        let questionIdMap = {};
+
+        let criteriaQuestionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
+
+        if (criteriaQuestionIds.length > 0) {
+          let duplicateQuestionsResponse = await questionsHelper.duplicateQuestions
+          (
+            criteriaQuestionIds
+          )
+
+          if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
+            questionIdMap = duplicateQuestionsResponse.data;
+          }
+        }
         
         await Promise.all(criteriaDocuments.map(async criteria => {
-          
+
           await Promise.all(criteria.evidences.map(async evidence => {
             await Promise.all(evidence.sections.map(async section => {
               if (section.questions.length > 0) {
-                let criteriaQuestionIds = await questionsHelper.createCopyOfQuestions
-                  (
-                    section.questions
-                  )
-                if (criteriaQuestionIds.success && Object.keys(criteriaQuestionIds.data).length > 0) {
-                  section.questions = Object.values(criteriaQuestionIds.data);
-                }
+                let newQuestions = [];
+                await Promise.all(section.questions.map(question => {
+                  
+                  let newQuestionId = questionIdMap[question.toString()] ? questionIdMap[question.toString()] : question;
+                  newQuestions.push(newQuestionId);
+                }))
+                section.questions = newQuestions;
               }
             }))
           }))
 
           criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
+          criteria.parentCriteriaId = criteria._id;
           let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
 
           if (newCriteriaId._id) {
