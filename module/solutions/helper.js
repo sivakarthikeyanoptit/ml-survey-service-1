@@ -1046,7 +1046,7 @@ module.exports = class SolutionsHelper {
 
           let criteriaIds = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
           
-          let duplicateCriteriasResponse = await criteriaHelper.duplicateCriterias(criteriaIds);
+          let duplicateCriteriasResponse = await criteriaHelper.duplicate(criteriaIds);
 
           let updateThemes = function (themes) {
             themes.forEach(theme => {

@@ -307,7 +307,7 @@ module.exports = class SurveysHelper {
                 
                 let criteriaQuestionIds = await gen.utils.getAllQuestionId(solutionCriteria);
 
-                let duplicateQuestionsResponse =  await questionsHelper.duplicateQuestions(criteriaQuestionIds);
+                let duplicateQuestionsResponse =  await questionsHelper.duplicate(criteriaQuestionIds);
                 
                 if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
                   solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data);

@@ -472,12 +472,12 @@ module.exports = class criteriaHelper {
   /**
    * Create duplicate criterias
    * @method
-   * @name duplicateCriterias
+   * @name duplicate
    * @param {Array} criteriaIds - Array of criteria Id's        
    * @returns {Object}  old and new Mapped criteria ids .  
   */
 
-  static duplicateCriterias(criteriaIds= []) {
+  static duplicate(criteriaIds= []) {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -500,7 +500,7 @@ module.exports = class criteriaHelper {
         let criteriaQuestionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
 
         if (criteriaQuestionIds.length > 0) {
-          let duplicateQuestionsResponse = await questionsHelper.duplicateQuestions
+          let duplicateQuestionsResponse = await questionsHelper.duplicate
           (
             criteriaQuestionIds
           )
