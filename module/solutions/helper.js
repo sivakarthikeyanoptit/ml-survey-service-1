@@ -1045,6 +1045,11 @@ module.exports = class SolutionsHelper {
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
 
           let duplicateCriteriasResponse = await criteriaHelper.duplicate(newSolutionDocument.themes);
+          
+          let criteriaIdMap = {};
+          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data).length > 0) {
+             criteriaIdMap = duplicateCriteriasResponse.data;
+          }
 
           let updateThemes = function (themes) {
             themes.forEach(theme => {
@@ -1055,7 +1060,7 @@ module.exports = class SolutionsHelper {
               } else {
                   criteriaIdArray = theme.criteria;
                   criteriaIdArray.forEach(eachCriteria => {
-                  eachCriteria.criteriaId = duplicateCriteriasResponse.data[eachCriteria.criteriaId.toString()] ? duplicateCriteriasResponse.data[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                  eachCriteria.criteriaId = criteriaIdMap[eachCriteria.criteriaId.toString()] ? criteriaIdMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
                     themeCriteriaToSet.push(eachCriteria);
                   })
                   theme.criteria = themeCriteriaToSet;
