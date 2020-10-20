@@ -505,7 +505,7 @@ module.exports = class criteriaHelper {
 
         let duplicateQuestionsResponse = await questionsHelper.duplicate
         (
-          criteriaDocuments
+          criteriaIds
         )
 
         if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
