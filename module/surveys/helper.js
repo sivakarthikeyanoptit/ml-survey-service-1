@@ -304,15 +304,15 @@ module.exports = class SurveysHelper {
                 )
 
                 solutionCriteria[0].externalId = solutionExternalId + "-" + surveyAndFeedback;
-                
-                let criteriaQuestionIds = await gen.utils.getAllQuestionId(solutionCriteria);
 
-                let duplicateQuestionsResponse =  await questionsHelper.duplicate(criteriaQuestionIds);
+                let duplicateQuestionsResponse =  await questionsHelper.duplicate([solutionCriteria[0]._id]);
                 
                 if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
                   solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data);
                 }
-
+                
+                solutionCriteria[0].parentCriteriaId = solutionCriteria[0]._id;
+                
                 let newCriteriaId = await criteriaHelper.create
                 (
                     _.omit(solutionCriteria[0], ["_id"])

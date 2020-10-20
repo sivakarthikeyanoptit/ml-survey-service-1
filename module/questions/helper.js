@@ -851,12 +851,28 @@ module.exports = class QuestionsHelper {
    * @returns {Object}  old and new Mapped question ids .  
   */
 
-  static duplicate(questionIds = []) {
+  static duplicate(criteriaIds = []) {
     return new Promise(async (resolve, reject) => {
       try {
 
+        if (!criteriaIds.length) {
+          throw new Error(messageConstants.apiResponses.CRITERIA_ID_REQUIRED)
+        }
+
+        let criteriaDocuments = await database.models.criteria.find
+        (
+          { _id: { $in : criteriaIds }},
+          ["evidences"]
+        )
+
+        if (!criteriaDocuments.length) {
+           throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
+        }
+
+        let questionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
+
         if (!questionIds.length) {
-          throw new Error(messageConstants.apiResponses.QUESTION_ID_REQUIRED)
+          throw new Error(messageConstants.apiResponses.QUESTION_ID_NOT_FOUND)
         }
 
         let questionIdMap = {};
@@ -873,7 +889,7 @@ module.exports = class QuestionsHelper {
         await Promise.all(questionDocuments.map(async question => {
 
           // If question has instanceQuestions
-          if (question.responseType == messageConstants.common.MATRIX_RESPONSE_TYPE && 
+          if (question.instanceQuestion && 
               question.instanceQuestions.length > 0) {
             
             let instanceQuestionDocuments = await this.questionDocument
@@ -899,10 +915,12 @@ module.exports = class QuestionsHelper {
               }
             }
           }
-           
+          
+          let updateQuestion = false;
+
           // Parent child question scenario
           if (question.children && question.children.length > 0) {
-
+          
             let childrenQuestionDocuments = await this.questionDocument
             (
               { _id: { $in: question.children } }
@@ -910,13 +928,19 @@ module.exports = class QuestionsHelper {
 
             if (childrenQuestionDocuments.length > 0) {
               let newChildrenQuestionIdArray = [];
+              updateQuestion = true;
 
               await Promise.all(childrenQuestionDocuments.map(async childrenQuestion => {
-                childrenQuestion.externalId = childrenQuestion.externalId + "-" + gen.utils.epochTime()
-                let newChildrenQuestionId = await this.make(_.omit(childrenQuestion, ["_id"]))
+                if (!childrenQuestion.visibleIf.length) {
+                  childrenQuestion.externalId = childrenQuestion.externalId + "-" + gen.utils.epochTime()
+                  let newChildrenQuestionId = await this.make(_.omit(childrenQuestion, ["_id"]))
 
-                if (newChildrenQuestionId._id) {
-                  newChildrenQuestionIdArray.push(newChildrenQuestionId._id)
+                  if (newChildrenQuestionId._id) {
+                    newChildrenQuestionIdArray.push(newChildrenQuestionId._id)
+                  }
+                }
+                else {
+                  newChildrenQuestionIdArray.push(childrenQuestion._id);
                 }
               }))
 
@@ -926,18 +950,30 @@ module.exports = class QuestionsHelper {
             }
           }
 
-          question.externalId = question.externalId + "-" + gen.utils.epochTime()
-          let newQuestionId = await this.make(_.omit(question, ["_id"]))
+          if (updateQuestion) {
+             await database.models.questions.updateOne
+             ({
+               _id: question._id
+             },
+             {
+               $set : { children: question.children, instanceQuestions: question.instanceQuestions}
+             })
 
-          if (newQuestionId._id) {
-            questionIdMap[question._id.toString()] = newQuestionId._id;
+             questionIdMap[question._id.toString()] = question._id;
           }
-                    
+          else {
+            question.externalId = question.externalId + "-" + gen.utils.epochTime()
+            let newQuestionId = await this.make(_.omit(question, ["_id"]))
+
+            if (newQuestionId._id) {
+              questionIdMap[question._id.toString()] = newQuestionId._id;
+            }
+        }
         }))
 
         return resolve({
           success: true,
-          message: messageConstants.apiResponses.COPIED_QUESTIONS_SUCCESSFULLY,
+          message: messageConstants.apiResponses.DUPLICATED_QUESTIONS_SUCCESSFULLY,
           data: questionIdMap
         });
 

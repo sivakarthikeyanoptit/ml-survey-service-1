@@ -301,8 +301,11 @@ module.exports = {
 "APP_DETAILS_NOT_FOUND" : "App not found",
 "OBSERVATION_SUBMISSION_ID_REQUIRED" : "Observation submission id required",
 "INVALID_LINK" : "Invalid link",
-"CRITERIA_ID_REQUIRED" : "CriteriaIds are required",
-"COPIED_CRITERIA_SUCCESSFULLY" : "Created copy of criterias successfully",
+"CRITERIA_ID_NOT_FOUND" : "Criteria ids not found",
+"DUPLICATED_CRITERIA_SUCCESSFULLY" : "Duplicated criterias successfully",
 "QUESTION_ID_REQUIRED" : "QuestionIds are required",
-"COPIED_QUESTIONS_SUCCESSFULLY" : "Created copy of questions successfully"
+"DUPLICATED_QUESTIONS_SUCCESSFULLY" : "Duplicated questions successfully",
+"THEMES_REQUIRED" : "Themes required",
+"CRITERIA_ID_REQUIRED" : "Criteria ids required",
+"QUESTION_ID_NOT_FOUND" : "Question ids not found"
 }

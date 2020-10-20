@@ -473,16 +473,22 @@ module.exports = class criteriaHelper {
    * Create duplicate criterias
    * @method
    * @name duplicate
-   * @param {Array} criteriaIds - Array of criteria Id's        
+   * @param {Array} themes - themes       
    * @returns {Object}  old and new Mapped criteria ids .  
   */
 
-  static duplicate(criteriaIds= []) {
+  static duplicate(themes= []) {
     return new Promise(async (resolve, reject) => {
       try {
 
+        if (!themes.length) {
+          throw new Error(messageConstants.apiResponses.THEMES_REQUIRED)
+        }
+
+        let criteriaIds = await gen.utils.getCriteriaIds(themes);
+
         if (!criteriaIds.length) {
-          throw new Error(messageConstants.apiResponses.CRITERIA_ID_REQUIRED)
+          throw new Error(messageConstants.apiResponses.CRITERIA_ID_NOT_FOUND)
         }
 
         let criteriaDocuments = await this.criteriaDocument
@@ -497,34 +503,30 @@ module.exports = class criteriaHelper {
         let criteriaIdMap = {};
         let questionIdMap = {};
 
-        let criteriaQuestionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
+        let duplicateQuestionsResponse = await questionsHelper.duplicate
+        (
+          criteriaDocuments
+        )
 
-        if (criteriaQuestionIds.length > 0) {
-          let duplicateQuestionsResponse = await questionsHelper.duplicate
-          (
-            criteriaQuestionIds
-          )
-
-          if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
-            questionIdMap = duplicateQuestionsResponse.data;
-          }
+        if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
+          questionIdMap = duplicateQuestionsResponse.data;
         }
         
         await Promise.all(criteriaDocuments.map(async criteria => {
 
-          await Promise.all(criteria.evidences.map(async evidence => {
-            await Promise.all(evidence.sections.map(async section => {
-              if (section.questions.length > 0) {
-                let newQuestions = [];
-                await Promise.all(section.questions.map(question => {
-                  
-                  let newQuestionId = questionIdMap[question.toString()] ? questionIdMap[question.toString()] : question;
-                  newQuestions.push(newQuestionId);
-                }))
-                section.questions = newQuestions;
+          for(let pointerToEvidence = 0; pointerToEvidence < criteria.evidences.length; pointerToEvidence++) {
+            for(let pointerToSection = 0; pointerToSection < criteria.evidences[pointerToEvidence].sections.length; pointerToSection++) {
+              let newQuestions = [];
+              let sectionQuestions = criteria.evidences[pointerToEvidence].sections[pointerToSection].questions;
+              if (sectionQuestions.length > 0) {
+                for(let pointerToQuestion = 0; pointerToQuestion < sectionQuestions.length; pointerToQuestion++) {
+                   let newQuestionId = questionIdMap[sectionQuestions[pointerToQuestion].toString()] ? questionIdMap[sectionQuestions[pointerToQuestion].toString()] : sectionQuestions[pointerToQuestion];
+                   newQuestions.push(newQuestionId);
+                  }
+                  criteria.evidences[pointerToEvidence].sections[pointerToSection].questions = newQuestions;
               }
-            }))
-          }))
+            }
+          }
 
           criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
           criteria.parentCriteriaId = criteria._id;
@@ -545,7 +547,7 @@ module.exports = class criteriaHelper {
 
         return resolve({
           success: true,
-          message: messageConstants.apiResponses.COPIED_CRITERIA_SUCCESSFULLY,
+          message: messageConstants.apiResponses.DUPLICATED_CRITERIA_SUCCESSFULLY,
           data: criteriaIdMap
         });
 
