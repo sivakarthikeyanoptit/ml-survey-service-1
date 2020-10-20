@@ -43,6 +43,5 @@ module.exports = {
     OBSERVATION_SUBMISSIONS: "observationSubmissions",
     SUBMISSIONS: "submissions",
     VERSION_1 : "v1",
-    VERSION_2 : "v2",
-    MATRIX_RESPONSE_TYPE : "matrix"
+    VERSION_2 : "v2"
 }

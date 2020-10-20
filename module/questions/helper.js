@@ -847,8 +847,8 @@ module.exports = class QuestionsHelper {
    * Create duplicate questions.
    * @method
    * @name duplicate
-   * @param {Array} questionIds - Array of question Id's         
-   * @returns {Object}  old and new Mapped question ids .  
+   * @param {Array} criteriaIds - Array of solution's criteria Id's         
+   * @returns {Object}  old and new Mapped question id object.  
   */
 
   static duplicate(criteriaIds = []) {

@@ -474,7 +474,7 @@ module.exports = class criteriaHelper {
    * @method
    * @name duplicate
    * @param {Array} themes - themes       
-   * @returns {Object}  old and new Mapped criteria ids .  
+   * @returns {Object}  old and new Mapped criteria id Object .  
   */
 
   static duplicate(themes= []) {
