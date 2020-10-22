@@ -7,9 +7,10 @@
 
 // Dependencies
 const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
-const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL : "https://apps.shikshalokam.org/";
+const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
 const mediaFilesHelper = require(MODULES_BASE_PATH + "/mediaFiles/helper");
 const pollSubmissionDocumentHelper = require(MODULES_BASE_PATH + "/pollSubmissions/documents");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 
 /**
     * PollsHelper
@@ -743,6 +744,12 @@ module.exports = class PollsHelper {
 
             if(appName == "") {
                 throw new Error(messageConstants.apiResponses.APP_NAME_FIELD_REQUIRED)
+            }
+
+            let appDetails = await kendraService.getAppDetails(appName);
+                    
+            if (appDetails.result == false) {
+                throw new Error(messageConstants.apiResponses.APP_NOT_FOUND);
             }
 
             let pollLink = await this.pollDocuments

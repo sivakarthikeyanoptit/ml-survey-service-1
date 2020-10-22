@@ -57,6 +57,11 @@ module.exports = class LibraryCategories extends Abstract {
             "type": "institutional",
             "url": "https://storage.googleapis.com/download/storage/v1/b/sl-dev-storage/o/static%2Flibrary%2Fcategories%2FinstitutionalAssessments.png?generation=1593680942514300&alt=media",
             "updatedAt" : "2020-07-02T12:54:04.355Z"
+        },{
+            "name": "Survey and Feedback",
+            "type": "survey",
+            "updatedAt": "2020-09-09T17:39:52.101Z",
+            "url": "https://storage.googleapis.com/download/storage/v1/b/sl-dev-storage/o/static%2Flibrary%2FsurveyAndFeedback.png?alt=media"
         }
     ]}
     */

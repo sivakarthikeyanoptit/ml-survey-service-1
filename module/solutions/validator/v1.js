@@ -19,7 +19,11 @@ module.exports = (req) => {
             req.checkBody('name').exists().withMessage("required new solution name")
             req.checkBody('description').exists().withMessage("required new solution description")
             req.checkBody('programExternalId').exists().withMessage("required programExternalId")
-        }
+        },
+        getObservationSolutionLink: function () {
+            req.checkParams('_id').exists().withMessage("required observation solution id");
+            req.checkQuery('appName').exists().withMessage("required app name");
+        },
     }
 
     if (solutionValidator[req.params.method]) solutionValidator[req.params.method]();
