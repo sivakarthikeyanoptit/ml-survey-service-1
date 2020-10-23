@@ -19,6 +19,7 @@ const criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 
 /**
     * SurveysHelper
@@ -295,14 +296,23 @@ module.exports = class SurveysHelper {
                 let newSolutionDocument = solutionDocument[0];
                 let solutionExternalId = solutionDocument[0].externalId.split(surveySolutionTemplate)[0] + "-"+ gen.utils.epochTime();;
 
-                let criteriaId = gen.utils.getCriteriaIds(newSolutionDocument.themes);
+                let criteriaId = await gen.utils.getCriteriaIds(newSolutionDocument.themes);
 
                 let solutionCriteria = await criteriaHelper.criteriaDocument
                 (
                    { _id: criteriaId[0] }
                 )
-                
+
                 solutionCriteria[0].externalId = solutionExternalId + "-" + surveyAndFeedback;
+
+                let duplicateQuestionsResponse =  await questionsHelper.duplicate([solutionCriteria[0]._id]);
+                
+                if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
+                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data);
+                }
+                
+                solutionCriteria[0].parentCriteriaId = solutionCriteria[0]._id;
+                
                 let newCriteriaId = await criteriaHelper.create
                 (
                     _.omit(solutionCriteria[0], ["_id"])

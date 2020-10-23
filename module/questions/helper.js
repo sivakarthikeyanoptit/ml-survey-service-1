@@ -842,4 +842,115 @@ module.exports = class QuestionsHelper {
     }) 
   }
 
+
+  /**
+   * Create duplicate questions.
+   * @method
+   * @name duplicate
+   * @param {Array} criteriaIds - Array of solution's criteria Id's         
+   * @returns {Object}  old and new Mapped question id object.  
+  */
+
+  static duplicate(criteriaIds = []) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!criteriaIds.length) {
+          throw new Error(messageConstants.apiResponses.CRITERIA_ID_REQUIRED)
+        }
+
+        let criteriaDocuments = await database.models.criteria.find
+        (
+          { _id: { $in: criteriaIds } },
+          ["evidences"]
+        )
+
+        if (!criteriaDocuments.length) {
+          throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
+        }
+
+        let questionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
+       
+        if (!questionIds.length) {
+          throw new Error(messageConstants.apiResponses.QUESTION_ID_NOT_FOUND)
+        }
+
+        let questionIdMap = {};
+
+        let questionDocuments = await this.questionDocument
+          (
+            { _id: { $in: questionIds } }
+          )
+
+        if (!questionDocuments.length) {
+          throw new Error(messageConstants.apiResponses.QUESTION_NOT_FOUND)
+        }
+
+        let newQuestionDocuments = [];
+
+        await Promise.all(questionDocuments.map(async question => {
+          
+          question.externalId = question.externalId + "-" + gen.utils.epochTime();
+          question.parentQuestionId = question._id;
+          let newQuestion = await this.make(_.omit(question, ["_id"]))
+
+          if (newQuestion._id) {
+            questionIdMap[question._id.toString()] = newQuestion._id;
+
+            if (newQuestion.children.length > 0 || newQuestion.instanceQuestions.length > 0 || newQuestion.visibleIf.length > 0) {
+              newQuestionDocuments.push(newQuestion);
+            }
+          }
+        }))
+       
+        if (newQuestionDocuments.length > 0) {
+          for (let pointerToQuestion = 0; pointerToQuestion < newQuestionDocuments.length; pointerToQuestion++) {
+
+            if (newQuestionDocuments[pointerToQuestion].children.length > 0) {
+              let newChildrenArray = [];
+              for (let pointerToChildren = 0; pointerToChildren < newQuestionDocuments[pointerToQuestion].children.length; pointerToChildren++) {
+                newChildrenArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].children[pointerToChildren]]);
+              }
+              newQuestionDocuments[pointerToQuestion].children = newChildrenArray;
+            }
+
+            if (newQuestionDocuments[pointerToQuestion].instanceQuestions.length > 0) {
+              let newInstanceArray = [];
+              for (let pointerToInstance = 0; pointerToInstance < newQuestionDocuments[pointerToQuestion].instanceQuestions.length; pointerToInstance++) {
+                newInstanceArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].instanceQuestions[pointerToInstance]]);
+              }
+              newQuestionDocuments[pointerToQuestion].instanceQuestions = newInstanceArray;
+            }
+
+            if (Array.isArray(newQuestionDocuments[pointerToQuestion].visibleIf) && newQuestionDocuments[pointerToQuestion].visibleIf.length > 0) {
+              for (let pointerToVisibleIf = 0; pointerToVisibleIf < newQuestionDocuments[pointerToQuestion].visibleIf.length; pointerToVisibleIf++) {
+                newQuestionDocuments[pointerToQuestion].visibleIf[pointerToVisibleIf]._id = questionIdMap[newQuestionDocuments[pointerToQuestion].visibleIf[pointerToVisibleIf]._id];
+              }
+            }
+
+            await database.models.questions.updateOne
+            (
+              { _id: newQuestionDocuments[pointerToQuestion]._id },
+                newQuestionDocuments[pointerToQuestion]
+            )
+
+          }
+        }
+
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.DUPLICATED_QUESTIONS_SUCCESSFULLY,
+          data: questionIdMap
+        });
+
+      } catch (error) {
+        return resolve({
+          success: false,
+          message: error.message,
+          data: false
+        })
+      }
+    })
+  }
+
 };
