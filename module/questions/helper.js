@@ -860,13 +860,13 @@ module.exports = class QuestionsHelper {
         }
 
         let criteriaDocuments = await database.models.criteria.find
-        (
-          { _id: { $in : criteriaIds }},
-          ["evidences"]
-        )
+          (
+            { _id: { $in: criteriaIds } },
+            ["evidences"]
+          )
 
         if (!criteriaDocuments.length) {
-           throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
+          throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
         }
 
         let questionIds = await gen.utils.getAllQuestionId(criteriaDocuments);
@@ -888,93 +888,149 @@ module.exports = class QuestionsHelper {
 
         await Promise.all(questionDocuments.map(async question => {
 
-          // If question has instanceQuestions
-          if (question.instanceQuestion && 
-              question.instanceQuestions.length > 0) {
-            
-            let instanceQuestionDocuments = await this.questionDocument
-              (
-                { _id: { $in: question.instanceQuestions } }
-              )
+          question.externalId = question.externalId + "-" + gen.utils.epochTime()
+          let newQuestionId = await this.make(_.omit(question, ["_id"]))
 
-            if (instanceQuestionDocuments.length > 0) {
-
-              let newInstanceQuestionIdArray = [];
-
-              await Promise.all(instanceQuestionDocuments.map(async instanceQuestion => {
-                instanceQuestion.externalId = instanceQuestion.externalId + "-" + gen.utils.epochTime()
-                let newInstanceQuestionId = await this.make(_.omit(instanceQuestion, ["_id"]))
-
-                if (newInstanceQuestionId._id) {
-                  newInstanceQuestionIdArray.push(newInstanceQuestionId._id)
-                }
-              }))
-
-              if (newInstanceQuestionIdArray.length > 0) {
-                question.instanceQuestions = newInstanceQuestionIdArray;
-              }
-            }
+          if (newQuestionId._id) {
+            questionIdMap[question._id.toString()] = newQuestionId._id;
           }
-          
-          let updateQuestion = false;
+        }))
 
-          // Parent child question scenario
-          if (question.children && question.children.length > 0) {
-          
-            let childrenQuestionDocuments = await this.questionDocument
+        let response = questionIdMap;
+
+        let updateQuestions = async function (questionIds) {
+
+          let newQuestionIdArray = [];
+
+          let questionDocuments = await database.models.questions.find
             (
-              { _id: { $in: question.children } }
+              { _id: { $in: questionIds } }
             )
 
-            if (childrenQuestionDocuments.length > 0) {
-              let newChildrenQuestionIdArray = [];
-              updateQuestion = true;
+          let groupedQuestions = _.keyBy(questionDocuments, '_id');
 
+          for (let pointerToQuestion = 0; pointerToQuestion < questionDocuments.length; pointerToQuestion++) {
+
+            // Children questions duplication
+            if (questionDocuments[pointerToQuestion].children.length > 0) {
+
+              let childrenQuestionDocuments = await database.models.questions.find
+                (
+                  { _id: { $in: questionDocuments[pointerToQuestion].children } }
+                )
+
+              let newChildrenQuestions = [];
               await Promise.all(childrenQuestionDocuments.map(async childrenQuestion => {
-                if (!childrenQuestion.visibleIf.length) {
-                  childrenQuestion.externalId = childrenQuestion.externalId + "-" + gen.utils.epochTime()
-                  let newChildrenQuestionId = await this.make(_.omit(childrenQuestion, ["_id"]))
 
-                  if (newChildrenQuestionId._id) {
-                    newChildrenQuestionIdArray.push(newChildrenQuestionId._id)
+                let visibleIfUpdate = {};
+
+                if (!Object.keys(questionIdMap).includes(childrenQuestion._id)) {
+
+                  childrenQuestion.externalId = childrenQuestion.externalId + "-" + gen.utils.epochTime()
+                  let newQuestionId = await database.models.questions.create(_.omit(childrenQuestion, ["_id"]));
+
+                  if (newQuestionId._id) {
+                    newChildrenQuestions.push(newQuestionId._id);
+                    questionIdMap[childrenQuestion._id] = newQuestionId._id;
+
+                    if (newQuestionId.instanceQuestions.length > 0) {
+                      newQuestionIdArray.push(newQuestionId._id);
+                    }
+
+                    if (Array.isArray(newQuestionId.visibleIf) && newQuestionId.visibleIf.length > 0) {
+                      visibleIfUpdate.id = newQuestionId._id;
+                      visibleIfUpdate.visibleIf = newQuestionId.visibleIf;
+                    }
                   }
                 }
                 else {
-                  newChildrenQuestionIdArray.push(childrenQuestion._id);
+
+                  newChildrenQuestions.push(questionIdMap[childrenQuestion._id]);
+
+                  if (groupedQuestions[questionIdMap[childrenQuestion._id]].instanceQuestions.length > 0) {
+                    newQuestionIdArray.push(questionIdMap[childrenQuestion._id]);
+                  }
+
+                  if (Array.isArray(groupedQuestions[questionIdMap[childrenQuestion._id]].visibleIf) &&
+                    groupedQuestions[questionIdMap[childrenQuestion._id]].visibleIf.length > 0) {
+                    visibleIfUpdate.id = questionIdMap[childrenQuestion._id];
+                    visibleIfUpdate.visibleIf = groupedQuestions[questionIdMap[childrenQuestion._id]].visibleIf;
+                  }
+                }
+
+                if (Object.keys(visibleIfUpdate).length > 0) {
+                  visibleIfUpdate.visibleIf.map(singleVisibleIf => {
+                    singleVisibleIf._id = questionIdMap[singleVisibleIf._id];
+                  })
+
+                  await database.models.questions.updateOne
+                  (
+                    { _id: visibleIfUpdate.id },
+                    { $set: { visibleIf: visibleIfUpdate.visibleIf } }
+                  )
+                }
+
+              }))
+              questionDocuments[pointerToQuestion].children = newChildrenQuestions;
+            }
+
+            // Instance questions duplication
+            if (questionDocuments[pointerToQuestion].instanceQuestions.length > 0) {
+
+              let instanceQuestionDocuments = await database.models.questions.find
+                (
+                  { _id: { $in: questionDocuments[pointerToQuestion].instanceQuestions } }
+                )
+
+              let newInstanceQuestions = [];
+
+              await Promise.all(instanceQuestionDocuments.map(async instanceQuestion => {
+
+                if (!Object.keys(questionIdMap).includes(instanceQuestion._id)) {
+                  instanceQuestion.externalId = instanceQuestion.externalId + "-" + gen.utils.epochTime()
+                  let newQuestionId = await database.models.questions.create(_.omit(instanceQuestion, ["_id"]));
+                  if (newQuestionId._id) {
+                    newInstanceQuestions.push(newQuestionId._id);
+                    questionIdMap[instanceQuestion._id] = newQuestionId._id;
+
+                    if (newQuestionId.children.length > 0) {
+                      newQuestionIdArray.push(newQuestionId._id);
+                    }
+                  }
+                }
+                else {
+
+                  newInstanceQuestions.push(questionIdMap[instanceQuestion._id]);
+
+                  if (groupedQuestions[questionIdMap[instanceQuestion._id]].children.length > 0) {
+                    newQuestionIdArray.push(questionIdMap[instanceQuestion._id]);
+                  }
                 }
               }))
-
-              if (newChildrenQuestionIdArray.length > 0) {
-                question.children = newChildrenQuestionIdArray;
-              }
+              questionDocuments[pointerToQuestion].instanceQuestions = newInstanceQuestions;
             }
+
+            await database.models.questions.updateOne
+            (
+              { _id: questionDocuments[pointerToQuestion]._id },
+              questionDocuments[pointerToQuestion]
+            )
           }
 
-          if (updateQuestion) {
-             await database.models.questions.updateOne
-             ({
-               _id: question._id
-             },
-             {
-               $set : { children: question.children, instanceQuestions: question.instanceQuestions}
-             })
-
-             questionIdMap[question._id.toString()] = question._id;
+          if (newQuestionIdArray.length > 0) {
+            updateQuestions(newQuestionIdArray);
           }
           else {
-            question.externalId = question.externalId + "-" + gen.utils.epochTime()
-            let newQuestionId = await this.make(_.omit(question, ["_id"]))
-
-            if (newQuestionId._id) {
-              questionIdMap[question._id.toString()] = newQuestionId._id;
-            }
+            return true;
+          }
         }
-        }))
+
+        updateQuestions(Object.values(questionIdMap));
 
         return resolve({
           success: true,
           message: messageConstants.apiResponses.DUPLICATED_QUESTIONS_SUCCESSFULLY,
-          data: questionIdMap
+          data: response
         });
 
       } catch (error) {
