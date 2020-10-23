@@ -20,6 +20,7 @@ module.exports = {
     evidences: ["json"],
     flag: Object,
     criteriaType: { type : String, default: "manual" },
-    frameworkCriteriaId : "ObjectId"
+    frameworkCriteriaId : "ObjectId",
+    parentCriteriaId: "ObjectId"
   }
 };
