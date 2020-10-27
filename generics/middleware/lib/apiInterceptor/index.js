@@ -40,7 +40,6 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
     if (fs.existsSync(path)) {
       cert = fs.readFileSync(path);
       jwt.verify(token, cert, { algorithm: 'RS256' }, function (err, decode) {
-    
         if (err) {
           return callback("ERR_TOKEN_INVALID", null);
         }
@@ -52,19 +51,7 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
             return callback('Expired', null);
           }
 
-          self.grantManager.userInfo(token, function (err, userData) {
-            if (err) {
-              return callback(err, null);
-            } else {
-              if (self.cacheManagerConfig.ttl) {
-                self.cacheManager.set(
-                  { key: token, value: { token: token, userId: userData.sub } },
-                  function (err, res) { }
-                );
-              }
-              return callback(null, { token: token, userId: userData.sub });
-            }
-          });
+          return callback(null, { token: token, userId: decode.sub });
         
         } else {
           return callback("ERR_TOKEN_INVALID", null);
