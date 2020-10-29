@@ -71,11 +71,11 @@ ApiInterceptor.prototype.validateToken = function (token, callback) {
           } else {
             if (self.cacheManagerConfig.ttl) {
               self.cacheManager.set(
-                { key: token, value: { token: token, userId: userData.sub } },
+                { key: token, value: { token: token, userId: userData.sub.split(":").pop() } },
                 function (err, res) { }
               );
             }
-            return callback(null, { token: token, userId: userData.sub });
+            return callback(null, { token: token, userId: userData.sub.split(":").pop() });
           }
         });
       } else {
