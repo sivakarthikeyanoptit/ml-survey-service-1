@@ -147,7 +147,9 @@ module.exports = class CriteriaQuestionsHelper {
                 ) {
                     
                     let data = await singleCriteriaCreateOrUpdate(
-                        criteriaIds[criteria]
+                        criteriaIds[criteria],
+                        updateQuestion
+
                     );
 
                     result.push({
