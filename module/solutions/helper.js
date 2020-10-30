@@ -10,6 +10,7 @@ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 
 /**
     * SolutionsHelper
@@ -1042,6 +1043,34 @@ module.exports = class SolutionsHelper {
           }
   
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
+
+          let duplicateCriteriasResponse = await criteriaHelper.duplicate(newSolutionDocument.themes);
+          
+          let criteriaIdMap = {};
+          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data).length > 0) {
+             criteriaIdMap = duplicateCriteriasResponse.data;
+          }
+
+          let updateThemes = function (themes) {
+            themes.forEach(theme => {
+              let criteriaIdArray = new Array;
+              let themeCriteriaToSet = new Array;
+              if (theme.children) {
+                updateThemes(theme.children);
+              } else {
+                  criteriaIdArray = theme.criteria;
+                  criteriaIdArray.forEach(eachCriteria => {
+                  eachCriteria.criteriaId = criteriaIdMap[eachCriteria.criteriaId.toString()] ? criteriaIdMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                    themeCriteriaToSet.push(eachCriteria);
+                  })
+                  theme.criteria = themeCriteriaToSet;
+                }
+            })
+            return true;
+          }
+          
+          updateThemes(newSolutionDocument.themes);
+
           let startDate = new Date();
           let endDate = new Date();
           endDate.setFullYear(endDate.getFullYear() + 1);
