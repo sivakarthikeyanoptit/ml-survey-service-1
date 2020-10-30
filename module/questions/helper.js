@@ -909,7 +909,9 @@ module.exports = class QuestionsHelper {
             if (newQuestionDocuments[pointerToQuestion].children.length > 0) {
               let newChildrenArray = [];
               for (let pointerToChildren = 0; pointerToChildren < newQuestionDocuments[pointerToQuestion].children.length; pointerToChildren++) {
-                newChildrenArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].children[pointerToChildren]]);
+                if (questionIdMap[newQuestionDocuments[pointerToQuestion].children[pointerToChildren]]) {
+                  newChildrenArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].children[pointerToChildren]]);
+                }
               }
               newQuestionDocuments[pointerToQuestion].children = newChildrenArray;
             }
@@ -917,7 +919,9 @@ module.exports = class QuestionsHelper {
             if (newQuestionDocuments[pointerToQuestion].instanceQuestions.length > 0) {
               let newInstanceArray = [];
               for (let pointerToInstance = 0; pointerToInstance < newQuestionDocuments[pointerToQuestion].instanceQuestions.length; pointerToInstance++) {
-                newInstanceArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].instanceQuestions[pointerToInstance]]);
+                if (questionIdMap[newQuestionDocuments[pointerToQuestion].instanceQuestions[pointerToInstance]]) {
+                  newInstanceArray.push(questionIdMap[newQuestionDocuments[pointerToQuestion].instanceQuestions[pointerToInstance]]);
+                }
               }
               newQuestionDocuments[pointerToQuestion].instanceQuestions = newInstanceArray;
             }
