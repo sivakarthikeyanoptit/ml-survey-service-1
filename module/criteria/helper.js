@@ -1,5 +1,6 @@
 let improvementProjectService = require(ROOT_PATH+"/generics/services/improvement-project");
 let criteriaQuestionsHelper = require(MODULES_BASE_PATH + "/criteriaQuestions/helper");
+const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
 
 module.exports = class criteriaHelper {
 
@@ -81,6 +82,14 @@ module.exports = class criteriaHelper {
 
     }
 
+    /**
+   * Criteria documents.
+   * @method
+   * @name criteriaDocument
+   * @param {String} [criteriaFilter = "all"] -filter query.
+   * @param {Array} [fieldsArray = "all"] -projected fields. 
+   * @returns {Array} criteria data.  
+   */
     static criteriaDocument(criteriaFilter = "all", fieldsArray = "all") {
         return new Promise(async (resolve, reject) => {
             try {
@@ -458,5 +467,98 @@ module.exports = class criteriaHelper {
       }
     })
 }
+
+
+  /**
+   * Create duplicate criterias
+   * @method
+   * @name duplicate
+   * @param {Array} themes - themes       
+   * @returns {Object}  old and new Mapped criteria id Object .  
+  */
+
+  static duplicate(themes= []) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        if (!themes.length) {
+          throw new Error(messageConstants.apiResponses.THEMES_REQUIRED)
+        }
+
+        let criteriaIds = await gen.utils.getCriteriaIds(themes);
+
+        if (!criteriaIds.length) {
+          throw new Error(messageConstants.apiResponses.CRITERIA_ID_NOT_FOUND)
+        }
+
+        let criteriaDocuments = await this.criteriaDocument
+        (
+          { _id: { $in : criteriaIds }}
+        )
+
+        if (!criteriaDocuments.length) {
+           throw new Error(messageConstants.apiResponses.CRITERIA_NOT_FOUND)
+        }
+
+        let criteriaIdMap = {};
+        let questionIdMap = {};
+
+        let duplicateQuestionsResponse = await questionsHelper.duplicate
+        (
+          criteriaIds
+        )
+
+        if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
+          questionIdMap = duplicateQuestionsResponse.data;
+        }
+        
+        await Promise.all(criteriaDocuments.map(async criteria => {
+
+          for(let pointerToEvidence = 0; pointerToEvidence < criteria.evidences.length; pointerToEvidence++) {
+            for(let pointerToSection = 0; pointerToSection < criteria.evidences[pointerToEvidence].sections.length; pointerToSection++) {
+              let newQuestions = [];
+              let sectionQuestions = criteria.evidences[pointerToEvidence].sections[pointerToSection].questions;
+              if (sectionQuestions.length > 0) {
+                for(let pointerToQuestion = 0; pointerToQuestion < sectionQuestions.length; pointerToQuestion++) {
+                   let newQuestionId = questionIdMap[sectionQuestions[pointerToQuestion].toString()] ? questionIdMap[sectionQuestions[pointerToQuestion].toString()] : sectionQuestions[pointerToQuestion];
+                   newQuestions.push(newQuestionId);
+                  }
+                  criteria.evidences[pointerToEvidence].sections[pointerToSection].questions = newQuestions;
+              }
+            }
+          }
+
+          criteria.externalId = criteria.externalId + "-" + gen.utils.epochTime();
+          criteria.parentCriteriaId = criteria._id;
+          let newCriteriaId = await database.models.criteria.create(_.omit(criteria, ["_id"]));
+
+          if (newCriteriaId._id) {
+            criteriaIdMap[criteria._id.toString()] = newCriteriaId._id;
+          }
+
+        }))
+
+        if (Object.keys(criteriaIdMap).length > 0) {
+          await criteriaQuestionsHelper.createOrUpdate(
+            Object.values(criteriaIdMap),
+            true
+          );
+        }
+
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.DUPLICATED_CRITERIA_SUCCESSFULLY,
+          data: criteriaIdMap
+        });
+
+      } catch (error) {
+        return resolve({
+          success: false,
+          message: error.message,
+          data: false
+        })
+      }
+    })
+  }
 
 };
