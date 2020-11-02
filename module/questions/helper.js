@@ -224,7 +224,7 @@ module.exports = class QuestionsHelper {
 
           let booleanData = this.booleanData(questionsSchema.schema);
 
-          Object.keys(_.omit(parsedQuestion,["parentQuestionId"])).forEach(parsedQuestionData => {
+          Object.keys(parsedQuestion).forEach(parsedQuestionData => {
             if (
               !fieldNotIncluded.includes(parsedQuestionData) && 
               !allValues[parsedQuestionData] && 
