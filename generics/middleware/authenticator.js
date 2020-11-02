@@ -173,7 +173,6 @@ module.exports = async function (req, res, next) {
   }
 
   if (!token) {
-    console.error("Token Not Found!!");
     rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
     rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
     rspObj.responseCode = responseCode.unauthorized.status;

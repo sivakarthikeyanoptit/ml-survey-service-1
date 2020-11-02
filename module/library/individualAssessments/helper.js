@@ -68,8 +68,13 @@ module.exports = class IndividualAssessmentHelper {
 
               let individualAssessmentSolution = 
               await assessmentsHelper.templateDetails(
-                templateId
+                templateId,
+                true,
+                true
               );
+
+              individualAssessmentSolution.ecmQuestions = individualAssessmentSolution.questions;
+              delete individualAssessmentSolution['questions'];
 
               return resolve({
                 message : 

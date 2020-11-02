@@ -149,18 +149,20 @@ module.exports = class UserExtensionHelper {
                             userExtensionRoleCounter < userExtensionData[0].roles.length; 
                             userExtensionRoleCounter++
                         ) {
-                            for (
-                                let userExtenionRoleEntityCounter = 0; 
-                                userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length; 
-                                userExtenionRoleEntityCounter++
-                            ) {
-                                userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
-                                    _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
-                                    ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
-                                };
+                            if (userExtensionData[0].roles[userExtensionRoleCounter]["entities"] && userExtensionData[0].roles[userExtensionRoleCounter].entities.length > 0) {
+                                for (
+                                    let userExtenionRoleEntityCounter = 0;
+                                    userExtenionRoleEntityCounter < userExtensionData[0].roles[userExtensionRoleCounter].entities.length;
+                                    userExtenionRoleEntityCounter++
+                                ) {
+                                    userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter] = {
+                                        _id: entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()]._id,
+                                        ...entityMap[userExtensionData[0].roles[userExtensionRoleCounter].entities[userExtenionRoleEntityCounter].toString()].metaInformation
+                                    };
+                                }
+                                roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : "";
+                                roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities;
                             }
-                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].immediateSubEntityType = (userExtensionData[0].roles[userExtensionRoleCounter].entities[0] && userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType) ? userExtensionData[0].roles[userExtensionRoleCounter].entities[0].entityType : "";
-                            roleMap[userExtensionData[0].roles[userExtensionRoleCounter].roleId.toString()].entities = userExtensionData[0].roles[userExtensionRoleCounter].entities;
                         }
                     }
 
@@ -857,6 +859,100 @@ module.exports = class UserExtensionHelper {
 
    }
 
+   /**
+    * Update userExtension document.
+    * @method
+    * @name updateUserExtensionDocument
+    * @param {Object} query - query to find document
+    * @param {Object} updateObject - fields to update
+    * @returns {String} - message.
+    */
+
+   static updateUserExtensionDocument(query= {}, updateObject= {}) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (Object.keys(query).length == 0) {
+                throw new Error(messageConstants.apiResponses.POLL_UPDATE_QUERY_REQUIRED)
+            }
+
+            if (Object.keys(updateObject).length == 0) {
+                throw new Error (messageConstants.apiResponses.UPDATE_OBJECT_REQUIRED)
+            }
+
+            let updateResponse = await database.models.userExtension.updateOne
+            (
+                query,
+                updateObject
+            )
+            
+            if (updateResponse.nModified == 0) {
+                throw new Error(messageConstants.apiResponses.USER_EXTENSION_COULD_NOT_BE_UPDATED)
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.USER_EXTENSION_UPDATED,
+                data: true
+            });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+}
+
+ /**
+   * find userExtensions
+   * @method
+   * @name userExtensionDocuments
+   * @param {Array} [userExtensionFilter = "all"] - userId ids.
+   * @param {Array} [fieldsArray = "all"] - projected fields.
+   * @param {Array} [skipFields = "none"] - field not to include
+   * @returns {Array} List of Users. 
+   */
+  
+  static userExtensionDocuments(
+    userExtensionFilter = "all", 
+    fieldsArray = "all",
+    skipFields = "none"
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+    
+            let queryObject = (userExtensionFilter != "all") ? userExtensionFilter : {};
+    
+            let projection = {}
+    
+            if (fieldsArray != "all") {
+                fieldsArray.forEach(field => {
+                    projection[field] = 1;
+                });
+            }
+
+            if( skipFields !== "none" ) {
+              skipFields.forEach(field=>{
+                projection[field] = 0;
+              })
+            }
+    
+            let userDocuments = 
+            await database.models.userExtension.find(
+              queryObject, 
+              projection
+            ).lean();
+            
+            return resolve(userDocuments);
+            
+        } catch (error) {
+            return reject(error);
+        }
+    });
+  }
 };
 
  /**

@@ -8,7 +8,9 @@
 //Dependencies
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
+const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
 
 /**
     * SolutionsHelper
@@ -55,6 +57,33 @@ module.exports = class SolutionsHelper {
               queryObject, 
               projection
             ).lean();
+            
+            return resolve(solutionDocuments);
+            
+        } catch (error) {
+            return reject(error);
+        }
+    });
+  }
+
+
+  /**
+   * find solutions
+   * @method
+   * @name solutionDocumentsByAggregateQuery
+   * @param {Array} query - aggregation query.
+   * @returns {Array} List of solutions. 
+   */
+  
+  static solutionDocumentsByAggregateQuery(
+    query = []
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+    
+            let solutionDocuments = await database.models.solutions.aggregate(
+              query
+            );
             
             return resolve(solutionDocuments);
             
@@ -249,7 +278,6 @@ module.exports = class SolutionsHelper {
             if (themes[pointerToTheme][themeKey] !== "") {
 
               let themesSplittedArray = themes[pointerToTheme][themeKey].split("###");
-
 
               if (themeKey !== "criteriaInternalId") {
                 if (themesSplittedArray.length < 2) {
@@ -749,7 +777,7 @@ module.exports = class SolutionsHelper {
      * Solution templates lists.
      * @method
      * @name templates
-     * @param {String} type - type of solution can be observation/institutional/individual
+     * @param {String} type - type of solution can be observation/institutional/individual/survey
      * @param {string} searchtext - search text based on name,description.keywords.
      * @param {string} limit - Maximum data to return
      * @param {string} page - page no
@@ -761,13 +789,14 @@ module.exports = class SolutionsHelper {
           try {
 
             let matchQuery = {};
-
+           
             matchQuery["$match"] = {
-              isReusable : true,
-              status : "active"
+              isReusable: true,
+              status: "active"
             };
+            
 
-            if ( type === messageConstants.common.OBSERVATION ) {
+            if ( type === messageConstants.common.OBSERVATION || type === messageConstants.common.SURVEY ) {
               matchQuery["$match"]["type"] = type;
             } else {
               matchQuery["$match"]["type"] = messageConstants.common.ASSESSMENT;
@@ -847,7 +876,8 @@ module.exports = class SolutionsHelper {
                 "linkTitle",
                 "linkUrl",
                 "name",
-                "entityType"
+                "entityType",
+                "type"
               ]
             );
 
@@ -1013,6 +1043,34 @@ module.exports = class SolutionsHelper {
           }
   
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
+
+          let duplicateCriteriasResponse = await criteriaHelper.duplicate(newSolutionDocument.themes);
+          
+          let criteriaIdMap = {};
+          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data).length > 0) {
+             criteriaIdMap = duplicateCriteriasResponse.data;
+          }
+
+          let updateThemes = function (themes) {
+            themes.forEach(theme => {
+              let criteriaIdArray = new Array;
+              let themeCriteriaToSet = new Array;
+              if (theme.children) {
+                updateThemes(theme.children);
+              } else {
+                  criteriaIdArray = theme.criteria;
+                  criteriaIdArray.forEach(eachCriteria => {
+                  eachCriteria.criteriaId = criteriaIdMap[eachCriteria.criteriaId.toString()] ? criteriaIdMap[eachCriteria.criteriaId.toString()] : eachCriteria.criteriaId;
+                    themeCriteriaToSet.push(eachCriteria);
+                  })
+                  theme.criteria = themeCriteriaToSet;
+                }
+            })
+            return true;
+          }
+          
+          updateThemes(newSolutionDocument.themes);
+
           let startDate = new Date();
           let endDate = new Date();
           endDate.setFullYear(endDate.getFullYear() + 1);
@@ -1125,5 +1183,317 @@ module.exports = class SolutionsHelper {
         }
       })
     }
+  
+    /**
+     * Delete Solution.
+     * @method
+     * @name deleteSolution
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static delete(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { isDeleted : true}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_DELETED;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Move To Trash.
+     * @method
+     * @name moveToTrash
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static moveToTrash(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { status : messageConstants.common.INACTIVE_STATUS}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_MOVED_TO_TRASH;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+     * Restore From Trash.
+     * @method
+     * @name restoreFromTrash
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static restoreFromTrash(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.updateSolutionDocument({
+             _id : solutionId,
+              isAPrivateProgram: true,
+              author : userId
+          },
+          {
+              $set : { status : messageConstants.common.ACTIVE_STATUS}
+          })
+
+          let reponseMessage = "";
+
+          let result = {};
+          
+          if(!solutionData.success || !solutionData.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_DELETE;
+          } else {
+            reponseMessage = messageConstants.apiResponses.SOLUTION_RESTORED_FROM_TRASH;
+            result = solutionId;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+    /**
+     * Trash List.
+     * @method
+     * @name trashList
+     * @param {String} userId - UserId.
+     * @returns {Object} Solution .
+     */
+
+    static trashList(
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let trashData = await this.solutionDocuments({
+                        author : userId,
+                        isAPrivateProgram : true,
+                        status : messageConstants.common.INACTIVE_STATUS,
+                        isDeleted : false
+                    },["name"]);
+
+          return resolve({
+              message: messageConstants.apiResponses.SOLUTION_TRASH_LIST_FETCHED,
+              result: trashData
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+  /**
+     * Remove From Home Screen.
+     * @method
+     * @name removeFromHome
+     * @param {String} solutionId - solution Internal id.
+     * @param {String} userId - UserId.
+     * @returns {Object} Delete Solution .
+     */
+
+    static removeFromHome(
+      solutionId = "",
+      userId = ""
+    ) {
+      return new Promise(async (resolve, reject) => {
+        try {
+
+          if (solutionId == "") {
+            throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+          }
+
+          if (userId == "") {
+            throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+          }
+
+          let solutionData = await this.solutionDocuments({
+            _id: solutionId
+          },["_id"]);
+
+          let reponseMessage = "";
+
+          let result = {};
+
+          if(Array.isArray(solutionData) || solutionData.length > 0){
+            
+            let addRemovedSolutionToUser = await userExtensionHelper.updateUserExtensionDocument({
+              userId: userId
+            },
+            {
+                $addToSet: { removedFromHomeScreen: solutionData[0]._id  }
+            })
+
+            if(!addRemovedSolutionToUser.success || !addRemovedSolutionToUser.data) {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_CANT_REMOVE;
+            } else {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_REMOVED_FROM_HOME_SCREEN;
+              result = solutionId;
+            }
+
+          } else {
+              reponseMessage = messageConstants.apiResponses.SOLUTION_NOT_FOUND;
+          }
+
+          return resolve({
+              message: reponseMessage,
+              result: result
+          });
+
+        } catch(error) {
+          return reject(error);
+        }
+      })
+    }
+
+     /**
+    * Update solution document.
+    * @method
+    * @name updateSolutionDocument
+    * @param {Object} query - query to find document
+    * @param {Object} updateObject - fields to update
+    * @returns {String} - message.
+    */
+
+   static updateSolutionDocument(query= {}, updateObject= {}) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (Object.keys(query).length == 0) {
+                throw new Error(messageConstants.apiResponses.UPDATE_QUERY_REQUIRED)
+            }
+
+            if (Object.keys(updateObject).length == 0) {
+                throw new Error (messageConstants.apiResponses.UPDATE_OBJECT_REQUIRED)
+            }
+
+            let updateResponse = await database.models.solutions.updateOne
+            (
+                query,
+                updateObject
+            )
+            
+            if (updateResponse.nModified == 0) {
+                throw new Error(messageConstants.apiResponses.FAILED_TO_UPDATE)
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.UPDATED_DOCUMENT_SUCCESSFULLY,
+                data: true
+            });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+}
+
   
 };

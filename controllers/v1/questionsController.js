@@ -104,7 +104,7 @@ module.exports = class Questions extends Abstract {
 
         let solutionDocument = await database.models.solutions.findOne(
             { externalId: questionData[0]["solutionId"] },
-            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1 }
+            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1, externalId: 1, type: 1 }
         ).lean();
         
         if( !solutionDocument ) {
@@ -118,6 +118,24 @@ module.exports = class Questions extends Abstract {
           name : solutionDocument.entityType
         },{ profileFields : 1 }).lean();
 
+        // Specific to survey type of solution
+        let defaultSurveyEvidenceMethod;
+        let defaultSurveySectionCode;
+        let defaultSurveyCriteriaExternalId;
+        if (solutionDocument.type == messageConstants.common.SURVEY) {
+           
+          defaultSurveyEvidenceMethod = solutionDocument.evidenceMethods[Object.keys(solutionDocument.evidenceMethods)[0]].externalId;
+          defaultSurveyCriteriaExternalId = solutionDocument.externalId + "-SF"
+          defaultSurveySectionCode = Object.keys(solutionDocument.sections)[0]
+          
+          if (!entityTypeDocument) {
+           entityTypeDocument = {
+             profileFields: []
+           };
+         }
+ 
+       }
+
         let criteriasIdArray = gen.utils.getCriteriaIds(
           solutionDocument.themes
         );
@@ -130,6 +148,10 @@ module.exports = class Questions extends Abstract {
         // No changes required here.
         questionData.forEach(eachQuestionData => {
           let parsedQuestion = gen.utils.valueParser(eachQuestionData);
+          
+          if (solutionDocument.type == messageConstants.common.SURVEY) {
+              parsedQuestion["criteriaExternalId"] = defaultSurveyCriteriaExternalId;
+          }
 
           if (!criteriaIds.includes(parsedQuestion["criteriaExternalId"])) {
             criteriaIds.push(parsedQuestion["criteriaExternalId"]);
@@ -254,21 +276,27 @@ module.exports = class Questions extends Abstract {
 
           let criteria = {};
           let ecm = {};
-
+          
+          if (solutionDocument.type == messageConstants.common.SURVEY) {
+              parsedQuestion["evidenceMethod"] = defaultSurveyEvidenceMethod;
+              parsedQuestion.criteriaExternalId = defaultSurveyCriteriaExternalId;
+              parsedQuestion.section = defaultSurveySectionCode;
+          }
+          
           ecm[parsedQuestion["evidenceMethod"]] = {
             code:
               solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]]
                 .externalId
           };
-
+           
           criteria[parsedQuestion.criteriaExternalId] =
             criteriaObject[parsedQuestion.criteriaExternalId];
 
           let section;
-
+          
           if (solutionDocument.sections[parsedQuestion.section]) {
             section = parsedQuestion.section;
-          }
+          } 
           if (
             (parsedQuestion["hasAParentQuestion"] == "YES" &&
               !questionCollection[parsedQuestion["parentQuestionId"]]) ||
@@ -376,7 +404,7 @@ module.exports = class Questions extends Abstract {
         let solutionDocument = await database.models.solutions
           .findOne(
             { externalId: questionData[0]["solutionId"] },
-            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1 }
+            { evidenceMethods: 1, sections: 1, themes: 1, entityType: 1, externalId: 1, type: 1 }
           )
           .lean();
 
@@ -390,6 +418,25 @@ module.exports = class Questions extends Abstract {
         let entityTypeDocument = await database.models.entityTypes.findOne({
           name : solutionDocument.entityType
         },{ profileFields : 1 }).lean();
+
+         // Specific to survey type of solution
+         let defaultSurveyEvidenceMethod;
+         let defaultSurveySectionCode;
+         let defaultSurveyCriteriaExternalId;
+         if (solutionDocument.type == messageConstants.common.SURVEY) {
+            
+           defaultSurveyEvidenceMethod = solutionDocument.evidenceMethods[Object.keys(solutionDocument.evidenceMethods)[0]].externalId;
+           defaultSurveyCriteriaExternalId = solutionDocument.externalId + "-SF"
+           defaultSurveySectionCode = Object.keys(solutionDocument.sections)[0]
+           
+           if (!entityTypeDocument) {
+            entityTypeDocument = {
+              profileFields: []
+            };
+          }
+  
+        }
+ 
 
         let criteriasIdArray = gen.utils.getCriteriaIds(
           solutionDocument.themes
@@ -499,6 +546,12 @@ module.exports = class Questions extends Abstract {
             continue;
           }
 
+          if (solutionDocument.type == messageConstants.common.SURVEY) {
+            parsedQuestion["criteriaExternalId"] = defaultSurveyCriteriaExternalId;
+            parsedQuestion["evidenceMethod"] = defaultSurveyEvidenceMethod;
+            parsedQuestion.section = defaultSurveySectionCode;
+          }
+          
           if (!parsedQuestion["criteriaExternalId"] || parsedQuestion["criteriaExternalId"] == "" || !criteriaMap[parsedQuestion["criteriaExternalId"]]) {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Criteria External ID";
             input.push(_.omitBy(parsedQuestion, (value, key) => { return _.startsWith(key, "_") && key != "_SYSTEM_ID" }));
@@ -515,7 +568,7 @@ module.exports = class Questions extends Abstract {
           } else {
             parsedQuestion["_evidenceMethodCode"] = solutionDocument.evidenceMethods[parsedQuestion["evidenceMethod"]].externalId;
           }
-
+          
           let section = (solutionDocument.sections[parsedQuestion.section]) ? solutionDocument.sections[parsedQuestion.section] : "";
           if (section == "") {
             parsedQuestion["UPDATE_STATUS"] = "Invalid Section Method Code";

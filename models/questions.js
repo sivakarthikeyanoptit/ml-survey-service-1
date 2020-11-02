@@ -46,6 +46,7 @@ module.exports = {
     prefillFromEntityProfile : { type : Boolean, default : false },
     entityFieldName : { type : String, default : "" } ,
     isEditable : { type : Boolean, default : true },
-    showQuestionInPreview : { type : Boolean, default : false }
+    showQuestionInPreview : { type : Boolean, default : false },
+    parentQuestionId: "ObjectId"
   }
 };
