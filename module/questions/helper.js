@@ -252,8 +252,6 @@ module.exports = class QuestionsHelper {
           ) {
             allValues["entityFieldName"] = parsedQuestion.entityFieldName;
           }
-          
-          allValues.parentQuestionId = allValues.parentQuestionId ? allValues.parentQuestionId : null;
 
           let createQuestion = await database.models.questions.create(
             allValues
@@ -893,7 +891,7 @@ module.exports = class QuestionsHelper {
         await Promise.all(questionDocuments.map(async question => {
           
           question.externalId = question.externalId + "-" + gen.utils.epochTime();
-          question.parentQuestionId = question._id;
+          question.createdFromQuestionId = question._id;
           let newQuestion = await this.make(_.omit(question, ["_id"]))
 
           if (newQuestion._id) {
