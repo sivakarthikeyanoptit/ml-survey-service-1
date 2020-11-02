@@ -891,7 +891,7 @@ module.exports = class QuestionsHelper {
         await Promise.all(questionDocuments.map(async question => {
           
           question.externalId = question.externalId + "-" + gen.utils.epochTime();
-          question.parentQuestionId = question._id;
+          question.createdFromQuestionId = question._id;
           let newQuestion = await this.make(_.omit(question, ["_id"]))
 
           if (newQuestion._id) {
