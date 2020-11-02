@@ -224,7 +224,7 @@ module.exports = class QuestionsHelper {
 
           let booleanData = this.booleanData(questionsSchema.schema);
 
-          Object.keys(parsedQuestion).forEach(parsedQuestionData => {
+          Object.keys(_.omit(parsedQuestion,["parentQuestionId"])).forEach(parsedQuestionData => {
             if (
               !fieldNotIncluded.includes(parsedQuestionData) && 
               !allValues[parsedQuestionData] && 
@@ -252,8 +252,6 @@ module.exports = class QuestionsHelper {
           ) {
             allValues["entityFieldName"] = parsedQuestion.entityFieldName;
           }
-          
-          allValues.parentQuestionId = allValues.parentQuestionId ? allValues.parentQuestionId : null;
 
           let createQuestion = await database.models.questions.create(
             allValues
