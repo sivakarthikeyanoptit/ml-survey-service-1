@@ -252,6 +252,8 @@ module.exports = class QuestionsHelper {
           ) {
             allValues["entityFieldName"] = parsedQuestion.entityFieldName;
           }
+          
+          allValues.parentQuestionId = allValues.parentQuestionId ? allValues.parentQuestionId : null;
 
           let createQuestion = await database.models.questions.create(
             allValues
