@@ -227,7 +227,9 @@ module.exports = class UserHelper {
                         "subType",
                         "solutionId",
                         "allowMultipleAssessemts",
-                        "isAPrivateProgram"
+                        "isAPrivateProgram",
+                        "entityType",
+                        "entityTypeId"
                     ]
                 );
 
@@ -855,7 +857,9 @@ function _solutionInformation(program,solution) {
         subType : solution.subType,
         allowMultipleAssessemts : solution.allowMultipleAssessemts ? solution.allowMultipleAssessemts : false,
         showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
-        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false,
+        entityType : solution.entityType,
+        entityTypeId : solution.entityTypeId
     }
 }
 
@@ -887,7 +891,9 @@ function _observationInformation(program,observation,solution) {
         solutionExternalId : solution.externalId,
         solutionId : solution._id,
         showInHomeScreen : solution.showInHomeScreen ? solution.showInHomeScreen : false,
-        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false 
+        isAPrivateProgram : solution.isAPrivateProgram ? solution.isAPrivateProgram : false,
+        entityType : solution.entityType,
+        entityTypeId : solution.entityTypeId 
     }
 }
 
@@ -917,7 +923,9 @@ function _surveyInformation(program,survey,solution) {
         type : solution.type,
         subType : solution.subType,
         solutionExternalId : solution.externalId,
-        solutionId : solution._id
+        solutionId : solution._id,
+        entityType : solution.entityType ? solution.entityType : "",
+        entityTypeId : solution.entityTypeId ? solution.entityTypeId : ""
     }
 }
 
