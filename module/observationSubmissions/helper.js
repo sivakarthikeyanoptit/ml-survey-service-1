@@ -569,6 +569,55 @@ module.exports = class ObservationSubmissionsHelper {
     })
 }
 
+
+    /**
+    * Get observation submission status.
+    * @method
+    * @name getSubmissionStatusById
+    * @param {String} submissionId - observation submissionId
+    * @returns {Json} - submission status.
+    */
+
+   static getSubmissionStatusById(submissionId = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (submissionId == "") {
+                throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_REQUIRED)
+            }
+
+            let submissionDocument = await this.observationSubmissionsDocument
+            (
+                { "_id": submissionId,
+                },
+                [
+                  "status"
+                ]
+            );
+            
+            if (!submissionDocument.length) {
+                throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.OBSERVATION_SUBMISSION_STATUS_FETCHED,
+                data: {
+                    status: submissionDocument[0].status
+                }
+            });
+        }
+  
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            })
+        }
+    })
+}
+
 };
 
 

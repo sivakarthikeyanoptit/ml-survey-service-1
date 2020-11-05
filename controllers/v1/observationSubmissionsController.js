@@ -1189,5 +1189,57 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/getSubmissionStatusById/:submissionId
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission Status
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/getSubmissionStatusById/5d1a002d2dfd8135bc8e1615
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Observation submission status fetched successfuly",
+    "status": 200,
+    "result": {
+          "status": "completed"
+        }
+  }
+
+  */
+   /**
+   * Get observation submission status
+   * @method
+   * @name getSubmissionStatusById
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - observation submission id. 
+   * @returns {JSON} consists of status of the observation submission.
+   */
+  async getSubmissionStatusById(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+         await observationSubmissionsHelper.getSubmissionStatusById
+          (
+            req.params._id
+          );
+
+        return resolve({
+           message: submissionDocument.message,
+           result: submissionDocument.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
 };
 
