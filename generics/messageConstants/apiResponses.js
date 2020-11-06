@@ -10,6 +10,7 @@ module.exports = {
 "USER_EXTENSION_FETCHED" : "User profile fetched successfully.",
 "USER_ID_REQUIRED_CHECK" : "User ID is required.",
 "ENTITY_ID_REQUIRED_CHECK" : "Entity type is required.",
+"ENTITY_ID_REQUIRED" : "Entity Id is required.",
 "ASSESSMENT_FETCHED" : "Assessment fetched successfully",
 "UNAUTHORIZED" : 'Unauthorized.',
 "SOMETHING_WENT_WRONG" : "Something went wrong!",

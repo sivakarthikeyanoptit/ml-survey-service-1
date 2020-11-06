@@ -367,6 +367,10 @@ module.exports = class EntitiesHelper {
                         { metaInformation: data },
                         { new: true }
                     ).lean();
+                    let entity =[];
+                    entity.push(entityInformation._id.toString());
+                    // let entity["_SYSTEM_ID"] = entityInformation._id.toString();
+                    await this.pushEntitiesToElasticSearch(entity);
                 }
 
                 return resolve(entityInformation);
@@ -1337,6 +1341,65 @@ module.exports = class EntitiesHelper {
                 return reject(error);
             }
         })
+    }
+
+
+
+
+    /**
+   * Create entity.
+   * @method
+   * @name add
+   * @param {String} entityType - requested entity type.
+   * @param {Object} data - requested entity data.
+   * @param {Object} userDetails - Logged in user information. 
+   * @returns {JSON} - Created entity information.
+   */
+
+    static create(entityType, data) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(!entityType){
+                    throw messageConstants.apiResponses.ENTITY_TYPES_NOT_FOUND;
+                }
+
+                let entityTypeDocument = await database.models.entityTypes.findOne({ name: entityType }, { _id: 1 }).lean();
+
+                if (!entityTypeDocument){
+                    throw messageConstants.apiResponses.ENTITY_TYPES_NOT_FOUND;
+                }
+
+                let entityDocuments = {
+                        "entityTypeId": entityTypeDocument._id,
+                        "entityType": entityType,
+                        "regsitryDetails": {},
+                        "groups": {},
+                        "metaInformation": data,
+                        "updatedBy": "SYSTEM",
+                        "createdBy": "SYSTEM"
+                    };
+
+                let entityData = await database.models.entities.create(
+                    entityDocuments
+                );
+                
+                let entityDatalength = Object.keys(entityData.metaInformation).length;
+                let dataLength = Object.keys(data).length;
+                if (entityDatalength != dataLength) {
+                    throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
+                }
+                let entity =[];
+                entity.push(entityData._id.toString());
+                // await this.pushEntitiesToElasticSearch(entity);
+
+                return resolve(entityData);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
     }
 };
 

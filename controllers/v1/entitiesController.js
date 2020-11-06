@@ -844,5 +844,156 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+
+
+
+
+
+
+
+
+
+
+
+  /**
+  * @api {post} /assessment/api/v1/entities/create?type=:entityType Entity Create
+  * @apiVersion 1.0.0
+  * @apiName Entity create
+  * @apiGroup Entities
+  * @apiParamExample {json} Request-Body:
+  * {
+  "data" :
+    {
+    "externalId" : "Test",
+    "addressLine1" : "A1",
+    "addressLine2" : "A2",
+    "city" : "Bangalore",
+    "country" : "India",
+    "gpsLocation" : "",
+    "name" : "Test School",
+    "phone" : "761957452",
+    "principalName" : "P1",
+    "state" : "Karnataka",
+    "pincode" : "7678",
+    "districtId" : "10",
+    "districtName" : "North",
+    "zoneId" : "1",
+    "administration" : "DOE",
+    "gender" : "Co-ed",
+    "shift" : "Morning",
+    "totalStudents" : "1000",
+    "totalBoys" : "500",
+    "totalGirls" : "500",
+    "lowestGrade" : "1",
+    "highestGrade" : "12",
+    "status" : "active",
+    "updatedDate" : "Wed Sep 12 2018 14:26:01 GMT+0530",
+    "createdDate" : "Wed Sep 12 2018 14:26:01 GMT+0530",
+    "blockId" : "1",
+    "questionGroup" : [ 
+        "A1", 
+        "A2", 
+        "A3"
+    ],
+    "types" : [ 
+        "A1", 
+        "A2", 
+        "A3"
+    ]}
+  *}
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiSampleRequest /assessment/api/v1/entities/create?type=school
+  * @apiParamExample {json} Response:
+  * "result": [
+        {
+            "_id": "5d8f36c430c4af40b646c4bc",
+            "deleted": false,
+            "entityTypeId": "5ce23d633c330302e720e65f",
+            "entityType": "school",
+            "metaInformation": {
+                "externalId": "Test",
+                "addressLine1": "A1",
+                "addressLine2": "A2",
+                "city": "Bangalore",
+                "country": "India",
+                "gpsLocation": "",
+                "name": "Test School",
+                "phone": "761957452",
+                "principalName": "P1",
+                "state": "Karnataka",
+                "pincode": "7678",
+                "districtId": "10",
+                "districtName": "North",
+                "zoneId": "1",
+                "administration": "DOE",
+                "gender": "Co-ed",
+                "shift": "Morning",
+                "totalStudents": "1000",
+                "totalBoys": "500",
+                "totalGirls": "500",
+                "lowestGrade": "1",
+                "highestGrade": "12",
+                "status": "active",
+                "updatedDate": "Wed Sep 12 2018 14:26:01 GMT+0530",
+                "createdDate": "Wed Sep 12 2018 14:26:01 GMT+0530",
+                "blockId": "1",
+                "questionGroup": [
+                    "A1",
+                    "A2",
+                    "A3"
+                ],
+                "types": [
+                    "A1",
+                    "A2",
+                    "A3"
+                ],
+                "createdByProgramId": "5d8f36c430c4af40b646c4ba",
+                "createdBySolutionId": "5d8f36c430c4af40b646c4bb"
+            },
+            "updatedBy": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "createdBy": "e97b5582-471c-4649-8401-3cc4249359bb",
+            "updatedAt": "2019-09-28T10:32:36.318Z",
+            "createdAt": "2019-09-28T10:32:36.318Z",
+            "__v": 0
+        }
+    ]
+  */
+  
+  /**
+   * Create entity.
+   * @method
+   * @name create
+   * @param {Object} req - All requested Data.
+   * @returns {JSON} - Created entity information.
+   */
+
+  create(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let entityType = req.query.type;
+        let result = await entitiesHelper.create(entityType, req.body.data);
+
+        return resolve({
+          message: messageConstants.apiResponses.ENTITY_ADDED,
+          result: result
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
   
 };
