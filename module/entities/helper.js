@@ -367,7 +367,7 @@ module.exports = class EntitiesHelper {
                         { metaInformation: data },
                         { new: true }
                     ).lean();
-                    
+
                     let entity =[];
                     entity.push(entityInformation._id.toString());
                     await this.pushEntitiesToElasticSearch(entity);
@@ -1352,7 +1352,6 @@ module.exports = class EntitiesHelper {
    * @name add
    * @param {String} entityType - requested entity type.
    * @param {Object} data - requested entity data.
-   * @param {Object} userDetails - Logged in user information. 
    * @returns {JSON} - Created entity information.
    */
 
