@@ -1191,11 +1191,11 @@ module.exports = class ObservationSubmissions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/observationSubmissions/getSubmissionStatusById/:submissionId
+  * @api {get} /assessment/api/v1/observationSubmissions/status/:submissionId
   * @apiVersion 1.0.0
   * @apiName Get Observation Submission Status
   * @apiGroup Observation Submissions
-  * @apiSampleRequest /assessment/api/v1/observationSubmissions/getSubmissionStatusById/5d1a002d2dfd8135bc8e1615
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/status/5d1a002d2dfd8135bc8e1615
   * @apiUse successBody
   * @apiUse errorBody
   * @apiParamExample {json} Response:
@@ -1211,17 +1211,17 @@ module.exports = class ObservationSubmissions extends Abstract {
    /**
    * Get observation submission status
    * @method
-   * @name getSubmissionStatusById
+   * @name status
    * @param {Object} req - requested data.
    * @param {String} req.params._id - observation submission id. 
    * @returns {JSON} consists of status of the observation submission.
    */
-  async getSubmissionStatusById(req) {
+  async status(req) {
     return new Promise(async (resolve, reject) => {
       try {
         
         let submissionDocument =
-         await observationSubmissionsHelper.getSubmissionStatusById
+         await observationSubmissionsHelper.status
           (
             req.params._id
           );

@@ -35,7 +35,7 @@ module.exports = (req) => {
             .isMongoId().withMessage("Invalid entity id");
         },
 
-        getSubmissionStatusById: function () {
+        status: function () {
             req.checkParams('_id').exists().withMessage("required submission id")
             .isMongoId().withMessage("Invalid submission id");
         }

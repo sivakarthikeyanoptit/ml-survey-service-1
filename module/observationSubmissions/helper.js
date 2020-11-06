@@ -573,12 +573,12 @@ module.exports = class ObservationSubmissionsHelper {
     /**
     * Get observation submission status.
     * @method
-    * @name getSubmissionStatusById
+    * @name status
     * @param {String} submissionId - observation submissionId
     * @returns {Json} - submission status.
     */
 
-   static getSubmissionStatusById(submissionId = "") {
+   static status(submissionId = "") {
     return new Promise(async (resolve, reject) => {
         try {
 
