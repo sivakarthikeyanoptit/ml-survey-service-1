@@ -367,9 +367,9 @@ module.exports = class EntitiesHelper {
                         { metaInformation: data },
                         { new: true }
                     ).lean();
+                    
                     let entity =[];
                     entity.push(entityInformation._id.toString());
-                    // let entity["_SYSTEM_ID"] = entityInformation._id.toString();
                     await this.pushEntitiesToElasticSearch(entity);
                 }
 
@@ -1391,7 +1391,7 @@ module.exports = class EntitiesHelper {
                 }
                 let entity =[];
                 entity.push(entityData._id.toString());
-                // await this.pushEntitiesToElasticSearch(entity);
+                await this.pushEntitiesToElasticSearch(entity);
 
                 return resolve(entityData);
 

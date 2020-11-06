@@ -845,17 +845,6 @@ module.exports = class Entities extends Abstract {
     })
   }
 
-
-
-
-
-
-
-
-
-
-
-
   /**
   * @api {post} /assessment/api/v1/entities/create?type=:entityType Entity Create
   * @apiVersion 1.0.0
