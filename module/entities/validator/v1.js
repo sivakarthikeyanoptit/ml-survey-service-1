@@ -4,6 +4,9 @@ module.exports = (req) => {
 
         update: function () {
             req.checkQuery('type').exists().withMessage("required type")
+            req.checkParams('_id').exists().withMessage("required entity id")
+                .isMongoId().withMessage("invalid entity id")
+
             //     if (req.query.type == "parent") {
             //         req.check('studentName').exists().withMessage("invalid student name")
             //         req.check('grade').exists().withMessage("invalid grade")

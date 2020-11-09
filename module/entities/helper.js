@@ -362,12 +362,25 @@ module.exports = class EntitiesHelper {
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityId, data);
                 } else {
-                    entityInformation = await database.models.entities.findOneAndUpdate(
-                        { _id: ObjectId(entityId) },
-                        { metaInformation: data },
-                        { new: true }
-                    ).lean();
 
+                    if(ObjectId.isValid(entityId)){
+
+                        entityInformation = await database.models.entities.findOneAndUpdate(
+                            { _id: ObjectId(entityId) },
+                            { metaInformation: data },
+                            { new: true }
+                        ).lean();
+
+                    }else{
+            
+                        entityInformation = await database.models.entities.findOneAndUpdate(
+                            { "metaInformation.externalId" : entityId },
+                            { metaInformation: data },
+                            { new: true }
+                        ).lean();
+                         
+                    }
+                    
                     let entity =[];
                     entity.push(entityInformation._id.toString());
                     await this.pushEntitiesToElasticSearch(entity);
