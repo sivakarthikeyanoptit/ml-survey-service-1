@@ -1375,8 +1375,8 @@ module.exports = class EntitiesHelper {
                         "regsitryDetails": {},
                         "groups": {},
                         "metaInformation": data,
-                        "updatedBy": "SYSTEM",
-                        "createdBy": "SYSTEM"
+                        "updatedBy": "PANJAB_MIS",
+                        "createdBy": "PANJAB_MIS"
                     };
 
                 let entityData = await database.models.entities.create(
