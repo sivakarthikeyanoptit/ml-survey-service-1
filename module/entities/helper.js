@@ -390,7 +390,7 @@ module.exports = class EntitiesHelper {
                     }
 
                     entity.push(entityInformation._id.toString());
-                    // await this.pushEntitiesToElasticSearch(entity);
+                    await this.pushEntitiesToElasticSearch(entity);
                     
                 }
 
