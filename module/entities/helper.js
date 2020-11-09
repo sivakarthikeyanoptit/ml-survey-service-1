@@ -383,15 +383,21 @@ module.exports = class EntitiesHelper {
                     
                     let entity =[];
                     if(!entityInformation || entityInformation._id == "" || entityInformation._id == undefined){
-                        throw messageConstants.apiResponses.SOMETHING_WRONG_INSERTED_UPDATED;
+                        return resolve({
+                            message: messageConstants.apiResponses.ENTITY_NOT_FOUND,
+                            result: {}
+                        });
                     }
 
                     entity.push(entityInformation._id.toString());
-                    await this.pushEntitiesToElasticSearch(entity);
+                    // await this.pushEntitiesToElasticSearch(entity);
                     
                 }
 
-                return resolve(entityInformation);
+                return resolve({
+                    message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE,
+                    result: entityInformation
+                });
 
             } catch (error) {
                 return reject(error);

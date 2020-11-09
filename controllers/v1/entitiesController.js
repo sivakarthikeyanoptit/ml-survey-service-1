@@ -402,10 +402,7 @@ module.exports = class Entities extends Abstract {
 
         let result = await entitiesHelper.update(req.query.type, req.params._id, req.body);
 
-        return resolve({
-          message: messageConstants.apiResponses.ENTITY_INFORMATION_UPDATE,
-          result: result
-        });
+        return resolve(result)
 
       } catch (error) {
 
