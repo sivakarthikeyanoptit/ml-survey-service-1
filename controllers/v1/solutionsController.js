@@ -182,15 +182,14 @@ module.exports = class Solutions extends Abstract {
 
 
   /**
-  * @api {get} /assessment/api/v1/solutions/importFromFramework/?programId:programExternalId&frameworkId:frameworkExternalId&entityType:entityType Create solution from framework.
+  * @api {get} /assessment/api/v1/solutions/importFromFramework/?frameworkId:frameworkExternalId&entityType:entityType Create solution from framework.
   * @apiVersion 1.0.0
   * @apiName Create solution from framework.
   * @apiGroup Solutions
   * @apiHeader {String} X-authenticated-user-token Authenticity token
-  * @apiParam {String} programId Program External ID.
   * @apiParam {String} frameworkId Framework External ID.
   * @apiParam {String} entityType Entity Type.
-  * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?programId=PGM-SMC&frameworkId=EF-SMC&entityType=school
+  * @apiSampleRequest /assessment/api/v1/solutions/importFromFramework?frameworkId=EF-SMC&entityType=school
   * @apiUse successBody
   * @apiUse errorBody
   * 
@@ -201,7 +200,6 @@ module.exports = class Solutions extends Abstract {
    * @method
    * @name details
    * @param {Object} req - requested data.
-   * @param {String} req.query.programId - program external id.
    * @param {String} req.query.frameworkId - framework external id.
    * @param {String} req.query.entityType - entity type. 
    * @returns {JSON} consists of solution created id.
@@ -211,7 +209,7 @@ module.exports = class Solutions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        if (!req.query.programId || req.query.programId == "" || !req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
+        if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
           throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
@@ -220,19 +218,6 @@ module.exports = class Solutions extends Abstract {
         }).lean();
 
         if (!frameworkDocument._id) {
-          throw messageConstants.apiResponses.INVALID_PARAMETER;
-        }
-
-        let programDocument = await database.models.programs.findOne({
-          externalId: req.query.programId
-        }, {
-            _id: 1,
-            externalId: 1,
-            name: 1,
-            description: 1
-          }).lean();
-
-        if (!programDocument._id) {
           throw messageConstants.apiResponses.INVALID_PARAMETER;
         }
 
@@ -295,30 +280,9 @@ module.exports = class Solutions extends Abstract {
 
         let newBaseSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
 
-        let newSolutionId;
-
-        if (newBaseSolutionId._id) {
-
-          newSolutionDocument.programId = programDocument._id;
-          newSolutionDocument.programExternalId = programDocument.externalId;
-          newSolutionDocument.programName = programDocument.name;
-          newSolutionDocument.programDescription = programDocument.description;
-
-          newSolutionDocument.parentSolutionId = newBaseSolutionId._id;
-          newSolutionDocument.isReusable = false;
-          newSolutionDocument.externalId = frameworkDocument.externalId;
-
-          newSolutionId = await database.models.solutions.create(_.omit(newSolutionDocument, ["_id"]));
-
-          if (newSolutionId._id) {
-            await database.models.programs.updateOne({ _id: programDocument._id }, { $addToSet: { components: newSolutionId._id } });
-          }
-
-        }
-
         let response = {
-          message: messageConstants.apiResponses.MAP_SOLUTION_TO_PROGRAM,
-          result: newSolutionId._id
+          message: messageConstants.apiResponses.SOLUTION_GENERATED,
+          result: newBaseSolutionId._id
         };
 
         return resolve(response);

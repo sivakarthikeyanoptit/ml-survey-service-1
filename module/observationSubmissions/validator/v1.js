@@ -33,6 +33,11 @@ module.exports = (req) => {
             .isMongoId().withMessage("Invalid observation id");
             req.checkQuery('entityId').exists().withMessage("required entity id")
             .isMongoId().withMessage("Invalid entity id");
+        },
+
+        status: function () {
+            req.checkParams('_id').exists().withMessage("required submission id")
+            .isMongoId().withMessage("Invalid submission id");
         }
     }
 

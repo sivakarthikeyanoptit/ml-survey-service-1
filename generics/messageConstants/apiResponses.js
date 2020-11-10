@@ -108,7 +108,7 @@ module.exports = {
 "MANAGER_PROFILE" : "Manager profile fetched successfully.",
 "NO_DATA_FOUND" : "No data found for given params.",
 "PARENT_NOT_FOUND" : "No parent found",
-"MAP_SOLUTION_TO_PROGRAM" : "Solution generated and mapped to the program.",
+"SOLUTION_GENERATED" : "Solution generated",
 "BODY_NOT_EMPTY" : "Body should not be empty.",
 "DUPLICATE_SOLUTION" : "Duplicate Solution generated.",
 "ERROR_CREATING_DUPLICATE" : "Some error while creating duplicate solution.",
@@ -307,5 +307,6 @@ module.exports = {
 "DUPLICATED_QUESTIONS_SUCCESSFULLY" : "Duplicated questions successfully",
 "THEMES_REQUIRED" : "Themes required",
 "CRITERIA_ID_REQUIRED" : "Criteria ids required",
-"QUESTION_ID_NOT_FOUND" : "Question ids not found"
+"QUESTION_ID_NOT_FOUND" : "Question ids not found",
+"OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly"
 }
