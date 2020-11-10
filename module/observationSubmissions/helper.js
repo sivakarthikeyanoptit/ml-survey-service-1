@@ -580,6 +580,7 @@ module.exports = class ObservationSubmissionsHelper {
     */
 
    static checkStatus(solutionExternalId = "", userId = "", entityId = "") {
+    console.log(solutionExternalId,userId,entityId,"input")
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -615,8 +616,8 @@ module.exports = class ObservationSubmissionsHelper {
                 throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
             }
 
-            result.status = submissionDocument.status;
-            result.createdAt = submissionDocument.createdAt;
+            result.status = submissionDocument[0].status;
+            result.createdAt = submissionDocument[0].createdAt;
 
             return resolve({
                 success: true,
