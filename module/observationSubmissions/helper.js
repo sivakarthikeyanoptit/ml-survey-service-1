@@ -603,7 +603,7 @@ module.exports = class ObservationSubmissionsHelper {
             let submissionDocument = await this.observationSubmissionsDocument
             (
                 { "solutionExternalId": solutionExternalId,
-                  "entityId": entityId,
+                  "entityId": ObjectId(entityId),
                   "createdBy": userId
                 },
                 [
