@@ -845,7 +845,7 @@ module.exports = class Entities extends Abstract {
   /**
   * @api {post} /assessment/api/v1/entities/create?type=:entityType Entity Create
   * @apiVersion 1.0.0
-  * @apiName Entity create
+  * @apiName Entity create for Panjab
   * @apiGroup Entities
   * @apiParamExample {json} Request-Body:
   * {

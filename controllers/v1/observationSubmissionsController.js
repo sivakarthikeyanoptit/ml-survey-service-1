@@ -1189,5 +1189,60 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+
+
+    /**
+  * @api {get} /assessment/api/v1/observationSubmissions/checkStatus:solutionExternalId?userId=""&entityId="" Check Submissions Status for Entity 
+  * @apiVersion 1.0.0
+  * @apiName Check Submissions Status for Entity 
+  * @apiGroup Observation Submissions
+  * @apiParam {String} userId User ID.
+  * @apiParam {String} entityId Entity ID.
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/checkStatus/5d2c1c57037306041ef0c7ea?userId=SO&entityId=5c5693fd28466d82967b9429
+  * @apiParamExample {json} Response:
+  * "result": "inprogess"
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+  /**
+   * Check Submissions Status for Entity .
+   * @method
+   * @name checkStatus
+   * @param {Object} req -request data.
+   * @param {String} req.params._id - solution External Id.
+   * @param {String} req.query.userId - user id.
+   * @param {String} req.query.entityId - entity id.
+   * @returns {JSON} - status of observation submission.
+   */
+
+  async checkStatus(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let submission = await observationSubmissionsHelper.checkStatus(
+          req.params._id,
+          req.query.userId,
+          req.query.entityId
+        );
+
+        return resolve({
+          message: submission.message,
+          result: submission.data
+        })
+
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
 };
 

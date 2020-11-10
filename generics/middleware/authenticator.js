@@ -102,14 +102,14 @@ module.exports = async function (req, res, next) {
     delete req.headers[e];
   });
 
-  let paths = ["reports", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails","entities"]
+  let paths = ["reports", "pendingAssessments", "completedAssessments", "pendingObservations", "completedObservations", "solutionDetails", "entities", "observationSubmissions" ]
 
   var token = req.headers["x-authenticated-user-token"];
   if (!req.rspObj) req.rspObj = {};
   var rspObj = req.rspObj;
 
   
-  let internalAccessApiPaths = ["createGesture", "createEmoji", "solutionDetails", "entities/create", "entities/update"];
+  let internalAccessApiPaths = ["createGesture", "createEmoji", "solutionDetails", "entities/create", "entities/update", "observationSubmissions/checkStatus"];
   let performInternalAccessTokenCheck = false;
   await Promise.all(internalAccessApiPaths.map(async function (path) {
     if (req.path.includes(path)) {

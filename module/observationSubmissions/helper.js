@@ -569,6 +569,72 @@ module.exports = class ObservationSubmissionsHelper {
     })
 }
 
+    /**
+    * Check if observation submission status.
+    * @method
+    * @name checkStatus
+    * @param {String} solutionExternalId - solution External Id
+    * @param {String} userId - user id
+    * @param {String} entityId - entity id
+    * @returns {Json} - submission status.
+    */
+
+   static checkStatus(solutionExternalId = "", userId = "", entityId = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (solutionExternalId == "") {
+                throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_REQUIRED)
+            }
+
+            if (entityId == "") {
+                throw new Error(messageConstants.apiResponses.ENTITY_ID_REQUIRED)
+            }
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+
+            let result ={
+                status:"",
+                createdAt:""
+            };
+
+            let submissionDocument = await this.observationSubmissionsDocument
+            (
+                { "solutionExternalId": solutionExternalId,
+                  "entityId": entityId,
+                  "createdBy": userId
+                },
+                [
+                    "status","createdAt"
+                ]
+            );
+            
+            if (!submissionDocument.length) {
+                throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+            }
+
+            result.status = submissionDocument.status;
+            result.createdAt = submissionDocument.createdAt;
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.OBSERVATION_SUBMISSION_CHECK,
+                data: result
+            });
+        }
+  
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            })
+        }
+    })
+}
+
 };
 
 
