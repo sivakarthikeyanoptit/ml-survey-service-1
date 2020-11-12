@@ -580,7 +580,6 @@ module.exports = class ObservationSubmissionsHelper {
     */
 
    static checkStatus(solutionExternalId = "", userId = "", entityId = "") {
-    console.log(solutionExternalId,userId,entityId,"input")
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -601,17 +600,35 @@ module.exports = class ObservationSubmissionsHelper {
                 createdAt:""
             };
 
-            let submissionDocument = await this.observationSubmissionsDocument
-            (
-                { "solutionExternalId": solutionExternalId,
-                  "entityId": ObjectId(entityId),
-                  "createdBy": userId
-                },
-                [
-                    "status","createdAt"
-                ]
-            );
-            
+            let submissionDocument;
+
+             if(ObjectId.isValid(entityId)){
+
+                submissionDocument = await this.observationSubmissionsDocument
+                (
+                    { "solutionExternalId": solutionExternalId,
+                      "entityId": ObjectId(entityId),
+                      "createdBy": userId
+                    },
+                    [
+                        "status","createdAt"
+                    ]
+                );
+
+             }else{
+
+                submissionDocument = await this.observationSubmissionsDocument
+                (
+                    { "solutionExternalId": solutionExternalId,
+                      "entityExternalId": entityId,
+                      "createdBy": userId
+                    },
+                    [
+                        "status","createdAt"
+                    ]
+                );
+             }
+
             if (!submissionDocument.length) {
                 throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
             }

@@ -354,7 +354,7 @@ module.exports = class EntitiesHelper {
    * @returns {JSON} - Updated entity information.
    */
 
-    static update(entityType, entityId, data) {
+    static update(entityType="", entityId, data) {
         return new Promise(async (resolve, reject) => {
             try {
                 let entityInformation;

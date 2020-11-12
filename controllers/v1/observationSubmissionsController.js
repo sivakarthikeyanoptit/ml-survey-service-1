@@ -1197,7 +1197,7 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiName Check Submissions Status for Entity 
   * @apiGroup Observation Submissions
   * @apiParam {String} userId User ID.
-  * @apiParam {String} entityId Entity ID.
+  * @apiParam {String} entityId Entity External ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/checkStatus/5d2c1c57037306041ef0c7ea?userId=SO&entityId=5c5693fd28466d82967b9429
   * @apiParamExample {json} Response:
   * "result": "inprogess"
@@ -1212,7 +1212,7 @@ module.exports = class ObservationSubmissions extends Abstract {
    * @param {Object} req -request data.
    * @param {String} req.params._id - solution External Id.
    * @param {String} req.query.userId - user id.
-   * @param {String} req.query.entityId - entity id.
+   * @param {String} req.query.entityId - entity external id.
    * @returns {JSON} - status of observation submission.
    */
 
