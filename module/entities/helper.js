@@ -362,7 +362,7 @@ module.exports = class EntitiesHelper {
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityId, data);
                 } else {
-
+                    console.log(entityType,entityId,"hhh")
                     if(ObjectId.isValid(entityId)){
 
                         entityInformation = await database.models.entities.findOneAndUpdate(
@@ -375,7 +375,7 @@ module.exports = class EntitiesHelper {
             
                         entityInformation = await database.models.entities.findOneAndUpdate(
                             { "metaInformation.externalId" : entityId },
-                            { metaInformation: data },
+                            { metaInformation: data , updatedBy : "PANJAB_MIS" },
                             { new: true }
                         ).lean();
                          
@@ -390,7 +390,7 @@ module.exports = class EntitiesHelper {
                     }
 
                     entity.push(entityInformation._id.toString());
-                    await this.pushEntitiesToElasticSearch(entity);
+                    // await this.pushEntitiesToElasticSearch(entity);
                     
                 }
 
