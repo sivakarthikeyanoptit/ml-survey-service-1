@@ -355,7 +355,7 @@ module.exports = class EntitiesHelper {
    */
 
     static update(entityType="", entityId, data) {
-        console.log(entityType,entityId,"hhh")
+
         return new Promise(async (resolve, reject) => {
             try {
                 let entityInformation;
@@ -373,7 +373,7 @@ module.exports = class EntitiesHelper {
                         ).lean();
 
                     }else{
-                        console.log("else part")
+
                         entityInformation = await database.models.entities.findOneAndUpdate(
                             { "metaInformation.externalId" : entityId },
                             { metaInformation: data , updatedBy : "PANJAB_MIS" },
@@ -381,8 +381,6 @@ module.exports = class EntitiesHelper {
                         ).lean();
                          
                     }
-
-                    console.log(entityInformation,"entityInformation")
                     
                     let entity =[];
                     if(!entityInformation || entityInformation._id == "" || entityInformation._id == undefined){
@@ -393,7 +391,7 @@ module.exports = class EntitiesHelper {
                     }
 
                     entity.push(entityInformation._id.toString());
-                    // await this.pushEntitiesToElasticSearch(entity);
+                    await this.pushEntitiesToElasticSearch(entity);
                     
                 }
 
