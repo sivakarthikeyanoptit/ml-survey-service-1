@@ -603,7 +603,7 @@ module.exports = class ObservationSubmissionsHelper {
             let submissionDocument;
 
              if(ObjectId.isValid(entityId)){
-
+                    console.log("if part")
                 submissionDocument = await this.observationSubmissionsDocument
                 (
                     { "solutionExternalId": solutionExternalId,
@@ -616,7 +616,7 @@ module.exports = class ObservationSubmissionsHelper {
                 );
 
              }else{
-
+console.log("else part")
                 submissionDocument = await this.observationSubmissionsDocument
                 (
                     { "solutionExternalId": solutionExternalId,
@@ -628,7 +628,7 @@ module.exports = class ObservationSubmissionsHelper {
                     ]
                 );
              }
-
+             console.log(submissionDocument,"submissionDocument")
             if (!submissionDocument.length) {
                 throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
             }
