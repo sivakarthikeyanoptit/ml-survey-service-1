@@ -355,6 +355,7 @@ module.exports = class EntitiesHelper {
    */
 
     static update(entityType="", entityId, data) {
+        console.log(entityType,entityId,"hhh")
         return new Promise(async (resolve, reject) => {
             try {
                 let entityInformation;
@@ -362,7 +363,7 @@ module.exports = class EntitiesHelper {
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityId, data);
                 } else {
-                    console.log(entityType,entityId,"hhh")
+                    
                     if(ObjectId.isValid(entityId)){
 
                         entityInformation = await database.models.entities.findOneAndUpdate(
