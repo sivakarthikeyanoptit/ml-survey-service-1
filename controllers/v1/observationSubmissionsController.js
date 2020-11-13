@@ -1217,6 +1217,7 @@ module.exports = class ObservationSubmissions extends Abstract {
    */
 
   async checkStatus(req) {
+    console.log(req.params._id,req.query.userId,req.query.entityId,"jjjjjjj")
     return new Promise(async (resolve, reject) => {
 
       try {
