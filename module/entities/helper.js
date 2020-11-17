@@ -377,13 +377,14 @@ module.exports = class EntitiesHelper {
 
                         entityInformation = await database.models.entities.findOneAndUpdate(
                             { "metaInformation.externalId" : entityId },
-                            { metaInformation: data , updatedBy : "PANJAB_MIS" },
+                            { metaInformation: data , updatedBy: "PUNJAB_MIS" },
                             { new: true }
                         ).lean();
                          
                     }
                     
                     let entity =[];
+
                     if(!entityInformation || entityInformation._id == "" || entityInformation._id == undefined){
                         return resolve({
                             message: messageConstants.apiResponses.ENTITY_NOT_FOUND,
@@ -1403,8 +1404,8 @@ module.exports = class EntitiesHelper {
                         "regsitryDetails": {},
                         "groups": {},
                         "metaInformation": data,
-                        "updatedBy": "PANJAB_MIS",
-                        "createdBy": "PANJAB_MIS"
+                        "updatedBy": "PUNJAB_MIS",
+                        "createdBy": "PUNJAB_MIS"
                     };
 
                 let entityData = await database.models.entities.create(
@@ -1417,7 +1418,7 @@ module.exports = class EntitiesHelper {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
 
-                let addToActivityLog = await kendraService.addToActivityLog("entity-create","PANJAB_MIS",entityData._id,entityData);
+                let addToActivityLog = await kendraService.addToActivityLog("entity-create","PUNJAB_MIS",entityData._id,entityData);
                 let entity =[];
                 entity.push(entityData._id.toString());
                 await this.pushEntitiesToElasticSearch(entity);
