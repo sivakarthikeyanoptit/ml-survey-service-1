@@ -391,6 +391,8 @@ module.exports = class EntitiesHelper {
                         });
                     }
 
+                    let addToActivityLog = await kendraService.addToActivityLog("entity-update",entityInformation.updatedBy,entityInformation._id,entityInformation);
+                    
                     entity.push(entityInformation._id.toString());
                     await this.pushEntitiesToElasticSearch(entity);
                     
@@ -1415,7 +1417,7 @@ module.exports = class EntitiesHelper {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
 
-                let addToActivityLog = await kendraService.addToActivityLog("entity","PANJAB_MIS",entityData._id,entityData);
+                let addToActivityLog = await kendraService.addToActivityLog("entity-create","PANJAB_MIS",entityData._id,entityData);
                 let entity =[];
                 entity.push(entityData._id.toString());
                 await this.pushEntitiesToElasticSearch(entity);
