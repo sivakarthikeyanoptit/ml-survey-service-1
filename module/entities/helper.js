@@ -8,6 +8,7 @@
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 
  /**
     * EntitiesHelper
@@ -1413,6 +1414,8 @@ module.exports = class EntitiesHelper {
                 if (entityDatalength != dataLength) {
                     throw messageConstants.apiResponses.ENTITY_INFORMATION_NOT_INSERTED;
                 }
+
+                let addToActivityLog = await kendraService.addToActivityLog("entity","PANJAB_MIS",entityData._id,entityData);
                 let entity =[];
                 entity.push(entityData._id.toString());
                 await this.pushEntitiesToElasticSearch(entity);

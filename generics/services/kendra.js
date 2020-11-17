@@ -154,9 +154,54 @@ const getAppDetails = function (appName) {
     })
 }
 
+/**
+  * create entry in Activity Log.
+  * @function
+  * @name addToActivityLog
+  * @param {String} appName - App Name.
+  * @param {Object} data - data
+  * @param {String} type - type of doc ex: entity, user.
+  * @param {String} userId - user id.
+  * @param {String} docId - doc id.
+  * @returns {JSON} Activity Log.
+*/
+
+const addToActivityLog = function (type,userId,docId,data) {
+
+    let addToActivityUrl = kendraServiceBaseURL + messageConstants.endpoints.ADD_TO_ACTIVITY_LOG + "?type=" + type + "&userId=" + userId + "&docId=" + docId ;
+    console.log(addToActivityUrl,"addToActivityUrl")
+    return new Promise((resolve, reject) => {
+        try {
+
+            const kendraCallBack = function (err, response) {
+                if (err) {
+                    return reject({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.KENDRA_SERVICE_DOWN
+                    })
+                } else {
+                    let activityDetails =  response.body
+                    return resolve(activityDetails);
+                }
+            }
+
+            request.post(addToActivityUrl, {
+                headers: {
+                    "internal-access-token": process.env.INTERNAL_ACCESS_TOKEN
+                },
+                json : data
+            }, kendraCallBack);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+}
+
 module.exports = {
     getDownloadableUrl : getDownloadableUrl,
     upload : upload,
-    getAppDetails : getAppDetails
+    getAppDetails : getAppDetails,
+    addToActivityLog : addToActivityLog
 };
 

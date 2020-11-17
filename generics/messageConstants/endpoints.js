@@ -11,5 +11,6 @@ module.exports = {
     DOWNLOADABLE_AWS_URL : "api/v1/cloud-services/aws/getDownloadableUrl", // Kendra service
     DOWNLOADABLE_AZURE_URL : "api/v1/cloud-services/azure/getDownloadableUrl", // Kendra service
     UPLOAD_FILE : "api/v1/cloud-services/gcp/uploadFile",  // Kendra service
-    GET_APP_DETAILS : "api/v1/apps/details" // Kendra service
+    GET_APP_DETAILS : "api/v1/apps/details", // Kendra service
+    ADD_TO_ACTIVITY_LOG : "api/v1/activity-logs/create" // Kendra service
 }
