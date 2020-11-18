@@ -1121,6 +1121,17 @@ module.exports = class SolutionsHelper {
           );
   
           if (duplicateSolutionDocument._id) {
+
+            if (duplicateSolutionDocument.type == messageConstants.common.OBSERVATION) {
+
+              let link = await gen.utils.md5Hash(duplicateSolutionDocument._id + "###" + userId);
+
+              await this.updateSolutionDocument
+                (
+                  { _id: duplicateSolutionDocument._id },
+                  { $set: { link: link } }
+                )
+            }
   
             await database.models.programs.updateOne({ _id: programDocument[0]._id }, { $addToSet: { components: duplicateSolutionDocument._id } });
   
