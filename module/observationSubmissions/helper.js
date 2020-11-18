@@ -603,7 +603,6 @@ module.exports = class ObservationSubmissionsHelper {
             let submissionDocument;
 
              if(ObjectId.isValid(entityId)){
-                    console.log("if part")
                 submissionDocument = await this.observationSubmissionsDocument
                 (
                     { "solutionExternalId": solutionExternalId,
