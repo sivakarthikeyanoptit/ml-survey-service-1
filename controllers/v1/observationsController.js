@@ -1037,14 +1037,14 @@ module.exports = class Observations extends Abstract {
     }
 
     /**
-     * @api {get} /assessment/api/v1/observations/importFromFramework?programId:programExternalId&frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
+     * @api {get} /assessment/api/v1/observations/importFromFramework?frameworkId:frameworkExternalId&entityType=entityType Create observation solution from framework.
      * @apiVersion 1.0.0
      * @apiName Create observation solution from framework.
      * @apiGroup Observations
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiParam {String} frameworkId Framework External ID.
      * @apiParam {String} entityType Entity Type.
-     * @apiSampleRequest /assessment/api/v1/observations/importFromFramework?programId=CRO-VERSION2-2019-TEMPLATE&frameworkId=CRO-VERSION2-2019&entityType=school
+     * @apiSampleRequest /assessment/api/v1/observations/importFromFramework?frameworkId=CRO-VERSION2-2019&entityType=school
      * @apiUse successBody
      * @apiUse errorBody
      */
@@ -1056,7 +1056,6 @@ module.exports = class Observations extends Abstract {
     * @param {Object} req -request Data.
     * @param {String} req.query.frameworkId -framework id.
     * @param {String} req.query.entityType - entity type name. 
-    * @param {String} req.query.programId - program id is optional.  
     * @returns {JSON} 
     */
 
@@ -1067,25 +1066,6 @@ module.exports = class Observations extends Abstract {
 
                 if (!req.query.frameworkId || req.query.frameworkId == "" || !req.query.entityType || req.query.entityType == "") {
                     throw messageConstants.apiResponses.INVALID_PARAMETER;
-                }
-
-                let programDocument;
-
-                if( req.query.programId ) {
-                    
-                    programDocument = await programsHelper.list(
-                    {
-                        externalId : req.query.programId
-                    },[
-                        "externalId",
-                        "name",
-                        "description"
-                    ]);
-                    
-                    if ( !programDocument[0]._id ) {
-                        throw messageConstants.apiResponses.PROGRAM_NOT_FOUND;
-                    }
-
                 }
 
                 let frameworkDocument = await database.models.frameworks.findOne({
@@ -1173,51 +1153,6 @@ module.exports = class Observations extends Abstract {
                     let result = {
                         templateId : newBaseSolution._id
                     };
-
-                    if( programDocument && programDocument[0]._id ) {
-
-                        newSolutionDocument["programId"] = programDocument[0]._id;
-                        newSolutionDocument["programName"] = programDocument[0].name;
-                        newSolutionDocument["programDescription"] = 
-                        programDocument[0].description;
-                        newSolutionDocument["programExternalId"] = 
-                        programDocument[0].externalId;
-
-                        newSolutionDocument.parentSolutionId = newBaseSolution._id;
-                        newSolutionDocument.isReusable = false;
-                        newSolutionDocument.externalId = frameworkDocument.externalId;
-                        
-
-                        let newSolution = 
-                        await database.models.solutions.create(
-                            _.omit(
-                                newSolutionDocument, 
-                                ["_id"]
-                            )
-                        );
-
-                        if ( newSolution._id ) {
-                            
-                            let link = await gen.utils.md5Hash(newSolution._id + "###" + req.userDetails.userId);
-                            
-                            await solutionHelper.updateSolutionDocument(
-                                { _id: newSolution._id },
-                                { $set : { link: link } }
-                            )
-                            
-                            result["observationSolutionId"] =  newSolution._id;
-                            
-                            await database.models.programs.updateOne(
-                                { 
-                                    _id: programDocument[0]._id 
-                                }, { 
-                                    $addToSet: { components : newSolution._id } 
-                                }
-                            );
-
-                        }
-
-                    }
 
                     let response = {
                         message : messageConstants.apiResponses.OBSERVATION_SOLUTION,
