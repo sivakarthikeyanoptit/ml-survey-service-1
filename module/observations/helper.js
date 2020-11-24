@@ -1006,6 +1006,14 @@ module.exports = class ObservationsHelper {
                 name : requestedData.name,
                 description : requestedData.description
               };
+
+              if( requestedData.taskId ) {
+                  solutionInformation["taskId"] = solutionInformation["taskId"];
+              }
+
+              if( requestedData.projectId ) {
+                solutionInformation["projectId"] = ObjectId(solutionInformation["projectId"]);
+              }
   
               let createdSolutionAndProgram = 
               await solutionHelper.createProgramAndSolutionFromTemplate(
@@ -1030,6 +1038,14 @@ module.exports = class ObservationsHelper {
                 endDate : endDate,
                 entities : requestedData.entities
               };
+
+              if( requestedData.taskId ) {
+                observationData["taskId"] = requestedData["taskId"];
+              }
+
+              if( requestedData.projectId ) {
+               observationData["projectId"] = ObjectId(requestedData["projectId"]);
+              }
 
               let observation = 
               await this.createObservation(

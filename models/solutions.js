@@ -91,6 +91,8 @@ module.exports = {
       type: String,
       index: true,
       unique: true
-    }
+    },
+    projectId : "ObjectId",
+    taskId : String
   }
 };

@@ -1107,6 +1107,14 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
           newSolutionDocument.isReusable = false;
 
+          if( data.taskId ) {
+            newSolutionDocument["taskId"] = data.taskId;
+          }
+
+          if( data.projectId ) {
+            newSolutionDocument["projectId"] = data.projectId;
+          }
+
           if( createdFor !== "" ) {
             newSolutionDocument.createdFor = createdFor;
           } 
@@ -1505,6 +1513,72 @@ module.exports = class SolutionsHelper {
         }
     });
 }
+
+    /**
+    * Add entity to solution.
+    * @method
+    * @name addEntityToSolution
+    * @param {String} solutionId - solution id.
+    * @param {Array} entityIds - Entity ids.
+    * @returns {String} - message.
+    */
+
+   static addEntityToSolution(solutionId,entityIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+  
+          let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
+          
+          let solutionQuery = {
+            isReusable : false
+          };
+
+          if( gen.utils.isValidMongoId(solutionId) ) {
+            solutionQuery["_id"] = solutionId;
+          } else {
+            solutionQuery["externalId"] = solutionId;
+          } 
+
+          let solutionDocument = 
+          await this.solutionDocuments(solutionQuery, ["entityType"]);
+
+          if( !solutionDocument.length > 0 ) {
+            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+          }
+  
+          let entitiesDocument = 
+          await entitiesHelper.entityDocuments(
+            { 
+              _id: { $in: entityIds }, 
+              entityType: solutionDocument[0].entityType 
+            }, ["_id"]);
+  
+          let updateEntityIds = entitiesDocument.map(entity => entity._id);
+  
+          if (entityIds.length != updateEntityIds.length) {
+            responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE
+          };
+  
+          await database.models.solutions.findOneAndUpdate(
+            solutionQuery,
+            { $addToSet: { entities: updateEntityIds } }
+          );
+
+          return resolve({
+            success: true,
+            message: responseMessage,
+            data: true
+          });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+  }
 
   
 };

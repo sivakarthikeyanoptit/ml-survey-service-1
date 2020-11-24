@@ -148,6 +148,11 @@ module.exports = class SubmissionsHelper {
 
                     // Push new submission to kafka for reporting/tracking.
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
+
+                    if( submissionDocument.projectId && submissionDocument.taskId ) {
+                        this.pushSubmissionToImprovementService(submissionDocument);
+                    }
+                    
                 } else {
 
                     let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === userId)
@@ -583,6 +588,13 @@ module.exports = class SubmissionsHelper {
                         message: message,
                         result: status
                     };
+
+                    if( 
+                        updatedSubmissionDocument.projectId && 
+                        response.status  === "completed" 
+                    ) {
+                        await this.pushSubmissionToImprovementService(updatedSubmissionDocument);
+                    }
 
                     return resolve(response);
 
@@ -1830,6 +1842,46 @@ module.exports = class SubmissionsHelper {
             }
         });
     }
+
+     /**
+   * Push submission to improvement service.
+   * @method
+   * @name pushSubmissionToImprovementService
+   * @param {String} submissionDocument - submission document.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+  static pushSubmissionToImprovementService(submissionDocument) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            console.log(submissionDocument.taskId)
+            const kafkaMessage = 
+            await kafkaClient.pushSubmissionToImprovementService({
+                taskId : submissionDocument.taskId,
+                projectId : submissionDocument.projectId,
+                _id : submissionDocument._id,
+                status : submissionDocument.status
+            });
+
+            if(kafkaMessage.status != "success") {
+                let errorObject = {
+                    formData: {
+                        submissionId:submissionsDocument._id.toString(),
+                        message:kafkaMessage.message
+                    }
+                };
+                slackClient.kafkaErrorAlert(errorObject);
+            }
+
+            return resolve(kafkaMessage);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
 };
 

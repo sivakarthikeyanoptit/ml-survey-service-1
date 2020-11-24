@@ -48,6 +48,8 @@ module.exports = {
           return "Assessment";
         }
       }
-    }
+    },
+    projectId : "ObjectId",
+    taskId : String
   }
 };

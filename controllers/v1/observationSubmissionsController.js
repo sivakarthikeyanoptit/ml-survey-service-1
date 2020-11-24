@@ -140,7 +140,9 @@ module.exports = class ObservationSubmissions extends Abstract {
           "programExternalId",
           "isAPrivateProgram",
           "scoringSystem",
-          "isRubricDriven"
+          "isRubricDriven",
+          "projectId",
+          "taskId"
         ]);
 
         if (!solutionDocument[0]) {
@@ -201,6 +203,14 @@ module.exports = class ObservationSubmissions extends Abstract {
           isRubricDriven: solutionDocument.isRubricDriven
       };
 
+      if( solutionDocument.taskId ) {
+        submissionDocument.taskId = solutionDocument.taskId;
+      }
+
+      if( solutionDocument.projectId ) {
+        submissionDocument.projectId = solutionDocument.projectId;
+      }
+
       let criteriaId = new Array;
       let criteriaObject = {};
       let criteriaIdArray = gen.utils.getCriteriaIdsAndWeightage(solutionDocument.themes);
@@ -254,12 +264,17 @@ module.exports = class ObservationSubmissions extends Abstract {
 
       });
 
+
       submissionDocument.evidences = submissionDocumentEvidences;
       submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
       submissionDocument.criteria = submissionDocumentCriterias;
       submissionDocument.submissionNumber = lastSubmissionNumber;
 
       let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
+
+      if( newObservationSubmissionDocument.taskId && newObservationSubmissionDocument.projectId ) {
+        await submissionsHelper.pushSubmissionToImprovementService(newObservationSubmissionDocument);
+      }
       
       // Push new observation submission to kafka for reporting/tracking.
       observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(newObservationSubmissionDocument._id);

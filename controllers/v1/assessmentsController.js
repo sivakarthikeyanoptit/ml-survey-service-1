@@ -289,6 +289,14 @@ module.exports = class Assessments {
                     status: "started"
                 };
 
+                if( solutionDocument.projectId ) {
+                    submissionDocument["projectId"] = solutionDocument.projectId;
+                }
+
+                if( solutionDocument.taskId ) {
+                    submissionDocument["taskId"] = solutionDocument.taskId;
+                }
+
                 let assessment = {};
 
                 assessment.name = solutionDocument.name;

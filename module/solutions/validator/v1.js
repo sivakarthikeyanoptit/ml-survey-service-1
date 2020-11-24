@@ -24,6 +24,10 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required observation solution id");
             req.checkQuery('appName').exists().withMessage("required app name");
         },
+        addEntities : function () {
+            req.checkParams("_id").exists().withMessage("Required solution id");
+            req.checkBody("entities").exists().withMessage("Required entities data");
+        }
     }
 
     if (solutionValidator[req.params.method]) solutionValidator[req.params.method]();

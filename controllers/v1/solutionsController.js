@@ -323,26 +323,16 @@ module.exports = class Solutions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
-
         let entityIdsFromCSV = await csv().fromString(req.files.entities.data.toString());
 
         entityIdsFromCSV = entityIdsFromCSV.map(entity => ObjectId(entity.entityIds));
 
-        let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { entityType: 1 }).lean();
+        let entityData = await solutionsHelper.addEntityToSolution(
+          req.params._id,
+          entityIdsFromCSV
+        );
 
-        let entitiesDocument = await database.models.entities.find({ _id: { $in: entityIdsFromCSV }, entityType: solutionDocument.entityType }, { _id: 1 }).lean();
-
-        let entityIds = entitiesDocument.map(entity => entity._id);
-
-        if (entityIdsFromCSV.length != entityIds.length) responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
-
-        await database.models.solutions.updateOne(
-          { externalId: req.params._id },
-          { $addToSet: { entities: entityIds } }
-        )
-
-        return resolve({ message: responseMessage });
+        return resolve(entityData);
 
       } catch (error) {
         return reject({
@@ -1558,5 +1548,54 @@ module.exports = class Solutions extends Abstract {
 
         })
     }
+
+    /**
+    * @api {post} /assessment/api/v1/solutions/addEntities/:solutionId Add entity to solution
+    * @apiVersion 1.0.0
+    * @apiName Add entity to solution
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+    *	    "entities": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+    * }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/addEntities/5f64601df5f6e432fe0f0575
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    *   "message" : "Entities updated successfully."
+    * }
+    */
+
+     /**
+   * Add entity to solution.
+   * @method
+   * @name addEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON} consists message of successfully mapped entities
+   */
+
+  async addEntities(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionData = await solutionsHelper.addEntityToSolution(
+          req.params._id,
+          req.body.entities
+        );
+
+        return resolve(solutionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
   
 };

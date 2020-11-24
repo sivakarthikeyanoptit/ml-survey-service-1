@@ -31,6 +31,8 @@ module.exports = {
     link: {
       type: String,
       index: true
-    }
+    },
+    projectId : "ObjectId",
+    taskId : String
   }
 };
