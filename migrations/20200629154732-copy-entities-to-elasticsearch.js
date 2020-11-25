@@ -118,6 +118,34 @@ module.exports = {
 
         entityObj["telemetry_entities"] = telemetryEntities;
 
+        let userData = await db.collection('userExtension').find(
+          { "roles.entities": entityObj._id}
+        ).project({
+          "roles": 1,
+          "userId": 1
+        }).toArray();
+
+        let roles = {};
+
+        if (userData.length > 0) {
+          await Promise.all(userData.map(user => {
+
+            user.roles.map(role => {
+
+              if (roles[role.code]) {
+                if (!roles[role.code].includes(user.userId)) {
+                  roles[role.code].push(user.userId);
+                }
+              }
+              else {
+                roles[role.code] = [user.userId];
+              }
+            })
+          }))
+        }
+        
+        entityObj["roles"] = roles;
+        
         await es.update({
           id: entityObj._id,
           index: entitiesIndex,
