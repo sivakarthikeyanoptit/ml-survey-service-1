@@ -389,8 +389,8 @@ module.exports = class AssessmentsHelper {
                 allowMultipleAssessemts : 1,
                 scoringSystem: 1,
                 isRubricDriven: 1,
-                taskId : 1,
-                projectId : 1
+                project : 1,
+                referenceFrom : 1
             });
         })
     }
@@ -578,9 +578,9 @@ module.exports = class AssessmentsHelper {
                 entities : requestedData.entities ? requestedData.entities: []
               };
 
-              if( requestedData.taskId && requestedData.projectId ) {
-                  solutionInformation["taskId"] = requestedData.taskId;
-                  solutionInformation["projectId"] = ObjectId(requestedData.projectId);
+              if( requestedData.project ) {
+                  solutionInformation["project"] = requestedData.project;
+                  solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
               }
 
               let organisationAndRootOrganisation = 
@@ -603,7 +603,7 @@ module.exports = class AssessmentsHelper {
                 rootOrganisations
               );
 
-              await entityAssessorsHelper.createOrUpdate(
+              await entityAssessorsHelper.update(
                   createdSolutionAndProgram.programId,
                   createdSolutionAndProgram._id,
                   userDetails.userId,

@@ -149,7 +149,7 @@ module.exports = class SubmissionsHelper {
                     // Push new submission to kafka for reporting/tracking.
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
 
-                    if( submissionDocument.projectId && submissionDocument.taskId ) {
+                    if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
                         this.pushSubmissionToImprovementService(submissionDocument);
                     }
                     
@@ -590,10 +590,12 @@ module.exports = class SubmissionsHelper {
                     };
 
                     if( 
-                        updatedSubmissionDocument.projectId && 
+                        updatedSubmissionDocument.referenceFrom === messageConstants.common.PROJECT && 
                         response.status  === "completed" 
                     ) {
-                        await this.pushSubmissionToImprovementService(updatedSubmissionDocument);
+                        await this.pushSubmissionToImprovementService(
+                            _.pick(updatedSubmissionDocument,["project","status","_id"])
+                        );
                     }
 
                     return resolve(response);
@@ -1859,8 +1861,8 @@ module.exports = class SubmissionsHelper {
             console.log(submissionDocument.taskId)
             const kafkaMessage = 
             await kafkaClient.pushSubmissionToImprovementService({
-                taskId : submissionDocument.taskId,
-                projectId : submissionDocument.projectId,
+                taskId : submissionDocument.project.taskId,
+                projectId : submissionDocument.project.projectId,
                 _id : submissionDocument._id,
                 status : submissionDocument.status
             });

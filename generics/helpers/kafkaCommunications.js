@@ -7,7 +7,7 @@ const submissionRatingQueueKafkaTopic = (process.env.SUBMISSION_RATING_QUEUE_TOP
 const notificationsKafkaTopic = (process.env.NOTIFICATIONS_TOPIC && process.env.NOTIFICATIONS_TOPIC != "OFF") ? process.env.NOTIFICATIONS_TOPIC : "sl-notifications-dev"
 const completedSurveySubmissionKafkaTopic = (process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC && process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC != "OFF") ? process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC : "sl_surveys_raw"
 const inCompleteSurveySubmissionKafkaTopic = (process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC && process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC != "OFF") ? process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC : "sl_incomplete_surveys_raw"
-const improvementServiceSubmissionTopic = (process.env.IMPROVEMENT_SERVICE_SUBMISSION_TOPIC && process.env.IMPROVEMENT_SERVICE_SUBMISSION_TOPIC != "OFF") ? process.env.IMPROVEMENT_SERVICE_SUBMISSION_TOPIC : "improvement-service";
+const improvementProjectSubmissionTopic = (process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC && process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC != "OFF") ? process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC : "sl-improvement-project-submission-dev";
 
 const pushCompletedObservationSubmissionToKafka = function (message) {
   return new Promise(async (resolve, reject) => {
@@ -167,7 +167,7 @@ const pushSubmissionToImprovementService = function (message) {
       try {
 
           let kafkaPushStatus = await pushMessageToKafka([{
-            topic: improvementServiceSubmissionTopic,
+            topic: improvementProjectSubmissionTopic,
             messages: JSON.stringify(message)
           }])
 

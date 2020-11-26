@@ -27,6 +27,9 @@ module.exports = (req) => {
         addEntities : function () {
             req.checkParams("_id").exists().withMessage("Required solution id");
             req.checkBody("entities").exists().withMessage("Required entities data");
+        },
+        list : function () {
+            req.checkBody("solutionIds").exists().withMessage("Required solution external ids");
         }
     }
 

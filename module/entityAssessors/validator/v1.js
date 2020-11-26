@@ -13,6 +13,10 @@ module.exports = (req) => {
         },
         completedAssessments : function () {
             req.checkQuery('fromDate').exists().withMessage("required from date");
+        },
+        create : function () {
+            req.checkParams("_id").exists().withMessage("Required program id");
+            req.checkQuery("solutionId").exists().withMessage("Required solution id");
         }
     }
 

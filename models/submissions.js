@@ -49,7 +49,7 @@ module.exports = {
         }
       }
     },
-    projectId : "ObjectId",
-    taskId : String
+    project : Object,
+    referenceFrom : String
   }
 };

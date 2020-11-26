@@ -32,7 +32,7 @@ module.exports = {
       type: String,
       index: true
     },
-    projectId : "ObjectId",
-    taskId : String
+    project : Object,
+    referenceFrom : String
   }
 };

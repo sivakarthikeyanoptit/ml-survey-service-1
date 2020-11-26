@@ -1007,12 +1007,10 @@ module.exports = class ObservationsHelper {
                 description : requestedData.description
               };
 
-              if( requestedData.taskId ) {
-                  solutionInformation["taskId"] = solutionInformation["taskId"];
-              }
 
-              if( requestedData.projectId ) {
-                solutionInformation["projectId"] = ObjectId(solutionInformation["projectId"]);
+              if( requestedData.project ) {
+                solutionInformation["project"] = requestedData.project;
+                solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
               }
   
               let createdSolutionAndProgram = 
@@ -1039,12 +1037,9 @@ module.exports = class ObservationsHelper {
                 entities : requestedData.entities
               };
 
-              if( requestedData.taskId ) {
-                observationData["taskId"] = requestedData["taskId"];
-              }
-
-              if( requestedData.projectId ) {
-               observationData["projectId"] = ObjectId(requestedData["projectId"]);
+              if( requestedData.project ) {
+                solutionInformation["project"] = requestedData.project;
+                solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
               }
 
               let observation = 

@@ -133,7 +133,6 @@ module.exports = class Assessments {
                     result: {}
                 };
 
-
                 let programQueryObject = {
                     _id: req.params._id,
                     status: "active",
@@ -289,12 +288,10 @@ module.exports = class Assessments {
                     status: "started"
                 };
 
-                if( solutionDocument.projectId ) {
-                    submissionDocument["projectId"] = solutionDocument.projectId;
-                }
-
-                if( solutionDocument.taskId ) {
-                    submissionDocument["taskId"] = solutionDocument.taskId;
+                if( solutionDocument.referenceFrom === messageConstants.common.PROJECT) {
+                    
+                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+                    submissionDocument["project"] = solutionDocument.project;
                 }
 
                 let assessment = {};
