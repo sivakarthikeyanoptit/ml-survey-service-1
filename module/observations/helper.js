@@ -16,6 +16,7 @@ const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
+const { ObjectId } = require("mongodb");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
 
 
@@ -94,26 +95,54 @@ module.exports = class ObservationsHelper {
                     userId
                 );
 
-                let duplicateSolution = 
-                await solutionHelper.createProgramAndSolutionFromTemplate
-                (
-                    solutionId,
-                    {
-                        _id : programId
-                    },
-                    userId,
-                    _.omit(data,["entities"]),
-                    true,
-                    organisationAndRootOrganisation.createdFor,
-                    organisationAndRootOrganisation.rootOrganisations
-                );
+                let solutionData = 
+                await solutionHelper.solutionDocuments({
+                    _id : solutionId
+                },[
+                    "isReusable",
+                    "externalId",
+                    "programId",
+                    "programExternalId",
+                    "frameworkId",
+                    "frameworkExternalId",
+                    "entityType",
+                    "entityTypeId",
+                    "isAPrivateProgram"
+                ]);
+
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                if( solutionData[0].isReusable ) {
+
+                    solutionData = 
+                    await solutionHelper.createProgramAndSolutionFromTemplate
+                    (
+                        solutionId,
+                        {
+                            _id : programId
+                        },
+                        userId,
+                        _.omit(data,["entities"]),
+                        true,
+                        organisationAndRootOrganisation.createdFor,
+                        organisationAndRootOrganisation.rootOrganisations
+                    );
+
+                } else {
+                    solutionData = solutionData[0];
+                }
 
 
                 let observationData = 
                 await this.createObservation(
                     data,
                     userId,
-                    duplicateSolution,
+                    solutionData,
                     organisationAndRootOrganisation
                 );
 
@@ -145,6 +174,11 @@ module.exports = class ObservationsHelper {
                     let entitiesToAdd = 
                     await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
                     data.entities = entitiesToAdd.entityIds;
+                }
+
+                if( data.project ) {
+                    data.project._id = ObjectId(data.project._id);
+                    data.referenceFrom = messageConstants.common.PROJECT;
                 }
                 
                 let observationData = 

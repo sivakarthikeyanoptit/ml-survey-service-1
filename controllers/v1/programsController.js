@@ -9,6 +9,7 @@
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 const insightsHelper = require(MODULES_BASE_PATH + "/insights/helper");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * Programs
@@ -631,6 +632,88 @@ module.exports = class Programs extends Abstract {
           result: result
         })
 
+      }
+      catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+        })
+      }
+    })
+  }
+
+    /**
+  * @api {post} /assessment/api/v1/programs/listByIds List programs by ids
+  * @apiVersion 1.0.0
+  * @apiName List programs by ids
+  * @apiGroup Program
+  * @apiParamExample {json} Request:
+  * {
+  *   "programIds" : ["5b98d7b6d4f87f317ff615ee"]
+  * }
+  * @apiSampleRequest /assessment/api/v1/programs/listByIds
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Program information list fetched successfully.",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5b98d7b6d4f87f317ff615ee",
+            "externalId": "PROGID01",
+            "name": "DCPCR School Development Index 2018-19",
+            "description": "DCPCR School Development Index 2018-19",
+            "owner": "a082787f-8f8f-42f2-a706-35457ca6f1fd",
+            "createdBy": "a082787f-8f8f-42f2-a706-35457ca6f1fd",
+            "updatedBy": "a082787f-8f8f-42f2-a706-35457ca6f1fd",
+            "isDeleted": false,
+            "status": "active",
+            "resourceType": [
+                "program"
+            ],
+            "language": [
+                "English"
+            ],
+            "keywords": [],
+            "concepts": [],
+            "createdFor": [
+                "0126427034137395203",
+                "0124487522476933120"
+            ],
+            "imageCompression": {
+                "quality": 10
+            },
+            "updatedAt": "2019-01-03T06:07:17.660Z",
+            "startDate": "2018-06-28T06:03:48.590Z",
+            "endDate": "2020-06-28T06:03:48.591Z",
+            "createdAt": "2019-06-28T06:03:48.616Z",
+            "isAPrivateProgram": false
+        }
+    ]
+  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+     /**
+   * List programs by ids.
+   * @method
+   * @name listByIds
+   * @param {Object} req - request data.
+   * @param {Array} req.body.solutionIds - Solution ids.
+   * @returns {JSON} - List programs by ids.
+   */
+
+  async listByIds(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programsData = 
+        await programsHelper.listByIds(req.body.programIds);
+
+        programsData.result = programsData.data;
+
+        return resolve(programsData);
+        
       }
       catch (error) {
         return reject({
