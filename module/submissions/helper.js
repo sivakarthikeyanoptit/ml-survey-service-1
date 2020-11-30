@@ -1861,7 +1861,7 @@ module.exports = class SubmissionsHelper {
             const kafkaMessage = 
             await kafkaClient.pushSubmissionToImprovementService({
                 taskId : submissionDocument.project.taskId,
-                projectId : submissionDocument.project.projectId,
+                projectId : submissionDocument.project._id,
                 _id : submissionDocument._id,
                 status : submissionDocument.status
             });
