@@ -51,7 +51,7 @@ module.exports = {
     },
     scoringSystem: String,
     isRubricDriven: { type : Boolean, default: false },
-    projectId : "ObjectId",
-    taskId : String
+    project : Object,
+    referenceFrom : String
   }
 };
