@@ -878,7 +878,8 @@ module.exports = class EntityAssessorHelper {
                     
                     let entityDocuments = 
                     await entitiesHelper.entityDocuments({
-                        _id : { $in : entities }
+                        _id : { $in : entities },
+                        entityType : solutionData[0].entityType
                     },["_id"]);
 
                     if( entityDocuments.length > 0 ) {

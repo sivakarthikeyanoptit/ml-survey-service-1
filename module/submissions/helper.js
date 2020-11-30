@@ -1858,7 +1858,6 @@ module.exports = class SubmissionsHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-            console.log(submissionDocument.taskId)
             const kafkaMessage = 
             await kafkaClient.pushSubmissionToImprovementService({
                 taskId : submissionDocument.project.taskId,

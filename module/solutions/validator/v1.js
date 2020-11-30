@@ -25,7 +25,7 @@ module.exports = (req) => {
             req.checkQuery('appName').exists().withMessage("required app name");
         },
         addEntities : function () {
-            req.checkParams("_id").exists().withMessage("Required solution id");
+            req.checkParams("_id").exists().withMessage("Required solution id")
             req.checkBody("entities").exists().withMessage("Required entities data");
         },
         list : function () {
