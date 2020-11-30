@@ -1072,8 +1072,8 @@ module.exports = class ObservationsHelper {
               };
 
               if( requestedData.project ) {
-                solutionInformation["project"] = requestedData.project;
-                solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
+                observationData["project"] = requestedData.project;
+                observationData["referenceFrom"] = messageConstants.common.PROJECT;
               }
 
               let observation = 
