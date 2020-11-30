@@ -270,16 +270,22 @@ module.exports = class ProgramsHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-            let programsData = 
-            await this.list({
-              _id : { $in : programIds }
-            },"all",["components"]);
+            let programsData;
 
-            if( !programsData.length > 0 ) {
-              throw {
-                status : httpStatusCode["bad_request"].status,
-                message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+            if(Array.isArray(programIds) && programIds.length > 0){
+
+              programsData = 
+              await this.list({
+                _id : { $in : programIds }
+              },"all",["components"]);
+
+              if( !programsData.length > 0 ) {
+                throw {
+                  status : httpStatusCode["bad_request"].status,
+                  message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                }
               }
+
             }
 
             return resolve({
