@@ -844,5 +844,71 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+   /**
+  * @api {get} /assessment/api/v1/entities/find
+  * Find entities data.
+  * @apiVersion 1.0.0
+  * @apiName Find entities
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/find
+  * @param {json} Request-Body:
+  * {
+  * "query" : {
+        "externalId" : "EF-DCPCR-2018-001"
+    },
+    "projection" : ["_id"]
+    }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entities fetched successfull",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5beaa888af0065f0e0a10515"
+        }
+    ]
+  }
+  */
+
+    /**
+   * List of entities.
+   * @method
+   * @name find
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - requested entity type.         
+   * @returns {JSON} - Array of entities.
+   */
+
+  find(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let entityData = await entitiesHelper.entityDocuments(
+          req.body.query,
+          req.body.projection
+        );
+
+        return resolve({
+          message: messageConstants.apiResponses.ENTITY_FETCHED,
+          result: entityData
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
   
 };
