@@ -1631,7 +1631,63 @@ module.exports = class SolutionsHelper {
             });
         }
     });
-  }
+  } 
+
+    /**
+    * Remove entity from solution.
+    * @method
+    * @name removeEntities
+    * @param {String} solutionId - solution id.
+    * @param {Array} entityIds - Entity ids.
+    * @returns {String} - message.
+    */
+
+   static removeEntities(solutionId,entityIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+  
+          let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
+          
+          let solutionQuery = {
+            isReusable : false
+          };
+
+          if( gen.utils.isValidMongoId(solutionId) ) {
+            solutionQuery["_id"] = solutionId;
+          } else {
+            solutionQuery["externalId"] = solutionId;
+          } 
+
+          let solutionDocument = 
+          await this.solutionDocuments(solutionQuery, ["_id"]);
+
+          if( !solutionDocument.length > 0 ) {
+            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+          }
+
+          let updateEntityIds = entityIds.map(entityId => ObjectId(entityId));
+  
+          await database.models.solutions.findOneAndUpdate(
+            solutionQuery,
+            { $pull: { entities: { $in : updateEntityIds } } },
+            { multi: true }
+          );
+
+          return resolve({
+            success: true,
+            message: responseMessage,
+            data: true
+          });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+   }
 
   
 };

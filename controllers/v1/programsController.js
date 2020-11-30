@@ -724,4 +724,46 @@ module.exports = class Programs extends Abstract {
     })
   }
 
+    /**
+  * @api {post} /assessment/api/v1/programs/removeSolutions/:programId Remove solutions from Program
+  * @apiVersion 1.0.0
+  * @apiName removeSolution
+  * @apiGroup Program
+  * @apiSampleRequest /assessment/api/v1/programs/removeSolutions/5fbe2b964006cc174d10960c
+  * @apiHeader {String} X-authenticated-user-token Authenticity token  
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Remove solutions from program.
+   * @method
+   * @name removeSolutions
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id -  program internal id.
+   * @param {Array} req.body.solutionIds - solution ids.
+   * @returns {JSON} - 
+   */
+
+  async removeSolutions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programData = 
+        await programsHelper.removeSolutions(req.params._id,req.body.solutionIds);
+        
+        programData.result = programData.data;
+        return resolve(programData);
+
+      }
+      catch (error) {
+        reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+      }
+    })
+  } 
+
 };

@@ -17,6 +17,10 @@ module.exports = (req) => {
         blockEntity: function () {
             req.checkQuery('solutionId').exists().withMessage("required solution id")
             req.checkQuery('blockId').exists().withMessage("required block id")
+        },
+        addSolutions : function () {
+            req.checkParams('_id').exists().withMessage("required program id");
+            req.checkBody("solutionIds").exists().withMessage("required solutions ids");
         }
 
     }
