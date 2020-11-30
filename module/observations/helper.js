@@ -18,7 +18,7 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
 const { ObjectId } = require("mongodb");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
-
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 
 /**
     * ObservationsHelper
@@ -479,6 +479,10 @@ module.exports = class ObservationsHelper {
                     submissionDocument = await database.models.observationSubmissions.create(
                         document
                     );
+
+                    if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                        await submissionsHelper.pushSubmissionToImprovementService(submissionDocument);
+                    }
 
                     // Push new observation submission to kafka for reporting/tracking.
                     observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(submissionDocument._id);
