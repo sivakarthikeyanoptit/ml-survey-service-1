@@ -927,6 +927,7 @@ module.exports = class EntityAssessorHelper {
         updateData
     ) {
         return new Promise(async (resolve, reject) => {
+            
             try {
 
                 let assessorData = 
