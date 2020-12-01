@@ -990,7 +990,9 @@ module.exports = class ObservationsHelper {
                 captureGpsLocationAtQuestionLevel : 1,
                 enableQuestionReadOut : 1,
                 scoringSystem: 1,
-                isRubricDriven: 1
+                isRubricDriven: 1,
+                project : 1,
+                referenceFrom : 1
             });
         })
     }

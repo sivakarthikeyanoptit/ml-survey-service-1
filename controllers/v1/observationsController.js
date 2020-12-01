@@ -836,6 +836,11 @@ module.exports = class Observations extends Abstract {
                     status: "started"
                 };
 
+                if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+                    submissionDocument["project"] = solutionDocument.project;
+                }
+
                 let assessment = {};
 
                 assessment.name = solutionDocument.name;
