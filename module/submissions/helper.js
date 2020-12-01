@@ -589,17 +589,6 @@ module.exports = class SubmissionsHelper {
                         result: status
                     };
 
-                    if( 
-                        submissionDocument.referenceFrom === messageConstants.common.PROJECT && 
-                        response.result.status  === messageConstants.common.SUBMISSION_STATUS_COMPLETED 
-                    ) {
-
-                        updatedSubmissionDocument["project"] = submissionDocument.project;
-                        await this.pushSubmissionToImprovementService(
-                            _.pick(updatedSubmissionDocument,["project","status","_id"])
-                        );
-                    }
-
                     return resolve(response);
 
                 } else {
@@ -673,6 +662,13 @@ module.exports = class SubmissionsHelper {
 
                 if (!submissionsDocument) {
                     throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND + "or" +SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+
+                if( submissionsDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                    
+                    await this.pushSubmissionToImprovementService(
+                        _.pick(submissionsDocument,["project","status","_id"])
+                    );
                 }
 
 
