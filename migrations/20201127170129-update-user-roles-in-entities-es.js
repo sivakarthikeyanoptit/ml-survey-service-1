@@ -28,51 +28,53 @@ module.exports = {
 
     for (let users = 0; users < chunkOfUsers.length; users++) {
 
-      await Promise.all(chunkOfUsers[users].map(async user => {
+      for (let user = 0; user < chunkOfUsers[users].length; user++) {
 
-        if (user.roles.length > 0) {
+        let userData = chunkOfUsers[users][user];
 
-          await Promise.all(user.roles.map(async role => {
+        if (userData.roles.length > 0) {
 
-            await Promise.all(role.entities.map(async entity => {
+          for (let role = 0; role < userData.roles.length; role++) {
+
+            for (let entity = 0; entity < userData.roles[role].entities.length; entity++) {
 
               let entityDocument = await es.get({
-                id: entity,
+                id: userData.roles[role].entities[entity],
                 index: process.env.ELASTICSEARCH_ENTITIES_INDEX
               }, {
                   ignore: [404],
                   maxRetries: 3
                 });
-                
+
               if (entityDocument.statusCode == 200) {
                 entityDocument = entityDocument.body["_source"].data;
-                console.log(entityDocument);
+
                 if (!entityDocument.roles) {
                   entityDocument.roles = {};
                 }
 
-                if (entityDocument.roles[role.code]) {
-                  if (!entityDocument.roles[role.code].includes(user.userId)) {
-                    entityDocument.roles[role.code].push(user.userId);
+                if (entityDocument.roles[userData.roles[role].code]) {
+                  if (!entityDocument.roles[userData.roles[role].code].includes(userData.userId)) {
+                    entityDocument.roles[userData.roles[role].code].push(userData.userId);
                   }
                 }
                 else {
-                  entityDocument.roles[role.code] = [user.userId];
+                  entityDocument.roles[userData.roles[role].code] = [userData.userId];
                 }
-                
+
                 await es.update({
-                  id: entity,
+                  id: userData.roles[role].entities[entity],
                   index: process.env.ELASTICSEARCH_ENTITIES_INDEX,
                   body: {
-                    doc: { data : entityDocument },
+                    doc: { data: entityDocument },
                     doc_as_upsert: true
                   }
                 })
               }
-            }))
-          }))
+            }
+          }
         }
-      }))
+      }
     }
 
     return;
