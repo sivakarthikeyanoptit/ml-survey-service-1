@@ -590,9 +590,11 @@ module.exports = class SubmissionsHelper {
                     };
 
                     if( 
-                        updatedSubmissionDocument.referenceFrom === messageConstants.common.PROJECT && 
+                        submissionDocument.referenceFrom === messageConstants.common.PROJECT && 
                         response.status  === "completed" 
                     ) {
+
+                        updatedSubmissionDocument["project"] = submissionDocument.project;
                         await this.pushSubmissionToImprovementService(
                             _.pick(updatedSubmissionDocument,["project","status","_id"])
                         );
