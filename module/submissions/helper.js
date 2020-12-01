@@ -591,7 +591,7 @@ module.exports = class SubmissionsHelper {
 
                     if( 
                         submissionDocument.referenceFrom === messageConstants.common.PROJECT && 
-                        response.status  === "completed" 
+                        response.result.status  === messageConstants.common.SUBMISSION_STATUS_COMPLETED 
                     ) {
 
                         updatedSubmissionDocument["project"] = submissionDocument.project;
