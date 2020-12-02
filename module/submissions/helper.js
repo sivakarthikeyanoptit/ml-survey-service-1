@@ -150,7 +150,7 @@ module.exports = class SubmissionsHelper {
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
 
                     if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
-                        this.pushSubmissionToImprovementService(submissionDocument);
+                        this.pushSubmissionToImprovementService(_.pick(submissionsDocument,["project","status","_id"]);
                     }
                     
                 } else {

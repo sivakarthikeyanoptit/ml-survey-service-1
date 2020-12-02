@@ -25,14 +25,35 @@ module.exports = (req) => {
             req.checkQuery('appName').exists().withMessage("required app name");
         },
         addEntities : function () {
-            req.checkParams("_id").exists().withMessage("Required solution id")
-            req.checkBody("entities").exists().withMessage("Required entities data");
+            req.checkParams("_id").exists().withMessage("Required solution id");
+            req.checkBody("entities").exists().withMessage("Required entities data")
+            .isArray().withMessage("entities should be array")
+            .notEmpty().withMessage("entities cannot be empty")
+            .custom(entities => 
+                entitiesValidation(entities)
+            ).withMessage("invalid entity ids");
         },
         list : function () {
-            req.checkBody("solutionIds").exists().withMessage("Required solution external ids");
+            req.checkBody("solutionIds").exists().withMessage("Required solution external ids")
+            .isArray().withMessage("solutionIds should be array")
+            .notEmpty().withMessage("solutionIds cannot be empty");
         }
     }
 
     if (solutionValidator[req.params.method]) solutionValidator[req.params.method]();
+
+    function entitiesValidation(entity) {
+        let isObjectIds = true;
+        if(Array.isArray(entity)){
+            for (var i = 0; entity.length > i; i++) {
+                if(!ObjectId.isValid(entity[i])) {
+                    isObjectIds = false;
+                } 
+            }
+        }
+        
+        return isObjectIds;
+        
+    }
 
 };
