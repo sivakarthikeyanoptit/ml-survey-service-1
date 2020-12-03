@@ -648,7 +648,7 @@ module.exports = class ObservationSubmissionsHelper {
             if(kafkaMessage.status != "success") {
                 let errorObject = {
                     formData: {
-                        submissionId:submissionsDocument._id.toString(),
+                        submissionId:observationSubmissionDocument._id.toString(),
                         message:kafkaMessage.message
                     }
                 };
