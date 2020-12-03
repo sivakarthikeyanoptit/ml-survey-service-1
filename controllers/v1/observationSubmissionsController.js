@@ -270,7 +270,7 @@ module.exports = class ObservationSubmissions extends Abstract {
       let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
 
       if( newObservationSubmissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
-        await submissionsHelper.pushSubmissionToImprovementService(
+        await observationSubmissionsHelper.pushSubmissionToImprovementService(
           _.pick(newObservationSubmissionDocument,["project","status","_id"])
         );
       }
