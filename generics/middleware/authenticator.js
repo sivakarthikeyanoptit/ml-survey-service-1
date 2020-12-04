@@ -136,6 +136,26 @@ module.exports = async function (req, res, next) {
     }
   }
 
+//api need both internal access token and x-authenticated-user-token
+  const internalAccessAndTokenApiPaths = ["entityAssessors/create"];
+  let performInternalAccessTokenAndTokenCheck = false;
+  await Promise.all(internalAccessAndTokenApiPaths.map(async function (path) {
+    if (req.path.includes(path)) {
+      performInternalAccessTokenAndTokenCheck = true;
+    }
+  }));
+
+  
+  if (performInternalAccessTokenAndTokenCheck) {
+    if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN  || !token) {
+      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
+      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
+      rspObj.responseCode = responseCode.unauthorized.status;
+      return res.status(401).send(respUtil(rspObj));
+    }
+  }
+
+
   for (let pointerToByPassPath = 0; pointerToByPassPath < paths.length; pointerToByPassPath++) {
     if ((req.path.includes(paths[pointerToByPassPath]) || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {
       req.setTimeout(parseInt(REQUEST_TIMEOUT_FOR_REPORTS));

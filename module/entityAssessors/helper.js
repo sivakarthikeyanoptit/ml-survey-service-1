@@ -869,8 +869,8 @@ module.exports = class EntityAssessorHelper {
                         entityTypeId : solutionData[0].entityTypeId,
                         entityType : solutionData[0].entityType,
                         role : messageConstants.common.LEAD_ASSESSOR,
-                        createdBy : userDetails.userId,
-                        updatedBy : userDetails.userId
+                        createdBy : "SYSTEM",
+                        updatedBy : "SYSTEM"
                     };
                 }
 
