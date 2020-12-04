@@ -1319,4 +1319,57 @@ module.exports = class ObservationsHelper {
         })
     }
 
+
+    /**
+     * List of Observation submissions
+     * @method
+     * @name submissionStatus
+     * @param {String} observationId - observation id.
+     * @param {String} entityId - entity id.
+     * @param {String} userId - logged in user id.
+     * @returns {Object} list of observation submissions.
+     */
+
+    static submissionStatus( observationId,entityId,userId ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observation = await this.observationDocuments({
+                    _id : observationId,
+                    createdBy : userId,
+                    entities : ObjectId(entityId)
+                },["_id"]);
+
+                if( !observation.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                let observationSubmissions = 
+                await observationSubmissionsHelper.observationSubmissionsDocument({
+                    observationId : observationId,
+                    entityId : entityId,
+                    isDeleted : false
+                },["status","submissionNumber"]);
+
+                if( !observationSubmissions.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                return resolve({
+                    message : messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
+                    data : observationSubmissions
+                });                  
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 };

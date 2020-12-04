@@ -1745,4 +1745,61 @@ module.exports = class Observations extends Abstract {
         });
     } 
 
+        /**
+  * @api {get} /assessment/api/v1/observations/submissionStatus/:observationId?entityId=:entityId
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission Status
+  * @apiGroup Observations
+  * @apiSampleRequest /assessment/api/v1/observations/submissionStatus/5d1a002d2dfd8135bc8e1617?entityId=5cee7d1390013936552f6a8f
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Successfully fetched observation submissions",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5cee8c5390013936552f6a92",
+            "status": "started",
+            "submissionNumber": 1
+        }
+    ]
+ }
+
+  */
+   /**
+   * Get observation submission status
+   * @method
+   * @name submissionStatus
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - observation submission id. 
+   * @returns {JSON} consists of status of the observation submission.
+   */
+
+  async submissionStatus(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+         await observationsHelper.submissionStatus
+          (
+            req.params._id,
+            req.query.entityId,
+            req.userDetails.userId
+          );
+
+        submissionDocument.result = submissionDocument.data;
+
+        return resolve(submissionDocument);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
 }
