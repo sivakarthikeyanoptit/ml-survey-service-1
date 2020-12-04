@@ -1044,7 +1044,8 @@ module.exports = class SolutionsHelper {
   
           let newSolutionDocument = _.cloneDeep(solutionDocument[0]);
 
-          let duplicateCriteriasResponse = await criteriaHelper.duplicate(newSolutionDocument.themes);
+          let duplicateCriteriasResponse = 
+          await criteriaHelper.duplicate(newSolutionDocument.themes);
           
           let criteriaIdMap = {};
           if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data).length > 0) {
@@ -1106,6 +1107,11 @@ module.exports = class SolutionsHelper {
           newSolutionDocument.updatedAt = startDate;
           newSolutionDocument.isAPrivateProgram = programDocument[0].isAPrivateProgram;
           newSolutionDocument.isReusable = false;
+
+          if( data.project ) {
+            newSolutionDocument["project"] = data.project;
+            newSolutionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+          }
 
           if( createdFor !== "" ) {
             newSolutionDocument.createdFor = createdFor;
@@ -1505,6 +1511,183 @@ module.exports = class SolutionsHelper {
         }
     });
 }
+
+    /**
+    * Add entity to solution.
+    * @method
+    * @name addEntityToSolution
+    * @param {String} solutionId - solution id.
+    * @param {Array} entityIds - Entity ids.
+    * @returns {String} - message.
+    */
+
+   static addEntityToSolution(solutionId,entityIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+  
+          let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
+          
+          let solutionQuery = {
+            isReusable : false
+          };
+
+          if( gen.utils.isValidMongoId(solutionId) ) {
+            solutionQuery["_id"] = solutionId;
+          } else {
+            solutionQuery["externalId"] = solutionId;
+          } 
+
+          let solutionDocument = 
+          await this.solutionDocuments(solutionQuery, ["entityType"]);
+
+          if( !solutionDocument.length > 0 ) {
+            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+          }
+  
+          let entitiesDocument = 
+          await entitiesHelper.entityDocuments(
+            { 
+              _id: { $in: entityIds }, 
+              entityType: solutionDocument[0].entityType 
+            }, ["_id"]);
+  
+          let updateEntityIds = entitiesDocument.map(entity => entity._id);
+  
+          if (entityIds.length != updateEntityIds.length) {
+            responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE
+          };
+  
+          await database.models.solutions.findOneAndUpdate(
+            solutionQuery,
+            { $addToSet: { entities: updateEntityIds } }
+          );
+
+          return resolve({
+            success: true,
+            message: responseMessage,
+            data: true
+          });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+  }
+
+    /**
+    * Solution lists.
+    * @method
+    * @name list
+    * @param {String} solutionIds - solution ids.
+    * @returns {String} - message.
+    */
+
+   static list(solutionIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+          let solutionData = await this.solutionDocuments({
+            externalId : { $in : solutionIds },
+            status : messageConstants.common.ACTIVE_STATUS
+          },"all",[
+            "levelToScoreMapping",
+            "scoringSystem",
+            "themes",
+            "flattenedThemes",
+            "questionSequenceByEcm",
+            "entityProfileFieldsPerEntityTypes",
+            "evidenceMethods",
+            "sections",
+            "noOfRatingLevels",
+            "roles",
+            "captureGpsLocationAtQuestionLevel",
+            "enableQuestionReadOut",
+            "entities"
+        ])
+
+          if( !solutionData.length > 0 ) {
+            throw {
+              message : messageConstants.apiResponses.SOLUTION_NOT_FOUND,
+              status : httpStatusCode["bad_request"].status
+            }
+          }
+
+          return resolve({
+            success: true,
+            message: messageConstants.apiResponses.SOLUTION_FETCHED,
+            data: solutionData
+          });
+
+        } catch (error) {
+            return resolve({
+                status : error.status ? error.status : httpStatusCode["internal_server_error"].status, 
+                success: false,
+                message: error.message,
+                data: []
+            });
+        }
+    });
+  } 
+
+    /**
+    * Remove entity from solution.
+    * @method
+    * @name removeEntities
+    * @param {String} solutionId - solution id.
+    * @param {Array} entityIds - Entity ids.
+    * @returns {String} - message.
+    */
+
+   static removeEntities(solutionId,entityIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+  
+          let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
+          
+          let solutionQuery = {
+            isReusable : false
+          };
+
+          if( gen.utils.isValidMongoId(solutionId) ) {
+            solutionQuery["_id"] = solutionId;
+          } else {
+            solutionQuery["externalId"] = solutionId;
+          } 
+
+          let solutionDocument = 
+          await this.solutionDocuments(solutionQuery, ["_id"]);
+
+          if( !solutionDocument.length > 0 ) {
+            throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND);
+          }
+
+          let updateEntityIds = entityIds.map(entityId => ObjectId(entityId));
+  
+          await database.models.solutions.findOneAndUpdate(
+            solutionQuery,
+            { $pull: { entities: { $in : updateEntityIds } } },
+            { multi: true }
+          );
+
+          return resolve({
+            success: true,
+            message: responseMessage,
+            data: true
+          });
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+   }
 
   
 };

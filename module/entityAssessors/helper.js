@@ -12,6 +12,10 @@ let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfSubmissionsLength = 500;
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+
 
 /**
     * EntityAssessorHelper
@@ -802,24 +806,128 @@ module.exports = class EntityAssessorHelper {
         })
     }
 
-    /**
-     * Create or update entity assessor data.
+      /**
+     * Create entity assessor data.
      * @method
-     * @name createOrUpdate
+     * @name create
+     * @param {String} programId - program id.
+     * @param {String} solutionId - solution id.
+     * @param {Array}  entities - entities data.  
+     * @returns {Object} create entity assessor data.
+     */
+
+    static create(
+        userDetails,
+        programId,
+        solutionId,
+        entities = []
+    ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let solutionData = 
+                await solutionsHelper.solutionDocuments({ 
+                    _id : solutionId,
+                    status : messageConstants.common.ACTIVE_STATUS
+                },["_id","entityType","entityTypeId"]);
+
+                if( !solutionData.length > 0) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                let programData = await programsHelper.list({
+                    _id : programId
+                },["_id"]);
+
+                if ( !programData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                    }
+                }
+
+                let assessorData = await this.assessorsDocument({
+                    userId : userDetails.userId,
+                    solutionId : solutionId,
+                    programId : programId
+                });
+
+                let updateData = {};
+
+                if( !assessorData.length > 0 ) {
+
+                    updateData = {
+                        userId : userDetails.userId,
+                        email : userDetails.email,
+                        name : userDetails.firstName + userDetails.lastName,
+                        externalId : userDetails.userName,
+                        programId : programId,
+                        solutionId : solutionId,
+                        entityTypeId : solutionData[0].entityTypeId,
+                        entityType : solutionData[0].entityType,
+                        role : messageConstants.common.LEAD_ASSESSOR,
+                        createdBy : "SYSTEM",
+                        updatedBy : "SYSTEM"
+                    };
+                }
+
+                if( entities.length > 0 ) {
+                    
+                    let entityDocuments = 
+                    await entitiesHelper.entityDocuments({
+                        _id : { $in : entities },
+                        entityType : solutionData[0].entityType
+                    },["_id"]);
+
+                    if( entityDocuments.length > 0 ) {
+                        
+                        let entitiesIds = entityDocuments.map(entity =>{
+                            return entity._id;
+                        });
+
+                        updateData["$addToSet"] = {
+                            entities : entitiesIds
+                        };
+                    }
+                }
+
+                let entityAssessor = await this.update(
+                    programId,
+                    solutionId,
+                    userDetails.userId,
+                    updateData
+                );
+
+                return resolve(entityAssessor);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    /**
+     * Update entity assessor data.
+     * @method
+     * @name update
      * @param {String} programId - program id.
      * @param {String} solutionId - solution id.
      * @param {Object} userId - logged in user id.
      * @param {Object}  updateData - update assessor data.  
-     * @returns {Object} create or update Entity assessor data.
+     * @returns {Object} Update Entity assessor data.
      */
 
-    static createOrUpdate(
+    static update(
         programId,
         solutionId,
         userId,
         updateData
     ) {
         return new Promise(async (resolve, reject) => {
+            
             try {
 
                 let assessorData = 

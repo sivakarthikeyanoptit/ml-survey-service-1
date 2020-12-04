@@ -254,4 +254,53 @@ module.exports = class UserExtension extends Abstract {
     })
   }
 
+
+  /**
+  * @api {get} /assessment/api/v1/userExtension/update/{{userId}} Update user profile
+  * @apiVersion 1.0.0
+  * @apiName Update user profile
+  * @apiGroup User Extension
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/userExtension/update/e97b5582-471c-4649-8401-3cc4249359bb
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  
+  */
+
+  /**
+   * Get profile of user.
+   * @method
+   * @name update
+   * @param {Object} req - request data.
+   * @param {String} req.params._id - user id.
+   * @returns {JSON} User profile data. 
+   */
+
+  update(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = await userExtensionHelper.update(
+          (req.params._id && req.params._id != "") ? req.params._id : req.userDetails.userId,
+          req.body
+        );
+
+        return resolve(result);
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+
 };

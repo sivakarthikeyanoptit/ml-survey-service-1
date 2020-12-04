@@ -449,4 +449,77 @@ module.exports = class EntityAssessors extends Abstract {
     });
   }
 
+    /**
+  * @api {post} /assessment/api/v1/entityAssessors/create/:programId?solutionId=solutionId Create entity assessors
+  * @apiVersion 1.0.0
+  * @apiName Create entity assessors
+  * @apiGroup Entity Assessor
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/entityAssessors/create/5f16d5f493b32b5ae9913912?solutionId=5d15b0d7463d3a6961f9174b
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "entities" : ["5beaa888af0065f0e0a10515"]
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Successfully created entity assessors",
+    "status": 200,
+    "result": {
+        "entities": [],
+        "deleted": false,
+        "_id": "5fbe7537fb3eca11ae9f5277",
+        "programId": "5f16d5f493b32b5ae9913912",
+        "solutionId": "5d15b0d7463d3a6961f9174b",
+        "userId": "01c04166-a65e-4e92-a87b-a9e4194e771d",
+        "__v": 0,
+        "createdAt": "2020-11-25T15:16:07.482Z",
+        "createdBy": "01c04166-a65e-4e92-a87b-a9e4194e771d",
+        "email": "a1@shikshalokam.dev",
+        "entityType": "school",
+        "entityTypeId": "5d15a959e9185967a6d5e8a6",
+        "externalId": "a1",
+        "name": "A1 Shikhshlokam",
+        "role": "LEAD_ASSESSOR",
+        "updatedAt": "2020-11-25T15:16:07.482Z",
+        "updatedBy": "01c04166-a65e-4e92-a87b-a9e4194e771d"
+    }
+}
+  */
+
+  /**
+   * Create entity assessors.
+   * @method
+   * @name create
+   * @returns {Object} - entity assessor data.
+  */
+
+ async create(req) {
+  return new Promise(async (resolve, reject) => {
+    try {
+
+      let entityAssessor = 
+      await entityAssessorsHelper.create(
+        req.userDetails,
+        req.params._id,
+        req.query.solutionId,
+        req.body.entities
+      );
+
+      return resolve({
+        message: messageConstants.apiResponses.ENTITY_ASSESSORS_CREATED,
+        result: entityAssessor
+      });
+
+    } catch (error) {
+      return reject({
+        status: error.status || httpStatusCode.internal_server_error.status,
+        message: error.message || httpStatusCode.internal_server_error.message,
+        errorObject: error
+      });
+    }
+  });
+}
+
 };

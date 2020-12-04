@@ -62,5 +62,5 @@ public/assessment/web2
 .env
 
 # Ignore all credentials
-config/credentials/*
+generics/helpers/credentials/*
 

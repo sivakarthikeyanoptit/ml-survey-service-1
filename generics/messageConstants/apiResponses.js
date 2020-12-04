@@ -308,5 +308,7 @@ module.exports = {
 "THEMES_REQUIRED" : "Themes required",
 "CRITERIA_ID_REQUIRED" : "Criteria ids required",
 "QUESTION_ID_NOT_FOUND" : "Question ids not found",
-"OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly"
+"OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly",
+"ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
+"PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program"
 }

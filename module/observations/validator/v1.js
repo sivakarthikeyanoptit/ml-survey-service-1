@@ -40,6 +40,10 @@ module.exports = (req) => {
         },
         verifyLink : function () {
             req.checkParams('_id').exists().withMessage("required link")
+        },
+        submissionStatus : function () {
+            req.checkParams('_id').exists().withMessage("required observation id");
+            req.checkQuery('entityId').exists().withMessage("required entity id");
         }
     }
 
