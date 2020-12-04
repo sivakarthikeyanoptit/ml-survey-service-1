@@ -449,4 +449,54 @@ module.exports = class EntityAssessors extends Abstract {
     });
   }
 
+
+    /**
+    * @api {post} /assessment/api/v1/entityAssessors/bulkCreateByUserRoleAndEntity 
+    * Bulk create assessments by entity and role.
+    * @apiVersion 1.0.0
+    * @apiGroup Entity Assessor
+    * @apiSampleRequest /assessment/api/v1/entityAssessors/bulkCreateByUserRoleAndEntity
+    * @apiParamExample {json} Request:
+    * {
+    *  "entityId": "5f2449eb626a540f40817ef5",
+    *  "role": "CRP",
+    *  "solutionExternalId": "TAF-solution"
+     }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * Bulk create assessments by entity and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity
+      * @param {Object} req - request data.
+      * @param {String} req.body.entityId - entityId 
+      * @param {String} req.body.role - role 
+      * @param {String} req.body.solutionExternalId - solution external id
+      * @returns {CSV} Assigned assessments to user.
+     */
+
+    async bulkCreateByUserRoleAndEntity(req) {
+      return new Promise(async (resolve, reject) => {
+          try {
+
+              let assessments = await entityAssessorsHelper.bulkCreateByUserRoleAndEntity(
+                  req.body,
+                  req.userDetails.userId,
+                  req.rspObj.userToken
+              );
+
+              return resolve(assessments);
+
+          } catch (error) {
+              return reject({
+                  status: error.status || HTTP_STATUS_CODE.internal_server_error.status,
+                  message: error.message || HTTP_STATUS_CODE.internal_server_error.message,
+                  errorObject: error
+              });
+          }
+      })
+  }
+
 };

@@ -1740,4 +1740,54 @@ module.exports = class Observations extends Abstract {
         });
     } 
 
+
+      /**
+    * @api {post} /assessment/api/v1/observations/bulkCreateByUserRoleAndEntity 
+    * Bulk create observations by entity and role.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/bulkCreateByUserRoleAndEntity
+    * @apiParamExample {json} Request:
+    * {
+    *  "entityId": "5f2449eb626a540f40817ef5",
+    *  "role": "CRP",
+    *  "solutionExternalId": "TAF-solution"
+     }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * Bulk create observations by entity and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity
+      * @param {Object} req - request data.
+      * @param {String} req.body.entityId - entityId 
+      * @param {String} req.body.role - role 
+      * @param {String} req.body.solutionExternalId - solution external id
+      * @returns {CSV} Assigned observations to user.
+     */
+
+    async bulkCreateByUserRoleAndEntity(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let observations = await observationsHelper.bulkCreateByUserRoleAndEntity(
+                    req.body,
+                    req.rspObj.userToken
+                );
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+
 }
