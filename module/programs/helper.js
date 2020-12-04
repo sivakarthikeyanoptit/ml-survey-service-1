@@ -258,4 +258,101 @@ module.exports = class ProgramsHelper {
     });
 }
 
+      /**
+    * List programs by ids.
+    * @method
+    * @name listByIds
+    * @param {Array} programIds - Program ids. 
+    * @returns {Array} List of Programs.
+    */
+
+   static listByIds(programIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let programsData;
+
+            if(Array.isArray(programIds) && programIds.length > 0){
+
+              programsData = 
+              await this.list({
+                _id : { $in : programIds }
+              },"all",["components"]);
+
+              if( !programsData.length > 0 ) {
+                throw {
+                  status : httpStatusCode["bad_request"].status,
+                  message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                }
+              }
+
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.PROGRAM_LIST,
+                data: programsData
+            });
+
+        } catch (error) {
+            return resolve({
+                status : error.status ? error.status : httpStatusCode["internal_server_error"].status,
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+}
+
+       /**
+    * Remove solutions from program.
+    * @method
+    * @name removeSolutions
+    * @param {Array} programId - Program id. 
+    * @param {Array} solutionIds - Program id. 
+    * @returns {Array} Update program.
+    */
+
+   static removeSolutions(programId,solutionIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let programsData = await this.list({_id : programId },["_id"]);
+
+            if( !programsData.length > 0 ) {
+              throw {
+                status : httpStatusCode["bad_request"].status,
+                message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+              }
+            }
+
+            let updateSolutionIds = solutionIds.map(solutionId => ObjectId(solutionId));
+
+            let updateSolution = 
+            await database.models.programs.findOneAndUpdate({
+              _id : programId
+            },{
+              $pull : {
+                components : { $in : updateSolutionIds }
+              }
+            });
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.PROGRAM_UPDATED_SUCCESSFULLY,
+                data: updateSolution
+            });
+
+        } catch (error) {
+            return resolve({
+                status : error.status ? error.status : httpStatusCode["internal_server_error"].status,
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+   }
+
 };

@@ -16,8 +16,9 @@ const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
+const { ObjectId } = require("mongodb");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
-
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 
 /**
     * ObservationsHelper
@@ -94,26 +95,54 @@ module.exports = class ObservationsHelper {
                     userId
                 );
 
-                let duplicateSolution = 
-                await solutionHelper.createProgramAndSolutionFromTemplate
-                (
-                    solutionId,
-                    {
-                        _id : programId
-                    },
-                    userId,
-                    _.omit(data,["entities"]),
-                    true,
-                    organisationAndRootOrganisation.createdFor,
-                    organisationAndRootOrganisation.rootOrganisations
-                );
+                let solutionData = 
+                await solutionHelper.solutionDocuments({
+                    _id : solutionId
+                },[
+                    "isReusable",
+                    "externalId",
+                    "programId",
+                    "programExternalId",
+                    "frameworkId",
+                    "frameworkExternalId",
+                    "entityType",
+                    "entityTypeId",
+                    "isAPrivateProgram"
+                ]);
+
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                if( solutionData[0].isReusable ) {
+
+                    solutionData = 
+                    await solutionHelper.createProgramAndSolutionFromTemplate
+                    (
+                        solutionId,
+                        {
+                            _id : programId
+                        },
+                        userId,
+                        _.omit(data,["entities"]),
+                        true,
+                        organisationAndRootOrganisation.createdFor,
+                        organisationAndRootOrganisation.rootOrganisations
+                    );
+
+                } else {
+                    solutionData = solutionData[0];
+                }
 
 
                 let observationData = 
                 await this.createObservation(
                     data,
                     userId,
-                    duplicateSolution,
+                    solutionData,
                     organisationAndRootOrganisation
                 );
 
@@ -145,6 +174,11 @@ module.exports = class ObservationsHelper {
                     let entitiesToAdd = 
                     await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
                     data.entities = entitiesToAdd.entityIds;
+                }
+
+                if( data.project ) {
+                    data.project._id = ObjectId(data.project._id);
+                    data.referenceFrom = messageConstants.common.PROJECT;
                 }
                 
                 let observationData = 
@@ -445,6 +479,10 @@ module.exports = class ObservationsHelper {
                     submissionDocument = await database.models.observationSubmissions.create(
                         document
                     );
+
+                    if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                        await submissionsHelper.pushSubmissionToImprovementService(submissionDocument);
+                    }
 
                     // Push new observation submission to kafka for reporting/tracking.
                     observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(submissionDocument._id);
@@ -952,7 +990,9 @@ module.exports = class ObservationsHelper {
                 captureGpsLocationAtQuestionLevel : 1,
                 enableQuestionReadOut : 1,
                 scoringSystem: 1,
-                isRubricDriven: 1
+                isRubricDriven: 1,
+                project : 1,
+                referenceFrom : 1
             });
         })
     }
@@ -1006,6 +1046,12 @@ module.exports = class ObservationsHelper {
                 name : requestedData.name,
                 description : requestedData.description
               };
+
+
+              if( requestedData.project ) {
+                solutionInformation["project"] = requestedData.project;
+                solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
+              }
   
               let createdSolutionAndProgram = 
               await solutionHelper.createProgramAndSolutionFromTemplate(
@@ -1030,6 +1076,11 @@ module.exports = class ObservationsHelper {
                 endDate : endDate,
                 entities : requestedData.entities
               };
+
+              if( requestedData.project ) {
+                observationData["project"] = requestedData.project;
+                observationData["referenceFrom"] = messageConstants.common.PROJECT;
+              }
 
               let observation = 
               await this.createObservation(
@@ -1260,6 +1311,59 @@ module.exports = class ObservationsHelper {
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
                     result: result
+                });                  
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+     * List of Observation submissions
+     * @method
+     * @name submissionStatus
+     * @param {String} observationId - observation id.
+     * @param {String} entityId - entity id.
+     * @param {String} userId - logged in user id.
+     * @returns {Object} list of observation submissions.
+     */
+
+    static submissionStatus( observationId,entityId,userId ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observation = await this.observationDocuments({
+                    _id : observationId,
+                    createdBy : userId,
+                    entities : ObjectId(entityId)
+                },["_id"]);
+
+                if( !observation.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                let observationSubmissions = 
+                await observationSubmissionsHelper.observationSubmissionsDocument({
+                    observationId : observationId,
+                    entityId : entityId,
+                    isDeleted : false
+                },["status","submissionNumber"]);
+
+                if( !observationSubmissions.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                return resolve({
+                    message : messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
+                    data : observationSubmissions
                 });                  
 
             } catch (error) {

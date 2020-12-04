@@ -5,6 +5,7 @@
  * Description : Assessment related helper functionality.
  */
 
+
 // Dependencies. 
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
 const formsHelper = require(MODULES_BASE_PATH + "/forms/helper");
@@ -387,7 +388,9 @@ module.exports = class AssessmentsHelper {
                 enableQuestionReadOut : 1,
                 allowMultipleAssessemts : 1,
                 scoringSystem: 1,
-                isRubricDriven: 1
+                isRubricDriven: 1,
+                project : 1,
+                referenceFrom : 1
             });
         })
     }
@@ -575,6 +578,11 @@ module.exports = class AssessmentsHelper {
                 entities : requestedData.entities ? requestedData.entities: []
               };
 
+              if( requestedData.project ) {
+                  solutionInformation["project"] = requestedData.project;
+                  solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
+              }
+
               let organisationAndRootOrganisation = 
               await shikshalokamHelper.getOrganisationsAndRootOrganisations(
                 userDetails.userToken,
@@ -595,7 +603,7 @@ module.exports = class AssessmentsHelper {
                 rootOrganisations
               );
 
-              await entityAssessorsHelper.createOrUpdate(
+              await entityAssessorsHelper.update(
                   createdSolutionAndProgram.programId,
                   createdSolutionAndProgram._id,
                   userDetails.userId,
