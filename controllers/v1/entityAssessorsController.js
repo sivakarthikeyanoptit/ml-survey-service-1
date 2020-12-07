@@ -272,7 +272,7 @@ module.exports = class EntityAssessors extends Abstract {
           };
         }
 
-      let assessorData = await csv().fromString(files.assessors.data.toString());
+      let assessorData = await csv().fromString(req.files.assessors.data.toString());
 
       await entityAssessorsHelper.upload(assessorData, null, null, req.userDetails.userId, req.rspObj.userToken);
 
