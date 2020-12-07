@@ -117,7 +117,7 @@ module.exports = {
         telemetryEntities.push(telemetryObj);
 
         entityObj["telemetry_entities"] = telemetryEntities;
-
+        
         await es.update({
           id: entityObj._id,
           index: entitiesIndex,

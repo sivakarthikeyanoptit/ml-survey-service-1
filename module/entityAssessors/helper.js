@@ -6,12 +6,12 @@
  */
 
 //Dependencies
-const csv = require("csvtojson");
 const moment = require("moment");
 let shikshalokam = require(ROOT_PATH + "/generics/helpers/shikshalokam");
 const slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 const kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const chunkOfSubmissionsLength = 500;
+const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
@@ -224,24 +224,16 @@ module.exports = class EntityAssessorHelper {
      * Entity Assessors upload helper function.
      * @method
      * @name upload
-     * @param {Object} files -uploaded files.
+     * @param {Array} assessorData - assessor data array.
      * @param {String} programId - program id.
      * @param {String} solutionId - solution id. 
      * @param {String} userId - Logged in user id.
      * @param {String} token - Logged in user token.
      */
 
-    static upload(files, programId, solutionId, userId, token) {
+    static upload(assessorData, programId, solutionId, userId, token) {
         return new Promise(async (resolve, reject) => {
             try {
-                if (!files || !files.assessors) {
-                    throw { 
-                        status: httpStatusCode.bad_request.status, 
-                        message: httpStatusCode.bad_request.message
-                    };
-                }
-
-                let assessorData = await csv().fromString(files.assessors.data.toString());
 
                 let entityIds = [];
                 let programIds = [];
@@ -951,5 +943,62 @@ module.exports = class EntityAssessorHelper {
             }
         })
     }
+
+
+
+    /**
+      * Bulk create assessments By entityId and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity - Bulk create assessments by entity and role.
+      * @param {Object} userAssessmentData - user assessment data
+      * @param {String} userToken - logged in user token.
+      * @returns {Object}  Bulk create user assessments.
+     */
+
+    static bulkCreateByUserRoleAndEntity(userAssessmentData, userId,userToken) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let userAndEntityList = await kendraService.getUsersByEntityAndRole
+                (
+                    userAssessmentData.entityId,
+                    userAssessmentData.role,
+                    userToken
+                )
+                
+                if (!userAndEntityList.success || !userAndEntityList.data) {
+                    throw new Error(messageConstants.apiResponses.USERS_AND_ENTITIES_NOT_FOUND);
+                }
+
+                let assessorData = [];
+
+                await Promise.all(userAndEntityList.data.map( user => {
+                    assessorData.push({
+                        "entities": user.entityExternalId,
+                        "keycloak-userId": user.userId,
+                        "entityOperation": "APPEND",
+                        "programId" : userAssessmentData.programId,
+                        "solutionId": userAssessmentData.solutionId,
+                        "role": userAssessmentData.assessorRole
+                    })
+                })) 
+        
+                await this.upload
+                (
+                   assessorData,
+                   null,
+                   null,
+                   userId,
+                   userToken
+                )
+             
+                return resolve({ message : messageConstants.apiResponses.ASSESSOR_CREATED });
+            
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
 
 };

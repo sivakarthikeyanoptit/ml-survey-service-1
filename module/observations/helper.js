@@ -18,6 +18,8 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
 const { ObjectId } = require("mongodb");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 
 /**
@@ -1321,6 +1323,181 @@ module.exports = class ObservationsHelper {
 
 
     /**
+      * Bulk create observations By entityId and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity - Bulk create observations by entity and role.
+      * @param {Object} userObservationData - user observation data
+      * @param {String} userToken - logged in user token.
+      * @returns {Object}  Bulk create user observations.
+     */
+
+    static bulkCreateByUserRoleAndEntity(userObservationData, userToken) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let userAndEntityList = await kendraService.getUsersByEntityAndRole
+                (
+                    userObservationData.entityId,
+                    userObservationData.role,
+                    userToken
+                )
+              
+                if (!userAndEntityList.success) {
+                    throw new Error(messageConstants.apiResponses.USERS_AND_ENTITIES_NOT_FOUND);
+                }
+
+                let entityIds = [];
+                let usersKeycloakIdMap = {};
+
+                await Promise.all(userAndEntityList.data.map( user => {
+                    if (!entityIds.includes(user.entityId)) {
+                        entityIds.push(user.entityId);
+                    }
+                    usersKeycloakIdMap[user.userId] = true;
+                })) 
+
+                const fileName = `Observation-Upload-Result`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
+
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                        isResponseAStream: true,
+                        fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                })();
+                
+                if(Object.keys(usersKeycloakIdMap).length > 0) {
+                    
+                    let userOrganisationDetails = await this.getUserOrganisationDetails(
+                        Object.keys(usersKeycloakIdMap), 
+                        userToken
+                    );
+
+                    usersKeycloakIdMap = userOrganisationDetails.data;
+                }
+
+                let entityDocument;
+
+                if (entityIds.length > 0) {
+                    
+                    let entityQuery = {
+                        _id: {
+                            $in: entityIds
+                        }
+                    };
+
+                    let entityProjection = [
+                        "entityTypeId",
+                        "entityType"
+                    ];
+
+                    entityDocument = await entitiesHelper.entityDocuments(entityQuery, entityProjection);
+                }
+
+                let entityObject = {};
+
+                if (entityDocument && Array.isArray(entityDocument) && entityDocument.length > 0) {
+                    entityDocument.forEach(eachEntityDocument => {
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument;
+                    })
+                }
+
+                let solutionQuery = {
+                    externalId: userObservationData.solutionExternalId,
+                    status: "active",
+                    isDeleted: false,
+                    isReusable: false,
+                    type: "observation",
+                    programId : { $exists : true }
+                };
+
+                let solutionProjection = [
+                    "externalId",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "name",
+                    "description",
+                    "type",
+                    "subType",
+                    "entityTypeId",
+                    "entityType",
+                    "programId",
+                    "programExternalId"
+                ];
+
+                let solutionDocument = await solutionsHelper.solutionDocuments(solutionQuery, solutionProjection);
+                 
+                if (!solutionDocument.length) {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+                }
+               
+                let solution = solutionDocument[0];
+                
+                for (let pointerToObservation = 0; pointerToObservation < userAndEntityList.data.length; pointerToObservation++) {
+
+                    let entityDocument = {};
+                    let observationHelperData;
+                    let currentData = userAndEntityList.data[pointerToObservation];
+                    let csvResult = {};
+                    let status;
+                    let userId;
+                    let userOrganisations;
+
+                    Object.keys(currentData).forEach(eachObservationData => {
+                        csvResult[eachObservationData] = currentData[eachObservationData];
+                    })
+
+                    try {
+
+                        if (currentData["userId"] && currentData["userId"] !== "") {
+                            userId = currentData["userId"];
+                        } 
+
+                        if(userId == "") {
+                            throw new Error(messageConstants.apiResponses.USER_NOT_FOUND);
+                        }
+
+                        if(!usersKeycloakIdMap[userId]  || !Array.isArray(usersKeycloakIdMap[userId].rootOrganisations) || usersKeycloakIdMap[userId].rootOrganisations.length < 1) {
+                            throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
+                        } else {
+                            userOrganisations = usersKeycloakIdMap[userId];
+                        }
+
+                        if (currentData.entityId && currentData.entityId != "") {
+                            if(entityObject[currentData.entityId.toString()] !== undefined) {
+                                entityDocument = entityObject[currentData.entityId.toString()];
+                            } else {
+                                throw new Error(messageConstants.apiResponses.ENTITY_NOT_FOUND);
+                            }
+                        }
+                       
+                        observationHelperData = await this.bulkCreate(
+                            userId, 
+                            solution, 
+                            entityDocument, 
+                            userOrganisations
+                        );
+                        status = observationHelperData.status;
+
+                    } catch (error) {
+                        status = error.message;
+                    }
+                    
+                    csvResult["status"] = status;
+                    input.push(csvResult);
+                }
+
+                input.push(null);
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+      /**
      * List of Observation submissions
      * @method
      * @name submissionStatus

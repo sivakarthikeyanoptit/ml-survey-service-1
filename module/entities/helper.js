@@ -1338,6 +1338,117 @@ module.exports = class EntitiesHelper {
             }
         })
     }
+
+
+    /**
+ * Update user roles in entities elastic search 
+ * @method
+ * @name updateUserRolesInEntitiesElasticSearch
+ * @name userRoles - array of userRoles.
+ * @name userId - user id
+ * @returns {Object} 
+ */
+    static updateUserRolesInEntitiesElasticSearch(userRoles = [], userId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+            
+            await Promise.all(userRoles.map( async role => {
+                await Promise.all(role.entities.map(async entity => {
+
+                    let entityDocument = await elasticSearch.get
+                    (
+                        entity,
+                        process.env.ELASTICSEARCH_ENTITIES_INDEX
+                    )
+                   
+                    if (entityDocument.statusCode == httpStatusCode.ok.status) {
+
+                        entityDocument = entityDocument.body["_source"].data;
+
+                        if (entityDocument.roles[role.code]) {
+                            if (!entityDocument.roles[role.code].includes(userId)) {
+                                entityDocument.roles[role.code].push(userId);
+                            }
+                        }
+                        else {
+                            entityDocument.roles[role.code] = [userId];
+                        }
+                       
+                        await elasticSearch.createOrUpdate
+                        (
+                            entity,
+                            process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                            {
+                                data: entityDocument
+                            }
+                        )
+                    }
+                }))
+            }))
+
+            return resolve({
+                success: true
+            });
+
+        }
+        catch (error) {
+            return reject(error);
+        }
+    })
+}
+
+
+ /**
+ * Delete user role from entities elastic search 
+ * @method
+ * @name deleteUserRoleFromEntitiesElasticSearch
+ * @name entityId - entity id
+ * @name role - role of user
+ * @returns {Object} 
+ */
+static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+       
+        let entityDocument = await elasticSearch.get
+        (
+            entityId,
+            process.env.ELASTICSEARCH_ENTITIES_INDEX
+        )
+
+        if (entityDocument.statusCode == httpStatusCode.ok.status) {
+
+            entityDocument = entityDocument.body["_source"].data;
+
+            if (entityDocument.roles[role]) {
+
+                let index = entityDocument.roles[role].indexOf(userId);
+                if (index > -1) {
+                    entityDocument.roles[role].splice(index, 1);
+                }
+               
+                await elasticSearch.createOrUpdate
+                (
+                    entityId,
+                    process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                    {
+                        data: entityDocument
+                    }
+                )
+            }
+        }
+        
+        return resolve({
+            success: true
+        });
+
+    }
+    catch (error) {
+        return reject(error);
+    }
+  })
+}
+
 };
 
 

@@ -118,7 +118,14 @@ module.exports = async function (req, res, next) {
   var rspObj = req.rspObj;
 
   
-  let internalAccessApiPaths = ["createGesture", "createEmoji", "solutionDetails","/solutions/updateSolutions", "solutions/addEntities"];
+  let internalAccessApiPaths = [
+    "createGesture", 
+    "createEmoji", 
+    "solutionDetails",
+    "solutions/updateSolutions", 
+    "solutions/addEntities"
+  ];
+  
   let performInternalAccessTokenCheck = false;
   await Promise.all(internalAccessApiPaths.map(async function (path) {
     if (req.path.includes(path)) {

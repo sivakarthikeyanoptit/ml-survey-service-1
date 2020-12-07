@@ -123,7 +123,9 @@ module.exports = class ObservationSubmissionsHelper {
                 if( observationSubmissionsDocument.referenceFrom === messageConstants.common.PROJECT ) {
                     
                     await this.pushSubmissionToImprovementService(
-                        _.pick(observationSubmissionsDocument,["project","status","_id"])
+                        _.pick(
+                            observationSubmissionsDocument,["project","status","_id","completedDate"]
+                        )
                     );
                 }
 
@@ -642,7 +644,8 @@ module.exports = class ObservationSubmissionsHelper {
                 taskId : observationSubmissionDocument.project.taskId,
                 projectId : observationSubmissionDocument.project._id,
                 _id : observationSubmissionDocument._id,
-                status : observationSubmissionDocument.status
+                status : observationSubmissionDocument.status,
+                submissionDate : observationSubmissionDocument.completedDate
             });
 
             if(kafkaMessage.status != "success") {
@@ -661,7 +664,7 @@ module.exports = class ObservationSubmissionsHelper {
             return reject(error);
         }
     })
-  }
+  } 
 
 };
 
