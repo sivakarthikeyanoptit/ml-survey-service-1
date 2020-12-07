@@ -277,7 +277,15 @@ module.exports = class ProgramsHelper {
               programsData = 
               await this.list({
                 _id : { $in : programIds }
-              },"all",["components"]);
+              },"all",[
+                "components",
+                "imageCompression",
+                "updatedAt",
+                "createdAt",
+                "startDate",
+                "endDate",
+                "updatedBy"
+              ]);
 
               if( !programsData.length > 0 ) {
                 throw {

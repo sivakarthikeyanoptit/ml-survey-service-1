@@ -652,10 +652,10 @@ module.exports = class Observations extends v1Observation {
                     status: "started"
                 };
 
-                if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
-                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
-                    submissionDocument["project"] = solutionDocument.project;
-                  }
+                 if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+        submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+        submissionDocument["project"] = solutionDocument.project;
+      }
                 
                 let assessment = {};
 
