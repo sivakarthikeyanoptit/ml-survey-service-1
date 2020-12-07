@@ -27,6 +27,9 @@ module.exports = {
         default: false
       },
       removedFromHomeScreen: Array,
-
+      improvementProjects : {
+        type : Array,
+        default : []
+      }
     }
   }

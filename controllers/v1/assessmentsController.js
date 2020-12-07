@@ -133,7 +133,6 @@ module.exports = class Assessments {
                     result: {}
                 };
 
-
                 let programQueryObject = {
                     _id: req.params._id,
                     status: "active",
@@ -288,6 +287,12 @@ module.exports = class Assessments {
                     entityProfile: {},
                     status: "started"
                 };
+
+                if( solutionDocument.referenceFrom === messageConstants.common.PROJECT) {
+                    
+                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+                    submissionDocument["project"] = solutionDocument.project;
+                }
 
                 let assessment = {};
 

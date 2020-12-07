@@ -21,6 +21,10 @@ module.exports = (req) => {
             req.checkBody('entityId').exists().withMessage("required entityId")
             .isMongoId().withMessage("Invalid entity id");
             req.checkBody('role').exists().withMessage("required role");
+        },
+        create : function () {
+            req.checkParams("_id").exists().withMessage("Required program id");
+            req.checkQuery("solutionId").exists().withMessage("Required solution id");
         }
     }
 

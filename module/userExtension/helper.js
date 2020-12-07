@@ -76,7 +76,8 @@ module.exports = class UserExtensionHelper {
                             "entityDocuments.metaInformation.name": 1,
                             "entityDocuments.groups": 1,
                             "entityDocuments.entityType": 1,
-                            "entityDocuments.entityTypeId": 1
+                            "entityDocuments.entityTypeId": 1,
+                            "improvementProjects" : 1
                         }
                     }
                 ];

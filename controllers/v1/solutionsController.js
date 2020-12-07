@@ -323,26 +323,16 @@ module.exports = class Solutions extends Abstract {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let responseMessage = messageConstants.apiResponses.ENTITIES_UPDATED;
-
         let entityIdsFromCSV = await csv().fromString(req.files.entities.data.toString());
 
         entityIdsFromCSV = entityIdsFromCSV.map(entity => ObjectId(entity.entityIds));
 
-        let solutionDocument = await database.models.solutions.findOne({ externalId: req.params._id }, { entityType: 1 }).lean();
+        let entityData = await solutionsHelper.addEntityToSolution(
+          req.params._id,
+          entityIdsFromCSV
+        );
 
-        let entitiesDocument = await database.models.entities.find({ _id: { $in: entityIdsFromCSV }, entityType: solutionDocument.entityType }, { _id: 1 }).lean();
-
-        let entityIds = entitiesDocument.map(entity => entity._id);
-
-        if (entityIdsFromCSV.length != entityIds.length) responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
-
-        await database.models.solutions.updateOne(
-          { externalId: req.params._id },
-          { $addToSet: { entities: entityIds } }
-        )
-
-        return resolve({ message: responseMessage });
+        return resolve(entityData);
 
       } catch (error) {
         return reject({
@@ -545,7 +535,7 @@ module.exports = class Solutions extends Abstract {
 
         Object.keys(solutionUpdateData).forEach(solutionData=>{
           updateObject["$set"][solutionData] = solutionUpdateData[solutionData];
-        })
+        });
 
         updateObject["$set"]["updatedBy"] = req.userDetails.id;
 
@@ -1558,5 +1548,209 @@ module.exports = class Solutions extends Abstract {
 
         })
     }
+
+    /**
+    * @api {post} /assessment/api/v1/solutions/addEntities/:solutionId Add entity to solution
+    * @apiVersion 1.0.0
+    * @apiName Add entity to solution
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+    *	    "entities": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+    * }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/addEntities/5f64601df5f6e432fe0f0575
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    *   "message" : "Entities updated successfully."
+    * }
+    */
+
+     /**
+   * Add entity to solution.
+   * @method
+   * @name addEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON} consists message of successfully mapped entities
+   */
+
+  async addEntities(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionData = await solutionsHelper.addEntityToSolution(
+          req.params._id,
+          req.body.entities
+        );
+
+        return resolve(solutionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+    /**
+    * @api {post} /assessment/api/v1/solutions/list list of solutions
+    * @apiVersion 1.0.0
+    * @apiName List solutions
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+    *	    "solutionIds": ["EF-DCPCR-2018-001"]
+    * }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/list
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    "message": "Solutions fetched successfully",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5b98fa069f664f7e1ae7498c",
+            "externalId": "EF-DCPCR-2018-001",
+            "name": "DCPCR Assessment Framework 2018",
+            "description": "DCPCR Assessment Framework 2018",
+            "author": "a082787f-8f8f-42f2-a706-35457ca6f1fd",
+            "resourceType": [
+                "Assessment Framework"
+            ],
+            "language": [
+                "English"
+            ],
+            "keywords": [
+                "Framework",
+                "Assessment"
+            ],
+            "concepts": [],
+            "createdFor": [
+                "0125747659358699520",
+                "0125748495625912324"
+            ],
+            "isReusable": false,
+            "isRubricDriven": true,
+            "entityTypeId": "5d15a959e9185967a6d5e8a6",
+            "entityType": "school",
+            "type": "assessment",
+            "subType": "institutional",
+            "programId": "5b98d7b6d4f87f317ff615ee",
+            "programExternalId": "PROGID01",
+            "programName": "DCPCR School Development Index 2018-19",
+            "programDescription": "DCPCR School Development Index 2018-19",
+            "startDate": "2018-06-28T06:03:48.590Z",
+            "endDate": "2020-06-28T06:03:48.591Z",
+            "status": "active",
+            "isDeleted": false,
+            "updatedBy": "01c04166-a65e-4e92-a87b-a9e4194e771d",
+            "createdBy": "INITIALIZE",
+            "createdAt": "2019-06-28T06:03:48.616Z",
+            "updatedAt": "2020-11-25T16:33:38.777Z",
+            "registry": [
+                "parent"
+            ],
+            "frameworkExternalId": "EF-DCPCR-2018-001",
+            "frameworkId": "5d15adc5fad01368a494cbd6",
+            "parentSolutionId": "5d15b0d7463d3a6961f91742",
+            "isAPrivateProgram": false,
+            "projectId": "5fba54dc5bf46b25a926bee5",
+            "taskId": "ce75a3aa-57e5-4377-b582-5c575f73ecec",
+            "project": {
+                "_id": "5fbe2b964006cc174d10960c",
+                "taskId": "4c012b20-1b18-42b7-9cca-8f6ccb255e04"
+            }
+        }
+    ]
+  }
+    */
+
+    
+    /**
+   * List of solutions.
+   * @method
+   * @name list
+   * @param {Object} req - requested data.
+   * @returns {Array} List of solutions.
+   */
+
+  async list(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionData = await solutionsHelper.list(
+          req.body.solutionIds
+        );
+
+        solutionData.result = solutionData.data;
+
+        return resolve(solutionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+    /**
+    * @api {post} /assessment/api/v1/solutions/removeEntities/:solutionId Add entity to solution
+    * @apiVersion 1.0.0
+    * @apiName Add entity to solution
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+    *	    "entities": ["5beaa888af0065f0e0a10515"]
+    * }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/removeEntities/5f64601df5f6e432fe0f0575
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    *   "message" : "Entities updated successfully."
+    * }
+    */
+
+     /**
+   * Add entity to solution.
+   * @method
+   * @name removeEntities
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON} consists message of successfully mapped entities
+   */
+
+  async removeEntities(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionData = await solutionsHelper.removeEntities(
+          req.params._id,
+          req.body.entities
+        );
+
+        return resolve(solutionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
   
 };
