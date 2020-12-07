@@ -1856,14 +1856,18 @@ module.exports = class SubmissionsHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-            const kafkaMessage = 
-            await kafkaClient.pushSubmissionToImprovementService({
+            let submissionData = {
                 taskId : submissionDocument.project.taskId,
                 projectId : submissionDocument.project._id,
                 _id : submissionDocument._id,
-                status : submissionDocument.status,
-                submissionDate : observationSubmissionDocument.completedDate
-            });
+                status : submissionDocument.status
+            };
+
+            if( submissionDocument.completedDate ) {
+                submissionData["submissionDate"] = submissionDocument.completedDate;
+            }
+            const kafkaMessage = 
+            await kafkaClient.pushSubmissionToImprovementService(submissionData);
 
             if(kafkaMessage.status != "success") {
                 let errorObject = {

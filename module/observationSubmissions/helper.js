@@ -639,14 +639,20 @@ module.exports = class ObservationSubmissionsHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-            const kafkaMessage = 
-            await kafkaClient.pushSubmissionToImprovementService({
+            let observationSubmissionData = {
                 taskId : observationSubmissionDocument.project.taskId,
                 projectId : observationSubmissionDocument.project._id,
                 _id : observationSubmissionDocument._id,
-                status : observationSubmissionDocument.status,
-                submissionDate : observationSubmissionDocument.completedDate
-            });
+                status : observationSubmissionDocument.status
+            }
+
+            if( observationSubmissionDocument.completedDate ) {
+                observationSubmissionData["submissionDate"] = 
+                observationSubmissionDocument.completedDate;
+            }
+
+            const kafkaMessage = 
+            await kafkaClient.pushSubmissionToImprovementService(observationSubmissionData);
 
             if(kafkaMessage.status != "success") {
                 let errorObject = {
