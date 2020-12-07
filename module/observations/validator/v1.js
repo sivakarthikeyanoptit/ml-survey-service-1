@@ -42,7 +42,8 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required link")
         },
         bulkCreateByUserRoleAndEntity :  function () {
-            req.checkBody('entityId').exists().withMessage("required entity id");
+            req.checkBody('entityId').exists().withMessage("required entityId")
+            .isMongoId().withMessage("Invalid entity id");
             req.checkBody('role').exists().withMessage("required role");
             req.checkBody('solutionExternalId').exists().withMessage("required solutionExternalId");
         },

@@ -22,15 +22,28 @@ module.exports = {
       }
     }
 
-    let users = await db.collection('userExtension').find({}).project({ _id: 1, roles: 1, userId: 1 }).toArray();
+    let users = await db.collection('userExtension').find({}).project({ _id: 1 }).toArray();
 
     let chunkOfUsers = _.chunk(users, 100);
 
     for (let users = 0; users < chunkOfUsers.length; users++) {
 
-      for (let user = 0; user < chunkOfUsers[users].length; user++) {
+      let userId = chunkOfUsers[users].map(user => {
+        return user._id;
+      });
 
-        let userData = chunkOfUsers[users][user];
+      let userDocuments =
+        await db.collection('userExtension').find({
+          _id: { $in: userId }
+        }).project({
+          "_id": 1,
+          "roles": 1,
+          "userId": 1
+        }).toArray();
+
+      for (let user = 0; user < userDocuments.length; user++) {
+
+        let userData = userDocuments[user];
 
         if (userData.roles.length > 0) {
 

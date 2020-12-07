@@ -955,15 +955,14 @@ module.exports = class EntityAssessorHelper {
       * @returns {Object}  Bulk create user assessments.
      */
 
-    static bulkCreateByUserRoleAndEntity(userAssessmentData, userId,userToken) {
+    static bulkCreateByUserRoleAndEntity(userAssessmentData, userId) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let userAndEntityList = await kendraService.getUsersByEntityAndRole
                 (
                     userAssessmentData.entityId,
-                    userAssessmentData.role,
-                    userToken
+                    userAssessmentData.role
                 )
                 
                 if (!userAndEntityList.success || !userAndEntityList.data) {
@@ -989,7 +988,7 @@ module.exports = class EntityAssessorHelper {
                    null,
                    null,
                    userId,
-                   userToken
+                   null
                 )
              
                 return resolve({ message : messageConstants.apiResponses.ASSESSOR_CREATED });

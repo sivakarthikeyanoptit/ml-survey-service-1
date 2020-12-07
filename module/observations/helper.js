@@ -1338,8 +1338,7 @@ module.exports = class ObservationsHelper {
                 let userAndEntityList = await kendraService.getUsersByEntityAndRole
                 (
                     userObservationData.entityId,
-                    userObservationData.role,
-                    userToken
+                    userObservationData.role
                 )
               
                 if (!userAndEntityList.success) {
