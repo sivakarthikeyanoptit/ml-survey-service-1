@@ -7,6 +7,7 @@
 
 // Dependencies
 const entityAssessorsHelper = require(MODULES_BASE_PATH + "/entityAssessors/helper");
+const csv = require("csvtojson");
 
 /**
     * EntityAssessors
@@ -264,11 +265,20 @@ module.exports = class EntityAssessors extends Abstract {
 
       try {
 
-        await entityAssessorsHelper.upload(req.files, null, null, req.userDetails.userId, req.rspObj.userToken);
+        if (!req.files || !req.files.assessors) {
+          throw { 
+              status: httpStatusCode.bad_request.status, 
+              message: httpStatusCode.bad_request.message
+          };
+        }
 
-        let response = { message : messageConstants.apiResponses.ASSESSOR_CREATED };
+      let assessorData = await csv().fromString(files.assessors.data.toString());
 
-        return resolve(response);
+      await entityAssessorsHelper.upload(assessorData, null, null, req.userDetails.userId, req.rspObj.userToken);
+
+      let response = { message : messageConstants.apiResponses.ASSESSOR_CREATED };
+
+      return resolve(response);
 
       } catch (error) {
 
@@ -458,10 +468,12 @@ module.exports = class EntityAssessors extends Abstract {
     * @apiSampleRequest /assessment/api/v1/entityAssessors/bulkCreateByUserRoleAndEntity
     * @apiParamExample {json} Request:
     * {
-    *  "entityId": "5f2449eb626a540f40817ef5",
-    *  "role": "CRP",
-    *  "solutionExternalId": "TAF-solution"
-     }
+       "programId" : "PGM-SL-UNNATI-02",
+       "solutionId": "SUPPORT-PGM-LOOP-STL-2019-001-Mantra-STL-2019-002",
+       "entityId" : "5fbe91f9b8609c24539b04bf",
+       "assessorRole" : "LEAD_ASSESSOR",
+       "role" : "HM"
+    * }
     * @apiUse successBody
     * @apiUse errorBody
     */
@@ -471,10 +483,13 @@ module.exports = class EntityAssessors extends Abstract {
       * @method
       * @name bulkCreateByUserRoleAndEntity
       * @param {Object} req - request data.
-      * @param {String} req.body.entityId - entityId 
-      * @param {String} req.body.role - role 
-      * @param {String} req.body.solutionExternalId - solution external id
-      * @returns {CSV} Assigned assessments to user.
+      * @param {String} req.userDetails.userId - Logged in user id.
+      * @param {String} req.body.solutionId - solution external id.
+      * @param {String} req.body.programId - program externalid.
+      * @param {String} req.body.assessorRole - assessor role.
+      * @param {String} req.body.entityId - entity id.
+      * @param {String} req.body.role - role code.
+      * @returns {JSON} - message indicating entity assessors created.
      */
 
     async bulkCreateByUserRoleAndEntity(req) {
@@ -491,8 +506,8 @@ module.exports = class EntityAssessors extends Abstract {
 
           } catch (error) {
               return reject({
-                  status: error.status || HTTP_STATUS_CODE.internal_server_error.status,
-                  message: error.message || HTTP_STATUS_CODE.internal_server_error.message,
+                  status: error.status || httpStatusCode.internal_server_error.status,
+                  message: error.message || httpStatusCode.internal_server_error.message,
                   errorObject: error
               });
           }
