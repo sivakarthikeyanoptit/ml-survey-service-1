@@ -1364,24 +1364,37 @@ module.exports = class EntitiesHelper {
                     if (entityDocument.statusCode == httpStatusCode.ok.status) {
 
                         entityDocument = entityDocument.body["_source"].data;
-
+                        
+                        if (!entityDocument.roles) {
+                            entityDocument.roles = {};
+                        }
+                        
                         if (entityDocument.roles[role.code]) {
                             if (!entityDocument.roles[role.code].includes(userId)) {
                                 entityDocument.roles[role.code].push(userId);
+
+                                await elasticSearch.createOrUpdate
+                                (
+                                    entity,
+                                    process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                                    {
+                                        data: entityDocument
+                                    }
+                                )
                             }
                         }
                         else {
                             entityDocument.roles[role.code] = [userId];
+
+                            await elasticSearch.createOrUpdate
+                            (
+                                entity,
+                                process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                                {
+                                    data: entityDocument
+                                }
+                            )
                         }
-                       
-                        await elasticSearch.createOrUpdate
-                        (
-                            entity,
-                            process.env.ELASTICSEARCH_ENTITIES_INDEX,
-                            {
-                                data: entityDocument
-                            }
-                        )
                     }
                 }))
             }))
@@ -1420,21 +1433,22 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
             entityDocument = entityDocument.body["_source"].data;
 
-            if (entityDocument.roles[role]) {
+            if (entityDocument.roles && entityDocument.roles[role]) {
 
                 let index = entityDocument.roles[role].indexOf(userId);
                 if (index > -1) {
                     entityDocument.roles[role].splice(index, 1);
+
+                    await elasticSearch.createOrUpdate
+                    (
+                        entityId,
+                        process.env.ELASTICSEARCH_ENTITIES_INDEX,
+                        {
+                            data: entityDocument
+                        }
+                    )
                 }
                
-                await elasticSearch.createOrUpdate
-                (
-                    entityId,
-                    process.env.ELASTICSEARCH_ENTITIES_INDEX,
-                    {
-                        data: entityDocument
-                    }
-                )
             }
         }
         

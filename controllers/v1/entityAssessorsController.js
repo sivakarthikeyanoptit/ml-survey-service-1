@@ -498,8 +498,7 @@ module.exports = class EntityAssessors extends Abstract {
 
               let assessments = await entityAssessorsHelper.bulkCreateByUserRoleAndEntity(
                   req.body,
-                  req.userDetails.userId,
-                  req.rspObj.userToken
+                  req.userDetails.userId
               );
 
               return resolve(assessments);
