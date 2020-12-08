@@ -120,6 +120,15 @@ module.exports = class ObservationSubmissionsHelper {
                     throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND+"or"+messageConstants.apiResponses.SUBMISSION_STATUS_NOT_COMPLETE;
                 }
 
+                if( observationSubmissionsDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                    
+                    await this.pushSubmissionToImprovementService(
+                        _.pick(
+                            observationSubmissionsDocument,["project","status","_id","completedDate"]
+                        )
+                    );
+                }
+
                 const kafkaMessage = await kafkaClient.pushCompletedObservationSubmissionToKafka(observationSubmissionsDocument);
 
                 if(kafkaMessage.status != "success") {
@@ -404,7 +413,7 @@ module.exports = class ObservationSubmissionsHelper {
                     throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND);
                 }
 
-                await database.models.observationSubmissions.updateOne(
+                let observationSubmissionUpdated = await database.models.observationSubmissions.updateOne(
                     {
                         _id: ObjectId(submissionId)
                     },
@@ -616,7 +625,52 @@ module.exports = class ObservationSubmissionsHelper {
             })
         }
     })
-}
+}   
+       /**
+   * Push observation submission to improvement service.
+   * @method
+   * @name pushSubmissionToImprovementService
+   * @param {String} observationSubmissionDocument - observation submission document.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+  static pushSubmissionToImprovementService(observationSubmissionDocument) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let observationSubmissionData = {
+                taskId : observationSubmissionDocument.project.taskId,
+                projectId : observationSubmissionDocument.project._id,
+                _id : observationSubmissionDocument._id,
+                status : observationSubmissionDocument.status
+            }
+
+            if( observationSubmissionDocument.completedDate ) {
+                observationSubmissionData["submissionDate"] = 
+                observationSubmissionDocument.completedDate;
+            }
+
+            const kafkaMessage = 
+            await kafkaClient.pushSubmissionToImprovementService(observationSubmissionData);
+
+            if(kafkaMessage.status != "success") {
+                let errorObject = {
+                    formData: {
+                        submissionId:observationSubmissionDocument._id.toString(),
+                        message:kafkaMessage.message
+                    }
+                };
+                slackClient.kafkaErrorAlert(errorObject);
+            }
+
+            return resolve(kafkaMessage);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  } 
 
 };
 

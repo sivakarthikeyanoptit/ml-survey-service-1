@@ -7,6 +7,7 @@ const submissionRatingQueueKafkaTopic = (process.env.SUBMISSION_RATING_QUEUE_TOP
 const notificationsKafkaTopic = (process.env.NOTIFICATIONS_TOPIC && process.env.NOTIFICATIONS_TOPIC != "OFF") ? process.env.NOTIFICATIONS_TOPIC : "sl-notifications-dev"
 const completedSurveySubmissionKafkaTopic = (process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC && process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC != "OFF") ? process.env.COMPLETED_SURVEY_SUBMISSION_TOPIC : "sl_surveys_raw"
 const inCompleteSurveySubmissionKafkaTopic = (process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC && process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC != "OFF") ? process.env.INCOMPLETE_SURVEY_SUBMISSION_TOPIC : "sl_incomplete_surveys_raw"
+const improvementProjectSubmissionTopic = (process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC && process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC != "OFF") ? process.env.IMPROVEMENT_PROJECT_SUBMISSION_TOPIC : "sl-improvement-project-submission-dev";
 
 const pushCompletedObservationSubmissionToKafka = function (message) {
   return new Promise(async (resolve, reject) => {
@@ -24,7 +25,6 @@ const pushCompletedObservationSubmissionToKafka = function (message) {
       }
   })
 }
-
 
 const pushCompletedSubmissionToKafka = function (message) {
   return new Promise(async (resolve, reject) => {
@@ -60,7 +60,6 @@ const pushInCompleteObservationSubmissionToKafka = function (message) {
   })
 }
 
-
 const pushInCompleteSubmissionToKafka = function (message) {
   return new Promise(async (resolve, reject) => {
       try {
@@ -94,7 +93,6 @@ const pushSubmissionToKafkaQueueForRating = function (message) {
       }
   })
 }
-
 
 const pushObservationSubmissionToKafkaQueueForRating = function (message) {
   return new Promise(async (resolve, reject) => {
@@ -130,7 +128,6 @@ const pushUserMappingNotificationToKafka = function (message) {
   })
 }
 
-
 const pushCompletedSurveySubmissionToKafka = function (message) {
   return new Promise(async (resolve, reject) => {
       try {
@@ -154,6 +151,23 @@ const pushInCompleteSurveySubmissionToKafka = function (message) {
 
           let kafkaPushStatus = await pushMessageToKafka([{
             topic: inCompleteSurveySubmissionKafkaTopic,
+            messages: JSON.stringify(message)
+          }])
+
+          return resolve(kafkaPushStatus)
+
+      } catch (error) {
+          return reject(error);
+      }
+  })
+}
+
+const pushSubmissionToImprovementService = function (message) {
+  return new Promise(async (resolve, reject) => {
+      try {
+
+          let kafkaPushStatus = await pushMessageToKafka([{
+            topic: improvementProjectSubmissionTopic,
             messages: JSON.stringify(message)
           }])
 
@@ -206,6 +220,7 @@ module.exports = {
   pushInCompleteSubmissionToKafka : pushInCompleteSubmissionToKafka,
   pushInCompleteObservationSubmissionToKafka : pushInCompleteObservationSubmissionToKafka,
   pushCompletedSurveySubmissionToKafka : pushCompletedSurveySubmissionToKafka,
-  pushInCompleteSurveySubmissionToKafka : pushInCompleteSurveySubmissionToKafka
+  pushInCompleteSurveySubmissionToKafka : pushInCompleteSurveySubmissionToKafka,
+  pushSubmissionToImprovementService : pushSubmissionToImprovementService
 };
 

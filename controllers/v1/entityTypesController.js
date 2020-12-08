@@ -200,4 +200,77 @@ module.exports = class EntityTypes extends Abstract {
     })
   }
 
+     /**
+  * @api {post} /assessment/api/v1/entityTypes/find find entity type based on query.
+  * @apiVersion 1.0.0
+  * @apiName find entity type based on query
+  * @apiGroup Entity Types
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/entityTypes/find
+  * @apiParamExample {json} Request-Body:
+  * {
+    "query" : {
+        "name" : "school"
+    },
+    "projection" : {
+      "_id" : 1,
+      "name" : 1
+    }
+  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entity types fetched successfully.",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d15a959e9185967a6d5e8a6",
+            "name": "school"
+        }
+    ]
+}
+  */
+
+  /**
+   * find entity types.
+   * @method
+   * @name find 
+   * @param {Object} req - requested data.
+   * @param {Object} req.body.query - filtered data.
+   * @param {Array} req.body.projection - Projected field.
+   * @param {Array} req.body.skipFields - Field to skip.
+   * @returns {JSON} - find entity types.
+   */
+
+  find(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = await entitiyTypesHelper.list(
+          req.body.query, 
+          req.body.projection,
+          req.body.skipFields
+        );
+
+        return resolve({
+          message: messageConstants.apiResponses.ENTITY_TYPES_FETCHED,
+          result: result
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+
+      }
+
+
+    })
+  }
+
 };

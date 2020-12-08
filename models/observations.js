@@ -31,6 +31,8 @@ module.exports = {
     link: {
       type: String,
       index: true
-    }
+    },
+    project : Object,
+    referenceFrom : String
   }
 };

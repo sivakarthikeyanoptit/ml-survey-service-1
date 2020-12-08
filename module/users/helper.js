@@ -17,6 +17,8 @@
  const surveysHelper = require(MODULES_BASE_PATH + "/surveys/helper");
  const userExtensionsHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
  const surveySubmissionsHelper = require(MODULES_BASE_PATH + "/surveySubmissions/helper");
+ const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
+
 
 /**
     * UserHelper
@@ -630,6 +632,122 @@ module.exports = class UserHelper {
                 messageConstants.apiResponses.PRIVATE_PROGRAMS_LIST,
 
                 result : userPrivatePrograms
+            })
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
+   /**
+   * Create user program and solution
+   * @method
+   * @name createProgramAndSolution
+   * @param {string} userId - logged in user Id.
+   * @param {object} programData - data needed for creation of program.
+   * @param {object} solutionData - data needed for creation of solution.
+   * @returns {Array} - Created user program and solution.
+   */
+
+  static createProgramAndSolution( userId,data,userToken ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            console.log(userId)
+
+            let userPrivateProgram = "";
+            let dateFormat = gen.utils.epochTime();
+
+            const organisationAndRootOrganisation = 
+            await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                userToken,
+                userId
+            );
+
+            if( data.programId && data.programId !== "" ) {
+
+                userPrivateProgram =  await programsHelper.list(
+                    {
+                        _id : data.programId
+                    },
+                    ["externalId","name","description"]
+                );
+
+                if( !userPrivateProgram.length > 0 ) {
+                    return resolve({
+                        message : messageConstants.apiResponses.PROGRAM_NOT_FOUND,
+                        result : {}
+                    })
+                }
+
+                userPrivateProgram = userPrivateProgram[0];
+
+            } else {
+
+                let programData = {
+                    name : data.programName,
+                    isAPrivateProgram : true,
+                    status : messageConstants.common.ACTIVE_STATUS,
+                    externalId : 
+                    data.programExternalId ? 
+                    data.programExternalId : 
+                    data.programName + "-" + dateFormat,
+                    description : 
+                    data.programDescription ? 
+                    data.programDescription : 
+                    data.programName,
+                    userId : userId
+                }
+
+                programData.createdFor =  organisationAndRootOrganisation.createdFor;
+                programData.rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
+
+                userPrivateProgram = 
+                await programsHelper.create(
+                    programData
+                );
+            }
+
+            let solutionData = {
+                name : data.solutionName,
+                externalId : 
+                data.solutionExternalId ? 
+                data.solutionExternalId : 
+                data.solutionName+ "-" + dateFormat,
+                description : 
+                data.solutionDescription ? 
+                data.solutionDescription : data.solutionName,
+                programId : userPrivateProgram._id,
+                programExternalId : userPrivateProgram.externalId,
+                programName : userPrivateProgram.name,
+                programDescription : userPrivateProgram.description
+            }
+
+            solutionData.entities = 
+            solutionData.entities && solutionData.entities.length > 0 ? 
+            solutionData.entities : [];
+            
+            solutionData.createdFor =  organisationAndRootOrganisation.createdFor;
+            solutionData.rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
+
+            const solution = await solutionsHelper.create(solutionData);
+
+            if( solution._id ) {
+                await database.models.programs.updateOne({ 
+                    _id : userPrivateProgram._id 
+                }, { 
+                    $addToSet: { components : ObjectId(solution._id) } 
+                });
+            }
+
+            return resolve({
+                message : 
+                messageConstants.apiResponses.USER_PROGRAM_AND_SOLUTION_CREATED,
+                result : {
+                    program : userPrivateProgram,
+                    solution : solution
+                }
             })
 
         } catch (error) {
