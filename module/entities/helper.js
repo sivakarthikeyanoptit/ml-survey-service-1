@@ -1364,7 +1364,11 @@ module.exports = class EntitiesHelper {
                     if (entityDocument.statusCode == httpStatusCode.ok.status) {
 
                         entityDocument = entityDocument.body["_source"].data;
-
+                        
+                        if (!entityDocument.roles) {
+                            entityDocument.roles = {};
+                        }
+                        
                         if (entityDocument.roles[role.code]) {
                             if (!entityDocument.roles[role.code].includes(userId)) {
                                 entityDocument.roles[role.code].push(userId);
@@ -1429,7 +1433,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
             entityDocument = entityDocument.body["_source"].data;
 
-            if (entityDocument.roles[role]) {
+            if (entityDocument.roles && entityDocument.roles[role]) {
 
                 let index = entityDocument.roles[role].indexOf(userId);
                 if (index > -1) {
