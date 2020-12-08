@@ -148,6 +148,11 @@ module.exports = class SubmissionsHelper {
 
                     // Push new submission to kafka for reporting/tracking.
                     this.pushInCompleteSubmissionForReporting(submissionDocument._id);
+
+                    if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                        this.pushSubmissionToImprovementService(_.pick(submissionDocument,["project","status","_id"]));
+                    }
+                    
                 } else {
 
                     let assessorElement = submissionDocument[0].assessors.find(assessor => assessor.userId === userId)
@@ -657,6 +662,13 @@ module.exports = class SubmissionsHelper {
 
                 if (!submissionsDocument) {
                     throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND + "or" +SUBMISSION_STATUS_NOT_COMPLETE;
+                }
+
+                if( submissionsDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                    
+                    await this.pushSubmissionToImprovementService(
+                        _.pick(submissionsDocument,["project","status","_id","completedDate"])
+                    );
                 }
 
 
@@ -1830,6 +1842,50 @@ module.exports = class SubmissionsHelper {
             }
         });
     }
+
+     /**
+   * Push submission to improvement service.
+   * @method
+   * @name pushSubmissionToImprovementService
+   * @param {String} submissionDocument - submission document.
+   * @returns {JSON} consists of kafka message whether it is pushed for reporting
+   * or not.
+   */
+
+  static pushSubmissionToImprovementService(submissionDocument) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let submissionData = {
+                taskId : submissionDocument.project.taskId,
+                projectId : submissionDocument.project._id,
+                _id : submissionDocument._id,
+                status : submissionDocument.status
+            };
+
+            if( submissionDocument.completedDate ) {
+                submissionData["submissionDate"] = submissionDocument.completedDate;
+            }
+            const kafkaMessage = 
+            await kafkaClient.pushSubmissionToImprovementService(submissionData);
+
+            if(kafkaMessage.status != "success") {
+                let errorObject = {
+                    formData: {
+                        submissionId:submissionsDocument._id.toString(),
+                        message:kafkaMessage.message
+                    }
+                };
+                slackClient.kafkaErrorAlert(errorObject);
+            }
+
+            return resolve(kafkaMessage);
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
 
 };
 

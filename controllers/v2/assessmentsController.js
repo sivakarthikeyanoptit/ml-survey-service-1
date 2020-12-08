@@ -216,9 +216,11 @@ module.exports = class Assessments {
                     entities: { $in: [ObjectId(req.query.entityId)] }
                 };
 
-                let solutionDocumentProjectionFields = await assessmentsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
+                let solutionDocumentProjectionFields = 
+                await assessmentsHelper.solutionDocumentProjectionFieldsForDetailsAPI()
 
-                let solutionDocument = await database.models.solutions.findOne(
+                let solutionDocument = 
+                await database.models.solutions.findOne(
                     solutionQueryObject,
                     solutionDocumentProjectionFields
                 ).lean();
@@ -314,6 +316,14 @@ module.exports = class Assessments {
                     entityProfile: {},
                     status: "started"
                 };
+
+                if( 
+                    solutionDocument.referenceFrom === messageConstants.common.PROJECT
+                ) {
+                    
+                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+                    submissionDocument["project"] = solutionDocument.project;
+                }
 
                 let assessment = {};
 

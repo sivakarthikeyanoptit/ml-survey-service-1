@@ -16,8 +16,11 @@ const chunkOfObservationSubmissionsLength = 500;
 const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const moment = require("moment-timezone");
+const { ObjectId } = require("mongodb");
 const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PORTAL_BASE_URL !== "") ? process.env.APP_PORTAL_BASE_URL + "/" : "https://apps.shikshalokam.org/";
-
+const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 
 /**
     * ObservationsHelper
@@ -94,26 +97,54 @@ module.exports = class ObservationsHelper {
                     userId
                 );
 
-                let duplicateSolution = 
-                await solutionHelper.createProgramAndSolutionFromTemplate
-                (
-                    solutionId,
-                    {
-                        _id : programId
-                    },
-                    userId,
-                    _.omit(data,["entities"]),
-                    true,
-                    organisationAndRootOrganisation.createdFor,
-                    organisationAndRootOrganisation.rootOrganisations
-                );
+                let solutionData = 
+                await solutionHelper.solutionDocuments({
+                    _id : solutionId
+                },[
+                    "isReusable",
+                    "externalId",
+                    "programId",
+                    "programExternalId",
+                    "frameworkId",
+                    "frameworkExternalId",
+                    "entityType",
+                    "entityTypeId",
+                    "isAPrivateProgram"
+                ]);
+
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                if( solutionData[0].isReusable ) {
+
+                    solutionData = 
+                    await solutionHelper.createProgramAndSolutionFromTemplate
+                    (
+                        solutionId,
+                        {
+                            _id : programId
+                        },
+                        userId,
+                        _.omit(data,["entities"]),
+                        true,
+                        organisationAndRootOrganisation.createdFor,
+                        organisationAndRootOrganisation.rootOrganisations
+                    );
+
+                } else {
+                    solutionData = solutionData[0];
+                }
 
 
                 let observationData = 
                 await this.createObservation(
                     data,
                     userId,
-                    duplicateSolution,
+                    solutionData,
                     organisationAndRootOrganisation
                 );
 
@@ -145,6 +176,11 @@ module.exports = class ObservationsHelper {
                     let entitiesToAdd = 
                     await entitiesHelper.validateEntities(data.entities, solution.entityTypeId);
                     data.entities = entitiesToAdd.entityIds;
+                }
+
+                if( data.project ) {
+                    data.project._id = ObjectId(data.project._id);
+                    data.referenceFrom = messageConstants.common.PROJECT;
                 }
                 
                 let observationData = 
@@ -445,6 +481,10 @@ module.exports = class ObservationsHelper {
                     submissionDocument = await database.models.observationSubmissions.create(
                         document
                     );
+
+                    if( submissionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                        await submissionsHelper.pushSubmissionToImprovementService(submissionDocument);
+                    }
 
                     // Push new observation submission to kafka for reporting/tracking.
                     observationSubmissionsHelper.pushInCompleteObservationSubmissionForReporting(submissionDocument._id);
@@ -952,7 +992,9 @@ module.exports = class ObservationsHelper {
                 captureGpsLocationAtQuestionLevel : 1,
                 enableQuestionReadOut : 1,
                 scoringSystem: 1,
-                isRubricDriven: 1
+                isRubricDriven: 1,
+                project : 1,
+                referenceFrom : 1
             });
         })
     }
@@ -1006,6 +1048,12 @@ module.exports = class ObservationsHelper {
                 name : requestedData.name,
                 description : requestedData.description
               };
+
+
+              if( requestedData.project ) {
+                solutionInformation["project"] = requestedData.project;
+                solutionInformation["referenceFrom"] = messageConstants.common.PROJECT;
+              }
   
               let createdSolutionAndProgram = 
               await solutionHelper.createProgramAndSolutionFromTemplate(
@@ -1030,6 +1078,11 @@ module.exports = class ObservationsHelper {
                 endDate : endDate,
                 entities : requestedData.entities
               };
+
+              if( requestedData.project ) {
+                observationData["project"] = requestedData.project;
+                observationData["referenceFrom"] = messageConstants.common.PROJECT;
+              }
 
               let observation = 
               await this.createObservation(
@@ -1260,6 +1313,233 @@ module.exports = class ObservationsHelper {
                 return resolve({
                     message: messageConstants.apiResponses.OBSERVATION_LINK_VERIFIED,
                     result: result
+                });                  
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+    /**
+      * Bulk create observations By entityId and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity - Bulk create observations by entity and role.
+      * @param {Object} userObservationData - user observation data
+      * @param {String} userToken - logged in user token.
+      * @returns {Object}  Bulk create user observations.
+     */
+
+    static bulkCreateByUserRoleAndEntity(userObservationData, userToken) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let userAndEntityList = await kendraService.getUsersByEntityAndRole
+                (
+                    userObservationData.entityId,
+                    userObservationData.role
+                )
+              
+                if (!userAndEntityList.success) {
+                    throw new Error(messageConstants.apiResponses.USERS_AND_ENTITIES_NOT_FOUND);
+                }
+
+                let entityIds = [];
+                let usersKeycloakIdMap = {};
+
+                await Promise.all(userAndEntityList.data.map( user => {
+                    if (!entityIds.includes(user.entityId)) {
+                        entityIds.push(user.entityId);
+                    }
+                    usersKeycloakIdMap[user.userId] = true;
+                })) 
+
+                const fileName = `Observation-Upload-Result`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
+
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                        isResponseAStream: true,
+                        fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                })();
+                
+                if(Object.keys(usersKeycloakIdMap).length > 0) {
+                    
+                    let userOrganisationDetails = await this.getUserOrganisationDetails(
+                        Object.keys(usersKeycloakIdMap), 
+                        userToken
+                    );
+
+                    usersKeycloakIdMap = userOrganisationDetails.data;
+                }
+
+                let entityDocument;
+
+                if (entityIds.length > 0) {
+                    
+                    let entityQuery = {
+                        _id: {
+                            $in: entityIds
+                        }
+                    };
+
+                    let entityProjection = [
+                        "entityTypeId",
+                        "entityType"
+                    ];
+
+                    entityDocument = await entitiesHelper.entityDocuments(entityQuery, entityProjection);
+                }
+
+                let entityObject = {};
+
+                if (entityDocument && Array.isArray(entityDocument) && entityDocument.length > 0) {
+                    entityDocument.forEach(eachEntityDocument => {
+                        entityObject[eachEntityDocument._id.toString()] = eachEntityDocument;
+                    })
+                }
+
+                let solutionQuery = {
+                    externalId: userObservationData.solutionExternalId,
+                    status: "active",
+                    isDeleted: false,
+                    isReusable: false,
+                    type: "observation",
+                    programId : { $exists : true }
+                };
+
+                let solutionProjection = [
+                    "externalId",
+                    "frameworkExternalId",
+                    "frameworkId",
+                    "name",
+                    "description",
+                    "type",
+                    "subType",
+                    "entityTypeId",
+                    "entityType",
+                    "programId",
+                    "programExternalId"
+                ];
+
+                let solutionDocument = await solutionsHelper.solutionDocuments(solutionQuery, solutionProjection);
+                 
+                if (!solutionDocument.length) {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+                }
+               
+                let solution = solutionDocument[0];
+                
+                for (let pointerToObservation = 0; pointerToObservation < userAndEntityList.data.length; pointerToObservation++) {
+
+                    let entityDocument = {};
+                    let observationHelperData;
+                    let currentData = userAndEntityList.data[pointerToObservation];
+                    let csvResult = {};
+                    let status;
+                    let userId;
+                    let userOrganisations;
+
+                    Object.keys(currentData).forEach(eachObservationData => {
+                        csvResult[eachObservationData] = currentData[eachObservationData];
+                    })
+
+                    try {
+
+                        if (currentData["userId"] && currentData["userId"] !== "") {
+                            userId = currentData["userId"];
+                        } 
+
+                        if(userId == "") {
+                            throw new Error(messageConstants.apiResponses.USER_NOT_FOUND);
+                        }
+
+                        if(!usersKeycloakIdMap[userId]  || !Array.isArray(usersKeycloakIdMap[userId].rootOrganisations) || usersKeycloakIdMap[userId].rootOrganisations.length < 1) {
+                            throw new Error(messageConstants.apiResponses.USER_ORGANISATION_DETAILS_NOT_FOUND);
+                        } else {
+                            userOrganisations = usersKeycloakIdMap[userId];
+                        }
+
+                        if (currentData.entityId && currentData.entityId != "") {
+                            if(entityObject[currentData.entityId.toString()] !== undefined) {
+                                entityDocument = entityObject[currentData.entityId.toString()];
+                            } else {
+                                throw new Error(messageConstants.apiResponses.ENTITY_NOT_FOUND);
+                            }
+                        }
+                       
+                        observationHelperData = await this.bulkCreate(
+                            userId, 
+                            solution, 
+                            entityDocument, 
+                            userOrganisations
+                        );
+                        status = observationHelperData.status;
+
+                    } catch (error) {
+                        status = error.message;
+                    }
+                    
+                    csvResult["status"] = status;
+                    input.push(csvResult);
+                }
+
+                input.push(null);
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+
+      /**
+     * List of Observation submissions
+     * @method
+     * @name submissionStatus
+     * @param {String} observationId - observation id.
+     * @param {String} entityId - entity id.
+     * @param {String} userId - logged in user id.
+     * @returns {Object} list of observation submissions.
+     */
+
+    static submissionStatus( observationId,entityId,userId ) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observation = await this.observationDocuments({
+                    _id : observationId,
+                    createdBy : userId,
+                    entities : ObjectId(entityId)
+                },["_id"]);
+
+                if( !observation.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                let observationSubmissions = 
+                await observationSubmissionsHelper.observationSubmissionsDocument({
+                    observationId : observationId,
+                    entityId : entityId,
+                    isDeleted : false
+                },["status","submissionNumber"]);
+
+                if( !observationSubmissions.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.OBSERVATION_SUBMISSSION_NOT_FOUND,
+                        status : httpStatusCode["bad_request"].status
+                    }
+                }
+
+                return resolve({
+                    message : messageConstants.apiResponses.OBSERVATION_SUBMISSIONS_LIST_FETCHED,
+                    data : observationSubmissions
                 });                  
 
             } catch (error) {

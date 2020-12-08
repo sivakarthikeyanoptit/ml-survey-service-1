@@ -836,6 +836,11 @@ module.exports = class Observations extends Abstract {
                     status: "started"
                 };
 
+                if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
+                    submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
+                    submissionDocument["project"] = solutionDocument.project;
+                }
+
                 let assessment = {};
 
                 assessment.name = solutionDocument.name;
@@ -1739,5 +1744,111 @@ module.exports = class Observations extends Abstract {
             }
         });
     } 
+
+
+      /**
+    * @api {post} /assessment/api/v1/observations/bulkCreateByUserRoleAndEntity 
+    * Bulk create observations by entity and role.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/bulkCreateByUserRoleAndEntity
+    * @apiParamExample {json} Request:
+    * {
+    *  "entityId": "5f2449eb626a540f40817ef5",
+    *  "role": "CRP",
+    *  "solutionExternalId": "TAF-solution"
+     }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * Bulk create observations by entity and role.
+      * @method
+      * @name bulkCreateByUserRoleAndEntity
+      * @param {Object} req - request data.
+      * @param {String} req.body.entityId - entityId 
+      * @param {String} req.body.role - role 
+      * @param {String} req.body.solutionExternalId - solution external id
+      * @returns {CSV} Assigned observations to user.
+     */
+
+    async bulkCreateByUserRoleAndEntity(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let observations = await observationsHelper.bulkCreateByUserRoleAndEntity(
+                    req.body,
+                    req.rspObj.userToken
+                );
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+        /**
+  * @api {get} /assessment/api/v1/observations/submissionStatus/:observationId?entityId=:entityId
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission Status
+  * @apiGroup Observations
+  * @apiSampleRequest /assessment/api/v1/observations/submissionStatus/5d1a002d2dfd8135bc8e1617?entityId=5cee7d1390013936552f6a8f
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Successfully fetched observation submissions",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5cee8c5390013936552f6a92",
+            "status": "started",
+            "submissionNumber": 1
+        }
+    ]
+ }
+
+  */
+   /**
+   * Get observation submission status
+   * @method
+   * @name submissionStatus
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - observation submission id. 
+   * @returns {JSON} consists of status of the observation submission.
+   */
+
+  async submissionStatus(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+         await observationsHelper.submissionStatus
+          (
+            req.params._id,
+            req.query.entityId,
+            req.userDetails.userId
+          );
+
+        submissionDocument.result = submissionDocument.data;
+
+        return resolve(submissionDocument);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
 
 }

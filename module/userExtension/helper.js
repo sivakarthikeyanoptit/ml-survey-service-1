@@ -76,7 +76,8 @@ module.exports = class UserExtensionHelper {
                             "entityDocuments.metaInformation.name": 1,
                             "entityDocuments.groups": 1,
                             "entityDocuments.entityType": 1,
-                            "entityDocuments.entityTypeId": 1
+                            "entityDocuments.entityTypeId": 1,
+                            "improvementProjects" : 1
                         }
                     }
                 ];
@@ -257,6 +258,8 @@ module.exports = class UserExtensionHelper {
                     csvRowNumber < userRolesCSVData.length; 
                     csvRowNumber++
                 ) {
+                    
+                    let removeUserFromEntity = false;
 
                     userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
                     userRole["_SYSTEM_ID"] = "";
@@ -356,6 +359,7 @@ module.exports = class UserExtensionHelper {
 
                                 _.pull(existingUserRole.roles[userRoleToUpdate].entities, userRole.entity);
                                 
+                                removeUserFromEntity = true;
                             }
 
                             existingUserRole.roles[userRoleToUpdate].entities = existingUserRole.roles[userRoleToUpdate].entities.map(eachEntity => ObjectId(eachEntity));
@@ -404,7 +408,14 @@ module.exports = class UserExtensionHelper {
 
                         }
 
-                        await this.pushUserToElasticSearch(user._doc);
+                        let entityObject = {};
+
+                        if (removeUserFromEntity){
+                           entityObject.entityId = userRole.entity;
+                           entityObject.role = userRole.role;
+                        }
+                      
+                        await this.pushUserToElasticSearch(user._doc, entityObject);
 
                     } catch (error) {
                         userRole.status = (error && error.message) ? error.message : error;
@@ -820,7 +831,7 @@ module.exports = class UserExtensionHelper {
    * @returns {Object} 
    */
 
-  static pushUserToElasticSearch(userData) {
+  static pushUserToElasticSearch(userData, removeUserFromEntity= {}) {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -846,6 +857,23 @@ module.exports = class UserExtensionHelper {
                     data : userInformation
                 }
             );
+
+            if (userInformation.roles.length > 0) {
+                await entitiesHelper.updateUserRolesInEntitiesElasticSearch
+                (
+                    userInformation.roles,
+                    userInformation.userId
+                )
+            }
+            
+            if (Object.keys(removeUserFromEntity).length > 0) {
+                await entitiesHelper.deleteUserRoleFromEntitiesElasticSearch
+                (
+                    removeUserFromEntity.entityId,
+                    removeUserFromEntity.role,
+                    userInformation.userId
+                )
+            }
 
             return resolve({
                 success : true

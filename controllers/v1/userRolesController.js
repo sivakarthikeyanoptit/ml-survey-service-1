@@ -230,4 +230,74 @@ module.exports = class UserRoles extends Abstract {
     })
   }
 
+  /**
+  * @api {get} /assessment/api/v1/userRoles/find Find user roles 
+  * @apiVersion 1.0.0
+  * @apiName Find user roles.
+  * @apiGroup User Roles
+  * @apiHeader {String} X-authenticated-user-token Authenticity token
+  * @apiSampleRequest /assessment/api/v1/userRoles/find
+  * @apiParamExample {json} Request-Body:
+  * {
+    "query" : {
+        "code" : "ZL"
+    },
+    "projection" : {
+        "code" : 1,
+        "title" : 1
+    }
+  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "User roles fetched successfully.",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5d7a2d806371783ceb11064f",
+            "code": "ZL",
+            "title": "Zone Leader"
+        }
+    ]
+  }
+  */
+
+    /**
+   * find user roles.
+   * @method
+   * @name find
+   * @returns {JSON} list of user roles. 
+   */
+
+  find(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let result = await userRolesHelper.list(
+          req.body.query,
+          req.body.projection,
+          req.body.skipFields
+        );
+
+        return resolve({
+          message: messageConstants.apiResponses.USER_ROLES_FETCHED,
+          result: result
+        });
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+
+      }
+
+
+    })
+  }
+
 };
