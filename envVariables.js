@@ -242,11 +242,6 @@ let enviromentVariables = {
   "SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT" : {
     "message" : "Required user profile fetch API endpoint",
     "optional" : true
-  },
-  "USE_USER_ORGANISATION_ID_FILTER" : {
-    "message" : "Required",
-    "optional" : true,
-    "default" : "OFF" 
   }
 }
 
