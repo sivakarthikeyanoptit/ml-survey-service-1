@@ -33,8 +33,8 @@ var get = function (
       }
 
       const result = await elasticsearch.client.get({
-        id: data.id,
-        index: data.index
+        id: id,
+        index: index
       }, {
           ignore: [httpStatusCode["not_found"].status],
           maxRetries: 3

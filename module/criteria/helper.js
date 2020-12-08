@@ -534,6 +534,32 @@ module.exports = class criteriaHelper {
 
           if (newCriteriaId._id) {
             criteriaIdMap[criteria._id.toString()] = newCriteriaId._id;
+            if(criteria.rubric && criteria.rubric.expressionVariables && Object.keys(criteria.rubric.expressionVariables).length > 0) {
+
+              Object.keys(criteria.rubric.expressionVariables).forEach(expressionVariable => {
+
+                let oldId = criteria.rubric.expressionVariables[expressionVariable].split(".").shift();
+                let newId = "";
+                if(questionIdMap[oldId]) {
+                  newId = questionIdMap[oldId];
+                } else if(criteriaIdMap[oldId]) {
+                  newId = criteriaIdMap[oldId];
+                }
+                if(newId != "") {
+                  criteria.rubric.expressionVariables[expressionVariable] = newId + "." + criteria.rubric.expressionVariables[expressionVariable].split(".").slice(1).join(".");
+                }
+              })
+
+              await database.models.criteria.updateOne
+              (
+                { _id: newCriteriaId._id },
+                {
+                    $set: {
+                        rubric: criteria.rubric
+                    }
+                }
+              )
+            }
           }
 
         }))
