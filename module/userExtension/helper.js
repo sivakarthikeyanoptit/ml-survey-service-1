@@ -247,9 +247,9 @@ module.exports = class UserExtensionHelper {
 
                 let userToKeycloakIdMap = {};
                 let userKeycloakId = "";
-                let userRole;
-                let existingEntity;
-                let existingUserRole;
+                // let userRole;
+                // let existingEntity;
+                // let existingUserRole;
                 const keycloakUserIdIsMandatoryInFile = 
                 (process.env.DISABLE_LEARNER_SERVICE_ON_OFF && process.env.DISABLE_LEARNER_SERVICE_ON_OFF == "ON") ? "true" : false;
 
@@ -261,7 +261,7 @@ module.exports = class UserExtensionHelper {
                     
                     let removeUserFromEntity = false;
 
-                    userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
+                    let userRole = gen.utils.valueParser(userRolesCSVData[csvRowNumber]);
                     userRole["_SYSTEM_ID"] = "";
                     aclData(userRole);
 
@@ -284,7 +284,7 @@ module.exports = class UserExtensionHelper {
                                 $in: userRoleAllowedEntityTypes[userRole.role]
                             };
                         }
-                        existingEntity = await database.models.entities.findOne(
+                        let existingEntity = await database.models.entities.findOne(
                             entityQueryObject,
                             {
                                 _id: 1
@@ -316,7 +316,7 @@ module.exports = class UserExtensionHelper {
                             }
                         }
 
-                        existingUserRole = await database.models.userExtension.findOne(
+                        let existingUserRole = await database.models.userExtension.findOne(
                             {
                                 userId: userKeycloakId
                             },
