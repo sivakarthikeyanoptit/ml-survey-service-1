@@ -9,6 +9,7 @@ module.exports = {
       updatedBy: String,
       createdBy: String,
       childHierarchyPath : Array,
-      userId : String
+      userId : String,
+      allowedRoles : Array
     }
   };
