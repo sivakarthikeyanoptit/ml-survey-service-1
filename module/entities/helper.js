@@ -8,6 +8,7 @@
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
  /**
     * EntitiesHelper
@@ -36,8 +37,12 @@ module.exports = class EntitiesHelper {
                     throw messageConstants.apiResponses.ENTITY_NOT_FOUND;
                 }
 
-                let entityDocuments = data.map(singleEntity => {
+                let entityDocuments = [];
 
+                for (let pointer = 0;pointer < data.length ; pointer ++ ) {
+                    
+                    let singleEntity = data[pointer];
+                    
                     if( singleEntity.createdByProgramId ) {
                         singleEntity.createdByProgramId = ObjectId(singleEntity.createdByProgramId);
                     }
@@ -46,7 +51,7 @@ module.exports = class EntitiesHelper {
                         singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
                     }
 
-                    return {
+                    let entityDoc = {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
                         "regsitryDetails": {},
@@ -57,7 +62,15 @@ module.exports = class EntitiesHelper {
                         "userId" : userDetails.id
                     }
 
-                });
+                    if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
+                        entityDoc['allowedRoles'] = 
+                        await allowedRoles(singleEntity.allowedRoles);
+                        delete entityDoc.metaInformation.allowedRoles;
+                    }
+
+                    entityDocuments.push(entityDoc);
+
+                }
 
                 let entityData = await database.models.entities.create(
                     entityDocuments
@@ -550,18 +563,28 @@ module.exports = class EntitiesHelper {
                         singleEntity = gen.utils.valueParser(singleEntity);
                         addTagsInEntities(singleEntity);
 
+                        let entityCreation = {
+                            "entityTypeId": entityTypeDocument._id,
+                            "entityType": entityType,
+                            "regsitryDetails": {},
+                            "groups": {},
+                            "updatedBy": userDetails.id,
+                            "createdBy": userDetails.id
+                        }
+
+                        if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
+                            entityCreation['allowedRoles'] = 
+                            await allowedRoles(singleEntity.allowedRoles);
+                            delete singleEntity.allowedRoles;
+                        }
+
+                        entityCreation["metaInformation"] =
+                         _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") });
+
                         if (solutionsData && singleEntity._solutionId && singleEntity._solutionId != "") singleEntity["createdByProgramId"] = solutionsData[singleEntity._solutionId]["programId"];
 
                         let newEntity = await database.models.entities.create(
-                            {
-                                "entityTypeId": entityTypeDocument._id,
-                                "entityType": entityType,
-                                "regsitryDetails": {},
-                                "groups": {},
-                                "metaInformation": _.omitBy(singleEntity, (value, key) => { return _.startsWith(key, "_") }),
-                                "updatedBy": userDetails.id,
-                                "createdBy": userDetails.id
-                            }
+                            entityCreation
                         );
 
                         if (!newEntity._id) {
@@ -625,22 +648,33 @@ module.exports = class EntitiesHelper {
                         return singleEntity;
                     }
 
+                    let updateData = {};
+
+                    if( singleEntity.hasOwnProperty("allowedRoles") ) {
+
+                        updateData["allowedRoles"] = [];
+                        if( singleEntity.allowedRoles.length > 0 ) {
+                            updateData['allowedRoles'] = 
+                            await allowedRoles(singleEntity.allowedRoles);
+                        }
+                        
+                        delete singleEntity.allowedRoles;
+                    }
+                    
                     let columnsToUpdate = 
                     _.omitBy(singleEntity, (value, key) => { 
                         return _.startsWith(key, "_") 
                     });
-                    
-                    let metaInformationToSet = {};
 
                     Object.keys(columnsToUpdate).forEach(key => {
-                        metaInformationToSet[`metaInformation.${key}`] = columnsToUpdate[key];
+                        updateData[`metaInformation.${key}`] = columnsToUpdate[key];
                     })
 
-                    if(Object.keys(metaInformationToSet).length > 0) {
+                    if(Object.keys(updateData).length > 0) {
 
                         let updateEntity = await database.models.entities.findOneAndUpdate(
                             { _id: singleEntity["_SYSTEM_ID"] },
-                            { $set: metaInformationToSet},
+                            { $set: updateData},
                             { _id: 1 }
                         );
                 
@@ -1249,6 +1283,7 @@ module.exports = class EntitiesHelper {
                             "entityTypeId",
                             "updatedAt",
                             "createdAt",
+                            "allowedRoles"
                         ]);
 
                     for (let entity = 0; entity < entityDocuments.length; entity++) {
@@ -1263,6 +1298,10 @@ module.exports = class EntitiesHelper {
                             entityTypeId: entityDocument.entityTypeId,
                             updatedAt: entityDocument.updatedAt,
                             createdAt: entityDocument.createdAt
+                        }
+
+                        if( entityDocument.allowedRoles && entityDocument.allowedRoles.length > 0 ) {
+                            entityObj["allowedRoles"] = entityDocument.allowedRoles;
                         }
 
                         for (let metaData in entityDocument.metaInformation) {
@@ -1505,5 +1544,37 @@ function addTagsInEntities(entityMetaInformation) {
     }
     return entityMetaInformation;
 }
+
+  /**
+   * Allowed roles in entities.
+   * @method
+   * @name allowedRoles
+   * @param {Array} roles - Roles
+   * @returns {Array} user roles
+   */
+
+  async function allowedRoles(roles) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let userRoles = await userRolesHelper.list({
+                code : { $in : roles }
+            },{
+                code : 1
+            })
+
+            if( userRoles.length > 0 ) {
+                userRoles = userRoles.map(userRole => {
+                    return userRole.code;
+                });
+            }
+
+            return resolve(userRoles);
+
+        } catch(error) {
+            return reject(error);
+        }
+    })
+  }
 
 
