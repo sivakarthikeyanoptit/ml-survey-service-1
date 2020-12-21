@@ -231,8 +231,7 @@ module.exports = class SurveySubmissionsHelper {
                       "evidencesStatus": {"$elemMatch": {externalId: evidenceId}}
                     },
                     [
-                        "evidencesStatus.isSubmitted",
-                        "evidencesStatus.submissions",
+                        "evidencesStatus.$",
                         "status",
                         "createdBy"
                     ]
