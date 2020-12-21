@@ -1349,8 +1349,7 @@ module.exports = class Submission extends Abstract {
         let submissionDocument = await database.models.submissions.findOne(
           queryObject,
           {
-            ["evidencesStatus.isSubmitted"]: 1,
-            ["evidencesStatus.submissions"]: 1
+            "evidencesStatus.$" : 1
           }
         );
 
