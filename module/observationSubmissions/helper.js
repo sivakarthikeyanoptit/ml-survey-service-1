@@ -544,8 +544,7 @@ module.exports = class ObservationSubmissionsHelper {
                   "evidencesStatus": {"$elemMatch": {externalId: evidenceId}}
                 },
                 [
-                    "evidencesStatus.isSubmitted",
-                    "evidencesStatus.submissions"
+                    "evidencesStatus.$"
                 ]
             );
             
