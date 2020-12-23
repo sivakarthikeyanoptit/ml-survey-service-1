@@ -1220,5 +1220,176 @@ module.exports = class SurveysHelper {
             }
         })
     }
+
+
+    /**
+     * Get survey list.
+     * @method
+     * @name getSurvey
+     * @param {String} userId - userId
+     * @returns {JSON} - returns survey list.
+    */
+
+    static getSurvey(userId= "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+                }
+
+                let surveyDocuments = await this.surveyDocuments
+                (
+                  { 
+                       createdBy: userId,
+                  },
+                  [ 
+                    "externalId",
+                    "name",
+                    "description",
+                    "programName",
+                    "solutionId",
+                    "programId"
+                  ] 
+                )
+
+                if (!surveyDocuments.length) {
+                    throw new Error("surveys not found for the user")
+                }
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.USER_SURVEYS_FETCHED,
+                    data: surveyDocuments
+                });
+
+                
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: {}
+                });
+            }
+        });
+    }
+
+
+
+    /**
+      * survey details.
+      * @method
+      * @name detailsV2
+      * @param  {String} surveyId - surveyId.
+      * @param {String} solutionId - solutionId
+      * @param {String} programId - programId
+      * @param {String} userId - logged in userId
+      * @param {String} token - logged in user token
+      * @returns {JSON} - returns survey solution, program and questions.
+    */
+
+    static detailsV2(surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+                }
+
+                if (solutionId == "") {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
+                }
+
+                if (token == "") {
+                    throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
+                }
+
+                if (surveyId == "") {
+
+                    let solutionDocument = await solutionsHelper.solutionDocuments
+                    (
+                        {
+                            _id: solutionId,
+                        },
+                        [
+                            "externalId",
+                            "name",
+                            "description",
+                            "type",
+                            "endDate",
+                            "status",
+                            "programId",
+                            "programExternalId",
+                            "isAPrivateProgram"
+                        ]
+                    )
+
+                    if (!solutionDocument.length) {
+                        throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+                    }
+
+                    let userOrgDetails = await this.getUserOrganisationDetails
+                    (
+                        [userId],
+                        token
+                    )
+
+                    userOrgDetails = userOrgDetails.data;
+
+                    if(!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
+                        throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                    }
+
+                    let createSurveyDocument = await this.createSurveyDocument
+                    (
+                        userId,
+                        solutionDocument[0],
+                        userOrgDetails[userId]
+                    )
+
+                    if (!createSurveyDocument.success) {
+                        throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
+                    }
+
+                    surveyId = createSurveyDocument.data._id;
+                }
+
+                let validateSurvey = await this.validateSurvey
+                (
+                    surveyId,
+                    userId
+                )
     
+                if (!validateSurvey.success) {
+                    return resolve(validateSurvey);
+                }
+                
+                let surveyDetails = await this.details
+                (
+                    surveyId,
+                    userId,
+                    validateSurvey.data.submissionId
+                )
+
+                if (!surveyDetails.success) {
+                    return resolve(surveyDetails);
+                }
+
+                return resolve({
+                    success: true,
+                    message: surveyDetails.message,
+                    data: surveyDetails.data
+                });
+
+            }
+            catch (error) {
+                return reject({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        })
+    }
+
 }

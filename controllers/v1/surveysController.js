@@ -836,4 +836,74 @@ module.exports = class Surveys extends Abstract {
     });
 }
 
+    
+   /**
+     * @api {get} /assessment/api/v1/surveys/getSurvey Get survey list.
+     * @apiVersion 1.0.0
+     * @apiName Get survey list.
+     * @apiGroup Surveys
+     * @apiHeader {String} X-authenticated-user-token Authenticity token
+     * @apiSampleRequest /assessment/api/v1/surveys/getSurvey
+     * @apiParamExample {json} Response:
+     * {
+        "status" : 200,
+    	"message" : "User's surveys fetched successfully",
+     	"result" : {
+            "data" : [{
+        		"_id" : "5beaaa2baf0065f0e0a105c7",
+        		"externalId" : "Karnataka Flash Visit-2019-FRAMEWORK",
+        		"name" : "Karnataka Flash Visit-2019-FRAMEWORK",
+        		"description" : "Karnataka Flash Visit-2019-FRAMEWORK" ,
+				"programName" : "Karnataka Flash Visit-2019-FRAMEWORK",
+				"solutionId" : "5beaaa2baf0065f0e0a105c7",
+				"programId" : "5beaaa2baf0065f0e0a105c7"
+    			},{
+        		"_id" : "",
+        		"externalId" : "PUNJAB-2019-FRAMEWORK",
+        		"name" : "PUNJAB-2019-FRAMEWORK",
+        		"description" : "PUNJAB-2019-FRAMEWORK" ,
+				"programName" : "PUNJAB -2019-FRAMEWORK",
+				"solutionId" : "5beaaa2baf0065f0e0a105c7",
+				"programId" : "5beaaa2baf0065f0e0a105c7",
+				"entityId" : "5beaaa2baf0065f0e0a105c7"
+    			}],
+            "count" : 2
+    * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    /**
+    * Get survey list.
+    * @method
+    * @name getSurvey
+    * @param {Object} req -request Data.
+    * @returns {JSON} - survey list
+    */
+
+    async getSurvey(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+          
+          let surveyList = await surveysHelper.getSurvey
+          (
+            req.userDetails.userId
+          )
+
+          return resolve({
+              message: surveyList.message,
+              result: surveyList.data
+          })
+
+      } catch (error) {
+          return reject({
+              status: error.status || httpStatusCode.internal_server_error.status,
+              message: error.message || httpStatusCode.internal_server_error.message,
+              errorObject: error
+          });
+      }
+  });
+}
+
+
 }
