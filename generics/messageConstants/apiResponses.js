@@ -311,5 +311,8 @@ module.exports = {
 "OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly",
 "USERS_AND_ENTITIES_NOT_FOUND" : "Could not find users for the given entity and role",
 "ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
-"PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program"
+"PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program",
+"TARGETED_SOLUTIONS_FETCHED" : "Successfully targeted solutions fetched",
+"NOT_FOUND_TARGETED_PROGRAM_SOLUTION" : "Could not found targeted program and solution",
+"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution"
 }
