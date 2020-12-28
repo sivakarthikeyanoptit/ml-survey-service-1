@@ -1223,60 +1223,6 @@ module.exports = class SurveysHelper {
 
 
     /**
-     * Get survey list.
-     * @method
-     * @name getSurvey
-     * @param {String} userId - userId
-     * @returns {JSON} - returns survey list.
-    */
-
-    static getSurvey(userId= "") {
-        return new Promise(async (resolve, reject) => {
-            try {
-
-                if (userId == "") {
-                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
-                }
-
-                let surveyDocuments = await this.surveyDocuments
-                (
-                  { 
-                       createdBy: userId,
-                  },
-                  [ 
-                    "externalId",
-                    "name",
-                    "description",
-                    "programName",
-                    "solutionId",
-                    "programId"
-                  ] 
-                )
-
-                if (!surveyDocuments.length) {
-                    throw new Error("surveys not found for the user")
-                }
-
-                return resolve({
-                    success: true,
-                    message: messageConstants.apiResponses.USER_SURVEYS_FETCHED,
-                    data: surveyDocuments
-                });
-
-                
-            } catch (error) {
-                return resolve({
-                    success: false,
-                    message: error.message,
-                    data: {}
-                });
-            }
-        });
-    }
-
-
-
-    /**
       * survey details.
       * @method
       * @name detailsV2
