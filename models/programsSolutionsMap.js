@@ -10,8 +10,7 @@ module.exports = {
     schema: {
         programId : {
             type : "ObjectId",
-            index : true,
-            unique : true
+            index : true
         },
         solutionId : {
             type : "ObjectId",
