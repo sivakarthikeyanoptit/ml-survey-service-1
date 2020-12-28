@@ -1680,7 +1680,7 @@ module.exports = class ObservationsHelper {
 
             if( solutionIds.length > 0 ) {
                 bodyData["filteredData"] = {};
-                bodyData["filteredData"]["_id"] = {
+                bodyData["filteredData"]["solutionId"] = {
                     $nin : solutionIds
                 }; 
             }
