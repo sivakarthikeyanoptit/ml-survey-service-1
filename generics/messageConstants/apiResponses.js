@@ -312,5 +312,9 @@ module.exports = {
 "USERS_AND_ENTITIES_NOT_FOUND" : "Could not find users for the given entity and role",
 "ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
 "PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program",
-"TARGETED_SOLUTIONS_FETCHED" : "Successfully targeted solutions fetched"
+"TARGETED_SOLUTIONS_FETCHED" : "Successfully targeted solutions fetched",
+"SURVEYS_FETCHED" : "Surveys fetched successfully",
+"TARGETED_SURVEY_FETCHED" : "Targeted surveys fetched successfully",
+"OBSERVATIONS_FETCHED" : "Observations fetched successfully",
+"TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully" 
 }

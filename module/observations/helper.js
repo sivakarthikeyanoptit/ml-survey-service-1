@@ -21,6 +21,7 @@ const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PO
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+const programsSolutionsMapHelper = require(MODULES_BASE_PATH + "/programsSolutionsMap/helper");
 
 /**
     * ObservationsHelper
@@ -1547,5 +1548,192 @@ module.exports = class ObservationsHelper {
             }
         })
     }
+
+
+    /**
+      * List of observations.
+      * @method
+      * @name observations
+      * @param pageSize - Size of page.
+      * @param pageNo - Recent page no.
+      * @param search - search text.
+      * @returns {Object} List of observations.
+     */
+
+    static observations(query, pageSize, pageNo, searchQuery, fieldsArray) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let matchQuery = {
+                    $match : query
+                };
+
+                if (searchQuery && searchQuery.length > 0) {
+                    matchQuery["$match"]["$or"] = searchQuery;
+                }
+                let projection = {}
+                fieldsArray.forEach(field => {
+                    projection[field] = 1;
+                });
+
+                let aggregateData = [];
+                aggregateData.push(matchQuery);
+                aggregateData.push({
+                    $project: projection
+                }, {
+                    $facet: {
+                        "totalCount": [
+                            { "$count": "count" }
+                        ],
+                        "data": [
+                            { $skip: pageSize * (pageNo - 1) },
+                            { $limit: pageSize }
+                        ],
+                    }
+                }, {
+                    $project: {
+                        "data": 1,
+                        "count": {
+                            $arrayElemAt: ["$totalCount.count", 0]
+                        }
+                    }
+                });
+
+                let result =
+                await database.models.observations.aggregate(aggregateData);
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.OBSERVATIONS_FETCHED,
+                    data: {
+                        data: result[0].data,
+                        count: result[0].count ? result[0].count : 0
+                    }
+                })
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message,
+                    data : {
+                        data : [],
+                        count : 0
+                    }
+                });
+            }
+        })
+    }
+
+    
+    /**
+    * Get list of observations with the targetted ones.
+    * @method
+    * @name getObservation
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object}
+   */
+
+   static getObservation( bodyData,userId,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let query = {
+                createdBy : userId,
+                deleted : false
+            }
+
+            let searchQuery = [];
+
+            if (search !== "") {
+                searchQuery = [
+                    { "name" : new RegExp(search, 'i') },
+                    { "description" : new RegExp(search, 'i') }
+                ];
+            }
+
+            let observations = await this.observations(
+                query,
+                pageSize,
+                pageNo,
+                searchQuery,
+                ["name", "description","solutionId","programId"]
+            );
+
+            let solutionIds = [];
+
+            let totalCount = 0;
+            let mergedData = [];
+
+            if( observations.success && observations.data ) {
+
+                totalCount = observations.data.count;
+                mergedData = observations.data.data;
+
+                if( mergedData.length > 0 ) {
+                    mergedData.forEach( observationData => {
+                        if( observationData.solutionId ) {
+                            solutionIds.push(observationData.solutionId);
+                        }
+                    });
+                }
+            }
+
+            if( solutionIds.length > 0 ) {
+                bodyData["filteredData"] = {};
+                bodyData["filteredData"]["_id"] = {
+                    $nin : solutionIds
+                }; 
+            }
+
+            let targetedSolutions = 
+            await programsSolutionsMapHelper.targetedSolutions
+            (
+                bodyData,
+                messageConstants.common.OBSERVATION,
+                messageConstants.common.OBSERVATION,
+                pageSize,
+                pageNo,
+                search
+            );
+
+            if( targetedSolutions.success ) {
+
+                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
+                    totalCount += targetedSolutions.data.count;
+
+                    if( mergedData.length !== pageSize ) {
+
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            mergedData.push(targetedSolution); 
+                        })
+
+                       let startIndex = pageSize * (pageNo - 1);
+                       let endIndex = startIndex + pageSize;
+                       mergedData = mergedData.slice(startIndex,endIndex) 
+                    }
+                }
+
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.TARGETED_OBSERVATION_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
 
 };
