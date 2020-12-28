@@ -98,16 +98,13 @@ module.exports = class ProgramsSolutionsMapHelper {
               }
             ],
             solutionType : type,
-            solutionSubType : subType,
             isReusable : false
           }
 
-          if( bodyData.filteredData ) {
-            Object.keys(bodyData.filteredData).forEach(filterKey => {
-              targetedSolutionQuery[filterKey] = bodyData.filteredData[filterKey]
-            });
+          if (subType !== "") {
+            targetedSolutionQuery.solutionSubType = subType;
           }
-          
+
           let targetedSolutions = 
           await this.list(targetedSolutionQuery,["solutionId"]);
 
@@ -130,6 +127,12 @@ module.exports = class ProgramsSolutionsMapHelper {
               status : messageConstants.common.ACTIVE_STATUS
             }
           };
+
+          if( bodyData.filteredData ) {
+            Object.keys(bodyData.filteredData).forEach(filterKey => {
+              matchQuery["$match"][filterKey] = bodyData.filteredData[filterKey]
+            });
+          }
 
           let targettedSolutions = await solutionsHelper.search(
             matchQuery,

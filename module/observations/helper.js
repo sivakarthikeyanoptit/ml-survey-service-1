@@ -1680,17 +1680,19 @@ module.exports = class ObservationsHelper {
 
             if( solutionIds.length > 0 ) {
                 bodyData["filteredData"] = {};
-                bodyData["filteredData"]["solutionId"] = {
+                bodyData["filteredData"]["_id"] = {
                     $nin : solutionIds
                 }; 
             }
+
+            let subType = "";
 
             let targetedSolutions = 
             await programsSolutionsMapHelper.targetedSolutions
             (
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                messageConstants.common.OBSERVATION,
+                subType,
                 pageSize,
                 pageNo,
                 search
