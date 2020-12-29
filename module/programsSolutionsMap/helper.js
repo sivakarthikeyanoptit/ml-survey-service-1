@@ -130,7 +130,14 @@ module.exports = class ProgramsSolutionsMapHelper {
 
           if( bodyData.filteredData ) {
             Object.keys(bodyData.filteredData).forEach(filterKey => {
-              matchQuery["$match"][filterKey] = bodyData.filteredData[filterKey]
+              if( matchQuery["$match"][filterKey] ) {
+                matchQuery["$match"][filterKey] = _.merge(
+                  matchQuery["$match"][filterKey],
+                  bodyData.filteredData[filterKey]
+                )
+              } else {
+                matchQuery["$match"][filterKey] = bodyData.filteredData[filterKey]
+              }
             });
           }
 

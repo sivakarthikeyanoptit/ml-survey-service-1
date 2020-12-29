@@ -1639,7 +1639,8 @@ module.exports = class ObservationsHelper {
             
             let query = {
                 createdBy : userId,
-                deleted : false
+                deleted : false,
+                programId : { $exists : true }
             }
 
             let searchQuery = [];

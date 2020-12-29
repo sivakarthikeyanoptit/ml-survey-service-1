@@ -1312,7 +1312,8 @@ module.exports = class SurveysHelper {
             
             let query = {
                 createdBy : userId,
-                isDeleted : false
+                isDeleted : false,
+                programId : { $exists : true }
             }
 
             let searchQuery = [];
