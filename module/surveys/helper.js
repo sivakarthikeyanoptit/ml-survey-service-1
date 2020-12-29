@@ -20,6 +20,7 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const programsSolutionsMapHelper = require(MODULES_BASE_PATH + "/programsSolutionsMap/helper");
 
 /**
     * SurveysHelper
