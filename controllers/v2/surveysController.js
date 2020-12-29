@@ -16,12 +16,20 @@ module.exports = class Surveys {
 
 
     /**
-    * @api {get} /assessment/api/v2/surveys/details/:surveyId?solutionId=:solutionId&programId=:programId
+    * @api {post} /assessment/api/v2/surveys/details/:surveyId?solutionId=:solutionId&programId=:programId
     * Survey details.
     * @apiVersion 2.0.0
     * @apiGroup Surveys
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v2/surveys/details/5de8a220c210d4700813e695?solutionId=5f5b38ec45365677f64b2843&programId=5beaaa2baf0065f0e0a105c7
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "5c0bbab881bdbe330655da7f",
+   		"block" : "5c0bbab881bdbe330655da7f",
+   		"cluster" : "5c0bbab881bdbe330655da7f",
+   		"school" : "5c0bbab881bdbe330655da7f"
+    }
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -211,13 +219,13 @@ module.exports = class Surveys {
         try {
 
             let surveyId = req.params._id ? req.params._id : "";
-            let programId = req.query.programId ? req.query.programId : "";
 
             let surveyDetails = await surveysHelper.detailsV2
-            (
+            (   
+                req.body,
                 surveyId,
                 req.query.solutionId,
-                programId,
+                req.query.programId,
                 req.userDetails.userId,
                 req.rspObj.userToken
             );

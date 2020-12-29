@@ -1234,7 +1234,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
     */
 
-    static detailsV2(surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
+    static detailsV2(bodyData, surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1251,6 +1251,17 @@ module.exports = class SurveysHelper {
                 }
 
                 if (surveyId == "") {
+
+                    let programSolutionDetails = await programsSolutionsMapHelper.programSolutionDetails
+                    (
+                       programId,
+                       solutionId,
+                       bodyData
+                    )
+
+                    if (!programSolutionDetails.success && Object.keys(programSolutionDetails.data).length == 0) {
+                        throw new Error(messageConstants.apiResponses.INVALID_SCOPE_SOLUTION)
+                    }
 
                     let solutionDocument = await solutionsHelper.solutionDocuments
                     (

@@ -312,5 +312,6 @@ module.exports = {
 "USERS_AND_ENTITIES_NOT_FOUND" : "Could not find users for the given entity and role",
 "ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
 "PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program",
-"USER_SURVEYS_FETCHED" : "User's surveys fetched successfully"
+"USER_SURVEYS_FETCHED" : "User's surveys fetched successfully",
+"INVALID_SCOPE_SOLUTION" : "Solution does not have scope"
 }
