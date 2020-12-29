@@ -277,7 +277,7 @@ module.exports = class ProgramsSolutionsMapHelper {
             return resolve({
                 success : false,
                 message : error.message,
-                data : []
+                data : {}
             });
         }
     });
