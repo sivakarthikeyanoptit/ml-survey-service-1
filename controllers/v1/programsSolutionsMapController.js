@@ -292,5 +292,4 @@ module.exports = class ProgramsSolutionsMap extends Abstract {
     });
   }
 
-
 }

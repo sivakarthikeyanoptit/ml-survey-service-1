@@ -308,7 +308,7 @@ module.exports = {
 "THEMES_REQUIRED" : "Themes required",
 "CRITERIA_ID_REQUIRED" : "Criteria ids required",
 "QUESTION_ID_NOT_FOUND" : "Question ids not found",
-"OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly",
+"OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfully",
 "USERS_AND_ENTITIES_NOT_FOUND" : "Could not find users for the given entity and role",
 "ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
 "PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program",
@@ -319,5 +319,8 @@ module.exports = {
 "TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully", 
 "NOT_FOUND_TARGETED_PROGRAM_SOLUTION" : "Could not found targeted program and solution",
 "TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
-"TARGETED_PROGRAMS_FETCHED" : "Targeted programs fetched successfully"
+"TARGETED_PROGRAMS_FETCHED" : "Targeted programs fetched successfully",
+"PROGRAM_SOLUTION_MAP_DATA_REQUIRED" : "programSolutionMapData is required",
+"PROGRAM_SOLUTION_MAP_CREATED" : "Successfully created programSolutionMap",
+"ERROR_CREATING_PROGRAM_SOLUTION_MAP": "Error while creating program solution map"
 }

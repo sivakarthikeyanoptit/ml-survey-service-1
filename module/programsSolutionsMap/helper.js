@@ -15,6 +15,54 @@ const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 */
 
 module.exports = class ProgramsSolutionsMapHelper {
+
+  /**
+   * find programsSolutionsMap
+   * @method
+   * @name programsSolutionsMapDocuments
+   * @param {Array} [programsSolutionsMapFilter = "all"] - solution ids.
+   * @param {Array} [fieldsArray = "all"] - projected fields.
+   * @param {Array} [skipFields = "none"] - field not to include
+   * @returns {Array} List of programsSolutionsMap. 
+   */
+  
+  static programsSolutionsMapDocuments(
+    programsSolutionsMapFilter = "all", 
+    fieldsArray = "all",
+    skipFields = "none"
+  ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+    
+            let queryObject = (programsSolutionsMapFilter != "all") ? programsSolutionsMapFilter : {};
+    
+            let projection = {}
+    
+            if (fieldsArray != "all") {
+                fieldsArray.forEach(field => {
+                    projection[field] = 1;
+                });
+            }
+
+            if( skipFields !== "none" ) {
+              skipFields.forEach(field=>{
+                projection[field] = 0;
+              })
+            }
+    
+            let programsSolutionsMapDocuments = 
+            await database.models.programsSolutionsMap.find(
+              queryObject, 
+              projection
+            ).lean();
+            
+            return resolve(programsSolutionsMapDocuments);
+            
+        } catch (error) {
+            return reject(error);
+        }
+    });
+  }
     
       /**
    * Programs solutions map documents.
@@ -454,5 +502,91 @@ module.exports = class ProgramsSolutionsMapHelper {
     });
   }
 
+
+
+   /**
+     * Create programSolutionMap
+     * @method
+     * @name create
+     * @param {Object} scope - scope data
+     * @param {String} programId - programId
+     * @param {String} solutionId - solutionId
+     * @returns {Object} - ProgramSolutionMap details.
+     */
+
+    static create(programId= "", solutionId= "",scope= {}) {
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+              if (Object.keys(scope).length == 0) {
+                  throw new Error (messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_DATA_REQUIRED);
+              }
+
+              if (programId == "") {
+                  throw new Error (messageConstants.apiResponses.PROGRAM_ID_REQUIRED);
+              }
+
+              if (solutionId == "") {
+                  throw new Error (messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
+              }
+
+              let program = await programsHelper.programDocument(
+              {
+                _id : programId
+              }, [
+                "_id"
+              ]);
+
+              if (!program.length ) {
+                throw new Error(messageConstants.apiResponses.PROGRAM_NOT_FOUND)
+              }
+
+              let solution = await solutionsHelper.solutionDocuments(
+              {
+                _id : solutionId
+              }, [
+                "_id","type","subType"
+              ]);
+
+              if (!solution.length ) {
+                throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+              }
+
+              let programSolutionData = {};
+              programSolutionData.scope = scope;
+              programSolutionData.programId = program[0]._id;
+              programSolutionData.solutionId = solution[0]._id;
+              programSolutionData.solutionType = solution[0].type;
+              programSolutionData.solutionSubType = solution[0].subType;
+              programSolutionData.isReusable = false;
+
+              const programsSolutionsMapDocument = await database.models.programsSolutionsMap.create(
+                  programSolutionData
+              );
+
+              if(!programsSolutionsMapDocument){
+                throw { 
+                    status: httpStatusCode.bad_request.status, 
+                    message: messageConstants.apiResponses.ERROR_CREATING_PROGRAM_SOLUTION_MAP 
+                };
+                
+              }
+
+              return resolve({
+                  success: true,
+                  message: messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_CREATED,
+                  data: programsSolutionsMapDocument
+              });
+                
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
 
 }
