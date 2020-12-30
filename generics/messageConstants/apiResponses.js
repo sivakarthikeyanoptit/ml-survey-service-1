@@ -318,5 +318,6 @@ module.exports = {
 "OBSERVATIONS_FETCHED" : "Observations fetched successfully",
 "TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully", 
 "NOT_FOUND_TARGETED_PROGRAM_SOLUTION" : "Could not found targeted program and solution",
-"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution"
+"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
+"TARGETED_PROGRAMS_FETCHED" : "Targeted programs fetched successfully"
 }
