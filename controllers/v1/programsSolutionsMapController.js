@@ -151,4 +151,92 @@ module.exports = class ProgramsSolutionsMap extends Abstract {
     });
   }
 
+
+  /**
+    * @api {post} /assessment/api/v1/programsSolutionsMap/create/:programId?solutionId=:solutionId
+    * @apiVersion 1.0.0
+    * @apiName Targeted solution details.
+    * @apiGroup programsSolutionsMap
+    * @apiParamExample {json} Request-Body:
+    {
+      "scope" :{
+        "programs":{
+            "entityType" : "state",
+            "entityTypeId" : ObjectId("5d6605db652f3110440de195"),
+            "entities" : [ 
+                ObjectId("5d6609ef81a57a6173a79e78")
+            ]
+        }
+          
+      }
+    }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/programsSolutionsMap/create/5f4e538bdf6dd17bab708173?solutionId=5f8688e7d7f86f040b77f460
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    * "message": "ProgramSolutionMap created successfully",
+    * "status": 200,
+    * "result": {
+        "_id" : ObjectId("5fe9dbc180c27b311b7ebb4b"),
+        "programId" : ObjectId("5fc7be1e8164f7246f1113e8"),
+        "solutionId" : ObjectId("5f92b5b79a530908731ac195"),
+        "scope" : {
+          "programs" : {
+            "entityType" : "school",
+            "entityTypeId" : ObjectId("5ce23d633c330302e720e665"),
+            "entities" : [
+              ObjectId("5c0bbab881bdbe330655da7f")
+            ],
+            "roles" : [
+              {
+                "_id" : ObjectId("5d6e521066a9a45df3aa891e"),
+                "code" : "HM"
+              }
+            ]
+          }
+        },
+        "solutionType" : "survey",
+        "solutionSubType" : "survey",
+        "isReusable" : false
+    * }
+    }
+    */
+
+     /**
+   * create program solution map.
+   * @method
+   * @name create
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - program id.  
+   * @param {String} req.query.solutionId - solution id.  
+   * @returns {JSON} programSolutionMap details
+   */
+
+  async create(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        console.log(req.params._id,req.query.solutionId,req.body,"req")
+
+        let programSolutionMapDetails = await programsSolutionsHelper.create(
+            req.params._id,
+            req.query.solutionId,
+            req.body
+        );
+
+        return resolve(programSolutionMapDetails);
+
+      } catch (error) {
+
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
 }
