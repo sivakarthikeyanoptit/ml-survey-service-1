@@ -93,6 +93,10 @@ module.exports = {
       unique: true
     },
     project : Object,
-    referenceFrom : String
+    referenceFrom : String,
+    projectTemplateId : {
+      type : "ObjectId",
+      index: true
+    }
   }
 };
