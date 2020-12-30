@@ -319,6 +319,7 @@ module.exports = {
 "TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully", 
 "NOT_FOUND_TARGETED_PROGRAM_SOLUTION" : "Could not found targeted program and solution",
 "TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
+"TARGETED_PROGRAMS_FETCHED" : "Targeted programs fetched successfully",
 "PROGRAM_SOLUTION_MAP_DATA_REQUIRED" : "programSolutionMapData is required",
 "PROGRAM_SOLUTION_MAP_CREATED" : "Successfully created programSolutionMap",
 "ERROR_CREATING_PROGRAM_SOLUTION_MAP": "Error while creating program solution map",

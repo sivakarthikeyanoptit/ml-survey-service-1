@@ -23,6 +23,10 @@ module.exports = (req) => {
         update : function () {
             req.checkParams('_id').exists().withMessage("required program id");
             req.checkQuery('solutionId').exists().withMessage("required solution id");
+        },
+        targetedSolutionsByProgram : function () {
+            req.checkParams('_id').exists().withMessage("required program id");
+
         }
     }
 
