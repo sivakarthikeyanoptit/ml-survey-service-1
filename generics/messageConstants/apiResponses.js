@@ -321,5 +321,7 @@ module.exports = {
 "TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
 "PROGRAM_SOLUTION_MAP_DATA_REQUIRED" : "programSolutionMapData is required",
 "PROGRAM_SOLUTION_MAP_CREATED" : "Successfully created programSolutionMap",
-"ERROR_CREATING_PROGRAM_SOLUTION_MAP": "Error while creating program solution map"
+"ERROR_CREATING_PROGRAM_SOLUTION_MAP": "Error while creating program solution map",
+"PROGRAM_SOLUTION_MAP_UPDATED" : "Successfully updated programSolutionMap",
+"ERROR_UPDATING_PROGRAM_SOLUTION_MAP": "Error while updating program solution map"
 }

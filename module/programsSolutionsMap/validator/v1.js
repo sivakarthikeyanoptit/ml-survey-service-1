@@ -15,6 +15,14 @@ module.exports = (req) => {
         targetedProgramsSolutions : function () {
             req.checkParams('_id').exists().withMessage("required program id");
             req.checkQuery('solutionId').exists().withMessage("required solution id");
+        },
+        create : function () {
+            req.checkParams('_id').exists().withMessage("required program id");
+            req.checkQuery('solutionId').exists().withMessage("required solution id");
+        },
+        update : function () {
+            req.checkParams('_id').exists().withMessage("required program id");
+            req.checkQuery('solutionId').exists().withMessage("required solution id");
         }
     }
 

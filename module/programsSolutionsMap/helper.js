@@ -351,14 +351,6 @@ module.exports = class ProgramsSolutionsMapHelper {
                   throw new Error (messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_DATA_REQUIRED);
               }
 
-              if (programId == "") {
-                  throw new Error (messageConstants.apiResponses.PROGRAM_ID_REQUIRED);
-              }
-
-              if (solutionId == "") {
-                  throw new Error (messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
-              }
-
               let program = await programsHelper.programDocument(
               {
                 _id : programId
@@ -416,5 +408,79 @@ module.exports = class ProgramsSolutionsMapHelper {
             }
         });
     }
+
+  /**
+   * Create programSolutionMap
+   * @method
+   * @name update
+   * @param {Object} scope - scope data
+   * @param {String} programId - programId
+   * @param {String} solutionId - solutionId
+   * @returns {Object} - ProgramSolutionMap details.
+   */
+
+  static update(programId= "", solutionId= "",scope= {}) {
+
+      return new Promise(async (resolve, reject) => {
+          try {
+
+            if (Object.keys(scope).length == 0) {
+                throw new Error (messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_DATA_REQUIRED);
+            }
+
+            let program = await programsHelper.programDocument(
+            {
+              _id : programId
+            }, [
+              "_id"
+            ]);
+
+            if (!program.length ) {
+              throw new Error(messageConstants.apiResponses.PROGRAM_NOT_FOUND)
+            }
+
+            let solution = await solutionsHelper.solutionDocuments(
+            {
+              _id : solutionId
+            }, [
+              "_id"
+            ]);
+
+            if (!solution.length ) {
+              throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+            }
+
+            let updateProgramsSolutionsMapDocument = await database.models.programsSolutionsMap.findOneAndUpdate({
+              programId : programId,
+              solutionId : solutionId
+            }, {
+              $set: {
+                scope : scope
+              }
+            });
+
+            if(!updateProgramsSolutionsMapDocument){
+              throw { 
+                  status: httpStatusCode.bad_request.status, 
+                  message: messageConstants.apiResponses.ERROR_UPDATING_PROGRAM_SOLUTION_MAP 
+              };
+              
+            }
+
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_UPDATED,
+                data: updateProgramsSolutionsMapDocument
+            });
+              
+          } catch (error) {
+              return resolve({
+                  success: false,
+                  message: error.message,
+                  data: false
+              });
+          }
+      });
+  }
 
 }

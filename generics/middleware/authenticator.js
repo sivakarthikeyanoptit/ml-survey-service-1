@@ -111,7 +111,8 @@ module.exports = async function (req, res, next) {
     "solutionDetails",
     "/solutions/list",
     "/programs/listByIds",
-    "programsSolutionsMap/create"
+    "programsSolutionsMap/create",
+    "programsSolutionsMap/update"
   ]
 
   var token = req.headers["x-authenticated-user-token"];
