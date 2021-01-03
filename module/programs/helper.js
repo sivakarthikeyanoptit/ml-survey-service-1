@@ -5,6 +5,10 @@
  * Description : Programs helper functionality
  */
 
+// Dependencies
+const scopeHelper = require(MODULES_BASE_PATH + "/scope/helper");
+const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
+
 /**
     * ProgramsHelper
     * @class
@@ -121,14 +125,29 @@ module.exports = class ProgramsHelper {
    * @method
    * @name create
    * @param {Array} data 
+   * @param {String} userToken
    * @returns {JSON} - create program.
    */
 
-  static create(data) {
+  static create(data,userToken) {
 
     return new Promise(async (resolve, reject) => {
 
       try {
+
+        if( userToken && userToken !== "" ) {
+          
+          let organisationAndRootOrganisation = 
+          await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+            userToken,
+            data.userId
+          );
+
+          let createdFor =  organisationAndRootOrganisation.createdFor;
+          let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
+          data.createdFor = createdFor;
+          data.rootOrganisations = rootOrganisations;
+        }
 
         let programData = {
           "externalId" : data.externalId,
@@ -139,29 +158,52 @@ module.exports = class ProgramsHelper {
           "updatedBy" : data.userId,
           "isDeleted" : false,
           "status" : "active",
-          "resourceType" : [ 
-              "Program"
-          ],
-          "language" : [ 
-              "English"
-          ],
-          "keywords" : [
-            "keywords 1",
-            "keywords 2"
-          ],
           "concepts" : [],
           "createdFor" : data.createdFor,
           "rootOrganisations" : data.rootOrganisations,
-          "imageCompression" : {
-              "quality" : 10
-          },
           "components" : [],
           "isAPrivateProgram" : data.isAPrivateProgram ? data.isAPrivateProgram : false  
+        }
+
+        if( data.resourceType ) {
+          programData["resourceType"] = data.resourceType;
+        }
+
+        if( data.langugae ) {
+          programData["language"] = data.language;
+        }
+
+        if( data.keywords ) {
+          programData["keywords"] = data.keywords;
+        }
+
+        if( data.imageCompression ) {
+          programData["imageCompression"] = data.imageCompression;
         }
 
         let program = await database.models.programs.create(
           programData
         );
+
+        if( !program._id ) {
+          throw {
+            message : messageConstants.apiResponses.PROGRAM_NOT_CREATED
+          };
+        }
+
+        if( data.scope ) {
+
+          let programScope = 
+          await scopeHelper.addScopeInProgramSolution(
+            program._id,
+            data.scope
+          );
+
+          if( !programScope.success ) {
+            return resolve(programScope);
+          }
+          
+        }
 
         return resolve(program);
 
@@ -362,5 +404,72 @@ module.exports = class ProgramsHelper {
         }
     });
    }
+
+   /**
+   * Update program
+   * @method
+   * @name update
+   * @param {String} programId - program id.
+   * @param {Array} data 
+   * @param {String} userId
+   * @returns {JSON} - update program.
+   */
+
+  static update(programId,data,userId) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        if( Object.keys(_.omit(data,["scope"])).length > 0 ) {
+          
+          data.updatedBy = userId;
+          data.updatedAt = new Date();
+
+          let program = await database.models.programs.findOneAndUpdate({
+            _id : programId
+          },{ $set : data }, { new: true });
+
+          if( !program._id ) {
+            throw {
+              message : messageConstants.apiResponses.PROGRAM_NOT_UPDATED
+            };
+          }
+        }
+
+        if( data.scope ) {
+
+          let programScope = 
+          await scopeHelper.addScopeInProgramSolution(
+            programId,
+            data.scope
+          );
+
+          if( !programScope.success ) {
+            return resolve(programScope);
+          }
+          
+        }
+
+        return resolve({
+          success : true,
+          message : messageConstants.apiResponses.PROGRAM_UPDATED_SUCCESSFULLY,
+          data : {
+            _id : programId
+          }
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
 
 };

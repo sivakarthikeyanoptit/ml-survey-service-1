@@ -230,7 +230,6 @@ module.exports = class Observations extends Abstract {
 
     }
 
-
     /**
      * @api {post} /assessment/api/v1/observations/create?solutionId=:solutionInternalId Create Observation
      * @apiVersion 1.0.0
@@ -1746,7 +1745,7 @@ module.exports = class Observations extends Abstract {
     } 
 
 
-      /**
+    /**
     * @api {post} /assessment/api/v1/observations/bulkCreateByUserRoleAndEntity 
     * Bulk create observations by entity and role.
     * @apiVersion 1.0.0
@@ -1794,7 +1793,7 @@ module.exports = class Observations extends Abstract {
         })
     }
 
-        /**
+    /**
   * @api {get} /assessment/api/v1/observations/submissionStatus/:observationId?entityId=:entityId
   * @apiVersion 1.0.0
   * @apiName Get Observation Submission Status
@@ -1815,7 +1814,6 @@ module.exports = class Observations extends Abstract {
     ]
  }
 
-  */
    /**
    * Get observation submission status
    * @method
@@ -1851,13 +1849,12 @@ module.exports = class Observations extends Abstract {
     })
   }
 
-
     /**
     * @api {post} /assessment/api/v1/observations/getObservation?page=:page&limit=:limit&search=:search
     * List of observations and targetted ones.
     * @apiVersion 1.0.0
     * @apiGroup Observations
-    * @apiSampleRequest /assessment/api/v1/observations/getObservation
+    * @apiSampleRequest /assessment/api/v1/observations/getObservation?page=1&limit=10&search=a
     * @apiParamExample {json} Request:
     * {
     *   "role" : "HM",
@@ -1929,5 +1926,70 @@ module.exports = class Observations extends Abstract {
         })
     }
 
+      /**
+    * @api {post} /assessment/api/v1/observations/entities/:observationId?programId=:programId&solutionId=:solutionId
+    * List of observations entities.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/entities?programId=5fec2923d1d6d98686a07124&solutionId=5fec29afd1d6d98686a07156
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "5c0bbab881bdbe330655da7f",
+   		"block" : "5c0bbab881bdbe330655da7f",
+   		"cluster" : "5c0bbab881bdbe330655da7f",
+   		"school" : "5c0bbab881bdbe330655da7f"
+    }
+    * @apiParamExample {json} Response:
+    {
+        "message": "Observation entities fetched successfully",
+        "status": 200,
+        "result": [
+            {
+                "_id": "5c0bbab881bdbe330655da7f",
+                "externalId": "1959076",
+                "name": "Nigam Pratibha Vidyalaya (Girls), Jauna Pur, New Delhi"
+            }
+        ]
+    }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of observations and targetted ones.
+      * @method
+      * @name entities
+      * @param {Object} req - request data.
+      * @returns {JSON} List of observations with targetted ones.
+     */
+
+    async entities(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observations = await observationsHelper.entities(
+                    req.userDetails.userId,
+                    req.rspObj.userToken,
+                    req.params._id ? req.params._id : "",
+                    req.query.programId,
+                    req.query.solutionId, 
+                    req.body
+                );
+
+                return resolve({
+                    message: observations.message,
+                    result: observations.data
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
 
 }

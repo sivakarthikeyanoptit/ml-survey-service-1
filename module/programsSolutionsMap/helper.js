@@ -283,4 +283,39 @@ module.exports = class ProgramsSolutionsMapHelper {
     });
    }
 
+    /**
+    * Create or update program solution map.
+    * @method
+    * @name createOrUpdate
+    * @param {Object} findQuery - find query.
+    * @param {Object} bodyData - requested body data.
+    * @returns {Object} - Create program and solution map data.
+    */
+
+   static createOrUpdate(findQuery,bodyData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+          let programSolutionMapCreation = 
+          await database.models.programsSolutionsMap.update(
+            findQuery,
+            { $set : bodyData },{ upsert : true, new: true }
+          ).lean();
+
+          return resolve({
+            success : true,
+            message : messageConstants.apiResponses.PROGRAM_SOLUTION_MAP_CREATED,
+            data : programSolutionMapCreation
+          });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : {}
+            });
+        }
+    });
+   }
+
 }

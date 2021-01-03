@@ -1322,7 +1322,6 @@ module.exports = class ObservationsHelper {
         })
     }
 
-
     /**
       * Bulk create observations By entityId and role.
       * @method
@@ -1623,7 +1622,6 @@ module.exports = class ObservationsHelper {
         })
     }
 
-    
     /**
     * Get list of observations with the targetted ones.
     * @method
@@ -1727,6 +1725,136 @@ module.exports = class ObservationsHelper {
                     data : mergedData,
                     count : totalCount
                 }
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
+
+    /**
+    * List of observation entities.
+    * @method
+    * @name entities
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object} list of entities in observation
+   */
+
+   static entities( userId,token,observationId,programId,solutionId,bodyData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if( observationId === "" ) {
+                let programSolutionDetails = 
+                await programsSolutionsMapHelper.programSolutionDetails(
+                    programId,
+                    solutionId,
+                    bodyData
+                );
+                
+                if( !programSolutionDetails.success ) {
+                    return resolve(programSolutionDetails);
+                }
+
+                let startDate = new Date();
+                let endDate = new Date();
+                endDate.setFullYear(endDate.getFullYear() + 1);
+
+                let observationData = {
+                    name : programSolutionDetails.data.solution.name,
+                    description : programSolutionDetails.data.solution.name,
+                    status : messageConstants.common.PUBLISHED,
+                    startDate : startDate,
+                    endDate : endDate
+                };
+
+                if(
+                    programSolutionDetails.data.solution.entityType &&
+                    !bodyData[programSolutionDetails.data.solution.entityType]
+                 ) {
+
+                    throw {
+                        message : messageConstants.apiResponses.NOT_FOUND_TARGETED_PROGRAM_SOLUTION
+                    }
+                }
+
+                observationData["entities"] = 
+                [ObjectId(bodyData[programSolutionDetails.data.solution.entityType])];
+
+                let observation = await this.create(
+                    programSolutionDetails.data.solution._id,
+                    observationData,
+                    userId,
+                    token,
+                    programSolutionDetails.data.program._id
+                );
+
+                observationId = observation._id;
+            }
+
+            let entitiesList = await this.listEntities(observationId);
+
+            return resolve(entitiesList);
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+   }
+
+     /**
+    * List of observation entities.
+    * @method
+    * @name listEntities
+    * @param {String} observationId - Observation id.
+    * @returns {Object} List of observation entities.
+   */
+
+  static listEntities( observationId ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let observationDocument = await this.observationDocuments({
+                _id : observationId
+            },["entities"]);
+
+            if(!observationDocument[0]) {
+                throw {
+                    message : messageConstants.apiResponses.OBSERVATION_NOT_FOUND
+                };
+            }
+
+            let entitiesData = await entitiesHelper.entityDocuments({
+                _id : { $in : observationDocument[0].entities }
+            },["metaInformation.externalId","metaInformation.name"]);
+
+            if( !entitiesData.length > 0 ) {
+                throw {
+                    message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                }
+            }
+
+            entitiesData = entitiesData.map( entity => {
+                entity.externalId = entity.metaInformation.externalId;
+                entity.name = entity.metaInformation.name;
+                delete entity.metaInformation;
+                return entity;
+            });
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
+                data : entitiesData
             });
 
         } catch (error) {

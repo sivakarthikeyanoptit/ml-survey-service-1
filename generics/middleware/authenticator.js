@@ -144,7 +144,7 @@ module.exports = async function (req, res, next) {
   }
 
 //api need both internal access token and x-authenticated-user-token
-  const internalAccessAndTokenApiPaths = ["entityAssessors/create"];
+  const internalAccessAndTokenApiPaths = ["entityAssessors/create","programs/create","programs/update"];
   let performInternalAccessTokenAndTokenCheck = false;
   await Promise.all(internalAccessAndTokenApiPaths.map(async function (path) {
     if (req.path.includes(path)) {

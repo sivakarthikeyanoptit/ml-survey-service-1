@@ -318,5 +318,18 @@ module.exports = {
 "OBSERVATIONS_FETCHED" : "Observations fetched successfully",
 "TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully", 
 "NOT_FOUND_TARGETED_PROGRAM_SOLUTION" : "Could not found targeted program and solution",
-"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution"
+"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
+"TARGETED_PROGRAM_SOLUTION_FETCHED" : "Successfully fetched targeted program and solution",
+"ENTITIES_NOT_FOUND" : "No entities found",
+"OBSERVATION_ENTITIES_FETCHED" : "Observation entities fetched successfully",
+"PROGRAM_NOT_CREATED" : "Could not create program",
+"ENTITY_TYPE_REQUIRED_IN_SCOPE" : "Required entity type in scope",
+"ENTITIES_REQUIRED_IN_SCOPE" : "Entities required in scope",
+"PROGRAM_SCOPE_NOT_ADDED" : "Could not add program scope",
+"PROGRAM_SCOPE_ADDED" : "Program scope added successfully",
+"PROGRAM_SOLUTION_MAP_CREATED" : "Created program solution map",
+"PROGRAM_NOT_UPDATED" : "Could not update program",
+"ROLE_REQUIRED_IN_SCOPE" : "Required role in scope",
+"PROGRAM_UPDATED_SUCCESSFULLY" : "Program updated successfully",
+"PROGRAM_CREATED" : "Program created successfully"
 }

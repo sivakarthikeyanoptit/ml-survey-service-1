@@ -20,7 +20,13 @@ module.exports = {
         scope : Object,
         solutionType : String,
         solutionSubType : String,
-        isReusable : Boolean
+        isReusable : Boolean,
+        programName : String,
+        programExternalId : String,
+        programDescription : String,
+        solutionExternalId : String,
+        solutionName : String,
+        solutionDescription : String
     }
 };
   
