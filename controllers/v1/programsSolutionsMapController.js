@@ -36,7 +36,7 @@ module.exports = class ProgramsSolutionsMap extends Abstract {
         "school" : "5c0bbab881bdbe330655da7f"
     }
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/solutions/programsSolutionsMap/targetedSolutions?type=observation&subType=school&page=1&limit=1
+    * @apiSampleRequest /assessment/api/v1/programsSolutionsMap/targetedSolutions?type=observation&subType=school&page=1&limit=1
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
@@ -107,7 +107,7 @@ module.exports = class ProgramsSolutionsMap extends Abstract {
         "school" : "5c0bbab881bdbe330655da7f"
     }
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v1/solutions/programsSolutionsMap/programSolutionDetails/5f4e538bdf6dd17bab708173?solutionId=5f8688e7d7f86f040b77f460
+    * @apiSampleRequest /assessment/api/v1/programsSolutionsMap/programSolutionDetails/5f4e538bdf6dd17bab708173?solutionId=5f8688e7d7f86f040b77f460
     * @apiUse successBody
     * @apiUse errorBody
     * @apiParamExample {json} Response:
