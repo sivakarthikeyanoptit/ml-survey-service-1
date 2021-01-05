@@ -876,6 +876,7 @@ module.exports = class QuestionsHelper {
         }
 
         let questionIdMap = {};
+        let questionExternalIdMap = {};
 
         let questionDocuments = await this.questionDocument
           (
@@ -889,8 +890,9 @@ module.exports = class QuestionsHelper {
         let newQuestionDocuments = [];
 
         await Promise.all(questionDocuments.map(async question => {
-          
-          question.externalId = question.externalId + "-" + gen.utils.epochTime();
+          let newExternalId = question.externalId + "-" + gen.utils.epochTime();
+          questionExternalIdMap[question.externalId] = newExternalId;
+          question.externalId = newExternalId;
           question.createdFromQuestionId = question._id;
           let newQuestion = await this.make(_.omit(question, ["_id"]))
 
@@ -944,7 +946,10 @@ module.exports = class QuestionsHelper {
         return resolve({
           success: true,
           message: messageConstants.apiResponses.DUPLICATED_QUESTIONS_SUCCESSFULLY,
-          data: questionIdMap
+          data: {
+              questionIdMap: questionIdMap,
+              questionExternalIdMap: questionExternalIdMap
+            }
         });
 
       } catch (error) {
