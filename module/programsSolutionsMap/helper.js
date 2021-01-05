@@ -126,7 +126,14 @@ module.exports = class ProgramsSolutionsMapHelper {
     * @returns {Object} - List of targeted solutions.
     */
 
-   static targetedSolutions(bodyData,type,subType,pageSize,pageNo,searchText) {
+   static targetedSolutions(
+     bodyData,
+     type,
+     subType,
+     pageSize,
+     pageNo,
+     searchText
+   ) {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -145,8 +152,11 @@ module.exports = class ProgramsSolutionsMapHelper {
                 "scope.programs.entities" : { $in : filterEntities }
               }
             ],
-            solutionType : type,
             isReusable : false
+          }
+
+          if( type !== "" ) {
+            targetedSolutionQuery.solutionType = type;
           }
 
           if (subType !== "") {
@@ -379,7 +389,7 @@ module.exports = class ProgramsSolutionsMapHelper {
             }
           };
 
-          let targettedPrograms = await programsHelper.search(
+          let programData = await programsHelper.search(
             matchQuery,
             pageSize,
             pageNo,
@@ -392,8 +402,8 @@ module.exports = class ProgramsSolutionsMapHelper {
             searchText
           );
          
-          if (targettedPrograms[0].data && targettedPrograms[0].data.length > 0) {
-            targettedPrograms[0].data.map( program => {
+          if (programData[0].data && programData[0].data.length > 0) {
+            programData[0].data.map( program => {
                 program.solutions = program.components.length;
                 delete program.components;
              })
@@ -402,7 +412,7 @@ module.exports = class ProgramsSolutionsMapHelper {
           return resolve({
             success: true,
             message: messageConstants.apiResponses.TARGETED_PROGRAMS_FETCHED,
-            data: targettedPrograms[0]
+            data: programData[0]
           });
 
         } catch (error) {
@@ -414,7 +424,6 @@ module.exports = class ProgramsSolutionsMapHelper {
         }
     });
   }
-
 
    /**
     * List of user targeted solutions by program.
@@ -451,7 +460,8 @@ module.exports = class ProgramsSolutionsMapHelper {
             isReusable : false
           }
 
-          let targetedSolutions =  await this.list(targetedSolutionQuery,["solutionId"]);
+          let targetedSolutions =  
+          await this.list(targetedSolutionQuery,["solutionId"]);
 
           if( !targetedSolutions.length > 0 ) {
             throw {
@@ -501,8 +511,6 @@ module.exports = class ProgramsSolutionsMapHelper {
         }
     });
   }
-
-
 
    /**
      * Create programSolutionMap

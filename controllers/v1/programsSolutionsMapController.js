@@ -13,9 +13,9 @@ const programsSolutionsHelper = require(MODULES_BASE_PATH + "/programsSolutionsM
     * @class
 */
 
-module.exports = class ProgramsSolutionsMap extends Abstract {
+module.exports = class ProgramsSolutionsMap {
     constructor() {
-        super(programsSolutionsMapSchema);
+        // super(programsSolutionsMapSchema);
     }
 
     static get name() {

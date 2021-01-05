@@ -6,8 +6,10 @@
  */
 
 // Dependencies
-const scopeHelper = require(MODULES_BASE_PATH + "/scope/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * ProgramsHelper
@@ -137,16 +139,19 @@ module.exports = class ProgramsHelper {
 
         if( userToken && userToken !== "" ) {
           
-          let organisationAndRootOrganisation = 
-          await shikshalokamHelper.getOrganisationsAndRootOrganisations(
-            userToken,
-            data.userId
-          );
+          // let organisationAndRootOrganisation = 
+          // await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+          //   userToken,
+          //   data.userId
+          // );
 
-          let createdFor =  organisationAndRootOrganisation.createdFor;
-          let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
-          data.createdFor = createdFor;
-          data.rootOrganisations = rootOrganisations;
+          // let createdFor =  organisationAndRootOrganisation.createdFor;
+          // let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
+          // data.createdFor = createdFor;
+          // data.rootOrganisations = rootOrganisations;
+
+            data.createdFor = [];
+            data.rootOrganisations = [];
         }
 
         let programData = {
@@ -193,8 +198,7 @@ module.exports = class ProgramsHelper {
 
         if( data.scope ) {
 
-          let programScope = 
-          await scopeHelper.addScopeInProgramSolution(
+          let programScope = await this.addScope(
             program._id,
             data.scope
           );
@@ -353,7 +357,7 @@ module.exports = class ProgramsHelper {
             });
         }
     });
-}
+   }
 
        /**
     * Remove solutions from program.
@@ -404,8 +408,7 @@ module.exports = class ProgramsHelper {
         }
     });
   }
-
-
+  
    /**
    * Search programs.
    * @method
@@ -480,7 +483,6 @@ module.exports = class ProgramsHelper {
     })
   }
 
-
    /**
    * Update program
    * @method
@@ -515,16 +517,11 @@ module.exports = class ProgramsHelper {
 
         if( data.scope ) {
 
-          let programScope = 
-          await scopeHelper.addScopeInProgramSolution(
-            programId,
-            data.scope
-          );
+          let programScope = await this.addScope( programId,data.scope );
 
           if( !programScope.success ) {
             return resolve(programScope);
           }
-          
         }
 
         return resolve({
@@ -533,6 +530,140 @@ module.exports = class ProgramsHelper {
           data : {
             _id : programId
           }
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
+
+  /**
+   * add scope in program
+   * @method
+   * @name addScope
+   * @param {String} programId - program id.
+   * @param {Object} scopeData - scope data. 
+   * @returns {JSON} - Added scope data.
+   */
+
+  static addScope( programId,scopeData ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let programData = await this.list({ _id : programId },["_id"]);
+
+        if( !programData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+          });
+        }
+
+        if( !scopeData.entityType ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.ENTITY_TYPE_REQUIRED_IN_SCOPE
+          });
+        }
+
+        let entityTypeData =  await entityTypesHelper.list(
+          {
+            name : scopeData.entityType
+          },
+          {
+            "name" : 1
+          }
+        );
+        
+        if( !entityTypeData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.ENTITY_TYPES_NOT_FOUND
+          });
+        }
+
+        let scope = {
+          entityType : entityTypeData[0].name,
+          entityTypeId : entityTypeData[0]._id
+        }
+
+        if( !scopeData.entities && !scopeData.entities.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.ENTITIES_REQUIRED_IN_SCOPE
+          });
+        }
+
+        let entities = 
+        await entitiesHelper.entityDocuments(
+          {
+            _id : { $in : scopeData.entities },
+            entityTypeId : entityTypeData[0]._id
+          },["_id"]
+        );
+        
+        if( !entities.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+          });
+        }
+
+        scope["entities"] = entities.map(entity => {
+          return entity._id;
+        });
+
+        if( !scopeData.roles ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.ROLE_REQUIRED_IN_SCOPE
+          });
+        }
+
+        let userRoles = await userRolesHelper.list({
+          code : { $in : scopeData.roles }
+        },{
+          _id : 1,
+          code : 1
+        });
+        
+        if( !userRoles.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.INVALID_ROLE_CODE
+          });
+        }
+
+        scope["roles"] = userRoles;
+
+        let updateProgram = 
+        await database.models.programs.findOneAndUpdate(
+          {
+            _id : programId
+          },
+          { $set : { scope : scope }},{ new: true }
+        ).lean();
+
+        if( !updateProgram._id ) {
+          throw {
+            status : messageConstants.apiResponses.PROGRAM_SCOPE_NOT_ADDED
+          };
+        }
+
+        return resolve({
+          success : true,
+          message : messageConstants.apiResponses.PROGRAM_UPDATED_SUCCESSFULLY,
+          data : updateProgram
         });
 
       } catch (error) {

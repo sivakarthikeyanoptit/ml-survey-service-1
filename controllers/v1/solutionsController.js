@@ -1417,7 +1417,6 @@ module.exports = class Solutions extends Abstract {
     });
   }
   
-  
   /**
     * @api {get} /assessment/api/v1/solutions/getObservationSolutionLink/{{observationsolutionId}}?appName:appName 
     * @apiVersion 1.0.0
@@ -1742,6 +1741,156 @@ module.exports = class Solutions extends Abstract {
         );
 
         return resolve(solutionData);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+   /**
+    * @api {post} /assessment/api/v1/solutions/create Create solution
+    * @apiVersion 1.0.0
+    * @apiName Create solution
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+    * "resourceType" : [],
+    * "language" : [],
+    * "keywords" : [],
+    * "concepts" : [],
+    * "createdFor" : [ 
+        "01305447637218918413"
+      ],
+    "themes" : [],
+    "flattenedThemes" : [],
+    "entities" : [ 
+        "5beaa888af0065f0e0a10515"
+    ],
+    "registry" : [],
+    "isRubricDriven" : false,
+    "enableQuestionReadOut" : false,
+    "allowMultipleAssessemts" : false,
+    "isDeleted" : false,
+    "rootOrganisations" : [ 
+        "01305447637218918413"
+    ],
+    "programExternalId" : "AMAN_TEST_123-1607937244986",
+    "entityType" : "school",
+    "type" : "improvementProject",
+    "subType" : "improvementProject",
+    "isReusable" : false,
+    "externalId" : "01c04166-a65e-4e92-a87b-a9e4194e771d-1607936956167"
+    }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/create
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    "message": "Solution created successfully",
+    "status": 200,
+    "result": {
+        "_id": "5ff447e127ef425953bd8306"
+    }}
+    */
+
+     /**
+   * Create solution.
+   * @method
+   * @name create
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id.
+   * @returns {JSON} Created solution data.
+   */
+
+  async create(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionData = await solutionsHelper.create(
+          req.body
+        );
+
+        return resolve({
+          message : messageConstants.apiResponses.SOLUTION_CREATED,
+          result : {
+            _id : solutionData._id
+          }
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+   /**
+    * @api {post} /assessment/api/v1/solutions/autoTargeted?type=:type&subType=:subType&page=:page&limit=:limit Auto targeted solutions
+    * @apiVersion 1.0.0
+    * @apiName Auto targeted solution
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+        "role" : "HM",
+   		  "state" : "5c0bbab881bdbe330655da7f",
+   		  "block" : "5c0bbab881bdbe330655da7f",
+   		  "cluster" : "5c0bbab881bdbe330655da7f",
+        "school" : "5c0bbab881bdbe330655da7f"
+        "filter" : {}
+    }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/autoTargeted?type=assessment&page=1&limit=5
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    "message": "Successfully targeted solutions fetched",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5ff447e127ef425953bd8306",
+                "programId": "5ff438b04698083dbfab7284",
+                "programName": "TEST scope in program"
+            }
+        ],
+        "count": 1
+    }
+    }
+    */
+
+     /**
+   * Auto targeted solution.
+   * @method
+   * @name autoTargeted
+   * @param {Object} req - requested data.
+   * @returns {JSON} Created solution data.
+   */
+
+  async autoTargeted(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let targetedSolutions = await solutionsHelper.autoTargeted(
+          req.body,
+          req.query.type,
+          req.query.subType ? req.query.subType : "",
+          req.pageSize,
+          req.pageNo,
+          req.searchText
+        );
+          
+        targetedSolutions.result = targetedSolutions.data;
+        return resolve(targetedSolutions);
 
       } catch (error) {
         return reject({

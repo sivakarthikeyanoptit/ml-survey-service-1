@@ -38,6 +38,7 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
-    }
+    },
+    scope : Object
   }
 };

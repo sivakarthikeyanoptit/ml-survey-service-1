@@ -12,7 +12,10 @@ module.exports = {
     author: String,
     parentSolutionId: "ObjectId",
     resourceType: Array,
-    language: Array,
+    language: {
+      type : Array,
+      default : ["English"]
+    },
     keywords: Array,
     concepts: Array,
     createdFor: Array,
@@ -97,6 +100,7 @@ module.exports = {
     projectTemplateId : {
       type : "ObjectId",
       index: true
-    }
+    },
+    scope : Object
   }
 };

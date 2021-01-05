@@ -8,7 +8,6 @@
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
-const programSolutionMapHelper = require(MODULES_BASE_PATH + "/programsSolutionsMap/helper");
 const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
  /**
@@ -17,7 +16,7 @@ const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 */
 
 module.exports = class ScopeHelper {
-
+    
     /**
     * Add scope in program.
     * @method
@@ -31,34 +30,53 @@ module.exports = class ScopeHelper {
     return new Promise(async (resolve, reject) => {
         try {
 
-          let programSolutionMap = {
-            scope : {}
-          }
+          let filterQuery = {
+            programId : programId
+          };
+          
+          let programSolutionMap = {}
 
           if( solutionId !== "" ) {
-            
+
+            let solutionData = await database.models.solutions.find({
+              _id : solutionId,
+              programId : programId,
+              status : messageConstants.common.ACTIVE_STATUS
+            },{
+              "externalId" : 1,
+              "programId" : 1,
+              "type" : 1,
+              "subType" : 1
+            }).lean();
+
+            if( !solutionData.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+              });
+            }
+
+            programSolutionMap["solutionId"] = solutionData[0]._id;
+            programSolutionMap["solutionExternalId"] = solutionData[0].externalId;
+            programSolutionMap["solutionType"] = solutionData[0].type;
+            programSolutionMap["solutionSubType"] = solutionData[0].subType;
+
           } else {
 
             let programData = await database.models.programs.find({
               _id : programId
             },{
               "name" : 1,
-              "description" : 1,
               "externalId" : 1
             }).lean();
   
             if( !programData.length > 0 ) {
               return resolve({
                 status : httpStatusCode.bad_request.status,
-                message : messageConstants.apiResponses.PROGRAM_NOT_CREATED
+                message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
               });
             }
-
-            programSolutionMap["programId"] = programData[0]._id;
-            programSolutionMap["programName"] = programData[0].name;
             programSolutionMap["programExternalId"] = programData[0].externalId;
-            programSolutionMap["programDescription"] = 
-            programData[0].description ? programData[0].description : "";
           }
 
           if( !scopeData.entityType ) {
@@ -138,27 +156,20 @@ module.exports = class ScopeHelper {
           }
 
           scope["roles"] = userRoles;
-          let filterQuery = {
-            programId : programId
-          };
+          programSolutionMap["scope"] = scope;
 
-          if( solutionId === "" ) {
-            programSolutionMap.scope["programs"] = scope;
-          } else {
-
-          }
-
-          let programScopeData = await programSolutionMapHelper.createOrUpdate(
+          let programScopeData = 
+          await database.models.programsSolutionsMap.update(
             filterQuery,
-            programSolutionMap
-          );
+            { $set : programSolutionMap },{ upsert : true, new: true }
+          ).lean();
 
-          if( !programScopeData.success ) {
+          if( !programScopeData.n ) {
             throw {
               status : messageConstants.apiResponses.PROGRAM_SCOPE_NOT_ADDED
             };
           }
-
+          
           return resolve({
             success : true,
             message : messageConstants.apiResponses.PROGRAM_SCOPE_ADDED,
@@ -173,6 +184,5 @@ module.exports = class ScopeHelper {
             });
         }
     });
-   }
-   
+   }  
 }

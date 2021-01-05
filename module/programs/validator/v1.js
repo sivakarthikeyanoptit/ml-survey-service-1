@@ -22,6 +22,9 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required program id");
             req.checkBody("solutionIds").exists().withMessage("required solutions ids");
         },
+        create : function () {
+            req.checkBody('externalId').exists().withMessage("required solution externalId");
+        },
         update : function () {
             req.checkParams("_id").exists().withMessage("required program id");
         }

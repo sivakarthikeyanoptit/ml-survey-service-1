@@ -11,6 +11,9 @@ const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
+
 
 /**
     * SolutionsHelper
@@ -104,11 +107,101 @@ module.exports = class SolutionsHelper {
   static create(data) {
     return new Promise(async (resolve, reject) => {
         try {
+
+            if( data.programExternalId ) {
+
+              let programData = await programsHelper.list({
+                externalId : data.programExternalId
+              },["name","description"]);
+
+              if ( !programData.length > 0 ) {
+                throw {
+                  message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+                }
+              }
+
+              data.programId = programData[0]._id;
+              data.programName = programData[0].name;
+              data.programDescription = programData[0].description; 
+            }
+
+            if( data.entityType ) {
+              
+              let entityTypeData = 
+              await entityTypesHelper.list({
+                name : data.entityType
+              },["_id"]);
+
+              if( !entityTypeData.length > 0 ) {
+                throw {
+                  message : messageConstants.apiResponses.ENTITY_TYPES_NOT_FOUND
+                }
+              }
+            }
+
+            if( data.entities && data.entities.length > 0 ) {
+              
+              let entitiesData = 
+              await entitiesHelper.entityDocuments({
+                _id : { $in : data.entities }
+              },["_id"]);
+
+              if( !entitiesData.length > 0 ) {
+                throw {
+                  message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                }
+              }
+
+              entitiesData = entitiesData.map( entity => {
+                return entity._id;
+              })
+            }
+
+            if( data.type ) {
+              
+              let solutionTypeList = solutionTypes();
+              if( !solutionTypeList.includes(data.type) ) {
+                throw {
+                  message : messageConstants.apiResponses.SOLUTION_TYPE_INVALID
+                }
+              }
+            }
+
+            data.status = messageConstants.common.ACTIVE_STATUS;
     
             let solutionData = 
             await database.models.solutions.create(
-              data
+              _.omit(data,["scope"])
             );
+
+            if( !solutionData._id ) {
+              throw {
+                message : messageConstants.apiResponses.SOLUTION_NOT_CREATED
+              }
+            }
+
+            if( !solutionData.sisReusable ) {
+
+              let updateProgram = 
+              await database.models.programs.updateOne(
+                { 
+                  _id: data.programId
+                }, { 
+                  $addToSet: { components : solutionData._id } 
+              });
+
+              let solutionScope = 
+              await this.addScope(
+                data.programId,
+                solutionData._id,
+                data.scope ? data.scope : {}
+              );
+
+              if( !solutionScope.success ) {
+                return resolve(solutionScope);
+              }
+
+            }
             
             return resolve(solutionData);
             
@@ -1698,4 +1791,264 @@ module.exports = class SolutionsHelper {
         }
     });
    }
+
+     /**
+   * add scope in solution
+   * @method
+   * @name addScope
+   * @param {String} programId - program id.
+   * @param {String} solutionId - solution id.
+   * @param {Object} scopeData - scope data. 
+   * @returns {JSON} - Added scope in solution.
+   */
+
+  static addScope( programId,solutionId,scopeData ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let programData = await programsHelper.list({ _id : programId },["_id","scope"]);
+ 
+        if( !programData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+          });
+        }
+
+        let solutionData = await this.solutionDocuments({ _id : solutionId },["_id"]);
+
+        if( !solutionData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          });
+        }
+
+        if( programData[0].scope ) {
+          
+          let currentSolutionScope = programData[0].scope;
+
+          if( Object.keys(scopeData).length > 0 ) {
+
+            if( !scopeData.entityType ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITY_TYPE_REQUIRED_IN_SCOPE
+              });
+            }
+
+            let entityType =  await entityTypesHelper.list({ 
+              name : scopeData.entityType 
+            },{
+              "name" : 1
+            });
+
+            currentSolutionScope.entityType = entityType[0].name;
+            currentSolutionScope.entityTypeId = entityType[0]._id;
+
+            if( !scopeData.entities && !scopeData.entities.length > 0 ) {
+              
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITIES_REQUIRED_IN_SCOPE
+              });
+
+            }
+            
+            let entities = 
+            await entitiesHelper.entityDocuments(
+              {
+                _id : { $in : scopeData.entities },
+                entityTypeId : entityType[0]._id
+              },["_id"]
+            );
+
+            if( !entities.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+              });
+            }
+
+            let entityIds = [];
+
+            for( let entity = 0; entity < entities.length; entity ++ ) {
+              
+              let entityQuery = {
+                _id : { $in : currentSolutionScope.entities },
+                [`groups.${currentSolutionScope.entityType}`] : entities[entity]._id
+              }
+
+              let entityInParent = 
+              await entitiesHelper.entityDocuments(entityQuery);
+
+              if( entityInParent.length > 0 ) {
+                entityIds.push(ObjectId(entities[entity]._id));
+              }
+            }
+
+            if( !entityIds.length > 0 ) {
+              
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.SCOPE_ENTITY_INVALID
+              });
+
+            }
+
+            currentSolutionScope.entities = entityIds;
+
+            if( !scopeData.roles.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ROLE_REQUIRED_IN_SCOPE
+              });
+            }
+
+            let userRoles = await userRolesHelper.list({
+              code : { $in : scopeData.roles }
+            },{
+              _id : 1,
+              code : 1
+            });
+
+            if( !userRoles.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.INVALID_ROLE_CODE
+              });
+            }
+
+            currentSolutionScope["roles"] = userRoles;
+
+            let updateSolution = 
+            await database.models.solutions.findOneAndUpdate(
+              {
+                _id : solutionId
+              },
+              { $set : { scope : currentSolutionScope }},{ new: true }
+            ).lean();
+    
+            if( !updateSolution._id ) {
+              throw {
+                status : messageConstants.apiResponses.SOLUTION_SCOPE_NOT_ADDED
+              };
+            }
+            solutionData = updateSolution;
+          }
+
+        }
+
+        return resolve({
+          success : true,
+          message : messageConstants.apiResponses.SOLUTION_UPDATED,
+          data : solutionData
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
+
+   /**
+   * List of auto targeted solutions.
+   * @method
+   * @name autoTargeted
+   * @param {String} bodyData - Requested body data.
+   * @param {String} type - solution type.
+   * @param {String} subType - solution sub type.
+   * @param {String} pageSize - Page size.
+   * @param {String} pageNo - Page no.
+   * @param {String} searchText - search text.
+   * @returns {JSON} - List of auto targeted solutions.
+   */
+
+  static autoTargeted( bodyData,type,subType, pageSize,pageNo,searchText ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+          let filterEntities = 
+          Object.values(_.omit(bodyData,["role","filter"])).map(entity => {
+            return ObjectId(entity);
+          });
+
+          let filterQuery = {
+            "scope.roles.code" : bodyData.role,
+            "scope.entities" : { $in : filterEntities },
+            isReusable : false,
+            type : type,
+            "isDeleted" : false,
+            status : messageConstants.common.ACTIVE_STATUS
+          }
+
+          if( subType !== "" ) {
+            filterQuery["subType"] = subType;
+          }
+
+          if( bodyData.filter && Object.keys(bodyData.filter).length > 0 ) {
+            filterQuery = _.merge(filterQuery,bodyData.filter);
+          }
+
+          let targetedSolutions = await this.search(
+            {
+              $match : filterQuery
+            },
+            pageSize,
+            pageNo,
+            {
+              name : 1,
+              description : 1,
+              programName : 1,
+              programId : 1,
+            },
+            searchText
+          );
+        
+          return resolve({
+            success: true,
+            message: messageConstants.apiResponses.TARGETED_SOLUTIONS_FETCHED,
+            data: targetedSolutions[0]
+          });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
+
 };
+
+ /**
+    * List of solution types.
+    * @method
+    * @name solutionTypes
+    * @returns {Object} - List of solution types.
+*/
+
+function solutionTypes() {
+  return [
+    messageConstants.common.ASSESSMENT,
+    messageConstants.common.OBSERVATION,
+    messageConstants.common.IMPROVEMENT_PROJECT,
+    messageConstants.common.SURVEY
+  ]
+}

@@ -1353,14 +1353,14 @@ module.exports = class SurveysHelper {
             }
 
             if( solutionIds.length > 0 ) {
-                bodyData["filteredData"] = {};
-                bodyData["filteredData"]["_id"] = {
+                bodyData["filter"] = {};
+                bodyData["filter"]["_id"] = {
                     $nin : solutionIds
                 }; 
             }
 
             let targetedSolutions = 
-            await programsSolutionsMapHelper.targetedSolutions
+            await programsSolutionsMapHelper.autoTargeted
             (
                 bodyData,
                 messageConstants.common.SURVEY,

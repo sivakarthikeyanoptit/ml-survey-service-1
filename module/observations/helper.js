@@ -1678,8 +1678,8 @@ module.exports = class ObservationsHelper {
             }
 
             if( solutionIds.length > 0 ) {
-                bodyData["filteredData"] = {};
-                bodyData["filteredData"]["_id"] = {
+                bodyData["filter"] = {};
+                bodyData["filter"]["_id"] = {
                     $nin : solutionIds
                 }; 
             }
@@ -1687,7 +1687,7 @@ module.exports = class ObservationsHelper {
             let subType = "";
 
             let targetedSolutions = 
-            await programsSolutionsMapHelper.targetedSolutions
+            await solutionHelper.autoTargeted
             (
                 bodyData,
                 messageConstants.common.OBSERVATION,

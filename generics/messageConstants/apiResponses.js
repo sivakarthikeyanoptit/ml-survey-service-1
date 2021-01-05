@@ -337,5 +337,10 @@ module.exports = {
 "PROGRAM_SOLUTION_MAP_CREATED" : "Successfully created programSolutionMap",
 "ERROR_CREATING_PROGRAM_SOLUTION_MAP": "Error while creating program solution map",
 "PROGRAM_SOLUTION_MAP_UPDATED" : "Successfully updated programSolutionMap",
-"ERROR_UPDATING_PROGRAM_SOLUTION_MAP": "Error while updating program solution map"
+"ERROR_UPDATING_PROGRAM_SOLUTION_MAP": "Error while updating program solution map",
+"SOLUTION_TYPE_INVALID" : "Solution type is invalid",
+"SOLUTION_NOT_CREATED" : "Solution not created",
+"SCOPE_ENTITY_INVALID" : "Scope entity is invalid",
+"SOLUTION_SCOPE_NOT_ADDED" : "Could not add solution scope",
+"SOLUTION_CREATED" : "Solution created successfully"
 }
