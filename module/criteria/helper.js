@@ -502,14 +502,19 @@ module.exports = class criteriaHelper {
 
         let criteriaIdMap = {};
         let questionIdMap = {};
+        let questionExternalIdMap = {};
 
         let duplicateQuestionsResponse = await questionsHelper.duplicate
         (
           criteriaIds
         )
+        
+        if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data.questionIdMap).length > 0) {
+          questionIdMap = duplicateQuestionsResponse.data.questionIdMap;
+        }
 
-        if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
-          questionIdMap = duplicateQuestionsResponse.data;
+        if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data.questionExternalIdMap).length > 0) {
+          questionExternalIdMap = duplicateQuestionsResponse.data.questionExternalIdMap;
         }
         
         await Promise.all(criteriaDocuments.map(async criteria => {
@@ -574,7 +579,10 @@ module.exports = class criteriaHelper {
         return resolve({
           success: true,
           message: messageConstants.apiResponses.DUPLICATED_CRITERIA_SUCCESSFULLY,
-          data: criteriaIdMap
+          data: {
+              criteriaIdMap: criteriaIdMap,
+              questionExternalIdMap: questionExternalIdMap
+            }
         });
 
       } catch (error) {

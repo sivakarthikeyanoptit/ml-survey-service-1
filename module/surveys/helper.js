@@ -308,8 +308,28 @@ module.exports = class SurveysHelper {
 
                 let duplicateQuestionsResponse =  await questionsHelper.duplicate([solutionCriteria[0]._id]);
                 
-                if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data).length > 0) {
-                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data);
+                if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data.questionIdMap).length > 0) {
+                  solutionCriteria[0].evidences[0].sections[0].questions = Object.values(duplicateQuestionsResponse.data.questionIdMap);
+                }
+
+                let questionExternalIdMap = {};
+                if (duplicateQuestionsResponse.success && Object.keys(duplicateQuestionsResponse.data.questionExternalIdMap).length > 0) {
+                   questionExternalIdMap = duplicateQuestionsResponse.data.questionExternalIdMap;
+                }
+                
+                if (newSolutionDocument["questionSequenceByEcm"] && Object.keys(newSolutionDocument.questionSequenceByEcm).length > 0) {
+                    Object.keys(newSolutionDocument.questionSequenceByEcm).map(evidence => {
+                        Object.keys(newSolutionDocument.questionSequenceByEcm[evidence]).map(section => {
+                            let questionExternalIds = newSolutionDocument.questionSequenceByEcm[evidence][section];
+                            let newQuestionExternalIds = [];
+                            questionExternalIds.map(questionExternalId => {
+                                if (questionExternalIdMap[questionExternalId]) {
+                                    newQuestionExternalIds.push(questionExternalIdMap[questionExternalId])
+                                }
+                            })
+                            newSolutionDocument.questionSequenceByEcm[evidence][section] = newQuestionExternalIds;
+                        })
+                    })
                 }
                 
                 solutionCriteria[0].parentCriteriaId = solutionCriteria[0]._id;

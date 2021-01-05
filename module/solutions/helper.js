@@ -1151,8 +1151,13 @@ module.exports = class SolutionsHelper {
           await criteriaHelper.duplicate(newSolutionDocument.themes);
           
           let criteriaIdMap = {};
-          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data).length > 0) {
-             criteriaIdMap = duplicateCriteriasResponse.data;
+          let questionExternalIdMap = {}
+          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data.criteriaIdMap).length > 0) {
+             criteriaIdMap = duplicateCriteriasResponse.data.criteriaIdMap;
+          }
+
+          if (duplicateCriteriasResponse.success && Object.keys(duplicateCriteriasResponse.data.questionExternalIdMap).length > 0) {
+            questionExternalIdMap = duplicateCriteriasResponse.data.questionExternalIdMap;
           }
 
           let updateThemes = function (themes) {
@@ -1178,6 +1183,21 @@ module.exports = class SolutionsHelper {
           let startDate = new Date();
           let endDate = new Date();
           endDate.setFullYear(endDate.getFullYear() + 1);
+
+          if (newSolutionDocument["questionSequenceByEcm"] && Object.keys(newSolutionDocument.questionSequenceByEcm).length > 0) {
+            Object.keys(newSolutionDocument.questionSequenceByEcm).map(evidence => {
+              Object.keys(newSolutionDocument.questionSequenceByEcm[evidence]).map(section => {
+                let questionExternalIds = newSolutionDocument.questionSequenceByEcm[evidence][section];
+                let newQuestionExternalIds = [];
+                questionExternalIds.map(questionExternalId => {
+                  if (questionExternalIdMap[questionExternalId]) {
+                    newQuestionExternalIds.push(questionExternalIdMap[questionExternalId])
+                  }
+                })
+                newSolutionDocument.questionSequenceByEcm[evidence][section] = newQuestionExternalIds;
+              })
+            })
+          }
 
           if( data.entities && data.entities.length > 0 ) {
             
