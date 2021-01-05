@@ -139,19 +139,16 @@ module.exports = class ProgramsHelper {
 
         if( userToken && userToken !== "" ) {
           
-          // let organisationAndRootOrganisation = 
-          // await shikshalokamHelper.getOrganisationsAndRootOrganisations(
-          //   userToken,
-          //   data.userId
-          // );
+          let organisationAndRootOrganisation = 
+          await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+            userToken,
+            data.userId
+          );
 
-          // let createdFor =  organisationAndRootOrganisation.createdFor;
-          // let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
-          // data.createdFor = createdFor;
-          // data.rootOrganisations = rootOrganisations;
-
-            data.createdFor = [];
-            data.rootOrganisations = [];
+          let createdFor =  organisationAndRootOrganisation.createdFor;
+          let rootOrganisations = organisationAndRootOrganisation.rootOrganisations;
+          data.createdFor = createdFor;
+          data.rootOrganisations = rootOrganisations;
         }
 
         let programData = {

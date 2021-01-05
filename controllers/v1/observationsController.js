@@ -1911,10 +1911,9 @@ module.exports = class Observations extends Abstract {
                     req.searchText
                 );
 
-                return resolve({
-                    message: observations.message,
-                    result: observations.data
-                });
+                observations["result"] = observations.data;
+
+                return resolve(observations);
 
             } catch (error) {
                 return reject({
@@ -1927,11 +1926,11 @@ module.exports = class Observations extends Abstract {
     }
 
       /**
-    * @api {post} /assessment/api/v1/observations/entities/:observationId?programId=:programId&solutionId=:solutionId
+    * @api {post} /assessment/api/v1/observations/entities/:observationId?solutionId=:solutionId
     * List of observations entities.
     * @apiVersion 1.0.0
     * @apiGroup Observations
-    * @apiSampleRequest /assessment/api/v1/observations/entities?programId=5fec2923d1d6d98686a07124&solutionId=5fec29afd1d6d98686a07156
+    * @apiSampleRequest /assessment/api/v1/observations/entities?solutionId=5fec29afd1d6d98686a07156
     * @apiParamExample {json} Request:
     * {
     *   "role" : "HM",
@@ -1972,15 +1971,13 @@ module.exports = class Observations extends Abstract {
                     req.userDetails.userId,
                     req.rspObj.userToken,
                     req.params._id ? req.params._id : "",
-                    req.query.programId,
                     req.query.solutionId, 
                     req.body
                 );
 
-                return resolve({
-                    message: observations.message,
-                    result: observations.data
-                });
+                observations["result"] = observations.data;
+
+                return resolve(observations);
 
             } catch (error) {
                 return reject({

@@ -1993,54 +1993,30 @@ module.exports = class SolutionsHelper {
    * @returns {JSON} - List of auto targeted solutions.
    */
 
-  static autoTargeted( bodyData,type,subType, pageSize,pageNo,searchText ) {
+  static autoTargeted( bodyData,type,subType = "", pageSize, pageNo,searchText = "" ) {
 
     return new Promise(async (resolve, reject) => {
 
       try {
 
-          let filterEntities = 
-          Object.values(_.omit(bodyData,["role","filter"])).map(entity => {
-            return ObjectId(entity);
-          });
+        let matchQuery = this.autoTargetedQueryField(
+          bodyData,
+          type,
+          subType
+        );
 
-          let filterQuery = {
-            "scope.roles.code" : bodyData.role,
-            "scope.entities" : { $in : filterEntities },
-            isReusable : false,
-            type : type,
-            "isDeleted" : false,
-            status : messageConstants.common.ACTIVE_STATUS
-          }
-
-          if( subType !== "" ) {
-            filterQuery["subType"] = subType;
-          }
-
-          if( bodyData.filter && Object.keys(bodyData.filter).length > 0 ) {
-            filterQuery = _.merge(filterQuery,bodyData.filter);
-          }
-
-          let targetedSolutions = await this.search(
-            {
-              $match : filterQuery
-            },
-            pageSize,
-            pageNo,
-            {
-              name : 1,
-              description : 1,
-              programName : 1,
-              programId : 1,
-            },
-            searchText
-          );
-        
-          return resolve({
-            success: true,
-            message: messageConstants.apiResponses.TARGETED_SOLUTIONS_FETCHED,
-            data: targetedSolutions[0]
-          });
+        let targetedSolutions = await this.search({ $match : matchQuery },
+          pageSize,
+          pageNo,
+          { name : 1, description : 1, programName : 1,programId : 1 },
+          searchText
+        );
+      
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.TARGETED_SOLUTIONS_FETCHED,
+          data: targetedSolutions[0]
+        });
 
       } catch (error) {
 
@@ -2054,6 +2030,45 @@ module.exports = class SolutionsHelper {
 
     })
   }
+
+   /**
+   * Auto targeted query field.
+   * @method
+   * @name autoTargetedQueryField
+   * @param {String} bodyData - Requested body data.
+   * @param {String} type - solution type.
+   * @param {String} subType - solution sub type.
+   * @returns {JSON} - List of auto targeted solutions.
+   */
+
+  static autoTargetedQueryField( data,type,subType = "" ) {
+    
+    let filterEntities = 
+    Object.values(_.omit(data,["role","filter"])).map(entity => {
+      return ObjectId(entity);
+    });
+
+    let filterQuery = {
+      "scope.roles.code" : data.role,
+      "scope.entities" : { $in : filterEntities },
+      isReusable : false,
+      type : type,
+      "isDeleted" : false,
+      status : messageConstants.common.ACTIVE_STATUS
+    }
+
+    if( subType !== "" ) {
+      filterQuery["subType"] = subType;
+    }
+
+    if( data.filter && Object.keys(data.filter).length > 0 ) {
+      filterQuery = _.merge(filterQuery,data.filter);
+    }
+
+    return filterQuery;
+
+  } 
+  
 
 };
 

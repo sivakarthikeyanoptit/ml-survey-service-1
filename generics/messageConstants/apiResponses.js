@@ -342,5 +342,9 @@ module.exports = {
 "SOLUTION_NOT_CREATED" : "Solution not created",
 "SCOPE_ENTITY_INVALID" : "Scope entity is invalid",
 "SOLUTION_SCOPE_NOT_ADDED" : "Could not add solution scope",
-"SOLUTION_CREATED" : "Solution created successfully"
+"SOLUTION_CREATED" : "Solution created successfully",
+"ENTITY_TYPE_MIS_MATCHED" : "Provided solution entity type mis matched",
+"ENTITY_NOT_ADDED" : "Could not add entity",
+"USER_SURVEYS_FETCHED" : "User's surveys fetched successfully",
+"INVALID_SCOPE_SOLUTION" : "Solution does not have scope"
 }

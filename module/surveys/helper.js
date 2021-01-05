@@ -20,7 +20,6 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
-const programsSolutionsMapHelper = require(MODULES_BASE_PATH + "/programsSolutionsMap/helper");
 
 /**
     * SurveysHelper
@@ -404,8 +403,6 @@ module.exports = class SurveysHelper {
         });
     }
     
-
-
     /**
    * Map survey solution to program.
    * @method
@@ -485,7 +482,6 @@ module.exports = class SurveysHelper {
     });
 }
 
-
      /**
      * Bulk create survey. 
      * @method
@@ -534,7 +530,6 @@ module.exports = class SurveysHelper {
             }
         })
     }
-
 
     /**
      * Create survey document. 
@@ -625,7 +620,6 @@ module.exports = class SurveysHelper {
         })
     }
 
-
     /**
      * Send user notifications. 
      * @method
@@ -685,7 +679,6 @@ module.exports = class SurveysHelper {
             }
         })
     }
-
 
     /**
      * Get survey details by link.
@@ -826,7 +819,6 @@ module.exports = class SurveysHelper {
             }
         });
     }
-
 
      /**
       * survey details.
@@ -1072,7 +1064,6 @@ module.exports = class SurveysHelper {
         })
     }
 
-
     /**
      * Fetch user organisation details.
      * @method
@@ -1170,7 +1161,6 @@ module.exports = class SurveysHelper {
         })
     }
 
-
     /**
       * Validate survey.
       * @method
@@ -1241,7 +1231,6 @@ module.exports = class SurveysHelper {
             }
         })
     }
-    
     
     /**
       * List of surveys.
@@ -1315,7 +1304,6 @@ module.exports = class SurveysHelper {
             }
         })
     }
-
     
     /**
     * Get list of surveys with the targetted ones.
@@ -1380,7 +1368,7 @@ module.exports = class SurveysHelper {
             }
 
             let targetedSolutions = 
-            await programsSolutionsMapHelper.autoTargeted
+            await solutionsHelper.autoTargeted
             (
                 bodyData,
                 messageConstants.common.SURVEY,
@@ -1429,6 +1417,131 @@ module.exports = class SurveysHelper {
         }
     })
   }
+
+      /**
+      * survey details.
+      * @method
+      * @name detailsV2
+      * @param  {String} surveyId - surveyId.
+      * @param {String} solutionId - solutionId
+      * @param {String} programId - programId
+      * @param {String} userId - logged in userId
+      * @param {String} token - logged in user token
+      * @returns {JSON} - returns survey solution, program and questions.
+    */
+
+   static detailsV2(bodyData, surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+
+            if (solutionId == "") {
+                throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
+            }
+
+            if (token == "") {
+                throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
+            }
+
+            if (surveyId == "") {
+
+                bodyData["filter"] = {
+                    _id : solutionId
+                };
+
+                let queryField = solutionHelper.autoTargetedQueryField(
+                    bodyData,
+                    messageConstants.common.SURVEY
+                );
+
+                let solutionData = await solutionHelper.solutionDocuments(
+                    queryField,
+                    [
+                        "externalId",
+                        "name",
+                        "description",
+                        "type",
+                        "endDate",
+                        "status",
+                        "programId",
+                        "programExternalId",
+                        "isAPrivateProgram"
+                    ]
+                );
+                
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode["bad_request"].status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                let userOrgDetails = await this.getUserOrganisationDetails
+                (
+                    [ userId ],
+                    token
+                )
+
+                userOrgDetails = userOrgDetails.data;
+
+                if(!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
+                    throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                }
+
+                let createSurveyDocument = await this.createSurveyDocument
+                (
+                    userId,
+                    solutionDocument[0],
+                    userOrgDetails[userId]
+                )
+
+                if (!createSurveyDocument.success) {
+                    throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
+                }
+
+                surveyId = createSurveyDocument.data._id;
+            }
+
+            let validateSurvey = await this.validateSurvey
+            (
+                surveyId,
+                userId
+            )
+
+            if (!validateSurvey.success) {
+                return resolve(validateSurvey);
+            }
+            
+            let surveyDetails = await this.details
+            (
+                surveyId,
+                userId,
+                validateSurvey.data.submissionId
+            )
+
+            if (!surveyDetails.success) {
+                return resolve(surveyDetails);
+            }
+
+            return resolve({
+                success: true,
+                message: surveyDetails.message,
+                data: surveyDetails.data
+            });
+
+        }
+        catch (error) {
+            return reject({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    })
+   }
 
     
 }

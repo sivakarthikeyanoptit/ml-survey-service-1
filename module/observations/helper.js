@@ -21,7 +21,6 @@ const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PO
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
-const programsSolutionsMapHelper = require(MODULES_BASE_PATH + "/programsSolutionsMap/helper");
 
 /**
     * ObservationsHelper
@@ -1108,7 +1107,6 @@ module.exports = class ObservationsHelper {
         });
     }
 
-
     /**
       * observation link.
       * @method
@@ -1746,53 +1744,92 @@ module.exports = class ObservationsHelper {
     * @returns {Object} list of entities in observation
    */
 
-   static entities( userId,token,observationId,programId,solutionId,bodyData) {
+   static entities( userId,token,observationId,solutionId,bodyData) {
     return new Promise(async (resolve, reject) => {
         try {
 
             if( observationId === "" ) {
-                let programSolutionDetails = 
-                await programsSolutionsMapHelper.programSolutionDetails(
-                    programId,
-                    solutionId,
-                    bodyData
-                );
                 
-                if( !programSolutionDetails.success ) {
-                    return resolve(programSolutionDetails);
-                }
-
-                let startDate = new Date();
-                let endDate = new Date();
-                endDate.setFullYear(endDate.getFullYear() + 1);
-
-                let observationData = {
-                    name : programSolutionDetails.data.solution.name,
-                    description : programSolutionDetails.data.solution.name,
-                    status : messageConstants.common.PUBLISHED,
-                    startDate : startDate,
-                    endDate : endDate
+                bodyData["filter"] = {
+                    _id : solutionId
                 };
 
-                if(
-                    programSolutionDetails.data.solution.entityType &&
-                    !bodyData[programSolutionDetails.data.solution.entityType]
-                 ) {
+                let queryField = solutionHelper.autoTargetedQueryField(
+                    bodyData,
+                    messageConstants.common.OBSERVATION
+                );
 
+                let solutionData = await solutionHelper.solutionDocuments(
+                    queryField,
+                    [
+                        "name",
+                        "externalId",
+                        "frameworkExternalId",
+                        "frameworkId",
+                        "programExternalId",
+                        "programId",
+                        "entityTypeId",
+                        "entityType",
+                        "isAPrivateProgram",
+                        "scope"
+                    ]
+                );
+
+                if( !solutionData.length > 0 ) {
                     throw {
-                        message : messageConstants.apiResponses.NOT_FOUND_TARGETED_PROGRAM_SOLUTION
+                        status : httpStatusCode["bad_request"].status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
                     }
                 }
 
-                observationData["entities"] = 
-                [ObjectId(bodyData[programSolutionDetails.data.solution.entityType])];
+                solutionData[0]["startDate"] = new Date();
+                let endDate = new Date();
+                endDate.setFullYear(endDate.getFullYear() + 1);
+                solutionData[0]["endDate"] = endDate;
+
+                let entityTypes = Object.keys(_.omit(bodyData,["role","filter"]));
+
+                if( !entityTypes.includes(solutionData[0].entityType) ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+                    }
+                }
+
+                let entityData = 
+                await entitiesHelper.entityDocuments({
+                    _id : bodyData[solutionData[0].entityType]
+                },["_id"]);
+
+                if( !entityData.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    }
+                }
+
+                let filterEntityData = {
+                    _id : { $in : solutionData[0].scope.entities },
+                    [`groups.${solutionData[0].entityType}`] : ObjectId(bodyData[solutionData[0].entityType])
+                }
+
+                let entityInParent = 
+                await entitiesHelper.entityDocuments(filterEntityData,["_id"]);
+
+                if( !entityInParent.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_NOT_ADDED
+                    }
+                }
+
+                delete solutionData[0].scope;
+                delete solutionData[0]._id;
+
+                solutionData[0]["entities"] = [ObjectId(bodyData[solutionData[0].entityType])];
 
                 let observation = await this.create(
-                    programSolutionDetails.data.solution._id,
-                    observationData,
+                    solutionId,
+                    solutionData[0],
                     userId,
-                    token,
-                    programSolutionDetails.data.program._id
+                    token
                 );
 
                 observationId = observation._id;
@@ -1800,13 +1837,18 @@ module.exports = class ObservationsHelper {
 
             let entitiesList = await this.listEntities(observationId);
 
-            return resolve(entitiesList);
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
+                data : entitiesList.data
+            });
 
         } catch (error) {
             return resolve({
-                success : false,
-                message : error.message,
-                data : []
+                status : error.status ? error.status : httpStatusCode['internal_server_error'].status,
+                success: false,
+                message: error.message,
+                data: []
             });
         }
     })
