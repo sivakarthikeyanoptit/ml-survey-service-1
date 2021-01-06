@@ -499,6 +499,54 @@ module.exports = class Solutions extends Abstract {
   * @apiHeader {String} X-authenticated-user-token Authenticity token  
   * @apiUse successBody
   * @apiUse errorBody
+  * @apiParamExample {json} Request-Body:
+  * {
+  *    "resourceType" : [],
+  *  "language" : [],
+  *   "keywords" : [],
+  *   "concepts" : [],
+  *   "createdFor" : [ 
+  *      "01305447637218918413"
+  *   ],
+  *  "themes" : [],
+  *  "flattenedThemes" : [],
+  *  "entities" : [ 
+  *      "5beaa888af0065f0e0a10515"
+  *  ],
+  *  "registry" : [],
+  *  "isRubricDriven" : false,
+  *  "enableQuestionReadOut" : false,
+  *  "allowMultipleAssessemts" : false,
+  *  "isDeleted" : false,
+  * "rootOrganisations" : [ 
+  *      "01305447637218918413"
+  *  ],
+  *  "programExternalId" : "Test1111",
+  *  "entityType" : "school",
+  *  "type" : "improvementProject",
+  *  "subType" : "improvementProject",
+  *  "isReusable" : false,
+  *  "externalId" : "01c04166-a65e-4e92-a87b-a9e4194e771d-1607936956167",
+  *  "scope" :{
+  *        "entityType" : "school",
+  *        "entityTypeId" : "5d15a959e9185967a6d5e8a6",
+  *        "entities" : [ 
+  *            "5beaa888af0065f0e0a10515"
+  *        ],
+  *        "roles" : [
+  *            {
+  *              "_id" : "5d6e521066a9a45df3aa891e",
+  *              "code" : "HM"
+  *            }
+  *           
+  *         ]
+  *    }
+  * }
+  * @apiParamExample {json} Response:
+    {
+      "message": "Solution updated successfully",
+      "status": 200
+    }
   */
 
    /**
@@ -539,9 +587,20 @@ module.exports = class Solutions extends Abstract {
 
         updateObject["$set"]["updatedBy"] = req.userDetails.id;
 
-        await database.models.solutions.findOneAndUpdate({
+        let updateSolutionData = await database.models.solutions.findOneAndUpdate({
           _id: solutionDocument._id
-        }, updateObject)
+        }, _.omit(updateObject,["scope"]));
+
+        if( !updateSolutionData.isReusable ) {
+
+          let solutionScope = 
+          await solutionsHelper.addScope(
+            req.body.programId,
+            updateSolutionData._id,
+            req.body.scope ? req.body.scope : {}
+          );
+
+        }
 
         return resolve({
           status: httpStatusCode.ok.status,

@@ -180,7 +180,7 @@ module.exports = class SolutionsHelper {
               }
             }
 
-            if( !solutionData.sisReusable ) {
+            if( !solutionData.isReusable ) {
 
               let updateProgram = 
               await database.models.programs.updateOne(
