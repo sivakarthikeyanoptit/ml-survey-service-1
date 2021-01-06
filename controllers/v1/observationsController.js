@@ -1851,4 +1851,145 @@ module.exports = class Observations extends Abstract {
     })
   }
 
+
+    /**
+    * @api {post} /assessment/api/v1/observations/getObservation?page=:page&limit=:limit&search=:search
+    * List of observations and targetted ones.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/getObservation?page=1&limit=10&search=a
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "5c0bbab881bdbe330655da7f",
+   		"block" : "5c0bbab881bdbe330655da7f",
+   		"cluster" : "5c0bbab881bdbe330655da7f",
+   		"school" : "5c0bbab881bdbe330655da7f"
+    }
+    * @apiParamExample {json} Response:
+    {
+    "message": "Targeted observations fetched successfully",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5f9288fd5e25636ce6dcad66",
+                "name": "obs1",
+                "description": "observation1",
+                "solutionId": "5f9288fd5e25636ce6dcad65",
+                "programId": "5d287326652f311044f41dbb"
+            },
+            {
+                "_id": "5fc7aa9e73434430731f6a10",
+                "solutionId": "5fb4fce4c7439a3412ff013b",
+                "programId": "5f5b216a9c70bd2973aee29f",
+                "name": "My Solution",
+                "description": "My Solution Description"
+            }
+        ],
+        "count": 2
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of observations and targetted ones.
+      * @method
+      * @name getObservation
+      * @param {Object} req - request data.
+      * @returns {JSON} List of observations with targetted ones.
+     */
+
+    async getObservation(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observations = await observationsHelper.getObservation(
+                    req.body,
+                    req.userDetails.userId,
+                    req.pageSize,
+                    req.pageNo,
+                    req.searchText
+                );
+
+                observations["result"] = observations.data;
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+      /**
+    * @api {post} /assessment/api/v1/observations/entities/:observationId?solutionId=:solutionId
+    * List of observations entities.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/entities?solutionId=5fec29afd1d6d98686a07156
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "5c0bbab881bdbe330655da7f",
+   		"block" : "5c0bbab881bdbe330655da7f",
+   		"cluster" : "5c0bbab881bdbe330655da7f",
+   		"school" : "5c0bbab881bdbe330655da7f"
+    }
+    * @apiParamExample {json} Response:
+    {
+        "message": "Observation entities fetched successfully",
+        "status": 200,
+        "result": [
+            {
+                "_id": "5c0bbab881bdbe330655da7f",
+                "externalId": "1959076",
+                "name": "Nigam Pratibha Vidyalaya (Girls), Jauna Pur, New Delhi"
+            }
+        ]
+    }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of entities in observation.
+      * @method
+      * @name entities
+      * @param {Object} req - request data.
+      * @returns {JSON} List of entities in observation.
+     */
+
+    async entities(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observations = await observationsHelper.entities(
+                    req.userDetails.userId,
+                    req.rspObj.userToken,
+                    req.params._id ? req.params._id : "",
+                    req.query.solutionId, 
+                    req.body
+                );
+
+                observations["result"] = observations.data;
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
 }

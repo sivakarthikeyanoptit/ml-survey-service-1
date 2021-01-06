@@ -1240,5 +1240,243 @@ module.exports = class SurveysHelper {
             }
         })
     }
+
+      /**
+    * Get list of surveys with the targetted ones.
+    * @method
+    * @name getSurvey
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object}
+   */
+
+   static getSurvey( bodyData,userId,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let query = {
+                createdBy : userId,
+                isDeleted : false,
+                programId : { $exists : true }
+            }
+
+            let searchQuery = [];
+
+            if (search !== "") {
+                searchQuery = [
+                    { "name" : new RegExp(search, 'i') },
+                    { "description" : new RegExp(search, 'i') }
+                ];
+            }
+
+            let surveys = await this.surveys(
+                query,
+                pageSize,
+                pageNo,
+                searchQuery,
+                ["name", "description","solutionId","programId"]
+            );
+
+            let solutionIds = [];
+
+            let totalCount = 0;
+            let mergedData = [];
+
+            if( surveys.success && surveys.data ) {
+
+                totalCount = surveys.data.count;
+                mergedData = surveys.data.data;
+
+                if( mergedData.length > 0 ) {
+                    mergedData.forEach( surveyData => {
+                        if( surveyData.solutionId ) {
+                            solutionIds.push(ObjectId(surveyData.solutionId));
+                        }
+                    });
+                }
+            }
+
+            if( solutionIds.length > 0 ) {
+                bodyData["filter"] = {};
+                bodyData["filter"]["_id"] = {
+                    $nin : solutionIds
+                }; 
+            }
+
+            let targetedSolutions = 
+            await solutionsHelper.autoTargeted
+            (
+                bodyData,
+                messageConstants.common.SURVEY,
+                messageConstants.common.SURVEY,
+                pageSize,
+                pageNo,
+                search
+            );
+
+            if( targetedSolutions.success ) {
+
+                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
+                    totalCount += targetedSolutions.data.count;
+
+                    if( mergedData.length !== pageSize ) {
+
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            mergedData.push(targetedSolution); 
+                        })
+
+                       let startIndex = pageSize * (pageNo - 1);
+                       let endIndex = startIndex + pageSize;
+                       mergedData = mergedData.slice(startIndex,endIndex) 
+                    }
+                }
+
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
+
+      /**
+      * survey details.
+      * @method
+      * @name detailsV2
+      * @param  {String} surveyId - surveyId.
+      * @param {String} solutionId - solutionId
+      * @param {String} programId - programId
+      * @param {String} userId - logged in userId
+      * @param {String} token - logged in user token
+      * @returns {JSON} - returns survey solution, program and questions.
+    */
+
+   static detailsV2(bodyData, surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+
+            if (solutionId == "") {
+                throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
+            }
+
+            if (token == "") {
+                throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
+            }
+
+            if (surveyId == "") {
+
+                bodyData["filter"] = {
+                    _id : solutionId
+                };
+
+                let queryField = solutionsHelper.autoTargetedQueryField(
+                    bodyData,
+                    messageConstants.common.SURVEY
+                );
+
+                let solutionData = await solutionsHelper.solutionDocuments(
+                    queryField,
+                    [
+                        "externalId",
+                        "name",
+                        "description",
+                        "type",
+                        "endDate",
+                        "status",
+                        "programId",
+                        "programExternalId",
+                        "isAPrivateProgram"
+                    ]
+                );
+                
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode["bad_request"].status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                let userOrgDetails = await this.getUserOrganisationDetails
+                (
+                    [ userId ],
+                    token
+                )
+
+                userOrgDetails = userOrgDetails.data;
+
+                if(!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
+                    throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                }
+
+                let createSurveyDocument = await this.createSurveyDocument
+                (
+                    userId,
+                    solutionData[0],
+                  userOrgDetails[userId]
+                )
+
+                if (!createSurveyDocument.success) {
+                    throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
+                }
+
+                surveyId = createSurveyDocument.data._id;
+            }
+
+            let validateSurvey = await this.validateSurvey
+            (
+                surveyId,
+                userId
+            )
+
+            if (!validateSurvey.success) {
+                return resolve(validateSurvey);
+            }
+            
+            let surveyDetails = await this.details
+            (
+                surveyId,
+                userId,
+                validateSurvey.data.submissionId
+            )
+
+            if (!surveyDetails.success) {
+                return resolve(surveyDetails);
+            }
+
+            return resolve({
+                success: true,
+                message: surveyDetails.message,
+                data: surveyDetails.data
+            });
+
+        }
+        catch (error) {
+            return reject({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    })
+   }
     
 }

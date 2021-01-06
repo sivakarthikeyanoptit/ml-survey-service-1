@@ -311,5 +311,13 @@ module.exports = {
 "OBSERVATION_SUBMISSION_STATUS_FETCHED" : "Observation submission status fetched successfuly",
 "USERS_AND_ENTITIES_NOT_FOUND" : "Could not find users for the given entity and role",
 "ENTITY_ASSESSORS_CREATED" : "Successfully created entity assessors",
-"PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program"
+"PROGRAM_UPDATED_SUCCESSFULLY" : "Successfully updated program",
+"SURVEYS_FETCHED" : "Surveys fetched successfully",
+"TARGETED_SURVEY_FETCHED" : "Targeted surveys fetched successfully",
+"TARGETED_SOLUTIONS_FETCHED" : "Successfully targeted solutions fetched",
+"ENTITIES_NOT_FOUND" : "No entities found",
+"OBSERVATION_ENTITIES_FETCHED" : "Observation entities fetched successfully",
+"ENTITY_TYPE_MIS_MATCHED" : "Provided solution entity type mis matched",
+"ENTITY_NOT_ADDED" : "Could not add entity",
+"TARGETED_OBSERVATION_FETCHED" : "Targeted observations fetched successfully", 
 }

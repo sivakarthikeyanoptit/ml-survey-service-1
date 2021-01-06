@@ -836,4 +836,74 @@ module.exports = class Surveys extends Abstract {
     });
 }
 
+
+    /**
+    * @api {post} /assessment/api/v1/surveys/getSurvey?page=:page&limit=:limit&search=:search
+    * List of surveys and targetted ones.
+    * @apiVersion 1.0.0
+    * @apiGroup Surveys
+    * @apiSampleRequest /assessment/api/v1/surveys/getSurvey?page=1&limit=10
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "5c0bbab881bdbe330655da7f",
+   		"block" : "5c0bbab881bdbe330655da7f",
+   		"cluster" : "5c0bbab881bdbe330655da7f",
+   		"school" : "5c0bbab881bdbe330655da7f"
+    }
+    * @apiParamExample {json} Response:
+    {
+    "message": "Targeted surveys fetched successfully",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5fe1f060d12d8c7c3d9ebe97",
+                "solutionId": "5f92b5b79a530908731ac195",
+                "name": "survey and feedback solution",
+                "description": "test survey and feedback solution"
+            }
+        ],
+        "count": 1
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of surveys and targetted ones.
+      * @method
+      * @name getSurvey
+      * @param {Object} req - request data.
+      * @returns {JSON} List of surveys with targetted ones.
+     */
+
+    async getSurvey(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let surveys = await surveysHelper.getSurvey(
+                    req.body,
+                    req.userDetails.userId,
+                    req.pageSize,
+                    req.pageNo,
+                    req.searchText
+                );
+
+                return resolve({
+                    message: surveys.message,
+                    result: surveys.data
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
 }

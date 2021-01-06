@@ -1548,4 +1548,294 @@ module.exports = class ObservationsHelper {
         })
     }
 
+
+    /**
+    * Get list of observations with the targetted ones.
+    * @method
+    * @name getObservation
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object}
+   */
+
+   static getObservation( bodyData,userId,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let query = {
+                createdBy : userId,
+                deleted : false,
+                programId : { $exists : true }
+            }
+
+            let searchQuery = [];
+
+            if (search !== "") {
+                searchQuery = [
+                    { "name" : new RegExp(search, 'i') },
+                    { "description" : new RegExp(search, 'i') }
+                ];
+            }
+
+            let observations = await this.observations(
+                query,
+                pageSize,
+                pageNo,
+                searchQuery,
+                ["name", "description","solutionId","programId"]
+            );
+
+            let solutionIds = [];
+
+            let totalCount = 0;
+            let mergedData = [];
+
+            if( observations.success && observations.data ) {
+
+                totalCount = observations.data.count;
+                mergedData = observations.data.data;
+
+                if( mergedData.length > 0 ) {
+                    mergedData.forEach( observationData => {
+                        if( observationData.solutionId ) {
+                            solutionIds.push(observationData.solutionId);
+                        }
+                    });
+                }
+            }
+
+            if( solutionIds.length > 0 ) {
+                bodyData["filter"] = {};
+                bodyData["filter"]["_id"] = {
+                    $nin : solutionIds
+                }; 
+            }
+
+            let subType = "";
+
+            let targetedSolutions = 
+            await solutionHelper.autoTargeted
+            (
+                bodyData,
+                messageConstants.common.OBSERVATION,
+                subType,
+                pageSize,
+                pageNo,
+                search
+            );
+
+            if( targetedSolutions.success ) {
+
+                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
+                    totalCount += targetedSolutions.data.count;
+
+                    if( mergedData.length !== pageSize ) {
+
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            mergedData.push(targetedSolution); 
+                        })
+
+                       let startIndex = pageSize * (pageNo - 1);
+                       let endIndex = startIndex + pageSize;
+                       mergedData = mergedData.slice(startIndex,endIndex) 
+                    }
+                }
+
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.TARGETED_OBSERVATION_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
+
+    /**
+    * List of observation entities.
+    * @method
+    * @name entities
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object} list of entities in observation
+   */
+
+   static entities( userId,token,observationId,solutionId,bodyData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if( observationId === "" ) {
+                
+                bodyData["filter"] = {
+                    _id : solutionId
+                };
+
+                let queryField = solutionHelper.autoTargetedQueryField(
+                    bodyData,
+                    messageConstants.common.OBSERVATION
+                );
+
+                let solutionData = await solutionHelper.solutionDocuments(
+                    queryField,
+                    [
+                        "name",
+                        "externalId",
+                        "frameworkExternalId",
+                        "frameworkId",
+                        "programExternalId",
+                        "programId",
+                        "entityTypeId",
+                        "entityType",
+                        "isAPrivateProgram",
+                        "scope"
+                    ]
+                );
+
+                if( !solutionData.length > 0 ) {
+                    throw {
+                        status : httpStatusCode["bad_request"].status,
+                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+                    }
+                }
+
+                solutionData[0]["startDate"] = new Date();
+                let endDate = new Date();
+                endDate.setFullYear(endDate.getFullYear() + 1);
+                solutionData[0]["endDate"] = endDate;
+
+                let entityTypes = Object.keys(_.omit(bodyData,["role","filter"]));
+
+                if( !entityTypes.includes(solutionData[0].entityType) ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+                    }
+                }
+
+                let entityData = 
+                await entitiesHelper.entityDocuments({
+                    _id : bodyData[solutionData[0].entityType]
+                },["_id"]);
+
+                if( !entityData.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    }
+                }
+
+                let filterEntityData = {
+                    _id : { $in : solutionData[0].scope.entities },
+                    [`groups.${solutionData[0].entityType}`] : ObjectId(bodyData[solutionData[0].entityType])
+                }
+
+                let entityInParent = 
+                await entitiesHelper.entityDocuments(filterEntityData,["_id"]);
+
+                if( !entityInParent.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITY_NOT_ADDED
+                    }
+                }
+
+                delete solutionData[0].scope;
+                delete solutionData[0]._id;
+
+                solutionData[0]["entities"] = [ObjectId(bodyData[solutionData[0].entityType])];
+
+                let observation = await this.create(
+                    solutionId,
+                    solutionData[0],
+                    userId,
+                    token
+                );
+
+                observationId = observation._id;
+            }
+
+            let entitiesList = await this.listEntities(observationId);
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
+                data : entitiesList.data
+            });
+
+        } catch (error) {
+            return resolve({
+                status : error.status ? error.status : httpStatusCode['internal_server_error'].status,
+                success: false,
+                message: error.message,
+                data: []
+            });
+        }
+    })
+   }
+
+     /**
+    * List of observation entities.
+    * @method
+    * @name listEntities
+    * @param {String} observationId - Observation id.
+    * @returns {Object} List of observation entities.
+   */
+
+  static listEntities( observationId ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let observationDocument = await this.observationDocuments({
+                _id : observationId
+            },["entities"]);
+
+            if(!observationDocument[0]) {
+                throw {
+                    message : messageConstants.apiResponses.OBSERVATION_NOT_FOUND
+                };
+            }
+
+            let entitiesData = await entitiesHelper.entityDocuments({
+                _id : { $in : observationDocument[0].entities }
+            },["metaInformation.externalId","metaInformation.name"]);
+
+            if( !entitiesData.length > 0 ) {
+                throw {
+                    message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                }
+            }
+
+            entitiesData = entitiesData.map( entity => {
+                entity.externalId = entity.metaInformation.externalId;
+                entity.name = entity.metaInformation.name;
+                delete entity.metaInformation;
+                return entity;
+            });
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
+                data : entitiesData
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
+
 };
