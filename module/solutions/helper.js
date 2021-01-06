@@ -2045,7 +2045,7 @@ module.exports = class SolutionsHelper {
     
     let filterEntities = 
     Object.values(_.omit(data,["role","filter"])).map(entity => {
-      return ObjectId(entity);
+      return entity.toString();
     });
 
     let filterQuery = {

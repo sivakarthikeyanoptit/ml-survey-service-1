@@ -1452,12 +1452,12 @@ module.exports = class SurveysHelper {
                     _id : solutionId
                 };
 
-                let queryField = solutionHelper.autoTargetedQueryField(
+                let queryField = solutionsHelper.autoTargetedQueryField(
                     bodyData,
                     messageConstants.common.SURVEY
                 );
 
-                let solutionData = await solutionHelper.solutionDocuments(
+                let solutionData = await solutionsHelper.solutionDocuments(
                     queryField,
                     [
                         "externalId",
@@ -1494,8 +1494,8 @@ module.exports = class SurveysHelper {
                 let createSurveyDocument = await this.createSurveyDocument
                 (
                     userId,
-                    solutionDocument[0],
-                    userOrgDetails[userId]
+                    solutionData[0],
+                  userOrgDetails[userId]
                 )
 
                 if (!createSurveyDocument.success) {

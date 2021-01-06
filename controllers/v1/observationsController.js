@@ -1956,11 +1956,11 @@ module.exports = class Observations extends Abstract {
     */
 
     /**
-      * List of observations and targetted ones.
+      * List of entities in observation.
       * @method
       * @name entities
       * @param {Object} req - request data.
-      * @returns {JSON} List of observations with targetted ones.
+      * @returns {JSON} List of entities in observation.
      */
 
     async entities(req) {
