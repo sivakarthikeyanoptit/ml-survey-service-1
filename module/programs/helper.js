@@ -676,4 +676,97 @@ module.exports = class ProgramsHelper {
     })
   }
 
+  /**
+   * List of auto targeted programs.
+   * @method
+   * @name autoTargeted
+   * @param {String} bodyData - Requested body data.
+   * @param {String} pageSize - Page size.
+   * @param {String} pageNo - Page no.
+   * @param {String} searchText - search text.
+   * @returns {JSON} - List of auto targeted programs.
+   */
+
+  static autoTargeted( bodyData, pageSize, pageNo,searchText = "" ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let matchQuery = this.autoTargetedQueryField(
+          bodyData
+        );
+
+        let targettedPrograms = await this.search({ $match : matchQuery },
+          pageSize,
+          pageNo,
+          { name : 1, externalId: 1, components: 1 },
+          searchText
+        );
+
+        targettedPrograms[0].description = messageConstants.apiResponses.PROGRAM_DESCRIPTION;
+             
+        if (targettedPrograms[0].data && targettedPrograms[0].data.length > 0) {
+            targettedPrograms[0].data.map( program => {
+                program.solutions = program.components.length;
+                delete program.components;
+            })
+        }
+      
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.TARGETED_PROGRAMS_FETCHED,
+          data: targettedPrograms[0]
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
+
+  /**
+   * Auto targeted query field.
+   * @method
+   * @name autoTargetedQueryField
+   * @param {String} bodyData - Requested body data.
+   * @returns {JSON} - List of auto targeted solutions.
+   */
+
+  static autoTargetedQueryField( data) {
+    
+    let filterEntities = 
+    Object.values(_.omit(data,["role","filter"])).map(entity => {
+      return ObjectId(entity);
+    });
+
+    let filterQuery = {
+      "scope.roles.code" : data.role,
+      "scope.entities" : { $in : filterEntities },
+      "isDeleted" : false,
+      status : messageConstants.common.ACTIVE_STATUS
+    }
+
+    if( data.filter && Object.keys(data.filter).length > 0 ) {
+
+      Object.keys(data.filter).forEach( filterKey => {
+        
+        if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
+          data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+        }
+      });
+
+      filterQuery = _.merge(filterQuery,data.filter);
+    }
+    return filterQuery;
+  } 
+
+
 };

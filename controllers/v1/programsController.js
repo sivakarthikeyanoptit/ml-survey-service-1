@@ -936,4 +936,71 @@ module.exports = class Programs extends Abstract {
     })
   } 
 
+   /**
+    * @api {post} /assessment/api/v1/programs/autoTargeted?page=:page&limit=:limit Auto targeted programs
+    * @apiVersion 1.0.0
+    * @apiName Auto targeted programs
+    * @apiGroup programs
+    * @apiParamExample {json} Request-Body:
+    * {
+        "role" : "HM",
+        "state" : "5c0bbab881bdbe330655da7f",
+        "block" : "5c0bbab881bdbe330655da7f",
+        "cluster" : "5c0bbab881bdbe330655da7f",
+        "school" : "5c0bbab881bdbe330655da7f"
+    }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/programs/autoTargeted?page=1&limit=5
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    "message": "Successfully targeted programs fetched",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id" : "5b98d7b6d4f87f317ff615ee",
+                "externalId" : "PROGID01",
+                "name" : "DCPCR School Development",
+                "solutions" :  4
+            }
+        ],
+        "count": 1
+    }
+    }
+    */
+
+     /**
+   * Auto targeted programs.
+   * @method
+   * @name autoTargeted
+   * @param {Object} req - requested data.
+   * @returns {JSON} Created programs data.
+   */
+
+  async autoTargeted(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let targetedPrograms = await programsHelper.autoTargeted(
+          req.body,
+          req.pageSize,
+          req.pageNo,
+          req.searchText
+        );
+          
+        targetedPrograms.result = targetedPrograms.data;
+        return resolve(targetedPrograms);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
 };
