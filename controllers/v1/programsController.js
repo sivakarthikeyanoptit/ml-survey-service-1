@@ -832,8 +832,7 @@ module.exports = class Programs extends Abstract {
 
         req.body.userId = req.userDetails.userId;
         let programCreationData = await programsHelper.create(
-          req.body,
-          req.userDetails.userToken
+          req.body
         );
         
         return resolve({
