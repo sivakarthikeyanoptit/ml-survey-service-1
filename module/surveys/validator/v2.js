@@ -6,11 +6,6 @@ module.exports = (req) => {
             .exists()
             .withMessage("required solution id")
             .isMongoId().withMessage("Invalid solution id");
-
-            req.checkQuery('programId')
-            .exists()
-            .withMessage("required program id")
-            .isMongoId().withMessage("Invalid program id");
         }
     }
 

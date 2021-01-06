@@ -220,13 +220,14 @@ module.exports = class Surveys extends v1Survey{
         try {
 
             let surveyId = req.params._id ? req.params._id : "";
+            let programId = req.query.programId ? req.query.programId : "";
 
             let surveyDetails = await surveysHelper.detailsV2
             (   
                 req.body,
                 surveyId,
                 req.query.solutionId,
-                req.query.programId,
+                programId,
                 req.userDetails.userId,
                 req.rspObj.userToken
             );
