@@ -819,7 +819,7 @@ module.exports = class Programs extends Abstract {
           req.pageNo,
           req.searchText
         );
-          
+
         targetedPrograms.result = targetedPrograms.data;
         return resolve(targetedPrograms);
 

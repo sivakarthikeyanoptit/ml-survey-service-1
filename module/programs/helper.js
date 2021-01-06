@@ -643,6 +643,10 @@ module.exports = class ProgramsHelper {
         );
 
         targettedPrograms[0].description = messageConstants.apiResponses.PROGRAM_DESCRIPTION;
+
+        if (!targettedPrograms[0].count) {
+            targettedPrograms[0].count = 0;
+        }
              
         if (targettedPrograms[0].data && targettedPrograms[0].data.length > 0) {
             targettedPrograms[0].data.map( program => {
@@ -703,6 +707,7 @@ module.exports = class ProgramsHelper {
 
       filterQuery = _.merge(filterQuery,data.filter);
     }
+
     return filterQuery;
   } 
 
