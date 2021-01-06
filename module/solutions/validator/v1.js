@@ -40,6 +40,9 @@ module.exports = (req) => {
         },
         create : function () {
             req.checkBody('externalId').exists().withMessage("required solution externalId");
+        },
+        autoTargeted : function () {
+            req.checkBody('role').exists().withMessage("required user role");
         }
     }
 

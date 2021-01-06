@@ -50,6 +50,12 @@ module.exports = (req) => {
         submissionStatus : function () {
             req.checkParams('_id').exists().withMessage("required observation id");
             req.checkQuery('entityId').exists().withMessage("required entity id");
+        },
+        entities : function () {
+            req.checkBody('role').exists().withMessage("required user role");
+        },
+        getObservation : function () {
+            req.checkBody('role').exists().withMessage("required user role");
         }
     }
 
