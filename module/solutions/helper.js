@@ -2008,7 +2008,7 @@ module.exports = class SolutionsHelper {
         let targetedSolutions = await this.search({ $match : matchQuery },
           pageSize,
           pageNo,
-          { name : 1, description : 1, programName : 1,programId : 1 },
+          { name : 1, description : 1, programName : 1,programId : 1,externalId : 1 },
           searchText
         );
       
@@ -2062,13 +2062,18 @@ module.exports = class SolutionsHelper {
     }
 
     if( data.filter && Object.keys(data.filter).length > 0 ) {
+
+      Object.keys(data.filter).forEach( filterKey => {
+        
+        if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
+          data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+        }
+      });
+
       filterQuery = _.merge(filterQuery,data.filter);
     }
-
     return filterQuery;
-
   } 
-  
 
 };
 
