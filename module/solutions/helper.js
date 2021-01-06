@@ -1759,16 +1759,19 @@ module.exports = class SolutionsHelper {
     
     let filterEntities = 
     Object.values(_.omit(data,["role","filter"])).map(entity => {
-      return entity.toString();
+      return ObjectId(entity);
     });
 
     let filterQuery = {
       "scope.roles.code" : data.role,
       "scope.entities" : { $in : filterEntities },
       isReusable : false,
-      type : type,
       "isDeleted" : false,
       status : messageConstants.common.ACTIVE_STATUS
+    }
+
+    if( type !== "" ) {
+      filterQuery["type"] = type;
     }
 
     if( subType !== "" ) {

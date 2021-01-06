@@ -1802,7 +1802,7 @@ module.exports = class Solutions extends Abstract {
 
         let targetedSolutions = await solutionsHelper.autoTargeted(
           req.body,
-          req.query.type,
+          req.query.type ? req.query.type : "",
           req.query.subType ? req.query.subType : "",
           req.pageSize,
           req.pageNo,
