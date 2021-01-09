@@ -1169,11 +1169,7 @@ module.exports = class Solutions extends Abstract {
           req.query.solutionId,
           req.body.programExternalId,
           req.userDetails.id,
-          {
-            externalId : req.body.externalId,
-            name : req.body.name,
-            description : req.body.description
-          }
+          _.omit(req.body,["programExternalId"])
         );
 
         return resolve({

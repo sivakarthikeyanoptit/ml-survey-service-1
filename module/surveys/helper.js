@@ -1241,6 +1241,79 @@ module.exports = class SurveysHelper {
         })
     }
 
+    /**
+      * List of surveys.
+      * @method
+      * @name surveys
+      * @param pageSize - Size of page.
+      * @param pageNo - Recent page no.
+      * @param search - search text.
+      * @returns {Object} List of surveys.
+     */
+
+    static surveys(query, pageSize, pageNo, searchQuery, fieldsArray) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let matchQuery = {
+                    $match : query
+                };
+
+                if (searchQuery && searchQuery.length > 0) {
+                    matchQuery["$match"]["$or"] = searchQuery;
+                }
+                let projection = {}
+                fieldsArray.forEach(field => {
+                    projection[field] = 1;
+                });
+
+                let aggregateData = [];
+                aggregateData.push(matchQuery);
+                aggregateData.push({
+                    $project: projection
+                }, {
+                    $facet: {
+                        "totalCount": [
+                            { "$count": "count" }
+                        ],
+                        "data": [
+                            { $skip: pageSize * (pageNo - 1) },
+                            { $limit: pageSize }
+                        ],
+                    }
+                }, {
+                    $project: {
+                        "data": 1,
+                        "count": {
+                            $arrayElemAt: ["$totalCount.count", 0]
+                        }
+                    }
+                });
+
+                let result =
+                await database.models.surveys.aggregate(aggregateData);
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.SURVEYS_FETCHED,
+                    data: {
+                        data: result[0].data,
+                        count: result[0].count ? result[0].count : 0
+                    }
+                })
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message,
+                    data : {
+                        data : [],
+                        count : 0
+                    }
+                });
+            }
+        })
+    }
+
       /**
     * Get list of surveys with the targetted ones.
     * @method

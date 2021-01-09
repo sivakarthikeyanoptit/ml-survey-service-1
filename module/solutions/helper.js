@@ -11,6 +11,8 @@ const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
 const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * SolutionsHelper
@@ -1132,6 +1134,14 @@ module.exports = class SolutionsHelper {
   
           if (duplicateSolutionDocument._id) {
 
+            if( data.scope && Object.keys(data.scope).length > 0 ) {
+              await this.addScope(
+                newSolutionDocument.programId,
+                duplicateSolutionDocument._id,
+                data.scope
+              );
+            }
+
             if (duplicateSolutionDocument.type == messageConstants.common.OBSERVATION) {
 
               let link = await gen.utils.md5Hash(duplicateSolutionDocument._id + "###" + userId);
@@ -1755,6 +1765,7 @@ module.exports = class SolutionsHelper {
    * @returns {JSON} - List of auto targeted solutions.
    */
 
+  
   static autoTargetedQueryField( data,type,subType = "" ) {
     
     let filterEntities = 
@@ -1790,6 +1801,173 @@ module.exports = class SolutionsHelper {
       filterQuery = _.merge(filterQuery,data.filter);
     }
     return filterQuery;
+  } 
+
+     /**
+   * add scope in solution
+   * @method
+   * @name addScope
+   * @param {String} programId - program id.
+   * @param {String} solutionId - solution id.
+   * @param {Object} scopeData - scope data. 
+   * @returns {JSON} - Added scope in solution.
+   */
+
+  static addScope( programId,solutionId,scopeData ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let programData = 
+        await programsHelper.list({ _id : programId },["_id","scope"]);
+ 
+        if( !programData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+          });
+        }
+
+        let solutionData = await this.solutionDocuments({ _id : solutionId },["_id"]);
+
+        if( !solutionData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          });
+        }
+
+        if( programData[0].scope ) {
+          
+          let currentSolutionScope = programData[0].scope;
+
+          if( Object.keys(scopeData).length > 0 ) {
+
+            if( !scopeData.entityType ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITY_TYPE_REQUIRED_IN_SCOPE
+              });
+            }
+
+            let entityType =  await entityTypesHelper.list(
+              {
+                name : scopeData.entityType
+              },
+              {
+                "name" : 1,
+                "_id" : 1
+              }
+            );
+        
+            currentSolutionScope.entityType = entityType[0].name;
+            currentSolutionScope.entityTypeId = entityType[0]._id;
+
+            if( !scopeData.entities && !scopeData.entities.length > 0 ) {
+
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITIES_REQUIRED_IN_SCOPE
+              });
+
+            }
+            
+            let entities = 
+            await entitiesHelper.entityDocuments(
+              {
+                _id : { $in : scopeData.entities },
+                entityTypeId : entityType[0]._id
+              },["_id"] 
+            );
+
+            if( !entities.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+              });
+            }
+
+            let entityIds = [];
+
+            for( let entity = 0; entity < entities.length; entity ++ ) {
+              
+              let entityQuery = {
+                _id : { $in : currentSolutionScope.entities },
+                [`groups.${currentSolutionScope.entityType}`] : entities[entity]._id
+              }
+
+              let entityInParent = 
+              await entitiesHelper.entityDocuments(entityQuery);
+
+              if( entityInParent.length > 0 ) {
+                entityIds.push(ObjectId(entities[entity]._id));
+              }
+            }
+
+            if( !entityIds.length > 0 ) {
+              
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.SCOPE_ENTITY_INVALID
+              });
+
+            }
+
+            currentSolutionScope.entities = entityIds;
+
+            if( !scopeData.roles.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.ROLE_REQUIRED_IN_SCOPE
+              });
+            }
+
+            let userRoles = await userRolesHelper.list({
+              code : { $in : scopeData.roles }
+            },{
+              "_id" : 1,
+              "code" : 1
+            });
+
+            if( !userRoles.length > 0 ) {
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.INVALID_ROLE_CODE
+              });
+            }
+
+            currentSolutionScope["roles"] = userRoles;
+
+            let updateSolution = 
+            await database.models.solutions.findOneAndUpdate(
+              {
+                _id : solutionId
+              },
+              { $set : { scope : currentSolutionScope }},{ new: true }
+            ).lean();
+    
+            if( !updateSolution._id ) {
+              throw {
+                status : messageConstants.apiResponses.SOLUTION_SCOPE_NOT_ADDED
+              };
+            }
+            solutionData = updateSolution;
+          }
+
+        }
+
+        return resolve({
+          success : true,
+          message : messageConstants.apiResponses.SOLUTION_UPDATED,
+          data : solutionData
+        });
+
+      } catch (error) {
+          return reject(error);
+      }
+
+    })
   } 
 
 };

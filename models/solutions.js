@@ -97,6 +97,7 @@ module.exports = {
     projectTemplateId : {
       type : "ObjectId",
       index: true
-    }
+    },
+    scope : Object
   }
 };

@@ -363,4 +363,170 @@ module.exports = class ProgramsHelper {
     });
    }
 
+    /**
+   * Search programs.
+   * @method
+   * @name search
+   * @param {Object} filteredData - Search programs from filtered data.
+   * @param {Number} pageSize - page limit.
+   * @param {Number} pageNo - No of the page. 
+   * @param {Object} projection - Projected data. 
+   * @returns {Array} List of program document. 
+   */
+
+  static search(filteredData, pageSize, pageNo,projection,search = "") {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let programDocument = [];
+
+        let projection1 = {};
+
+        if( projection ) {
+          projection1["$project"] = projection
+        } else {
+          projection1["$project"] = {
+            name: 1,
+            description: 1,
+            keywords: 1,
+            externalId: 1,
+            components: 1
+          };
+        }
+
+        if ( search !== "" ) {
+          filteredData["$match"]["$or"] = [];
+          filteredData["$match"]["$or"].push(
+            { 
+              "name": new RegExp(search, 'i') 
+            }, { 
+            "description": new RegExp(search, 'i') 
+          });
+        }
+
+        let facetQuery = {};
+        facetQuery["$facet"] = {};
+
+        facetQuery["$facet"]["totalCount"] = [
+          { "$count": "count" }
+        ];
+
+        facetQuery["$facet"]["data"] = [
+          { $skip: pageSize * (pageNo - 1) },
+          { $limit: pageSize }
+        ];
+
+        let projection2 = {};
+        projection2["$project"] = {
+          "data": 1,
+          "count": {
+            $arrayElemAt: ["$totalCount.count", 0]
+          }
+        };
+       
+        programDocument.push(filteredData, projection1, facetQuery, projection2);
+       
+        let programDocuments = 
+        await database.models.programs.aggregate(programDocument);
+
+        return resolve(programDocuments);
+
+      } catch (error) {
+        return reject(error);
+      }
+    })
+  }
+
+    /**
+   * List of auto targeted programs.
+   * @method
+   * @name autoTargeted
+   * @param {String} bodyData - Requested body data.
+   * @param {String} pageSize - Page size.
+   * @param {String} pageNo - Page no.
+   * @param {String} searchText - search text.
+   * @returns {JSON} - List of auto targeted programs.
+   */
+
+  static autoTargeted( bodyData, pageSize, pageNo,searchText = "" ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let matchQuery = this.autoTargetedQueryField(
+          bodyData
+        );
+
+        let targettedPrograms = await this.search({ $match : matchQuery },
+          pageSize,
+          pageNo,
+          { name : 1, externalId: 1, components: 1 },
+          searchText
+        );
+
+        targettedPrograms[0].description = messageConstants.apiResponses.PROGRAM_DESCRIPTION;
+             
+        if (targettedPrograms[0].data && targettedPrograms[0].data.length > 0) {
+            targettedPrograms[0].data.map( program => {
+                program.solutions = program.components.length;
+                delete program.components;
+            })
+        }
+      
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.TARGETED_PROGRAMS_FETCHED,
+          data: targettedPrograms[0]
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
+
+  /**
+   * Auto targeted query field.
+   * @method
+   * @name autoTargetedQueryField
+   * @param {String} bodyData - Requested body data.
+   * @returns {JSON} - List of auto targeted solutions.
+   */
+
+  static autoTargetedQueryField( data) {
+    
+    let filterEntities = 
+    Object.values(_.omit(data,["role","filter"])).map(entity => {
+      return ObjectId(entity);
+    });
+
+    let filterQuery = {
+      "scope.roles.code" : data.role,
+      "scope.entities" : { $in : filterEntities },
+      "isDeleted" : false,
+      status : messageConstants.common.ACTIVE_STATUS
+    }
+
+    if( data.filter && Object.keys(data.filter).length > 0 ) {
+
+      Object.keys(data.filter).forEach( filterKey => {
+        
+        if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
+          data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+        }
+      });
+
+      filterQuery = _.merge(filterQuery,data.filter);
+    }
+    return filterQuery;
+  } 
+
 };

@@ -23,6 +23,11 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
-    }
+    },
+    isDeleted: {
+      default : false,
+      type : Boolean
+    },
+    scope : Object
   }
 };
