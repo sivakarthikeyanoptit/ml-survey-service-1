@@ -50,13 +50,18 @@ module.exports = class EntitiesHelper {
                     if( singleEntity.createdBySolutionId ) {
                         singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
                     }
+                    
+                    let registryDetails = {};
+                    if (singleEntity.locationId) {
+                        registryDetails["_id"] = singleEntity.locationId;
+                    }
 
                     let entityDoc = {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
-                        "regsitryDetails": {},
+                        "registryDetails": registryDetails,
                         "groups": {},
-                        "metaInformation": singleEntity,
+                        "metaInformation": _.omit(singleEntity,"locationId"),
                         "updatedBy": userDetails.id,
                         "createdBy": userDetails.id,
                         "userId" : userDetails.id
@@ -371,13 +376,19 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 let entityInformation;
+                let registryDetails = {};
+
+                if (data.locationId) {
+                    registryDetails["_id"] =  data.locationId
+                    delete data.locationId;
+                }
 
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityId, data);
                 } else {
                     entityInformation = await database.models.entities.findOneAndUpdate(
                         { _id: ObjectId(entityId) },
-                        { metaInformation: data },
+                        { metaInformation: data, registryDetails : registryDetails },
                         { new: true }
                     ).lean();
                 }
@@ -566,10 +577,15 @@ module.exports = class EntitiesHelper {
                         let entityCreation = {
                             "entityTypeId": entityTypeDocument._id,
                             "entityType": entityType,
-                            "regsitryDetails": {},
+                            "registryDetails": {},
                             "groups": {},
                             "updatedBy": userDetails.id,
                             "createdBy": userDetails.id
+                        }
+
+                        if (singleEntity.locationId) {
+                            entityCreation.registryDetails["_id"] =  singleEntity.locationId;
+                            delete singleEntity.locationId;
                         }
 
                         if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
@@ -649,6 +665,12 @@ module.exports = class EntitiesHelper {
                     }
 
                     let updateData = {};
+
+                    if( singleEntity.hasOwnProperty("locationId") ) {
+                       updateData["registryDetails._id"] = singleEntity.locationId;
+
+                       delete singleEntity.locationId;
+                    }
 
                     if( singleEntity.hasOwnProperty("allowedRoles") ) {
 
@@ -1283,7 +1305,8 @@ module.exports = class EntitiesHelper {
                             "entityTypeId",
                             "updatedAt",
                             "createdAt",
-                            "allowedRoles"
+                            "allowedRoles",
+                            "registryDetails"
                         ]);
 
                     for (let entity = 0; entity < entityDocuments.length; entity++) {
@@ -1297,7 +1320,8 @@ module.exports = class EntitiesHelper {
                             entityType: entityDocument.entityType,
                             entityTypeId: entityDocument.entityTypeId,
                             updatedAt: entityDocument.updatedAt,
-                            createdAt: entityDocument.createdAt
+                            createdAt: entityDocument.createdAt,
+                            registryDetails: entityDocument.registryDetails
                         }
 
                         if( entityDocument.allowedRoles && entityDocument.allowedRoles.length > 0 ) {

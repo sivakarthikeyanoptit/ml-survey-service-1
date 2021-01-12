@@ -67,8 +67,9 @@ module.exports = class Entities extends Abstract {
         "A1", 
         "A2", 
         "A3"
-    ]}
-	 	]
+    ],
+    "locationId": "123e4567-e89b-12d3-a456-426614174001"
+  }]
   *}
   * @apiUse successBody
   * @apiUse errorBody
@@ -119,6 +120,9 @@ module.exports = class Entities extends Abstract {
                 ],
                 "createdByProgramId": "5d8f36c430c4af40b646c4ba",
                 "createdBySolutionId": "5d8f36c430c4af40b646c4bb"
+            },
+            "registryDetails" : {
+              "_id" : "123e4567-e89b-12d3-a456-426614174001"
             },
             "updatedBy": "e97b5582-471c-4649-8401-3cc4249359bb",
             "createdBy": "e97b5582-471c-4649-8401-3cc4249359bb",
@@ -378,7 +382,8 @@ module.exports = class Entities extends Abstract {
   *    		  "programId": "",
   *    		  "callResponse":"",
   *         "createdByProgramId" : "5b98d7b6d4f87f317ff615ee",
-  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a"
+  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a",
+  *         "locationId": "123e4567-e89b-12d3-a456-426614174001"
   *   }
   * @apiUse successBody
   * @apiUse errorBody

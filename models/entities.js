@@ -3,7 +3,7 @@ module.exports = {
     schema: {
       entityTypeId: "ObjectId",
       entityType: String,
-      regsitryDetails : Object,
+      registryDetails : Object,
       groups: Object,
       metaInformation : Object,
       updatedBy: String,
