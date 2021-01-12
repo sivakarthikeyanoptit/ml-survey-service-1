@@ -67,8 +67,9 @@ module.exports = class Entities extends Abstract {
         "A1", 
         "A2", 
         "A3"
-    ]}
-	 	]
+    ],
+    "locationId": "123e4567-e89b-12d3-a456-426614174001"
+  }]
   *}
   * @apiUse successBody
   * @apiUse errorBody
@@ -119,6 +120,9 @@ module.exports = class Entities extends Abstract {
                 ],
                 "createdByProgramId": "5d8f36c430c4af40b646c4ba",
                 "createdBySolutionId": "5d8f36c430c4af40b646c4bb"
+            },
+            "registryDetails" : {
+              "_id" : "123e4567-e89b-12d3-a456-426614174001"
             },
             "updatedBy": "e97b5582-471c-4649-8401-3cc4249359bb",
             "createdBy": "e97b5582-471c-4649-8401-3cc4249359bb",
@@ -378,7 +382,8 @@ module.exports = class Entities extends Abstract {
   *    		  "programId": "",
   *    		  "callResponse":"",
   *         "createdByProgramId" : "5b98d7b6d4f87f317ff615ee",
-  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a"
+  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a",
+  *         "locationId": "123e4567-e89b-12d3-a456-426614174001"
   *   }
   * @apiUse successBody
   * @apiUse errorBody
@@ -904,6 +909,76 @@ module.exports = class Entities extends Abstract {
           message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
+
+      }
+
+
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/entities/registryMappingUpload Bulk Upload Registry
+  * @apiVersion 1.0.0
+  * @apiName Bulk Upload Registry CSV
+  * @apiGroup Entities
+  * @apiParam {File} registry Mandatory registry file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+     /**
+   * Bulk upload registry.
+   * @method
+   * @name registryMappingUpload
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.registry - registry data.         
+   * @returns {CSV} - A CSV with name Registry-Upload is saved inside the folder
+   */
+
+  registryMappingUpload(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let registryCSVData = await csv().fromString(req.files.registry.data.toString());
+
+        if (!registryCSVData || registryCSVData.length < 1) {
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
+        }
+
+        let newRegistryData = await entitiesHelper.registryMappingUpload(registryCSVData, req.userDetails);
+        
+        if (newRegistryData.length > 0) {
+
+          const fileName = `Registry-Upload`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          await Promise.all(newRegistryData.map(async registry => {
+            input.push(registry);
+          }))
+
+          input.push(null);
+
+        } else {
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
+        }
+        
+
+      } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          })
 
       }
 

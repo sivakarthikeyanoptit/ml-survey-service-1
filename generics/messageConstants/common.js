@@ -45,5 +45,10 @@ module.exports = {
     VERSION_1 : "v1",
     VERSION_2 : "v2",
     PROJECT : "project",
-    IMPROVEMENT_PROJECT : "improvementProject"
+    IMPROVEMENT_PROJECT : "improvementProject",
+    ENTITY_TYPE_STATE : "state",
+    ENTITY_TYPE_DISTRICT : "district",
+    ENTITY_TYPE_BLOCK : "block",
+    ENTITY_TYPE_CLUSTER : "cluster",
+    ENTITY_TYPE_SCHOOL : "school"
 }
