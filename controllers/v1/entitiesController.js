@@ -928,7 +928,6 @@ module.exports = class Entities extends Abstract {
    * @param {Object} req - requested data.
    * @param {Object} req.files.registry - registry data.         
    * @returns {CSV} - A CSV with name Registry-Upload is saved inside the folder
-   * public/reports/currentDate
    */
 
   registryMappingUpload(req) {
@@ -937,7 +936,6 @@ module.exports = class Entities extends Abstract {
       try {
 
         let registryCSVData = await csv().fromString(req.files.registry.data.toString());
-
 
         if (!registryCSVData || registryCSVData.length < 1) {
           throw messageConstants.apiResponses.FILE_DATA_MISSING;

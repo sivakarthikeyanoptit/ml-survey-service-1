@@ -1517,6 +1517,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
         return new Promise(async (resolve, reject) => {
             try {
 
+                let pushToES = []; 
                 let registryUploadedData = await Promise.all(
                     registryCSVData.map(async registry => {
 
@@ -1589,7 +1590,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                             if (entityDocument && entityDocument._id) {
                                 registry["_SYSTEM_ID"] = entityDocument._id; 
                                 registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
-                                await this.pushEntitiesToElasticSearch([entityDocument._id]);
+                                pushToES.push(entityDocument._id);
 
                             } else {
                                 registry["_SYSTEM_ID"] = "";
@@ -1605,6 +1606,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     })
                 )
 
+                await this.pushEntitiesToElasticSearch(pushToES);
                 return resolve(registryUploadedData);
 
             } catch (error) {
