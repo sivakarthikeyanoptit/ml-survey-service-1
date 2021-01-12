@@ -910,5 +910,77 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+  /**
+  * @api {post} /assessment/api/v1/entities/registryMappingUpload Bulk Upload Registry
+  * @apiVersion 1.0.0
+  * @apiName Bulk Upload Registry CSV
+  * @apiGroup Entities
+  * @apiParam {File} registry Mandatory registry file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+     /**
+   * Bulk upload registry.
+   * @method
+   * @name registryMappingUpload
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.registry - registry data.         
+   * @returns {CSV} - A CSV with name Registry-Upload is saved inside the folder
+   * public/reports/currentDate
+   */
+
+  registryMappingUpload(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let registryCSVData = await csv().fromString(req.files.registry.data.toString());
+
+
+        if (!registryCSVData || registryCSVData.length < 1) {
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
+        }
+
+        let newRegistryData = await entitiesHelper.registryMappingUpload(registryCSVData, req.userDetails);
+        
+        if (newRegistryData.length > 0) {
+
+          const fileName = `Registry-Upload`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          }());
+
+          await Promise.all(newRegistryData.map(async registry => {
+            input.push(registry);
+          }))
+
+          input.push(null);
+
+        } else {
+          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
+        }
+        
+
+      } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          })
+
+      }
+
+
+    })
+  }
   
 };

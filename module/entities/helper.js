@@ -1502,6 +1502,148 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
   })
 }
 
+ /**
+   * Upload registry via csv.
+   * @method
+   * @name registryMappingUpload
+   * @param {Array} registryCSVData
+   * @param {Object} userDetails -logged in user data.
+   * @param {String} userDetails.id -logged in user id.   
+   * @returns {Object} consists of SYSTEM_ID
+   */
+
+    static registryMappingUpload(registryCSVData,userDetails) {
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let registryUploadedData = await Promise.all(
+                    registryCSVData.map(async registry => {
+
+                        try {
+                            
+                            let entityDocument,name,keyToCheck;
+                            let filteredQuery,checkParentEntityQuery = {};
+                            let registryDetails = {
+                                "_id":registry.locationId
+                            }
+
+                            registry = gen.utils.valueParser(registry);
+                            name = registry.name;
+
+                            if(registry.entityType && registry.entityType == messageConstants.common.ENTITY_TYPE_STATE){
+                                filteredQuery = {
+                                    "entityType": registry.entityType,
+                                    "metaInformation.name": new RegExp(name)
+                                }
+
+                               entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                
+                            }
+
+                            if(registry.entityType && registry.entityType != messageConstants.common.ENTITY_TYPE_STATE){
+
+                                let entityTypes = [];
+                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_DISTRICT){
+                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE);
+                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_DISTRICT;
+                                }
+
+                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_BLOCK){
+                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT);
+                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_BLOCK;
+                                }
+
+                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_CLUSTER){
+                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT,messageConstants.common.ENTITY_TYPE_BLOCK);
+                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_CLUSTER;
+                                }
+
+                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
+                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT,messageConstants.common.ENTITY_TYPE_BLOCK,messageConstants.common.ENTITY_TYPE_CLUSTER);
+                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_SCHOOL;
+                                }
+
+                                filteredQuery = {
+                                    "metaInformation.name": new RegExp(name),
+                                    "entityType": registry.entityType
+                                }
+
+                                let entity = await database.models.entities.findOne(filteredQuery,{"_id":1});
+                                if(entity && entity._id){
+
+                                    checkParentEntityQuery = {
+                                        entityType: { $in: entityTypes }
+                                    }
+
+                                    checkParentEntityQuery[keyToCheck] = {$eq : entity._id};
+
+                                    let checkEntityParent = await database.models.entities.findOne(checkParentEntityQuery);
+                                    if(checkEntityParent){
+                                        entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                    }
+                                }
+
+                            }
+
+                            if (entityDocument && entityDocument._id) {
+                                registry["_SYSTEM_ID"] = entityDocument._id; 
+                                registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
+                                await this.pushEntitiesToElasticSearch([entityDocument._id]);
+
+                            } else {
+                                registry["_SYSTEM_ID"] = "";
+                                registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            }
+
+                        } catch (error) {
+                            registry["_SYSTEM_ID"] = "";
+                            registry.status = (error && error.message) ? error.message : error;
+                        }
+
+                        return registry;
+                    })
+                )
+
+                return resolve(registryUploadedData);
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
+
+    /**
+   * update registry in entities.
+   * @method
+   * @name updateRegistry
+   * @param {Object} filteredQuery - filteredQuery
+   * @param {String} userId - userId
+   * @param {Object} regsitryDetails - regsitryDetails
+   * @returns {Object} entity Document
+   */
+
+  static updateRegistry(filteredQuery, registryDetails, userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let updateEntityDocument = 
+                        await database.models.entities.findOneAndUpdate(filteredQuery, {
+                            $set: {
+                                registryDetails: registryDetails,
+                                updatedBy: userId
+                            }
+                        });
+
+            return resolve(updateEntityDocument);
+
+        } catch(error) {
+            return reject(error);
+        }
+    })
+  }
+
 };
 
 
@@ -1576,5 +1718,6 @@ function addTagsInEntities(entityMetaInformation) {
         }
     })
   }
+
 
 
