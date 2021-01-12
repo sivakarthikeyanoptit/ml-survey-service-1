@@ -197,7 +197,8 @@ module.exports = class Assessments {
                     {
                         metaInformation: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        registryDetails: 1
                     }
                 ).lean();
 
@@ -207,6 +208,10 @@ module.exports = class Assessments {
                         status: httpStatusCode.bad_request.status, 
                         message: responseMessage 
                     });
+                }
+
+                if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+                    entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
                 }
 
                 let solutionQueryObject = {

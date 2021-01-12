@@ -1130,7 +1130,8 @@ module.exports = class SubmissionsHelper {
             [
                 "metaInformation",
                 "entityTypeId",
-                "entityType"
+                "entityType",
+                "registryDetails"
             ]);
 
             if( !entityDocument[0] ) {
@@ -1138,6 +1139,10 @@ module.exports = class SubmissionsHelper {
                     status : httpStatusCode.bad_request.status,
                     message : messageConstants.apiResponses.ENTITY_NOT_FOUND
                 }
+            }
+
+            if (entityDocument[0].registryDetails && Object.keys(entityDocument[0].registryDetails).length > 0) {
+                entityDocument[0].metaInformation.registryDetails = entityDocument.registryDetails;
             }
 
             let submissionDocumentEvidences = 
