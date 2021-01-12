@@ -1756,7 +1756,7 @@ module.exports = class ObservationsHelper {
                     _id : solutionId
                 };
 
-                let queryField = solutionHelper.autoTargetedQueryField(
+                let queryField = await solutionHelper.autoTargetedQueryField(
                     bodyData,
                     messageConstants.common.OBSERVATION
                 );

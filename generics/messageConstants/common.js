@@ -44,5 +44,6 @@ module.exports = {
     SUBMISSIONS: "submissions",
     VERSION_1 : "v1",
     VERSION_2 : "v2",
-    PROJECT : "project"
+    PROJECT : "project",
+    IMPROVEMENT_PROJECT : "improvementProject"
 }

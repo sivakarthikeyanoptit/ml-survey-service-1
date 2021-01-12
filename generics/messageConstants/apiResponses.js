@@ -349,5 +349,6 @@ module.exports = {
 "ENTITY_NOT_ADDED" : "Could not add entity",
 "USER_SURVEYS_FETCHED" : "User's surveys fetched successfully",
 "INVALID_SCOPE_SOLUTION" : "Solution does not have scope",
-"PROGRAM_DESCRIPTION" : "View and participate in educational programs active in your location and designed for your role"
+"PROGRAM_DESCRIPTION" : "View and participate in educational programs active in your location and designed for your role",
+"NO_ENTITY_FOUND_IN_LOCATION" : "Entity not found in location"
 }

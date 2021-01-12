@@ -5,6 +5,9 @@
  * Description : Programs helper functionality
  */
 
+// Dependencies 
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
+
 /**
     * ProgramsHelper
     * @class
@@ -454,11 +457,15 @@ module.exports = class ProgramsHelper {
 
       try {
 
-        let matchQuery = this.autoTargetedQueryField(
+        let queryData = await this.autoTargetedQueryField(
           bodyData
         );
 
-        let targettedPrograms = await this.search({ $match : matchQuery },
+        if( !queryData.success ) {
+          return resolve(queryData);
+        }
+
+        let targettedPrograms = await this.search({ $match : queryData.data },
           pageSize,
           pageNo,
           { name : 1, externalId: 1, components: 1 },
@@ -501,32 +508,63 @@ module.exports = class ProgramsHelper {
    * @returns {JSON} - List of auto targeted solutions.
    */
 
-  static autoTargetedQueryField( data) {
-    
-    let filterEntities = 
-    Object.values(_.omit(data,["role","filter"])).map(entity => {
-      return ObjectId(entity);
-    });
+  static autoTargetedQueryField( data ) {
+    return new Promise(async (resolve, reject) => {
+      try {
 
-    let filterQuery = {
-      "scope.roles.code" : data.role,
-      "scope.entities" : { $in : filterEntities },
-      "isDeleted" : false,
-      status : messageConstants.common.ACTIVE_STATUS
-    }
+        let locationIds = 
+        Object.values(_.omit(data,["role","filter"])).map(locationId => {
+          return locationId;
+        });
 
-    if( data.filter && Object.keys(data.filter).length > 0 ) {
+        let entities = await entitiesHelper.entityDocuments({
+          "registryDetails.locationId" : { $in : locationIds }
+        },["_id"]); 
 
-      Object.keys(data.filter).forEach( filterKey => {
-        
-        if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
-          data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+        if( !entities.length > 0 ) {
+          throw {
+            message : messageConstants.apiResponses.NO_ENTITY_FOUND_IN_LOCATION
+          }
         }
-      });
 
-      filterQuery = _.merge(filterQuery,data.filter);
-    }
-    return filterQuery;
+        let entityIds = entities.map(entity => {
+          return entity._id;
+        });
+
+        let filterQuery = {
+          "scope.roles.code" : data.role,
+          "scope.entities" : { $in : entityIds },
+          "isDeleted" : false,
+          status : messageConstants.common.ACTIVE_STATUS
+        }
+
+        if( data.filter && Object.keys(data.filter).length > 0 ) {
+
+          Object.keys(data.filter).forEach( filterKey => {
+            
+            if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
+              data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+            }
+          });
+    
+          filterQuery = _.merge(filterQuery,data.filter);
+        }
+
+        return resolve({
+          success : true,
+          data : filterQuery
+        });
+
+      } catch(error) {
+        return resolve({
+          success : false,
+          status : error.status ? 
+          error.status : httpStatusCode['internal_server_error'].status,
+          message : error.message,
+          data : {}
+        })
+      }
+    })
   } 
 
 };

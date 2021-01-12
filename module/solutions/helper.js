@@ -1703,7 +1703,6 @@ module.exports = class SolutionsHelper {
     });
    }
 
-
    /**
    * List of auto targeted solutions.
    * @method
@@ -1723,16 +1722,30 @@ module.exports = class SolutionsHelper {
 
       try {
 
-        let matchQuery = this.autoTargetedQueryField(
+        let queryData = await this.autoTargetedQueryField(
           bodyData,
           type,
           subType
         );
 
-        let targetedSolutions = await this.search({ $match : matchQuery },
+        if( !queryData.success ) {
+          return resolve(queryData);
+        }
+
+        let targetedSolutions = await this.search({ 
+          $match : queryData.data 
+        },
           pageSize,
           pageNo,
-          { name : 1, description : 1, programName : 1,programId : 1,externalId : 1 },
+          { 
+            name : 1, 
+            description : 1, 
+            programName : 1,
+            programId : 1,
+            externalId : 1,
+            projectTemplateId : 1,
+            type : 1 
+          },
           searchText
         );
       
@@ -1759,48 +1772,98 @@ module.exports = class SolutionsHelper {
    * Auto targeted query field.
    * @method
    * @name autoTargetedQueryField
-   * @param {String} bodyData - Requested body data.
+   * @param {String} data - Requested body data.
    * @param {String} type - solution type.
    * @param {String} subType - solution sub type.
    * @returns {JSON} - List of auto targeted solutions.
    */
-
   
   static autoTargetedQueryField( data,type,subType = "" ) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let registryIds = 
+        Object.values(_.omit(data,["role","filter"])).map(entity => {
+          return entity;
+        });
     
-    let filterEntities = 
-    Object.values(_.omit(data,["role","filter"])).map(entity => {
-      return ObjectId(entity);
-    });
+        let entities = await entitiesHelper.entityDocuments({
+          "registryDetails.locationId" : { $in : registryIds }
+        },["_id"]); 
 
-    let filterQuery = {
-      "scope.roles.code" : data.role,
-      "scope.entities" : { $in : filterEntities },
-      isReusable : false,
-      "isDeleted" : false,
-      status : messageConstants.common.ACTIVE_STATUS
-    }
-
-    if( type !== "" ) {
-      filterQuery["type"] = type;
-    }
-
-    if( subType !== "" ) {
-      filterQuery["subType"] = subType;
-    }
-
-    if( data.filter && Object.keys(data.filter).length > 0 ) {
-
-      Object.keys(data.filter).forEach( filterKey => {
-        
-        if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
-          data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+        if( !entities.length > 0 ) {
+          throw {
+            message : messageConstants.apiResponses.NO_ENTITY_FOUND_IN_LOCATION
+          }
         }
-      });
 
-      filterQuery = _.merge(filterQuery,data.filter);
-    }
-    return filterQuery;
+        let entityIds = entities.map(entity => {
+          return entity._id;
+        });
+
+        let filterQuery = {
+          "scope.roles.code" : data.role,
+          "scope.entities" : { $in : entityIds },
+          isReusable : false,
+          "isDeleted" : false,
+          status : messageConstants.common.ACTIVE_STATUS
+        }
+    
+        if( type !== "" ) {
+          filterQuery["type"] = type;
+        }
+    
+        if( subType !== "" ) {
+          filterQuery["subType"] = subType;
+        }
+
+        if( type === "" && subType === "" ) {
+          filterQuery["$or"] = [
+            {
+              type : messageConstants.common.ASSESSMENT
+            },{
+              type : messageConstants.common.OBSERVATION 
+            },{
+              type : messageConstants.common.IMPROVEMENT_PROJECT,
+              projectTemplateId : { $exists : true }
+            }
+          ]
+        }
+
+        let entityTypes = 
+        Object.keys(_.omit(data,["role","filter"])).map(entity => {
+          return entity;
+        });
+
+        filterQuery["entityType"] = { $in : entityTypes };
+    
+        if( data.filter && Object.keys(data.filter).length > 0 ) {
+    
+          Object.keys(data.filter).forEach( filterKey => {
+            
+            if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
+              data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+            }
+          });
+    
+          filterQuery = _.merge(filterQuery,data.filter);
+        }
+        
+        return resolve({
+          success : true,
+          data : filterQuery
+        });
+
+      } catch(error) {
+        return resolve({
+          success : false,
+          status : error.status ? 
+          error.status : httpStatusCode['internal_server_error'].status,
+          message : error.message,
+          data : {}
+        })
+      }
+    })   
   } 
 
      /**
