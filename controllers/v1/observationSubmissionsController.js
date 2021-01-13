@@ -113,7 +113,8 @@ module.exports = class ObservationSubmissions extends Abstract {
         }, [
           "metaInformation",
           "entityTypeId",
-          "entityType"
+          "entityType",
+          "registryDetails"
         ]);
 
         if (!entityDocument[0]) {
@@ -124,6 +125,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
         
         entityDocument = entityDocument[0];
+
+        if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+          entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
+        }
 
         let solutionDocument = await solutionsHelper.solutionDocuments({
           _id: observationDocument.solutionId,

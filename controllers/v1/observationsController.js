@@ -697,7 +697,8 @@ module.exports = class Observations extends Abstract {
                     {
                         metaInformation: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        registryDetails : 1
                     }
                 ).lean();
 
@@ -707,6 +708,10 @@ module.exports = class Observations extends Abstract {
                         status: httpStatusCode.bad_request.status, 
                         message: responseMessage 
                     });
+                }
+
+                if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+                    entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;
@@ -1861,10 +1866,9 @@ module.exports = class Observations extends Abstract {
     * @apiParamExample {json} Request:
     * {
     *   "role" : "HM",
-   		"state" : "5c0bbab881bdbe330655da7f",
-   		"block" : "5c0bbab881bdbe330655da7f",
-   		"cluster" : "5c0bbab881bdbe330655da7f",
-   		"school" : "5c0bbab881bdbe330655da7f"
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
     }
     * @apiParamExample {json} Response:
     {
@@ -1937,10 +1941,9 @@ module.exports = class Observations extends Abstract {
     * @apiParamExample {json} Request:
     * {
     *   "role" : "HM",
-   		"state" : "5c0bbab881bdbe330655da7f",
-   		"block" : "5c0bbab881bdbe330655da7f",
-   		"cluster" : "5c0bbab881bdbe330655da7f",
-   		"school" : "5c0bbab881bdbe330655da7f"
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
     }
     * @apiParamExample {json} Response:
     {

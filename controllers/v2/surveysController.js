@@ -26,10 +26,9 @@ module.exports = class Surveys extends v1Survey{
     * @apiParamExample {json} Request:
     * {
     *   "role" : "HM",
-   		"state" : "5c0bbab881bdbe330655da7f",
-   		"block" : "5c0bbab881bdbe330655da7f",
-   		"cluster" : "5c0bbab881bdbe330655da7f",
-   		"school" : "5c0bbab881bdbe330655da7f"
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
     }
     * @apiUse successBody
     * @apiUse errorBody
@@ -245,6 +244,6 @@ module.exports = class Surveys extends v1Survey{
             });
         }
     });
-}
+   }
 
 }
