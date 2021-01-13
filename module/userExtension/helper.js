@@ -337,6 +337,7 @@ module.exports = class UserExtensionHelper {
 
                             if (!(userRoleToUpdate >= 0)) {
                                 userRoleToUpdate = existingUserRole.roles.length;
+                                userRoleMap[userRole.role].entities = new Array;
                                 existingUserRole.roles.push(userRoleMap[userRole.role]);
                             }
 
