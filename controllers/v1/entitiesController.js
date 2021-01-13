@@ -917,7 +917,7 @@ module.exports = class Entities extends Abstract {
   }
 
   /**
-  * @api {post} /assessment/api/v1/entities/registryMappingUpload Bulk Upload Registry
+  * @api {post} /assessment/api/v1/entities/registryMappingUpload?entityType=entityType Bulk Upload Registry
   * @apiVersion 1.0.0
   * @apiName Bulk Upload Registry CSV
   * @apiGroup Entities
@@ -932,6 +932,7 @@ module.exports = class Entities extends Abstract {
    * @name registryMappingUpload
    * @param {Object} req - requested data.
    * @param {Object} req.files.registry - registry data.         
+   * @param {String} req.query.entityType - entity Type.         
    * @returns {CSV} - A CSV with name Registry-Upload is saved inside the folder
    */
 
@@ -946,32 +947,9 @@ module.exports = class Entities extends Abstract {
           throw messageConstants.apiResponses.FILE_DATA_MISSING;
         }
 
-        let newRegistryData = await entitiesHelper.registryMappingUpload(registryCSVData, req.userDetails);
-        
-        if (newRegistryData.length > 0) {
-
-          const fileName = `Registry-Upload`;
-          let fileStream = new FileStream(fileName);
-          let input = fileStream.initStream();
-
-          (async function () {
-            await fileStream.getProcessorPromise();
-            return resolve({
-              isResponseAStream: true,
-              fileNameWithPath: fileStream.fileNameWithPath()
-            });
-          }());
-
-          await Promise.all(newRegistryData.map(async registry => {
-            input.push(registry);
-          }))
-
-          input.push(null);
-
-        } else {
-          throw messageConstants.apiResponses.SOMETHING_WENT_WRONG;
-        }
-        
+        let newRegistryData = await entitiesHelper.registryMappingUpload(registryCSVData, req.userDetails, req.query.entityType);
+      
+        return resolve(newRegistryData);
 
       } catch (error) {
           return reject({
