@@ -1716,7 +1716,7 @@ module.exports = class SolutionsHelper {
    * @returns {JSON} - List of auto targeted solutions.
    */
 
-  static autoTargeted( bodyData,type,subType = "", pageSize, pageNo,searchText = "" ) {
+  static autoTargeted( bodyData,type,subType = "",programId, pageSize, pageNo,searchText = "" ) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -1725,7 +1725,8 @@ module.exports = class SolutionsHelper {
         let queryData = await this.autoTargetedQueryField(
           bodyData,
           type,
-          subType
+          subType,
+          programId
         );
 
         if( !queryData.success ) {
@@ -1778,14 +1779,17 @@ module.exports = class SolutionsHelper {
    * @returns {JSON} - List of auto targeted solutions.
    */
   
-  static autoTargetedQueryField( data,type,subType = "" ) {
+  static autoTargetedQueryField( data,type = "",subType = "",programId = "" ) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let registryIds = 
-        Object.values(_.omit(data,["role","filter"])).map(entity => {
-          return entity;
-        });
+        let registryIds = [];
+        let entityTypes = [];
+
+        Object.keys(_.omit(data,["filter","role"])).forEach( requestedDataKey => {
+          registryIds.push(data[requestedDataKey]);
+          entityTypes.push(requestedDataKey);
+        })
     
         let entities = await entitiesHelper.entityDocuments({
           "registryDetails.locationId" : { $in : registryIds }
@@ -1804,9 +1808,14 @@ module.exports = class SolutionsHelper {
         let filterQuery = {
           "scope.roles.code" : data.role,
           "scope.entities" : { $in : entityIds },
+          "scope.entityType" : { $in : entityTypes },
           isReusable : false,
           "isDeleted" : false,
           status : messageConstants.common.ACTIVE_STATUS
+        }
+
+        if ( programId !== "" ) {
+          filterQuery["programId"] = ObjectId(programId);
         }
     
         if( type !== "" ) {
@@ -1824,27 +1833,30 @@ module.exports = class SolutionsHelper {
             },{
               type : messageConstants.common.OBSERVATION 
             },{
+              type : messageConstants.common.SURVEY
+            },{
               type : messageConstants.common.IMPROVEMENT_PROJECT,
               projectTemplateId : { $exists : true }
             }
           ]
         }
-
-        let entityTypes = 
-        Object.keys(_.omit(data,["role","filter"])).map(entity => {
-          return entity;
-        });
-
-        filterQuery["entityType"] = { $in : entityTypes };
     
         if( data.filter && Object.keys(data.filter).length > 0 ) {
-    
-          Object.keys(data.filter).forEach( filterKey => {
+          
+          let solutionsSkipped = [];
+
+          if(  data.filter.skipSolutions ) {
             
-            if( gen.utils.isValidMongoId(data.filter[filterKey]) ) {
-              data.filter[filterKey] = ObjectId(data.filter[filterKey]);
+            data.filter.skipSolutions.forEach( solution => {
+              solutionsSkipped.push(ObjectId(solution.toString()));
+            });
+  
+            data.filter["_id"] = {
+              $nin : solutionsSkipped
             }
-          });
+
+            delete data.filter.skipSolutions;
+          }
     
           filterQuery = _.merge(filterQuery,data.filter);
         }
@@ -2032,5 +2044,73 @@ module.exports = class SolutionsHelper {
 
     })
   } 
+
+   /**
+   * List of auto targeted solutions.
+   * @method
+   * @name targetedSolutionDetails
+   * @param {String} solutionId 
+   * @returns {JSON} - List of auto targeted solutions.
+   */
+
+  static targetedSolutionDetails( solutionId,bodyData ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let queryData = await this.autoTargetedQueryField(
+          bodyData
+        );
+
+        if( !queryData.success ) {
+          return resolve(queryData);
+        }
+
+        queryData.data["_id"] = solutionId;
+
+        let targetedSolutionDetails = 
+        await this.solutionDocuments(
+          queryData.data,
+          [
+            "name",
+            "externalId",
+            "description",
+            "programId",
+            "programName",
+            "programDescription",
+            "programExternalId",
+            "isAPrivateProgram",
+            "projectTemplateId",
+            "entityType",
+            "entityTypeId"
+          ]
+        );
+
+        if( !targetedSolutionDetails.length > 0 ) {
+          throw {
+            status : httpStatusCode["bad_request"].status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          }
+        }
+      
+        return resolve({
+          success: true,
+          message: messageConstants.apiResponses.TARGETED_SOLUTIONS_FETCHED,
+          data: targetedSolutionDetails[0]
+        });
+
+      } catch (error) {
+
+        return resolve({
+          success : false,
+          message : error.message,
+          data : {}
+        });
+
+      }
+
+    })
+  }
 
 };

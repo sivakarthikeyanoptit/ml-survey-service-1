@@ -107,6 +107,9 @@ module.exports = (req) => {
         },
         relatedEntities: function () {
             req.checkParams('_id').exists().withMessage("required Entity id")
+        },
+        listByLocationIds : function () {
+            req.checkBody("locationIds").exists().withMessage("Location ids is required");
         }
 
 

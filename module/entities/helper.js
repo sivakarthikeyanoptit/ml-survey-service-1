@@ -1542,6 +1542,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
             try {
 
                 let pushToES = []; 
+
                 let registryUploadedData = await Promise.all(
                     registryCSVData.map(async registry => {
 
@@ -1550,7 +1551,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                             let entityDocument,name,keyToCheck;
                             let filteredQuery,checkParentEntityQuery = {};
                             let registryDetails = {
-                                "_id":registry.locationId
+                                "_id" : registry.locationId
                             }
 
                             registry = gen.utils.valueParser(registry);
@@ -1666,6 +1667,44 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
         } catch(error) {
             return reject(error);
+        }
+    })
+  }
+
+  /**
+   * update registry in entities.
+   * @method
+   * @name listByLocationIds
+   * @param {Object} locationIds - locationIds
+   * @returns {Object} entity Document
+   */
+
+  static listByLocationIds(locationIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let entities = 
+            await this.entityDocuments({
+                "registryDetails.locationId" : { $in : locationIds }
+            },["metaInformation", "entityType", "entityTypeId","registryDetails"]);
+
+            if( !entities.length > 0 ) {
+                throw {
+                    message : messageConstants.apiResponses.ENTITIES_FETCHED
+                }
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.ENTITY_FETCHED,
+                data : entities
+            });
+
+        } catch(error) {
+            return resolve({
+                success : false,
+                message : error.message
+            });
         }
     })
   }

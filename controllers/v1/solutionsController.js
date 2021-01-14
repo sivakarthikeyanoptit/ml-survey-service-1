@@ -1750,7 +1750,7 @@ module.exports = class Solutions extends Abstract {
   }
 
   /**
-    * @api {post} /assessment/api/v1/solutions/autoTargeted?type=:type&subType=:subType&page=:page&limit=:limit Auto targeted solutions
+    * @api {post} /assessment/api/v1/solutions/autoTargeted?programId=:programId&type=:type&subType=:subType&page=:page&limit=:limit Auto targeted solutions
     * @apiVersion 1.0.0
     * @apiName Auto targeted solution
     * @apiGroup Solutions
@@ -1761,7 +1761,7 @@ module.exports = class Solutions extends Abstract {
         "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
         "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824",
         "filter" : {}
-    }
+      }
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiSampleRequest /assessment/api/v1/solutions/autoTargeted?type=assessment&page=1&limit=5
     * @apiUse successBody
@@ -1799,6 +1799,7 @@ module.exports = class Solutions extends Abstract {
           req.body,
           req.query.type ? req.query.type : "",
           req.query.subType ? req.query.subType : "",
+          req.query.programId ? req.query.programId : "",
           req.pageSize,
           req.pageNo,
           req.searchText
@@ -1806,6 +1807,70 @@ module.exports = class Solutions extends Abstract {
           
         targetedSolutions.result = targetedSolutions.data;
         return resolve(targetedSolutions);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    });
+  }
+
+  /**
+    * @api {post} /assessment/api/v1/solutions/targetedSolutionDetails/:solutionId Targeted solution details.
+    * @apiVersion 1.0.0
+    * @apiName Targeted solution details
+    * @apiGroup Solutions
+    * @apiParamExample {json} Request-Body:
+    * {
+        "role" : "HM",
+   		  "state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+      }
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiSampleRequest /assessment/api/v1/solutions/targetedSolutionDetails/5fc3dff14ea9b44f3340afe2
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    * {
+    "message": "Successfully targeted solutions fetched",
+    "status": 200,
+    "result": {
+        "_id": "5fc3dff14ea9b44f3340afe2",
+        "isAPrivateProgram": true,
+        "programId": "5ff438b04698083dbfab7284",
+        "programExternalId": "TEST_SCOPE_PROGRAM",
+        "programName": "TEST_SCOPE_PROGRAM",
+        "programDescription": "TEST_SCOPE_PROGRAM",
+        "entityType": "school",
+        "entityTypeId": "5d15a959e9185967a6d5e8a6",
+        "externalId": "f449823a-06bb-4a3f-9d49-edbe1524ebbb-1606672337956",
+        "projectTemplateId": "5ff4a46aa87a5c721f9eb664"
+    }}
+    */
+
+     /**
+   * Auto targeted solution.
+   * @method
+   * @name targetedSolutionDetails
+   * @param {Object} req - requested data.
+   * @returns {JSON} Created solution data.
+   */
+
+  async targetedSolutionDetails(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let targetedSolutionDetails = await solutionsHelper.targetedSolutionDetails(
+          req.params._id ? req.params._id : "",
+          req.body
+        );
+          
+        targetedSolutionDetails.result = targetedSolutionDetails.data;
+        return resolve(targetedSolutionDetails);
 
       } catch (error) {
         return reject({

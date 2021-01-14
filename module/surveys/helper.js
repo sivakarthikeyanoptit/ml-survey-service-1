@@ -1371,9 +1371,7 @@ module.exports = class SurveysHelper {
 
             if( solutionIds.length > 0 ) {
                 bodyData["filter"] = {};
-                bodyData["filter"]["_id"] = {
-                    $nin : solutionIds
-                }; 
+                bodyData["filter"]["skipSolutions"] = solutionIds; 
             }
 
             let targetedSolutions = 
@@ -1382,6 +1380,7 @@ module.exports = class SurveysHelper {
                 bodyData,
                 messageConstants.common.SURVEY,
                 messageConstants.common.SURVEY,
+                "",
                 pageSize,
                 pageNo,
                 search
@@ -1457,35 +1456,15 @@ module.exports = class SurveysHelper {
 
             if (surveyId == "") {
 
-                bodyData["filter"] = {
-                    _id : solutionId
-                };
 
-                let queryField = solutionsHelper.autoTargetedQueryField(
-                    bodyData,
-                    messageConstants.common.SURVEY
-                );
-
-                let solutionData = await solutionsHelper.solutionDocuments(
-                    queryField,
-                    [
-                        "externalId",
-                        "name",
-                        "description",
-                        "type",
-                        "endDate",
-                        "status",
-                        "programId",
-                        "programExternalId",
-                        "isAPrivateProgram"
-                    ]
+                let solutionData = 
+                await solutionsHelper.targetedSolutionDetails(
+                    solutionId,
+                    bodyData
                 );
                 
-                if( !solutionData.length > 0 ) {
-                    throw {
-                        status : httpStatusCode["bad_request"].status,
-                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
-                    }
+                if( !solutionData.success ) {
+                    return resolve(solutionData);
                 }
 
                 let userOrgDetails = await this.getUserOrganisationDetails
@@ -1503,8 +1482,8 @@ module.exports = class SurveysHelper {
                 let createSurveyDocument = await this.createSurveyDocument
                 (
                     userId,
-                    solutionData[0],
-                  userOrgDetails[userId]
+                    solutionData.data,
+                    userOrgDetails[userId]
                 )
 
                 if (!createSurveyDocument.success) {
