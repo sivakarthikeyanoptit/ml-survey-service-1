@@ -110,6 +110,9 @@ module.exports = (req) => {
         },
         listByLocationIds : function () {
             req.checkBody("locationIds").exists().withMessage("Location ids is required");
+        },
+        registryMappingUpload: function () {
+            req.checkQuery('entityType').exists().withMessage("required entity type")
         }
 
 

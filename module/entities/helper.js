@@ -9,6 +9,8 @@
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+
 
  /**
     * EntitiesHelper
@@ -1536,103 +1538,95 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
    * @returns {Object} consists of SYSTEM_ID
    */
 
-    static registryMappingUpload(registryCSVData,userDetails) {
+    static registryMappingUpload(registryCSVData,userDetails, entityType) {
 
         return new Promise(async (resolve, reject) => {
             try {
 
-                let pushToES = []; 
+                const fileName = `Registry-Upload`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
 
-                let registryUploadedData = await Promise.all(
-                    registryCSVData.map(async registry => {
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                      isResponseAStream: true,
+                      fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                }());
 
-                        try {
-                            
-                            let entityDocument,name,keyToCheck;
-                            let filteredQuery,checkParentEntityQuery = {};
-                            let registryDetails = {
-                                "_id" : registry.locationId
-                            }
+                let pushToES = [];
+                let entityData = [];
+                let entityDocument,locationQuery;
+                
+                registryCSVData.forEach(entity=>{
+                    entity = gen.utils.valueParser(entity);
+                    entityData.push(new RegExp(entity.name));
+                });
 
-                            registry = gen.utils.valueParser(registry);
-                            name = registry.name;
+                let filteredQuery = {
+                    "entityType": entityType,
+                    "metaInformation.name": { $in : entityData }
+                }
 
-                            if(registry.entityType && registry.entityType == messageConstants.common.ENTITY_TYPE_STATE){
-                                filteredQuery = {
-                                    "entityType": registry.entityType,
-                                    "metaInformation.name": new RegExp(name)
-                                }
+                let entities = await database.models.entities.find(filteredQuery,{"_id":1,"metaInformation.name":1,"registryDetails._id":1});
 
-                               entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
-                                
-                            }
+                let entityInformation = _.keyBy(entities,"metaInformation.name");
 
-                            if(registry.entityType && registry.entityType != messageConstants.common.ENTITY_TYPE_STATE){
+                for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
 
-                                let entityTypes = [];
-                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_DISTRICT){
-                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE);
-                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_DISTRICT;
-                                }
+                    let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
+                    let name = registry.name;
 
-                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_BLOCK){
-                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT);
-                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_BLOCK;
-                                }
+                    let hasKeyRegex = Object.keys(entityInformation).some(function(key) {
+                      return new RegExp(name).test(key);
+                    });
 
-                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_CLUSTER){
-                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT,messageConstants.common.ENTITY_TYPE_BLOCK);
-                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_CLUSTER;
-                                }
+                    if(hasKeyRegex){
 
-                                if(registry.entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
-                                    entityTypes.push(messageConstants.common.ENTITY_TYPE_STATE,messageConstants.common.ENTITY_TYPE_DISTRICT,messageConstants.common.ENTITY_TYPE_BLOCK,messageConstants.common.ENTITY_TYPE_CLUSTER);
-                                    keyToCheck = "groups." + messageConstants.common.ENTITY_TYPE_SCHOOL;
-                                }
-
-                                filteredQuery = {
-                                    "metaInformation.name": new RegExp(name),
-                                    "entityType": registry.entityType
-                                }
-
-                                let entity = await database.models.entities.findOne(filteredQuery,{"_id":1});
-                                if(entity && entity._id){
-
-                                    checkParentEntityQuery = {
-                                        entityType: { $in: entityTypes }
-                                    }
-
-                                    checkParentEntityQuery[keyToCheck] = {$eq : entity._id};
-
-                                    let checkEntityParent = await database.models.entities.findOne(checkParentEntityQuery);
-                                    if(checkEntityParent){
-                                        entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
-                                    }
-                                }
-
-                            }
-
-                            if (entityDocument && entityDocument._id) {
-                                registry["_SYSTEM_ID"] = entityDocument._id; 
-                                registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
-                                pushToES.push(entityDocument._id);
-
-                            } else {
-                                registry["_SYSTEM_ID"] = "";
-                                registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
-                            }
-
-                        } catch (error) {
-                            registry["_SYSTEM_ID"] = "";
-                            registry.status = (error && error.message) ? error.message : error;
+                        let registryDetails = {
+                            "_id":registry.locationId
                         }
 
-                        return registry;
-                    })
-                )
+                        if(entityType != messageConstants.common.ENTITY_TYPE_STATE){
 
-                await this.pushEntitiesToElasticSearch(pushToES);
-                return resolve(registryUploadedData);
+                            locationQuery = {
+                                "registryDetails._id":registry.parentLocationId
+                            }
+
+                            let checkparentEntity = await database.models.entities.findOne(locationQuery);
+                            if(checkparentEntity){
+                                entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                            }
+                        }else{
+
+                            locationQuery = {
+                                "entityType": entityType,
+                                "metaInformation.name": new RegExp(name)
+                            }
+
+                            entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
+                        }
+                    }
+
+                    if (entityDocument && entityDocument._id) {
+                        registry["_SYSTEM_ID"] = entityDocument._id; 
+                        registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
+                        pushToES.push(entityDocument._id);
+
+                    } else {
+                        registry["_SYSTEM_ID"] = "";
+                        registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                    }
+
+                    input.push(registry);
+                }
+
+                if(pushToES && pushToES.length > 0){
+                    await this.pushEntitiesToElasticSearch(pushToES);
+                }
+
+                input.push(null);
 
             } catch (error) {
                 return reject(error);
@@ -1647,7 +1641,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
    * @name updateRegistry
    * @param {Object} filteredQuery - filteredQuery
    * @param {String} userId - userId
-   * @param {Object} regsitryDetails - regsitryDetails
+   * @param {Object} registryDetails - registryDetails
    * @returns {Object} entity Document
    */
 
