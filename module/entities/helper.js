@@ -1554,18 +1554,18 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     });
                 }());
 
-                let pushToES = [],entityIds = [],parentLocationIds = [],entityDoc = [];
+                let pushToES = [],entityNames = [],parentLocationIds = [],entityDoc = [];
                 let parentEntityInformation,entityDocument,locationQuery,parentLocationEntities;
                 
                 registryCSVData.forEach(entity=>{
                     entity = gen.utils.valueParser(entity);
-                    entityIds.push(new RegExp(entity.entityName,"i"));
+                    entityNames.push(new RegExp(entity.entityName,"i"));
                     parentLocationIds.push(entity.parentLocationId);
                 });
 
                 let filteredQuery = {
                     "entityType": entityType,
-                    "metaInformation.name": { $in : entityIds }
+                    "metaInformation.name": { $in : entityNames }
                 }
 
                 if(parentLocationIds && parentLocationIds.length > 0){
@@ -1579,7 +1579,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                 } 
 
-                let entities =  await database.models.entities.find(filteredQuery,{"_id":1,"metaInformation.name":1,"registryDetails._id":1});
+                let entities =  await this.entityDocuments(filteredQuery,["_id","metaInformation.name", "registryDetails.locationId"]);
                 let entityInformation = _.keyBy(entities,"metaInformation.name");
 
                 for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
@@ -1590,7 +1590,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     let checkEntityExist = false;
                     let entityDetail;
 
-                    for(var key in entityInformation){
+                    for(let key in entityInformation){
                         if(entityName.test(key)){
                             checkEntityExist  = true;
                             entityDetail = entityInformation[key];
