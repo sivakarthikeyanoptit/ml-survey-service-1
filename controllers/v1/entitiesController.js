@@ -964,5 +964,92 @@ module.exports = class Entities extends Abstract {
 
     })
   }
+
+  /**
+  * @api {post} /assessment/api/v1/entities/listByLocationIds Entities list by location ids.
+  * @apiVersion 1.0.0
+  * @apiName Entities list by location ids.
+  * @apiGroup Entities
+  * @param {json} Request-Body:
+  * {
+  *   "locationIds" : [
+  *     "236f5cff-c9af-4366-b0b6-253a1789766a",
+  *     "1dcbc362-ec4c-4559-9081-e0c2864c2931"
+  *   ]
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entities fetched successfull",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5db173598a8e070bedca6ba1",
+            "entityTypeId": "5d7a290e6371783ceb11064c",
+            "entityType": "state",
+            "metaInformation": {
+                "externalId": "DL",
+                "name": "Delhi",
+                "region": "NORTH",
+                "capital": "NEW DELHI"
+            },
+            "registryDetails": {
+                "locationId": "236f5cff-c9af-4366-b0b6-253a1789766a"
+            }
+        },
+        {
+            "_id": "5db1738b8a8e070bedca6bae",
+            "entityTypeId": "5d15a959e9185967a6d5e8ac",
+            "entityType": "district",
+            "metaInformation": {
+                "externalId": "DL-West A",
+                "Dist name": "West A",
+                "region": "West A",
+                "districtId": "",
+                "state": "Delhi"
+            },
+            "registryDetails": {
+                "locationId": "1dcbc362-ec4c-4559-9081-e0c2864c2931"
+            }
+        }
+    ]
+  }
+  */
+
+     /**
+   * List of entities by location ids.
+   * @method
+   * @name listByLocationIds
+   * @param {Object} req - requested data.
+   * @param {Object} req.body.locationIds - registry data.         
+   * @returns {Object} - 
+   */
+
+  listByLocationIds(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let entitiesData = 
+        await entitiesHelper.listByLocationIds(
+          req.body.locationIds
+        );
+
+        entitiesData.result = entitiesData.data;
+
+        return resolve(entitiesData);
+        
+      } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          })
+
+      }
+
+
+    })
+  }
   
 };

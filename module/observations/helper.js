@@ -1679,19 +1679,16 @@ module.exports = class ObservationsHelper {
 
             if( solutionIds.length > 0 ) {
                 bodyData["filter"] = {};
-                bodyData["filter"]["_id"] = {
-                    $nin : solutionIds
-                }; 
+                bodyData["filter"]["skipSolutions"] = solutionIds; 
             }
-
-            let subType = "";
 
             let targetedSolutions = 
             await solutionHelper.autoTargeted
             (
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                subType,
+                "",
+                "",
                 pageSize,
                 pageNo,
                 search
@@ -1751,85 +1748,45 @@ module.exports = class ObservationsHelper {
         try {
 
             if( observationId === "" ) {
-                
-                bodyData["filter"] = {
-                    _id : solutionId
-                };
 
-                let queryField = await solutionHelper.autoTargetedQueryField(
-                    bodyData,
-                    messageConstants.common.OBSERVATION
+                let solutionData = await solutionHelper.targetedSolutionDetails(
+                    solutionId,
+                    bodyData
                 );
 
-                let solutionData = await solutionHelper.solutionDocuments(
-                    queryField,
-                    [
-                        "name",
-                        "externalId",
-                        "frameworkExternalId",
-                        "frameworkId",
-                        "programExternalId",
-                        "programId",
-                        "entityTypeId",
-                        "entityType",
-                        "isAPrivateProgram",
-                        "scope"
-                    ]
-                );
-
-                if( !solutionData.length > 0 ) {
-                    throw {
-                        status : httpStatusCode["bad_request"].status,
-                        message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
-                    }
+                if( !solutionData.success ) {
+                    return resolve(solutionData);
                 }
 
-                solutionData[0]["startDate"] = new Date();
+                solutionData.data["startDate"] = new Date();
                 let endDate = new Date();
                 endDate.setFullYear(endDate.getFullYear() + 1);
-                solutionData[0]["endDate"] = endDate;
+                solutionData.data["endDate"] = endDate;
 
-                let entityTypes = Object.keys(_.omit(bodyData,["role","filter"]));
+                let entityTypes = Object.keys(_.omit(bodyData,["role"]));
 
-                if( !entityTypes.includes(solutionData[0].entityType) ) {
+                if( !entityTypes.includes(solutionData.data.entityType) ) {
                     throw {
                         message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
                     }
                 }
 
                 let entityData = 
-                await entitiesHelper.entityDocuments({
-                    _id : bodyData[solutionData[0].entityType]
-                },["_id"]);
+                await entitiesHelper.listByLocationIds(
+                    [bodyData[solutionData.data.entityType]]
+                );
 
-                if( !entityData.length > 0 ) {
-                    throw {
-                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
-                    }
+                if( !entityData.success ) {
+                    return resolve(entityData);
                 }
 
-                let filterEntityData = {
-                    _id : { $in : solutionData[0].scope.entities },
-                    [`groups.${solutionData[0].entityType}`] : ObjectId(bodyData[solutionData[0].entityType])
-                }
+                delete solutionData.data._id;
 
-                let entityInParent = 
-                await entitiesHelper.entityDocuments(filterEntityData,["_id"]);
-
-                if( !entityInParent.length > 0 ) {
-                    throw {
-                        message : messageConstants.apiResponses.ENTITY_NOT_ADDED
-                    }
-                }
-
-                delete solutionData[0].scope;
-                delete solutionData[0]._id;
-
-                solutionData[0]["entities"] = [ObjectId(bodyData[solutionData[0].entityType])];
+                solutionData.data["entities"] = [entityData.data[0]._id];
 
                 let observation = await this.create(
                     solutionId,
-                    solutionData[0],
+                    solutionData.data,
                     userId,
                     token
                 );
