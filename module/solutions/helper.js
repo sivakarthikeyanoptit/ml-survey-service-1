@@ -646,10 +646,11 @@ module.exports = class SolutionsHelper {
    * @param {Number} pageSize - page limit.
    * @param {Number} pageNo - No of the page. 
    * @param {Object} projection - Projected data. 
+   * @param {String} search - Search text. 
    * @returns {Array} List of solutions document. 
    */
 
-  static search(filteredData, pageSize, pageNo,projection) {
+  static search(filteredData, pageSize, pageNo,projection,search = "") {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -668,6 +669,16 @@ module.exports = class SolutionsHelper {
             programId: 1,
             entityTypeId: 1
           };
+        }
+
+        if ( search !== "" ) {
+          filteredData["$match"]["$or"] = [];
+          filteredData["$match"]["$or"].push(
+            { 
+              "name": new RegExp(search, 'i') 
+            }, { 
+            "description": new RegExp(search, 'i') 
+          });
         }
 
         let facetQuery = {};
