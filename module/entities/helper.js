@@ -55,7 +55,7 @@ module.exports = class EntitiesHelper {
                     
                     let registryDetails = {};
                     if (singleEntity.locationId) {
-                        registryDetails["_id"] = singleEntity.locationId;
+                        registryDetails["locationId"] = singleEntity.locationId;
                     }
 
                     let entityDoc = {
@@ -381,7 +381,7 @@ module.exports = class EntitiesHelper {
                 let registryDetails = {};
 
                 if (data.locationId) {
-                    registryDetails["_id"] =  data.locationId
+                    registryDetails["locationId"] =  data.locationId
                     delete data.locationId;
                 }
 
@@ -586,7 +586,7 @@ module.exports = class EntitiesHelper {
                         }
 
                         if (singleEntity.locationId) {
-                            entityCreation.registryDetails["_id"] =  singleEntity.locationId;
+                            entityCreation.registryDetails["locationId"] =  singleEntity.locationId;
                             delete singleEntity.locationId;
                         }
 
@@ -669,7 +669,7 @@ module.exports = class EntitiesHelper {
                     let updateData = {};
 
                     if( singleEntity.hasOwnProperty("locationId") ) {
-                       updateData["registryDetails._id"] = singleEntity.locationId;
+                       updateData["registryDetails.locationId"] = singleEntity.locationId;
 
                        delete singleEntity.locationId;
                     }

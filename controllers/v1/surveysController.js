@@ -843,7 +843,7 @@ module.exports = class Surveys extends Abstract {
     * @apiVersion 1.0.0
     * @apiGroup Surveys
     * @apiSampleRequest /assessment/api/v1/surveys/getSurvey?page=1&limit=10
-    * @apiParamExample {json} Request:
+    * @apiParamExample {json}  Request-Body:
     * {
     *   "role" : "HM",
    		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",

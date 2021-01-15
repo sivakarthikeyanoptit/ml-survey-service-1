@@ -17,13 +17,13 @@ module.exports = class Surveys extends v1Survey{
 
 
     /**
-    * @api {post} /assessment/api/v2/surveys/details/:surveyId?solutionId=:solutionId&programId=:programId
+    * @api {post} /assessment/api/v2/surveys/details/:surveyId?solutionId=:solutionId
     * Survey details.
     * @apiVersion 2.0.0
     * @apiGroup Surveys
     * @apiHeader {String} X-authenticated-user-token Authenticity token
-    * @apiSampleRequest /assessment/api/v2/surveys/details/5de8a220c210d4700813e695?solutionId=5f5b38ec45365677f64b2843&programId=5beaaa2baf0065f0e0a105c7
-    * @apiParamExample {json} Request:
+    * @apiSampleRequest /assessment/api/v2/surveys/details/5de8a220c210d4700813e695?solutionId=5f5b38ec45365677f64b2843
+    * @apiParamExample {json}  Request-Body:
     * {
     *   "role" : "HM",
    		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
@@ -210,7 +210,7 @@ module.exports = class Surveys extends v1Survey{
     * @method
     * @name details
     * @param  {Request} req request body.
-    * @returns {JSON} Response consists of message,status and result.
+    * @returns {Object} returns survey details information.
     * Result will have the details of survey.
     */
 
@@ -219,14 +219,12 @@ module.exports = class Surveys extends v1Survey{
         try {
 
             let surveyId = req.params._id ? req.params._id : "";
-            let programId = req.query.programId ? req.query.programId : "";
-
+           
             let surveyDetails = await surveysHelper.detailsV2
             (   
                 req.body,
                 surveyId,
                 req.query.solutionId,
-                programId,
                 req.userDetails.userId,
                 req.rspObj.userToken
             );

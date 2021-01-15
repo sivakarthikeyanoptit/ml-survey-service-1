@@ -504,7 +504,7 @@ module.exports = class ProgramsHelper {
    * Auto targeted query field.
    * @method
    * @name autoTargetedQueryField
-   * @param {String} bodyData - Requested body data.
+   * @param {Object} data - Requested body data.
    * @returns {JSON} - List of auto targeted solutions.
    */
 
