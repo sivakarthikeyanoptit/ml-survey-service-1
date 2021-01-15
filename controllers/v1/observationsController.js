@@ -1947,16 +1947,19 @@ module.exports = class Observations extends Abstract {
     }
     * @apiParamExample {json} Response:
     {
-        "message": "Observation entities fetched successfully",
-        "status": 200,
-        "result": [
+    "message": "Observation entities fetched successfully",
+    "status": 200,
+    "result": {
+        "_id": "60004c685c1630103719a1ea",
+        "entities": [
             {
-                "_id": "5c0bbab881bdbe330655da7f",
-                "externalId": "1959076",
-                "name": "Nigam Pratibha Vidyalaya (Girls), Jauna Pur, New Delhi"
+                "_id": "5db1dd3e8a8e070bedca6c44",
+                "externalId": "1514114",
+                "name": "PROFESSORS GLOBAL SCHOOL, Kh No.46/11 Baprola Village, Delhi",
+                "submissionsCount": 0
             }
         ]
-    }
+    }}
     * @apiUse successBody
     * @apiUse errorBody
     */
