@@ -1034,7 +1034,7 @@ module.exports = class EntitiesHelper {
                 }
 
                 let entitiesDocuments;
-                
+
                 if( sortedData !== "" ) {
                 entitiesDocuments = await database.models.entities
                     .find(queryObject, projectionObject)
@@ -1050,7 +1050,6 @@ module.exports = class EntitiesHelper {
                     .lean();
                 }
                 
-
                 return resolve(entitiesDocuments);
             } catch (error) {
                 return reject({
@@ -1534,7 +1533,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
    * @name registryMappingUpload
    * @param {Array} registryCSVData
    * @param {Object} userDetails -logged in user data.
-   * @param {String} userDetails.id -logged in user id.   
+   * @param {String} entityType - entity Type.   
    * @returns {Object} consists of SYSTEM_ID
    */
 
@@ -1555,54 +1554,79 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     });
                 }());
 
-                let pushToES = [];
-                let entityData = [];
-                let entityDocument,locationQuery;
+                let pushToES = [],entityIds = [],parentLocationIds = [],entityDoc = [];
+                let parentEntityInformation,entityDocument,locationQuery,parentLocationEntities;
                 
                 registryCSVData.forEach(entity=>{
                     entity = gen.utils.valueParser(entity);
-                    entityData.push(new RegExp(entity.name));
+                    entityIds.push(new RegExp(entity.entityName,"i"));
+                    parentLocationIds.push(entity.parentLocationId);
                 });
 
                 let filteredQuery = {
                     "entityType": entityType,
-                    "metaInformation.name": { $in : entityData }
+                    "metaInformation.name": { $in : entityIds }
                 }
 
-                let entities = await database.models.entities.find(filteredQuery,{"_id":1,"metaInformation.name":1,"registryDetails._id":1});
+                if(parentLocationIds && parentLocationIds.length > 0){
 
+                    locationQuery = {
+                        "registryDetails.locationId":{ $in : parentLocationIds }
+                    }
+
+                    parentLocationEntities = await this.entityDocuments(locationQuery,["registryDetails.locationId","groups"]);
+                    parentEntityInformation = _.keyBy(parentLocationEntities,"registryDetails.locationId");
+
+                } 
+
+                let entities =  await database.models.entities.find(filteredQuery,{"_id":1,"metaInformation.name":1,"registryDetails._id":1});
                 let entityInformation = _.keyBy(entities,"metaInformation.name");
 
                 for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
 
                     let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
-                    let name = registry.name;
+                    let entityName = new RegExp(registry.entityName,"i");
 
-                    let hasKeyRegex = Object.keys(entityInformation).some(function(key) {
-                      return new RegExp(name).test(key);
-                    });
+                    let checkEntityExist = false;
+                    let entityDetail;
 
-                    if(hasKeyRegex){
+                    for(var key in entityInformation){
+                        if(entityName.test(key)){
+                            checkEntityExist  = true;
+                            entityDetail = entityInformation[key];
+                        }
+                    }
+
+                    if(checkEntityExist){
 
                         let registryDetails = {
-                            "_id":registry.locationId
+                            "locationId":registry.locationId
                         }
 
-                        if(entityType != messageConstants.common.ENTITY_TYPE_STATE){
+                        if(registry.parentLocationId){
 
-                            locationQuery = {
-                                "registryDetails._id":registry.parentLocationId
-                            }
+                            if(parentLocationEntities &&  parentLocationEntities.length > 0){
+                                if(registry.parentLocationId in parentEntityInformation){
+                                    let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
+                                    let entityGroupIds = [];
 
-                            let checkparentEntity = await database.models.entities.findOne(locationQuery);
-                            if(checkparentEntity){
-                                entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                    if(entityGroup && entityGroup.length > 0){
+
+                                        entityGroup.forEach(groupId=>{
+                                            entityGroupIds.push(groupId.toString());
+                                        });
+                      
+                                        if(entityGroupIds.includes(entityDetail._id.toString())){
+                                            entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                        }
+                                    }
+                                } 
                             }
                         }else{
 
                             locationQuery = {
                                 "entityType": entityType,
-                                "metaInformation.name": new RegExp(name)
+                                "metaInformation.name": new RegExp(entityName)
                             }
 
                             entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
