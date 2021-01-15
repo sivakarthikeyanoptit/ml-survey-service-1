@@ -921,6 +921,7 @@ module.exports = class Entities extends Abstract {
   * @apiVersion 1.0.0
   * @apiName Bulk Upload Registry CSV
   * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/registryMappingUpload?entityType=state
   * @apiParam {File} registry Mandatory registry file of type CSV.
   * @apiUse successBody
   * @apiUse errorBody

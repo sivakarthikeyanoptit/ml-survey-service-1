@@ -1799,7 +1799,10 @@ module.exports = class ObservationsHelper {
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
-                data : entitiesList.data
+                data : {
+                    _id : observationId,
+                    "entities" : entitiesList.data
+                }
             });
 
         } catch (error) {
@@ -1845,17 +1848,36 @@ module.exports = class ObservationsHelper {
                 }
             }
 
-            entitiesData = entitiesData.map( entity => {
-                entity.externalId = entity.metaInformation.externalId;
-                entity.name = entity.metaInformation.name;
-                delete entity.metaInformation;
-                return entity;
-            });
+            let entities = [];
+
+            for ( 
+                let pointerToEntities = 0; 
+                pointerToEntities < entitiesData.length;
+                pointerToEntities++
+            ) {
+
+                let currentEntities = entitiesData[pointerToEntities];
+
+                let observationSubmissions = 
+                await observationSubmissionsHelper.observationSubmissionsDocument({
+                    observationId : observationId,
+                    entityId : currentEntities._id
+                });
+
+                let entity = {
+                    _id : currentEntities._id,
+                    externalId : currentEntities.metaInformation.externalId,
+                    name : currentEntities.metaInformation.name,
+                    submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
+                };
+
+                entities.push(entity);
+            }
 
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
-                data : entitiesData
+                data : entities
             });
 
         } catch (error) {
