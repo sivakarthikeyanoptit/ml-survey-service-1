@@ -1620,7 +1620,11 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                                                 });
                               
                                                 if(entityGroupIds.includes(entityDetail._id.toString())){
-                                                    entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                                    locationQuery = {
+                                                        "entityType": entityType,
+                                                        "metaInformation.name": new RegExp(entityName)
+                                                    }
+                                                    entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
                                                 }
                                             }
                                         }
