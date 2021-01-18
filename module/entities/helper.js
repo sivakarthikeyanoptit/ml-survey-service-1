@@ -1608,19 +1608,25 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                             if(parentLocationEntities &&  parentLocationEntities.length > 0){
                                 if(registry.parentLocationId in parentEntityInformation){
-                                    let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
-                                    let entityGroupIds = [];
+                                    if("groups" in parentEntityInformation[registry.parentLocationId]){
+                                        if(entityType in parentEntityInformation[registry.parentLocationId]["groups"]){
+                                            let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
+                                            let entityGroupIds = [];
 
-                                    if(entityGroup && entityGroup.length > 0){
+                                            if(entityGroup && entityGroup.length > 0){
 
-                                        entityGroup.forEach(groupId=>{
-                                            entityGroupIds.push(groupId.toString());
-                                        });
-                      
-                                        if(entityGroupIds.includes(entityDetail._id.toString())){
-                                            entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                                entityGroup.forEach(groupId=>{
+                                                    entityGroupIds.push(groupId.toString());
+                                                });
+                              
+                                                if(entityGroupIds.includes(entityDetail._id.toString())){
+                                                    entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                                }
+                                            }
                                         }
+                                        
                                     }
+                                    
                                 } 
                             }
                         }else{
