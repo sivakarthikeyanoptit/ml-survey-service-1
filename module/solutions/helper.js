@@ -1721,6 +1721,7 @@ module.exports = class SolutionsHelper {
    * @param {String} bodyData - Requested body data.
    * @param {String} type - solution type.
    * @param {String} subType - solution sub type.
+   * @param {String} programId - program Id
    * @param {String} pageSize - Page size.
    * @param {String} pageNo - Page no.
    * @param {String} searchText - search text.
@@ -1787,6 +1788,7 @@ module.exports = class SolutionsHelper {
    * @param {String} data - Requested body data.
    * @param {String} type - solution type.
    * @param {String} subType - solution sub type.
+   * @param {String} programId - program Id.
    * @returns {JSON} - List of auto targeted solutions.
    */
   
@@ -2060,7 +2062,8 @@ module.exports = class SolutionsHelper {
    * List of auto targeted solutions.
    * @method
    * @name targetedSolutionDetails
-   * @param {String} solutionId 
+   * @param {String} solutionId - solution Id.
+   * @param {Object} bodyData - Requested body data.
    * @returns {JSON} - List of auto targeted solutions.
    */
 

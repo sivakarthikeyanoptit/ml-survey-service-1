@@ -1245,9 +1245,11 @@ module.exports = class SurveysHelper {
       * List of surveys.
       * @method
       * @name surveys
-      * @param pageSize - Size of page.
-      * @param pageNo - Recent page no.
-      * @param search - search text.
+      * @param {Object} query - filter query object
+      * @param {String} pageSize - Size of page.
+      * @param {String} pageNo - page no.
+      * @param {String} search - search text.
+      * @param {Array} fieldsArray - projection fields.
       * @returns {Object} List of surveys.
      */
 
@@ -1318,8 +1320,11 @@ module.exports = class SurveysHelper {
     * Get list of surveys with the targetted ones.
     * @method
     * @name getSurvey
-    * @param {String} userId - Logged in user id.
-    * @param {String} userToken - Logged in user token.
+    * @param {Object} bodyData - Requested body data.
+    * @param {String} userId - Logged in user Id.
+    * @param {String} pageSize - size of page.
+    * @param {String} pageNo - page number.
+    * @param {String} search - search text.
     * @returns {Object}
    */
 
@@ -1430,15 +1435,15 @@ module.exports = class SurveysHelper {
       * survey details.
       * @method
       * @name detailsV2
+      * @param {Object} bodyData - Request body data.
       * @param  {String} surveyId - surveyId.
       * @param {String} solutionId - solutionId
-      * @param {String} programId - programId
       * @param {String} userId - logged in userId
       * @param {String} token - logged in user token
       * @returns {JSON} - returns survey solution, program and questions.
     */
 
-   static detailsV2(bodyData, surveyId = "", solutionId= "",programId= "",userId= "", token= "") {
+   static detailsV2(bodyData, surveyId = "", solutionId= "",userId= "", token= "") {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -1456,41 +1461,53 @@ module.exports = class SurveysHelper {
 
             if (surveyId == "") {
 
-
-                let solutionData = 
-                await solutionsHelper.targetedSolutionDetails(
-                    solutionId,
-                    bodyData
-                );
-                
-                if( !solutionData.success ) {
-                    return resolve(solutionData);
+                let surveyDocument = await this.surveyDocuments
+                    ({
+                        solutionId: solutionId,
+                        createdBy: userId
+                    },
+                        ["_id"]);
+               
+                if (surveyDocument.length > 0) {
+                    surveyId = surveyDocument[0]._id;
                 }
+                else {
 
-                let userOrgDetails = await this.getUserOrganisationDetails
-                (
-                    [ userId ],
-                    token
-                )
+                    let solutionData = await solutionsHelper.targetedSolutionDetails
+                    (
+                        solutionId,
+                        bodyData
+                    );
 
-                userOrgDetails = userOrgDetails.data;
+                    if (!solutionData.success) {
+                        return resolve(solutionData);
+                    }
 
-                if(!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
-                    throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                    let userOrgDetails = await this.getUserOrganisationDetails
+                    (
+                        [userId],
+                        token
+                    )
+
+                    userOrgDetails = userOrgDetails.data;
+
+                    if (!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
+                        throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                    }
+
+                    let createSurveyDocument = await this.createSurveyDocument
+                    (
+                        userId,
+                        solutionData.data,
+                        userOrgDetails[userId]
+                    )
+
+                    if (!createSurveyDocument.success) {
+                        throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
+                    }
+
+                    surveyId = createSurveyDocument.data._id;
                 }
-
-                let createSurveyDocument = await this.createSurveyDocument
-                (
-                    userId,
-                    solutionData.data,
-                    userOrgDetails[userId]
-                )
-
-                if (!createSurveyDocument.success) {
-                    throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
-                }
-
-                surveyId = createSurveyDocument.data._id;
             }
 
             let validateSurvey = await this.validateSurvey

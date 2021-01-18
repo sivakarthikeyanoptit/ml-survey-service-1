@@ -4,7 +4,7 @@ module.exports = {
     global.migrationMsg = "Update entity registryDetails in submissions collection"
     // return await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: true}});
 
-    let submissions = await db.collection('submissions').find({}).project({ _id: 1 }).toArray();
+    let submissions = await db.collection('submissions').find({ entityId : { $exists : true}}).project({ _id: 1 }).toArray();
 
     let chunkOfSubmissions = _.chunk(submissions, 100);
 
@@ -16,8 +16,7 @@ module.exports = {
       
       let submissionDocuments =
         await db.collection('submissions').find({
-          _id: { $in: submissionId },
-          entityId : { $exists : true}
+          _id: { $in: submissionId }
         }).project({
           "entityId": 1
         }).toArray();
