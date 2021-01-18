@@ -1555,7 +1555,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                 }());
 
                 let pushToES = [],entityNames = [],parentLocationIds = [],entityDoc = [];
-                let parentEntityInformation,entityDocument,locationQuery,parentLocationEntities;
+                let parentEntityInformation,locationQuery,parentLocationEntities;
                 
                 registryCSVData.forEach(entity=>{
                     entity = gen.utils.valueParser(entity);
@@ -1583,7 +1583,8 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                 let entityInformation = _.keyBy(entities,"metaInformation.name");
 
                 for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
-
+                    
+                    let entityDocument;
                     let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
                     let entityName = new RegExp(registry.entityName,"i");
 
