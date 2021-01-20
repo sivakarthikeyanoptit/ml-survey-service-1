@@ -55,7 +55,7 @@ module.exports = class EntitiesHelper {
                     
                     let registryDetails = {};
                     if (singleEntity.locationId) {
-                        registryDetails["_id"] = singleEntity.locationId;
+                        registryDetails["locationId"] = singleEntity.locationId;
                     }
 
                     let entityDoc = {
@@ -381,7 +381,7 @@ module.exports = class EntitiesHelper {
                 let registryDetails = {};
 
                 if (data.locationId) {
-                    registryDetails["_id"] =  data.locationId
+                    registryDetails["locationId"] =  data.locationId
                     delete data.locationId;
                 }
 
@@ -586,7 +586,7 @@ module.exports = class EntitiesHelper {
                         }
 
                         if (singleEntity.locationId) {
-                            entityCreation.registryDetails["_id"] =  singleEntity.locationId;
+                            entityCreation.registryDetails["locationId"] =  singleEntity.locationId;
                             delete singleEntity.locationId;
                         }
 
@@ -669,7 +669,7 @@ module.exports = class EntitiesHelper {
                     let updateData = {};
 
                     if( singleEntity.hasOwnProperty("locationId") ) {
-                       updateData["registryDetails._id"] = singleEntity.locationId;
+                       updateData["registryDetails.locationId"] = singleEntity.locationId;
 
                        delete singleEntity.locationId;
                     }
@@ -1554,18 +1554,18 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     });
                 }());
 
-                let pushToES = [],entityIds = [],parentLocationIds = [],entityDoc = [];
-                let parentEntityInformation,entityDocument,locationQuery,parentLocationEntities;
+                let pushToES = [],entityNames = [],parentLocationIds = [],entityDoc = [];
+                let parentEntityInformation,locationQuery,parentLocationEntities;
                 
                 registryCSVData.forEach(entity=>{
                     entity = gen.utils.valueParser(entity);
-                    entityIds.push(new RegExp(entity.entityName,"i"));
+                    entityNames.push(new RegExp(entity.entityName,"i"));
                     parentLocationIds.push(entity.parentLocationId);
                 });
 
                 let filteredQuery = {
                     "entityType": entityType,
-                    "metaInformation.name": { $in : entityIds }
+                    "metaInformation.name": { $in : entityNames }
                 }
 
                 if(parentLocationIds && parentLocationIds.length > 0){
@@ -1579,18 +1579,19 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                 } 
 
-                let entities =  await database.models.entities.find(filteredQuery,{"_id":1,"metaInformation.name":1,"registryDetails._id":1});
+                let entities =  await this.entityDocuments(filteredQuery,["_id","metaInformation.name", "registryDetails.locationId"]);
                 let entityInformation = _.keyBy(entities,"metaInformation.name");
 
                 for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
-
+                    
+                    let entityDocument;
                     let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
                     let entityName = new RegExp(registry.entityName,"i");
 
                     let checkEntityExist = false;
                     let entityDetail;
 
-                    for(var key in entityInformation){
+                    for(let key in entityInformation){
                         if(entityName.test(key)){
                             checkEntityExist  = true;
                             entityDetail = entityInformation[key];
@@ -1607,19 +1608,29 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                             if(parentLocationEntities &&  parentLocationEntities.length > 0){
                                 if(registry.parentLocationId in parentEntityInformation){
-                                    let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
-                                    let entityGroupIds = [];
+                                    if("groups" in parentEntityInformation[registry.parentLocationId]){
+                                        if(entityType in parentEntityInformation[registry.parentLocationId]["groups"]){
+                                            let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
+                                            let entityGroupIds = [];
 
-                                    if(entityGroup && entityGroup.length > 0){
+                                            if(entityGroup && entityGroup.length > 0){
 
-                                        entityGroup.forEach(groupId=>{
-                                            entityGroupIds.push(groupId.toString());
-                                        });
-                      
-                                        if(entityGroupIds.includes(entityDetail._id.toString())){
-                                            entityDocument = await this.updateRegistry(filteredQuery,registryDetails,userDetails.userId);
+                                                entityGroup.forEach(groupId=>{
+                                                    entityGroupIds.push(groupId.toString());
+                                                });
+                              
+                                                if(entityGroupIds.includes(entityDetail._id.toString())){
+                                                    locationQuery = {
+                                                        "entityType": entityType,
+                                                        "metaInformation.name": new RegExp(entityName)
+                                                    }
+                                                    entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
+                                                }
+                                            }
                                         }
+                                        
                                     }
+                                    
                                 } 
                             }
                         }else{
