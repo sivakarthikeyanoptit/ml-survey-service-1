@@ -963,16 +963,24 @@ module.exports = class Solutions extends Abstract {
       try {
 
         let findQuery = {
-          _id: req.params._id,
           status : "active",
           isDeleted : false,
           type:{
             $in: [
               "assessment",
-              "observation"
+              "observation",
+              "survey"
             ]
           }
         };
+
+        let validateSolutionId = gen.utils.isValidMongoId(req.params._id);
+
+        if( validateSolutionId ) {
+          findQuery["_id"] = req.params._id;
+        } else {
+          findQuery["externalId"] = req.params._id;
+        }
 
         let projectionFields = [
           "name",
