@@ -1361,11 +1361,39 @@ module.exports = class SurveysHelper {
                 mergedData = surveys.data.data;
 
                 if( mergedData.length > 0 ) {
+                    
+                    let programIds = [];
+
                     mergedData.forEach( surveyData => {
                         if( surveyData.solutionId ) {
                             solutionIds.push(ObjectId(surveyData.solutionId));
                         }
+
+                        if( surveyData.programId ) {
+                            programIds.push(surveyData.programId);
+                        }
                     });
+
+                    let programsData = await programsHelper.list({
+                        _id : { $in : programIds }
+                    },["name"]);
+
+                    if( programsData.length > 0 ) {
+                        
+                        let programs = 
+                        programsData.reduce(
+                            (ac, program) => 
+                            ({ ...ac, [program._id.toString()]: program }), {}
+                        );
+
+                        mergedData = mergedData.map( data => {
+                            if( programs[data.programId.toString()]) {
+                                data.programName = programs[data.programId.toString()].name;
+                            }
+                            return data;
+                        })
+                    }
+
                 }
             }
 
@@ -1397,6 +1425,8 @@ module.exports = class SurveysHelper {
                             targetedSolution.solutionId = targetedSolution._id;
                             targetedSolution._id = "";
                             mergedData.push(targetedSolution); 
+                            delete targetedSolution.type;
+                            delete targetedSolution.externalId;
                         })
 
                        let startIndex = pageSize * (pageNo - 1);

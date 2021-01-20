@@ -21,6 +21,7 @@ const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PO
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * ObservationsHelper
@@ -1669,11 +1670,39 @@ module.exports = class ObservationsHelper {
                 mergedData = observations.data.data;
 
                 if( mergedData.length > 0 ) {
+
+                    let programIds = [];
+
                     mergedData.forEach( observationData => {
                         if( observationData.solutionId ) {
                             solutionIds.push(observationData.solutionId);
                         }
+
+                        if( observationData.programId ) {
+                            programIds.push(observationData.programId);
+                        }
                     });
+
+                    let programsData = await programsHelper.list({
+                        _id : { $in : programIds }
+                    },["name"]);
+
+                    if( programsData.length > 0 ) {
+                        
+                        let programs = 
+                        programsData.reduce(
+                            (ac, program) => 
+                            ({ ...ac, [program._id.toString()]: program }), {}
+                        );
+
+                        mergedData = mergedData.map( data => {
+                            if( programs[data.programId.toString()]) {
+                                data.programName = programs[data.programId.toString()].name;
+                            }
+                            return data;
+                        })
+                    }
+
                 }
             }
 
@@ -1704,7 +1733,9 @@ module.exports = class ObservationsHelper {
                         targetedSolutions.data.data.forEach(targetedSolution => {
                             targetedSolution.solutionId = targetedSolution._id;
                             targetedSolution._id = "";
-                            mergedData.push(targetedSolution); 
+                            mergedData.push(targetedSolution);
+                            delete targetedSolution.type; 
+                            delete targetedSolution.externalId;
                         })
 
                        let startIndex = pageSize * (pageNo - 1);
