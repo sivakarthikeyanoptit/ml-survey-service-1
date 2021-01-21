@@ -4,8 +4,9 @@ module.exports = {
       entityTypeId: "ObjectId",
       entityType: String,
       registryDetails: {
-        type: Object,
-        locationId: { type: String, index: true }
+        locationId: { type: String, index: true },
+        code: String,
+        lastUpdatedAt: Date
       },
       groups: Object,
       metaInformation : Object,
