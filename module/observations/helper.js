@@ -1834,7 +1834,8 @@ module.exports = class ObservationsHelper {
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
                     _id : observationId,
-                    "entities" : entitiesList.data
+                    "entities" : entitiesList.data.entities,
+                    entityType : entitiesList.data.entityType
                 }
             });
 
@@ -1863,7 +1864,7 @@ module.exports = class ObservationsHelper {
             
             let observationDocument = await this.observationDocuments({
                 _id : observationId
-            },["entities"]);
+            },["entities","entityType"]);
 
             if(!observationDocument[0]) {
                 throw {
@@ -1910,7 +1911,10 @@ module.exports = class ObservationsHelper {
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
-                data : entities
+                data : {
+                    entities : entities,
+                    entityType : observationDocument[0].entityType
+                }
             });
 
         } catch (error) {

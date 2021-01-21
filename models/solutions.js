@@ -98,6 +98,20 @@ module.exports = {
       type : "ObjectId",
       index: true
     },
-    scope : Object
+    scope : {
+      entityType : String,
+      entityTypeId : "ObjectId",
+      entities : {
+        type : Array,
+        index : true
+      },
+      roles : [{
+        _id : "ObjectId",
+        code : {
+          type : String,
+          index : true
+        }
+      }]
+    }
   }
 };
