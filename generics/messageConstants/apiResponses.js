@@ -335,5 +335,7 @@ module.exports = {
     "PROGRAM_DESCRIPTION": "View and participate in educational programs active in your location and designed for your role",
     "NO_ENTITY_FOUND_IN_LOCATION": "Entity not found in location",
     "ENTITIES_REGISTRY_DETAILS_UPDATED": "Entities Registry Details Updated.",
-    "ENTITIES_FETCHED": "Entities fetched successfully."
+    "ENTITIES_FETCHED": "Entities fetched successfully.",
+    "REGISTRY_FILE_NOT_FOUND": "Csv file for registry should be selected",
+    "REGISRY_NEED_TO_BE_ADD": "Entity found in DB but not found in input sheet"
 }
