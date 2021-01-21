@@ -110,7 +110,8 @@ module.exports = async function (req, res, next) {
     "completedObservations", 
     "solutionDetails",
     "/solutions/list",
-    "/programs/listByIds"
+    "/programs/listByIds",
+    "entities/registryMappingUpload"
   ]
 
   var token = req.headers["x-authenticated-user-token"];
