@@ -885,6 +885,7 @@ module.exports = class Surveys extends Abstract {
                 let surveys = await surveysHelper.getSurvey(
                     req.body,
                     req.userDetails.userId,
+                    req.userDetails.userToken,
                     req.pageSize,
                     req.pageNo,
                     req.searchText

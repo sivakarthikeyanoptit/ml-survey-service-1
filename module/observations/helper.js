@@ -1632,7 +1632,7 @@ module.exports = class ObservationsHelper {
     * @returns {Object}
    */
 
-   static getObservation( bodyData,userId,pageSize,pageNo,search = "") {
+   static getObservation( bodyData,userId,token,pageSize,pageNo,search = "") {
     return new Promise(async (resolve, reject) => {
         try {
             
@@ -1712,12 +1712,11 @@ module.exports = class ObservationsHelper {
             }
 
             let targetedSolutions = 
-            await solutionHelper.autoTargeted
+            await kendraService.solutionBasedOnRoleAndLocation
             (
+                token,
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                "",
-                "",
                 pageSize,
                 pageNo,
                 search
@@ -1780,9 +1779,11 @@ module.exports = class ObservationsHelper {
 
             if( observationId === "" ) {
 
-                let solutionData = await solutionHelper.targetedSolutionDetails(
-                    solutionId,
-                    bodyData
+                let solutionData = 
+                await kendraService.solutionDetailsBasedOnRoleAndLocation(
+                    token,
+                    bodyData,
+                    solutionId
                 );
 
                 if( !solutionData.success ) {
@@ -1793,6 +1794,7 @@ module.exports = class ObservationsHelper {
                 let endDate = new Date();
                 endDate.setFullYear(endDate.getFullYear() + 1);
                 solutionData.data["endDate"] = endDate;
+                solutionData.data["status"] = messageConstants.common.PUBLISHED;
 
                 let entityTypes = Object.keys(_.omit(bodyData,["role"]));
 
