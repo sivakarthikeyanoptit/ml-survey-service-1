@@ -1165,13 +1165,15 @@ module.exports = class ObservationsHelper {
      * @name verifyLink
      * @param {Object} data - observation link.
      * @param {String} requestingUserAuthToken - Requesting user auth token.
+     * @param {Object} bodyData - request body data.
      * @returns {Object} observation data.
      */
 
     static verifyLink(
         link = "", 
         requestingUserAuthToken = "",
-        userId = ""
+        userId = "",
+        bodyData = {}
     ) {
         return new Promise(async (resolve, reject) => {
 
@@ -1252,8 +1254,27 @@ module.exports = class ObservationsHelper {
 
                 let entities = new Array;
 
-                let userEntities = await userExtensionHelper.getUserEntities(userId);
-                
+                let registryIds = [];
+                let userEntities = [];
+        
+                Object.keys(_.omit(bodyData,["role"])).forEach( requestedDataKey => {
+                  registryIds.push(bodyData[requestedDataKey]);
+                })
+              
+                let entitiyDocuments = await entitiesHelper.entityDocuments({
+                  "registryDetails.locationId" : { $in : registryIds }
+                },["_id"]);
+               
+                if (entitiyDocuments.length > 0) {
+                    userEntities = entitiyDocuments.map(entity => {
+                       return entity._id;
+                   });
+                }
+               
+                if (!userEntities.length) {
+                  userEntities = await userExtensionHelper.getUserEntities(userId);
+                }
+               
                 if(userEntities.length > 0){
                     let entityIdsWithSolutionSubType = await entitiesHelper.entityDocuments({
                         _id :  { $in : userEntities},
@@ -1787,7 +1808,9 @@ module.exports = class ObservationsHelper {
                 );
 
                 if( !solutionData.success ) {
-                    return resolve(solutionData);
+                    throw {
+                        message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                    }
                 }
 
                 solutionData.data["startDate"] = new Date();
@@ -1834,7 +1857,8 @@ module.exports = class ObservationsHelper {
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
                     _id : observationId,
-                    "entities" : entitiesList.data
+                    "entities" : entitiesList.data.entities,
+                    entityType : entitiesList.data.entityType
                 }
             });
 
@@ -1863,7 +1887,7 @@ module.exports = class ObservationsHelper {
             
             let observationDocument = await this.observationDocuments({
                 _id : observationId
-            },["entities"]);
+            },["entities","entityType"]);
 
             if(!observationDocument[0]) {
                 throw {
@@ -1910,7 +1934,10 @@ module.exports = class ObservationsHelper {
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
-                data : entities
+                data : {
+                    entities : entities,
+                    entityType : observationDocument[0].entityType
+                }
             });
 
         } catch (error) {

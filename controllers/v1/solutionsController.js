@@ -1465,10 +1465,17 @@ module.exports = class Solutions extends Abstract {
     }
 
     /**
-    * @api {get} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
+    * @api {post} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
     * @apiVersion 1.0.0
     * @apiName Verify Observation Solution Link
     * @apiGroup Solutions
+     * @apiParamExample {json} Request-Body:
+    * {
+        "role" : "HM",
+   		  "state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+      }
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiParam {String} link Observation Solution Link.
     * @apiSampleRequest /assessment/api/v1/solutions/verifyLink/38cd93bdb87489c3890fe0ab00e7d406
@@ -1527,7 +1534,8 @@ module.exports = class Solutions extends Abstract {
                 let result = await observationsHelper.verifyLink(
                     req.params._id,
                     req.rspObj.userToken,
-                    req.userDetails.userId
+                    req.userDetails.userId,
+                    req.body
                 );
 
                 return (resolve(result))
