@@ -942,6 +942,12 @@ module.exports = class Entities extends Abstract {
 
       try {
 
+        req.setTimeout(600000);
+
+        if (!req.files || !req.files.registry) {
+          throw messageConstants.apiResponses.REGISTRY_FILE_NOT_FOUND;
+        }
+
         let registryCSVData = await csv().fromString(req.files.registry.data.toString());
 
         if (!registryCSVData || registryCSVData.length < 1) {

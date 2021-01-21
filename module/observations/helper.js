@@ -1165,13 +1165,15 @@ module.exports = class ObservationsHelper {
      * @name verifyLink
      * @param {Object} data - observation link.
      * @param {String} requestingUserAuthToken - Requesting user auth token.
+     * @param {Object} bodyData - request body data.
      * @returns {Object} observation data.
      */
 
     static verifyLink(
         link = "", 
         requestingUserAuthToken = "",
-        userId = ""
+        userId = "",
+        bodyData = {}
     ) {
         return new Promise(async (resolve, reject) => {
 
@@ -1252,8 +1254,27 @@ module.exports = class ObservationsHelper {
 
                 let entities = new Array;
 
-                let userEntities = await userExtensionHelper.getUserEntities(userId);
-                
+                let registryIds = [];
+                let userEntities = [];
+        
+                Object.keys(_.omit(bodyData,["role"])).forEach( requestedDataKey => {
+                  registryIds.push(bodyData[requestedDataKey]);
+                })
+              
+                let entitiyDocuments = await entitiesHelper.entityDocuments({
+                  "registryDetails.locationId" : { $in : registryIds }
+                },["_id"]);
+               
+                if (entitiyDocuments.length > 0) {
+                    userEntities = entitiyDocuments.map(entity => {
+                       return entity._id;
+                   });
+                }
+               
+                if (!userEntities.length) {
+                  userEntities = await userExtensionHelper.getUserEntities(userId);
+                }
+               
                 if(userEntities.length > 0){
                     let entityIdsWithSolutionSubType = await entitiesHelper.entityDocuments({
                         _id :  { $in : userEntities},
