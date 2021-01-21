@@ -1560,8 +1560,8 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                 
                 registryCSVData.forEach(entity=>{
                     entity = gen.utils.valueParser(entity);
-                    let name = entity.entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    entityNames.push(new RegExp(name,"i"));
+                    let name = entity.entityName.replace(/[*+?^${}()|[\]\\]/g, '\\$&');
+                    entityNames.push(new RegExp("^" + name + "$","i"));
                     parentLocationIds.push(entity.parentLocationId);
                     entityExternalId.push(entity.entityExternalId);
                 });
@@ -1611,23 +1611,23 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                         }
                     }else{
 
-                        let regName = registry.entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        entityName = new RegExp(regName,"i");
-                        let searchKey = new RegExp("^" + regName + "$","i");
+                        let regName = registry.entityName.replace(/[*+?^${}()|[\]\\]/g, '\\$&');
+                        entityName = new RegExp("^" + regName + "$","i")
 
                         for(let key in entityInformation){
-                            if(searchKey.test(key)){
+                            if(entityName.test(key)){
                                 checkEntityExist  = true;
                                 entityDetail = entityInformation[key];
                             }
                         }
                     }
-
+                    
                     if(checkEntityExist){
 
                         let registryDetails = {
                             "locationId":registry.locationId,
                             "code":registry.entityExternalId,
+                            "name":registry.entityName,
                             "lastUpdatedAt": new Date()
                         }
 
@@ -1643,9 +1643,10 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                                                 entityGroup.forEach(groupId=>{
                                                     entityGroupIds.push(groupId.toString());
-                                                    allEntities.push(groupId);
                                                 });
-                              
+
+                                                allEntities.push(...entityGroupIds);
+                                            
                                                 if(entityGroupIds.includes(entityDetail._id.toString())){
                                                     if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
                                                         locationQuery = {
@@ -1655,24 +1656,26 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                                                     }else{
                                                         locationQuery = {
                                                             "entityType": entityType,
-                                                            "metaInformation.name": new RegExp(entityName)
+                                                            "metaInformation.name": entityName
                                                         }
                                                     }
-                                                    
+
                                                     entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
+                                                }else{
+                                                    registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
                                                 }
+                                            }else{
+                                                registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
                                             }
-                                        }
-                                        
+                                        }  
                                     }
-                                    
                                 } 
                             }
                         }else{
 
                             locationQuery = {
                                 "entityType": entityType,
-                                "metaInformation.name": new RegExp(entityName)
+                                "metaInformation.name": entityName
                             }
 
                             entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
@@ -1680,14 +1683,19 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     }
 
                     if (entityDocument && entityDocument._id) {
+
                         registry["_SYSTEM_ID"] = entityDocument._id; 
                         registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
                         pushToES.push(entityDocument._id);
-                        entityFound.push(entityDocument._id);
+                        entityFound.push(entityDocument._id.toString());
 
                     } else {
+
                         registry["_SYSTEM_ID"] = "";
-                        registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                        if(!registry.status){
+                            registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                        }
+                        
                     }
 
                     input.push(registry);
@@ -1695,14 +1703,20 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
 
                 if(allEntities && allEntities.length > 0){
 
-                    let entityNotFoundInSheet = _.differenceWith(allEntities, entityFound,_.isEqual)
+                    let uniqueIds = [...new Set(allEntities)];
+                    let uniqueEntityFound = [...new Set(entityFound)];
+
+                    let entityNotFoundInSheet = _.differenceWith(uniqueIds, uniqueEntityFound,_.isEqual);
                     if(entityNotFoundInSheet && entityNotFoundInSheet.length > 0){
-                        let entityDataToAddDoc = await this.entityDocuments(
-                            {"_id": { $in : entityNotFoundInSheet },
-                            "registryDetails.locationId": { "$exists": false }}
-                            ,["metaInformation.externalId","metaInformation.name"]
-                            );
+
+                        let getDataQuery = {
+                            "registryDetails.locationId": { "$exists": false },
+                            "_id": { $in : entityNotFoundInSheet }
+                        }
+
+                        let entityDataToAddDoc = await this.entityDocuments(getDataQuery,["metaInformation.externalId","metaInformation.name"]);
                         let entityToAddInfo = _.keyBy(entityDataToAddDoc,"_id");
+
                         for(let pointer in entityToAddInfo){
                             let eachEntity = entityToAddInfo[pointer];
                             let dataToAdd = [];
@@ -1714,7 +1728,6 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                             dataToAdd["status"] = messageConstants.apiResponses.REGISRY_NEED_TO_BE_ADD;
                             input.push(dataToAdd);
                         }
-                        
                     }
                 }
 
@@ -1753,7 +1766,11 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                                 "registryDetails.lastUpdatedAt": registryDetails.lastUpdatedAt,
                                 updatedBy: userId
                             }
-                        });
+                        }, {
+                        projection : {
+                          _id : 1
+                        }
+                    });
 
             return resolve(updateEntityDocument);
 
