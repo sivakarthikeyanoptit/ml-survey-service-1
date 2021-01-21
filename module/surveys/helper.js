@@ -1507,7 +1507,9 @@ module.exports = class SurveysHelper {
                     );
 
                     if (!solutionData.success) {
-                        return resolve(solutionData);
+                        throw {
+                            message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                        }
                     }
 
                     let userOrgDetails = await this.getUserOrganisationDetails

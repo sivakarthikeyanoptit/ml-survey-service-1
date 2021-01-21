@@ -1808,7 +1808,9 @@ module.exports = class ObservationsHelper {
                 );
 
                 if( !solutionData.success ) {
-                    return resolve(solutionData);
+                    throw {
+                        message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                    }
                 }
 
                 solutionData.data["startDate"] = new Date();
