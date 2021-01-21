@@ -1913,6 +1913,7 @@ module.exports = class Observations extends Abstract {
                 let observations = await observationsHelper.getObservation(
                     req.body,
                     req.userDetails.userId,
+                    req.userDetails.userToken,
                     req.pageSize,
                     req.pageNo,
                     req.searchText

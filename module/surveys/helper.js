@@ -124,7 +124,6 @@ module.exports = class SurveysHelper {
     });
   }
 
-
     /**
     * Create survey solution template.
     * @method
@@ -402,8 +401,6 @@ module.exports = class SurveysHelper {
             }
         });
     }
-    
-
 
     /**
    * Map survey solution to program.
@@ -1328,7 +1325,7 @@ module.exports = class SurveysHelper {
     * @returns {Object}
    */
 
-   static getSurvey( bodyData,userId,pageSize,pageNo,search = "") {
+   static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
     return new Promise(async (resolve, reject) => {
         try {
             
@@ -1408,12 +1405,11 @@ module.exports = class SurveysHelper {
             }
 
             let targetedSolutions = 
-            await solutionsHelper.autoTargeted
+            await kendraService.solutionBasedOnRoleAndLocation
             (
+                token,
                 bodyData,
                 messageConstants.common.SURVEY,
-                messageConstants.common.SURVEY,
-                "",
                 pageSize,
                 pageNo,
                 search
@@ -1503,10 +1499,11 @@ module.exports = class SurveysHelper {
                 }
                 else {
 
-                    let solutionData = await solutionsHelper.targetedSolutionDetails
+                    let solutionData = await kendraService.solutionDetailsBasedOnRoleAndLocation
                     (
-                        solutionId,
-                        bodyData
+                        token,
+                        bodyData,
+                        solutionId
                     );
 
                     if (!solutionData.success) {
