@@ -1405,7 +1405,7 @@ module.exports = class SurveysHelper {
                 }
             }
 
-            if( mergedData.length !== pageSize ) {
+            if( mergedData.length > 0 ) {
                let startIndex = pageSize * (pageNo - 1);
                let endIndex = startIndex + pageSize;
                mergedData = mergedData.slice(startIndex,endIndex) 

@@ -1581,7 +1581,7 @@ module.exports = class ObservationsHelper {
       * @returns {Object} List of observations.
      */
 
-    static observations(query, pageSize, pageNo, searchQuery, fieldsArray) {
+    static observations(query, pageNo, pageSize, searchQuery, fieldsArray) {
         return new Promise(async (resolve, reject) => {
             try {
 
