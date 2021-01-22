@@ -1674,8 +1674,8 @@ module.exports = class ObservationsHelper {
 
             let observations = await this.observations(
                 query,
-                pageSize,
-                pageNo,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 searchQuery,
                 ["name", "description","solutionId","programId"]
             );
@@ -1738,8 +1738,6 @@ module.exports = class ObservationsHelper {
                 token,
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                pageSize,
-                pageNo,
                 search
             );
 
@@ -1756,7 +1754,7 @@ module.exports = class ObservationsHelper {
                             mergedData.push(targetedSolution);
                             delete targetedSolution.type; 
                             delete targetedSolution.externalId;
-                        })
+                        });
 
                        let startIndex = pageSize * (pageNo - 1);
                        let endIndex = startIndex + pageSize;
