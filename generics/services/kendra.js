@@ -226,7 +226,7 @@ const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,pageSize,p
             
             const url = 
             kendraServiceBaseURL + process.env.URL_PREFIX + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&page="+ pageNo +"&limit="+ pageSize +"&search="+ searchText;
-
+            console.log(url);
             const options = {
                 headers : {
                     "content-type": "application/json",
@@ -245,9 +245,11 @@ const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,pageSize,p
                 };
 
                 if (err) {
+                   
                     result.success = false;
                 } else {
-                    
+                    console.log("data");
+                    console.log(data.body)
                     let response = data.body;
                     
                     if( response.status === httpStatusCode['ok'].status ) {

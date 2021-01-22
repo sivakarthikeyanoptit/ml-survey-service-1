@@ -1313,7 +1313,7 @@ module.exports = class SurveysHelper {
         })
     }
 
-      /**
+    /**
     * Get list of surveys with the targetted ones.
     * @method
     * @name getSurvey
@@ -1329,76 +1329,55 @@ module.exports = class SurveysHelper {
     return new Promise(async (resolve, reject) => {
         try {
             
-            let query = {
-                createdBy : userId,
-                isDeleted : false,
-                programId : { $exists : true }
-            }
-
-            let searchQuery = [];
-
-            if (search !== "") {
-                searchQuery = [
-                    { "name" : new RegExp(search, 'i') },
-                    { "description" : new RegExp(search, 'i') }
-                ];
-            }
-
-            let surveys = await this.surveys(
-                query,
-                pageSize,
-                pageNo,
-                searchQuery,
-                ["name", "description","solutionId","programId"]
+            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                userId,
+                search
             );
 
             let solutionIds = [];
 
             let totalCount = 0;
             let mergedData = [];
+            
+            if( surveySolutions.success && surveySolutions.data ) {
 
-            if( surveys.success && surveys.data ) {
-
-                totalCount = surveys.data.count;
-                mergedData = surveys.data.data;
+                totalCount = surveySolutions.data.count;
+                mergedData = surveySolutions.data.data;
 
                 if( mergedData.length > 0 ) {
                     
-                    let programIds = [];
-
                     mergedData.forEach( surveyData => {
                         if( surveyData.solutionId ) {
                             solutionIds.push(ObjectId(surveyData.solutionId));
                         }
-
-                        if( surveyData.programId ) {
-                            programIds.push(surveyData.programId);
-                        }
                     });
-
-                    let programsData = await programsHelper.list({
-                        _id : { $in : programIds }
-                    },["name"]);
-
-                    if( programsData.length > 0 ) {
-                        
-                        let programs = 
-                        programsData.reduce(
-                            (ac, program) => 
-                            ({ ...ac, [program._id.toString()]: program }), {}
-                        );
-
-                        mergedData = mergedData.map( data => {
-                            if( programs[data.programId.toString()]) {
-                                data.programName = programs[data.programId.toString()].name;
-                            }
-                            return data;
-                        })
-                    }
-
                 }
             }
 
+            let surveySubmissions = await surveySubmissionsHelper.surveyList
+            (
+                userId,
+                search
+            )
+            
+            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+
+                totalCount += surveySubmissions.data.count;
+               
+                surveySubmissions.data.data.forEach( surveyData => {
+                    if( surveyData.solutionId ) {
+                        solutionIds.push(ObjectId(surveyData.solutionId));
+                    }
+                });
+               
+                if( mergedData.length !== pageSize ) {
+                   mergedData = [...mergedData, ...surveySubmissions.data.data];
+                   let startIndex = pageSize * (pageNo - 1);
+                   let endIndex = startIndex + pageSize;
+                   mergedData = mergedData.slice(startIndex,endIndex) 
+                }
+            }
+           
             if( solutionIds.length > 0 ) {
                 bodyData["filter"] = {};
                 bodyData["filter"]["skipSolutions"] = solutionIds; 
@@ -1410,11 +1389,11 @@ module.exports = class SurveysHelper {
                 token,
                 bodyData,
                 messageConstants.common.SURVEY,
-                pageSize,
-                pageNo,
+                1,
+                100,
                 search
             );
-
+          
             if( targetedSolutions.success ) {
 
                 if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
@@ -1430,12 +1409,15 @@ module.exports = class SurveysHelper {
                             delete targetedSolution.externalId;
                         })
 
+                        if (mergedData.length > pageSize) {
+
+                        }
+
                        let startIndex = pageSize * (pageNo - 1);
                        let endIndex = startIndex + pageSize;
                        mergedData = mergedData.slice(startIndex,endIndex) 
                     }
                 }
-
             }
 
             return resolve({
@@ -1446,7 +1428,7 @@ module.exports = class SurveysHelper {
                     count : totalCount
                 }
             });
-
+            
         } catch (error) {
             return resolve({
                 success : false,
