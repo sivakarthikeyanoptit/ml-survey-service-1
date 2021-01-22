@@ -338,5 +338,6 @@ module.exports = {
     "ENTITIES_FETCHED": "Entities fetched successfully.",
     "REGISTRY_FILE_NOT_FOUND": "Csv file for registry should be selected",
     "REGISRY_NEED_TO_BE_ADD": "Entity found in DB but not found in input sheet",
+    "ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP":"Entity not found in parent entity group",
     "SOLUTION_DETAILS_NOT_FOUND" : "Could not found solution details"
 }
