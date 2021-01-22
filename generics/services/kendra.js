@@ -245,11 +245,9 @@ const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,searchText
                 };
 
                 if (err) {
-                   
                     result.success = false;
                 } else {
-                    console.log("data");
-                    console.log(data.body)
+                    
                     let response = data.body;
                     
                     if( response.status === httpStatusCode['ok'].status ) {
@@ -332,4 +330,3 @@ module.exports = {
     solutionBasedOnRoleAndLocation : solutionBasedOnRoleAndLocation,
     solutionDetailsBasedOnRoleAndLocation : solutionDetailsBasedOnRoleAndLocation
 };
-

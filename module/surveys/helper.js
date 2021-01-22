@@ -1331,6 +1331,8 @@ module.exports = class SurveysHelper {
             
             let surveySolutions = await surveySubmissionsHelper.surveySolutions(
                 userId,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 search
             );
 
@@ -1357,25 +1359,21 @@ module.exports = class SurveysHelper {
             let surveySubmissions = await surveySubmissionsHelper.surveyList
             (
                 userId,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 search
             )
             
             if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
 
                 totalCount += surveySubmissions.data.count;
+                mergedData = [...mergedData, ...surveySubmissions.data.data];
                
                 surveySubmissions.data.data.forEach( surveyData => {
                     if( surveyData.solutionId ) {
                         solutionIds.push(ObjectId(surveyData.solutionId));
                     }
                 });
-               
-                if( mergedData.length !== pageSize ) {
-                   mergedData = [...mergedData, ...surveySubmissions.data.data];
-                   let startIndex = pageSize * (pageNo - 1);
-                   let endIndex = startIndex + pageSize;
-                   mergedData = mergedData.slice(startIndex,endIndex) 
-                }
             }
            
             if( solutionIds.length > 0 ) {
@@ -1389,35 +1387,28 @@ module.exports = class SurveysHelper {
                 token,
                 bodyData,
                 messageConstants.common.SURVEY,
-                1,
-                100,
                 search
             );
           
-            if( targetedSolutions.success ) {
+            if (targetedSolutions.success) {
 
-                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
+                if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
                     totalCount += targetedSolutions.data.count;
 
-                    if( mergedData.length !== pageSize ) {
-
-                        targetedSolutions.data.data.forEach(targetedSolution => {
-                            targetedSolution.solutionId = targetedSolution._id;
-                            targetedSolution._id = "";
-                            mergedData.push(targetedSolution); 
-                            delete targetedSolution.type;
-                            delete targetedSolution.externalId;
-                        })
-
-                        if (mergedData.length > pageSize) {
-
-                        }
-
-                       let startIndex = pageSize * (pageNo - 1);
-                       let endIndex = startIndex + pageSize;
-                       mergedData = mergedData.slice(startIndex,endIndex) 
-                    }
+                    targetedSolutions.data.data.forEach(targetedSolution => {
+                        targetedSolution.solutionId = targetedSolution._id;
+                        targetedSolution._id = "";
+                        mergedData.push(targetedSolution);
+                        delete targetedSolution.type;
+                        delete targetedSolution.externalId;
+                    })
                 }
+            }
+
+            if( mergedData.length !== pageSize ) {
+               let startIndex = pageSize * (pageNo - 1);
+               let endIndex = startIndex + pageSize;
+               mergedData = mergedData.slice(startIndex,endIndex) 
             }
 
             return resolve({

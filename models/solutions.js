@@ -66,10 +66,6 @@ module.exports = {
     creator: String,
     linkTitle: String,
     linkUrl: String,
-    link: {
-      type: String,
-      index: true
-    },
     isAPrivateProgram : {
       default : false,
       type : Boolean

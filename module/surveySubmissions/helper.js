@@ -417,14 +417,16 @@ module.exports = class SurveySubmissionsHelper {
 
     
     /**
-    * List created and submitted surveys.
+    * List of surveys for user.
     * @method
-    * @name list
+    * @name surveyList
     * @param {String} userId - logged in userId
+    * @param {String} pageNo - page number
+    * @param {String} pageSize - page size.
     * @returns {Json} - survey list.
     */
 
-    static surveyList(userId = "", search) {
+    static surveyList(userId = "", pageNo, pageSize, search) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -453,7 +455,7 @@ module.exports = class SurveySubmissionsHelper {
                         {
                             "$project": {
                                 'submissionId': "$_id",
-                                "_id": "$surveyId",
+                                "surveyId": 1,
                                 "solutionId": 1,
                                 "surveyInformation.name" : 1,
                                 "surveyInformation.endDate": 1,
@@ -469,8 +471,8 @@ module.exports = class SurveySubmissionsHelper {
                                     { "$count": "count" }
                                 ],
                                 "data": [
-                                    { $skip: 100 * (1 - 1) },
-                                    { $limit: 100 }
+                                    { $skip: pageSize * (pageNo - 1) },
+                                    { $limit: pageSize }
                                 ],
                             }
                         }, {
@@ -491,6 +493,8 @@ module.exports = class SurveySubmissionsHelper {
                         }
                         surveySubmission.name = surveySubmission.surveyInformation.name;
                         surveySubmission.description = surveySubmission.surveyInformation.description;
+                        surveySubmission._id = surveySubmission.surveyId;
+                        delete surveySubmission.surveyId;
                         delete surveySubmission["surveyInformation"];
                         result.data.push(surveySubmission);
                     })
@@ -525,20 +529,12 @@ module.exports = class SurveySubmissionsHelper {
     * @returns {Json} - survey list.
     */
 
-    static surveySolutions(userId, pageSize, pageNo, search) {
+    static surveySolutions(userId, pageNo, pageSize, search) {
     return new Promise(async (resolve, reject) => {
         try {
 
             if (userId == "") {
                 throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
-            }
-
-            if (!pageSize) {
-                pageSize = 100;
-            }
-
-            if (!pageNo) {
-                pageNo = 1;
             }
             
             let solutionMatchQuery = {
