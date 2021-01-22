@@ -220,13 +220,13 @@ const getUsersByEntityAndRole = function (
   * @returns {JSON} - List of user targetted solutions.
 */
 
-const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,pageSize,pageNo,searchText = "" ) {
+const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,searchText = "" ) {
     return new Promise(async (resolve, reject) => {
         try {
             
             const url = 
-            kendraServiceBaseURL + process.env.URL_PREFIX + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&page="+ pageNo +"&limit="+ pageSize +"&search="+ searchText;
-            console.log(url);
+            kendraServiceBaseURL + process.env.URL_PREFIX + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&search="+ searchText;
+
             const options = {
                 headers : {
                     "content-type": "application/json",

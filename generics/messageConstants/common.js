@@ -46,5 +46,7 @@ module.exports = {
     VERSION_2 : "v2",
     PROJECT : "project",
     IMPROVEMENT_PROJECT : "improvementProject",
-    ENTITY_TYPE_SCHOOL : "school"
+    ENTITY_TYPE_SCHOOL : "school",
+    DEFAULT_PAGE_NO : 1,
+    DEFAULT_PAGE_SIZE : 100
 }

@@ -1674,8 +1674,8 @@ module.exports = class ObservationsHelper {
 
             let observations = await this.observations(
                 query,
-                pageSize,
-                pageNo,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 searchQuery,
                 ["name", "description","solutionId","programId"]
             );
@@ -1738,8 +1738,6 @@ module.exports = class ObservationsHelper {
                 token,
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                pageSize,
-                pageNo,
                 search
             );
 
@@ -1756,7 +1754,7 @@ module.exports = class ObservationsHelper {
                             mergedData.push(targetedSolution);
                             delete targetedSolution.type; 
                             delete targetedSolution.externalId;
-                        })
+                        });
 
                        let startIndex = pageSize * (pageNo - 1);
                        let endIndex = startIndex + pageSize;
@@ -1808,7 +1806,9 @@ module.exports = class ObservationsHelper {
                 );
 
                 if( !solutionData.success ) {
-                    return resolve(solutionData);
+                    throw {
+                        message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                    }
                 }
 
                 solutionData.data["startDate"] = new Date();
@@ -1855,7 +1855,8 @@ module.exports = class ObservationsHelper {
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
                     _id : observationId,
-                    "entities" : entitiesList.data
+                    "entities" : entitiesList.data.entities,
+                    entityType : entitiesList.data.entityType
                 }
             });
 
@@ -1884,7 +1885,7 @@ module.exports = class ObservationsHelper {
             
             let observationDocument = await this.observationDocuments({
                 _id : observationId
-            },["entities"]);
+            },["entities","entityType"]);
 
             if(!observationDocument[0]) {
                 throw {
@@ -1931,7 +1932,10 @@ module.exports = class ObservationsHelper {
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
-                data : entities
+                data : {
+                    entities : entities,
+                    entityType : observationDocument[0].entityType
+                }
             });
 
         } catch (error) {
