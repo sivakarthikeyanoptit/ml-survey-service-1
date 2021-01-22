@@ -1755,13 +1755,15 @@ module.exports = class ObservationsHelper {
                             delete targetedSolution.type; 
                             delete targetedSolution.externalId;
                         });
-
-                       let startIndex = pageSize * (pageNo - 1);
-                       let endIndex = startIndex + pageSize;
-                       mergedData = mergedData.slice(startIndex,endIndex) 
                     }
                 }
 
+            }
+
+            if( mergedData.length > 0 ) {
+                let startIndex = pageSize * (pageNo - 1);
+                let endIndex = startIndex + pageSize;
+                mergedData = mergedData.slice(startIndex,endIndex) 
             }
 
             return resolve({
