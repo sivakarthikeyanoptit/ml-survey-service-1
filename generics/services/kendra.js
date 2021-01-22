@@ -225,7 +225,7 @@ const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,searchText
         try {
             
             const url = 
-            kendraServiceBaseURL + process.env.URL_PREFIX + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&search="+ searchText;
+            kendraServiceBaseURL + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&search="+ searchText;
 
             const options = {
                 headers : {
@@ -281,7 +281,7 @@ const solutionDetailsBasedOnRoleAndLocation = function ( token,bodyData,solution
         try {
             
             const url = 
-            kendraServiceBaseURL + process.env.URL_PREFIX + messageConstants.endpoints.SOLUTION_DETAILS_BASED_ON_ROLE_LOCATION + "/" + solutionId;
+            kendraServiceBaseURL + messageConstants.endpoints.SOLUTION_DETAILS_BASED_ON_ROLE_LOCATION + "/" + solutionId;
 
             const options = {
                 headers : {
