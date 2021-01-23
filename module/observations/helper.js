@@ -1800,13 +1800,14 @@ module.exports = class ObservationsHelper {
 
             if( observationId === "" ) {
 
-                // let observationData = await this.observationDocuments({
-                //     solutionId : solutionId
-                // },["_id"]);
+                let observationData = await this.observationDocuments({
+                    solutionId : solutionId,
+                    createdBy : userId
+                },["_id"]);
 
-                // if( observationData.length > 0 ) {
-                //     observationId = observationData[0]._id;
-                // } else {
+                if( observationData.length > 0 ) {
+                    observationId = observationData[0]._id;
+                } else {
 
                     let solutionData = 
                     await kendraService.solutionDetailsBasedOnRoleAndLocation(
@@ -1857,7 +1858,7 @@ module.exports = class ObservationsHelper {
     
                     observationId = observation._id;
                 }
-            // }
+            }
 
             let entitiesList = await this.listEntities(observationId);
 
