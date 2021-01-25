@@ -480,7 +480,7 @@ module.exports = class ObservationSubmissionsHelper {
 
             if( !result.length > 0 ) {
                 throw {
-                    status : httpStatusCode.bad_request.status,
+                    status : httpStatusCode.ok.status,
                     message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
                 }
             }
