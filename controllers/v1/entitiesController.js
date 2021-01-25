@@ -942,7 +942,7 @@ module.exports = class Entities extends Abstract {
 
       try {
 
-        req.setTimeout(800000);
+        req.setTimeout(1200000);
 
         if (!req.files || !req.files.registry) {
           throw messageConstants.apiResponses.REGISTRY_FILE_NOT_FOUND;
