@@ -1877,7 +1877,7 @@ module.exports = class SubmissionsHelper {
             if(kafkaMessage.status != "success") {
                 let errorObject = {
                     formData: {
-                        submissionId:submissionsDocument._id.toString(),
+                        submissionId:submissionDocument._id.toString(),
                         message:kafkaMessage.message
                     }
                 };
