@@ -479,10 +479,11 @@ module.exports = class ObservationSubmissionsHelper {
             );
 
             if( !result.length > 0 ) {
-                throw {
+                return resolve({
                     status : httpStatusCode.ok.status,
-                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
-                }
+                    message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND,
+                    result : []
+                })
             }
 
             result = result.map(resultedData=>{
