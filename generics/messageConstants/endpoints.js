@@ -13,6 +13,6 @@ module.exports = {
     UPLOAD_FILE : "api/v1/cloud-services/gcp/uploadFile",  // Kendra service
     GET_APP_DETAILS : "api/v1/apps/details", // Kendra service
     GET_USERS_BY_ENTITY_AND_ROLE : "api/v1/entities/getUsersByEntityAndRole", //kendra service
-    SOLUTIONS_BASED_ON_ROLE_LOCATION : "/solutions/forUserRoleAndLocation",
-    SOLUTION_DETAILS_BASED_ON_ROLE_LOCATION : "/solutions/detailsBasedOnRoleAndLocation"
+    SOLUTIONS_BASED_ON_ROLE_LOCATION : "api/v1/solutions/forUserRoleAndLocation",
+    SOLUTION_DETAILS_BASED_ON_ROLE_LOCATION : "api/v1/solutions/detailsBasedOnRoleAndLocation"
 }

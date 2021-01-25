@@ -1581,7 +1581,7 @@ module.exports = class ObservationsHelper {
       * @returns {Object} List of observations.
      */
 
-    static observations(query, pageSize, pageNo, searchQuery, fieldsArray) {
+    static observations(query, pageNo, pageSize, searchQuery, fieldsArray) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1674,8 +1674,8 @@ module.exports = class ObservationsHelper {
 
             let observations = await this.observations(
                 query,
-                pageSize,
-                pageNo,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 searchQuery,
                 ["name", "description","solutionId","programId"]
             );
@@ -1738,8 +1738,6 @@ module.exports = class ObservationsHelper {
                 token,
                 bodyData,
                 messageConstants.common.OBSERVATION,
-                pageSize,
-                pageNo,
                 search
             );
 
@@ -1756,14 +1754,16 @@ module.exports = class ObservationsHelper {
                             mergedData.push(targetedSolution);
                             delete targetedSolution.type; 
                             delete targetedSolution.externalId;
-                        })
-
-                       let startIndex = pageSize * (pageNo - 1);
-                       let endIndex = startIndex + pageSize;
-                       mergedData = mergedData.slice(startIndex,endIndex) 
+                        });
                     }
                 }
 
+            }
+
+            if( mergedData.length > 0 ) {
+                let startIndex = pageSize * (pageNo - 1);
+                let endIndex = startIndex + pageSize;
+                mergedData = mergedData.slice(startIndex,endIndex) 
             }
 
             return resolve({
@@ -1800,54 +1800,64 @@ module.exports = class ObservationsHelper {
 
             if( observationId === "" ) {
 
-                let solutionData = 
-                await kendraService.solutionDetailsBasedOnRoleAndLocation(
-                    token,
-                    bodyData,
-                    solutionId
-                );
+                let observationData = await this.observationDocuments({
+                    solutionId : solutionId,
+                    createdBy : userId
+                },["_id"]);
 
-                if( !solutionData.success ) {
-                    throw {
-                        message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                if( observationData.length > 0 ) {
+                    observationId = observationData[0]._id;
+                } else {
+
+                    let solutionData = 
+                    await kendraService.solutionDetailsBasedOnRoleAndLocation(
+                        token,
+                        bodyData,
+                        solutionId
+                    );
+    
+                    if( !solutionData.success ) {
+                        throw {
+                            message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
+                        }
                     }
-                }
-
-                solutionData.data["startDate"] = new Date();
-                let endDate = new Date();
-                endDate.setFullYear(endDate.getFullYear() + 1);
-                solutionData.data["endDate"] = endDate;
-                solutionData.data["status"] = messageConstants.common.PUBLISHED;
-
-                let entityTypes = Object.keys(_.omit(bodyData,["role"]));
-
-                if( !entityTypes.includes(solutionData.data.entityType) ) {
-                    throw {
-                        message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+    
+                    solutionData.data["startDate"] = new Date();
+                    let endDate = new Date();
+                    endDate.setFullYear(endDate.getFullYear() + 1);
+                    solutionData.data["endDate"] = endDate;
+                    solutionData.data["status"] = messageConstants.common.PUBLISHED;
+    
+                    let entityTypes = Object.keys(_.omit(bodyData,["role"]));
+    
+                    if( !entityTypes.includes(solutionData.data.entityType) ) {
+                        throw {
+                            message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+                        }
                     }
+    
+                    let entityData = 
+                    await entitiesHelper.listByLocationIds(
+                        [bodyData[solutionData.data.entityType]]
+                    );
+    
+                    if( !entityData.success ) {
+                        return resolve(entityData);
+                    }
+    
+                    delete solutionData.data._id;
+    
+                    solutionData.data["entities"] = [entityData.data[0]._id];
+    
+                    let observation = await this.create(
+                        solutionId,
+                        solutionData.data,
+                        userId,
+                        token
+                    );
+    
+                    observationId = observation._id;
                 }
-
-                let entityData = 
-                await entitiesHelper.listByLocationIds(
-                    [bodyData[solutionData.data.entityType]]
-                );
-
-                if( !entityData.success ) {
-                    return resolve(entityData);
-                }
-
-                delete solutionData.data._id;
-
-                solutionData.data["entities"] = [entityData.data[0]._id];
-
-                let observation = await this.create(
-                    solutionId,
-                    solutionData.data,
-                    userId,
-                    token
-                );
-
-                observationId = observation._id;
             }
 
             let entitiesList = await this.listEntities(observationId);
