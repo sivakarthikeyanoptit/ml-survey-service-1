@@ -800,7 +800,8 @@ module.exports = class Entities extends Abstract {
 
         let projection = [
           schemaMetaInformation+".externalId",
-          schemaMetaInformation+".name"
+          schemaMetaInformation+".name",
+          "registryDetails.locationId"
         ];
         
         let skippingValue = req.pageSize * (req.pageNo - 1);
@@ -827,6 +828,7 @@ module.exports = class Entities extends Abstract {
           return {
             externalId : entityDocument.metaInformation.externalId,
             name : entityDocument.metaInformation.name,
+            locationId : entityDocument.registryDetails.locationId,
             _id : entityDocument._id
           }
         })
