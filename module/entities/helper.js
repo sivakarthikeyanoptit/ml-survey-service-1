@@ -1668,13 +1668,19 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                         }
 
                         entityId = entityInformation[parsedData.entityExternalId]._id;
+
                     } else {
                         
                         let regName = parsedData.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
                         let entityName = new RegExp("^" + regName + "$","i");
 
-                        if( !entityInformation[entityName] ) {
+                        for(let key in entityInformation){
+                            if(entityName.test(key)){
+                                entityId = entityInformation[key]._id;
+                            }
+                        }
 
+                        if(!entityId) {
                             singleCsvData["_SYSTEM_ID"] = ""; 
                             singleCsvData["STATUS"] = 
                             messageConstants.apiResponses.ENTITY_NOT_FOUND;
@@ -1682,7 +1688,6 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                             continue;
                         }
 
-                        entityId = entityInformation[parsedData.entityExternalId]._id;
                     }
 
                     if( 
