@@ -48,5 +48,6 @@ module.exports = {
     IMPROVEMENT_PROJECT : "improvementProject",
     SCHOOL : "school",
     DEFAULT_PAGE_NO : 1,
-    DEFAULT_PAGE_SIZE : 100
+    DEFAULT_PAGE_SIZE : 100,
+    SUCCESS : "success"
 }
