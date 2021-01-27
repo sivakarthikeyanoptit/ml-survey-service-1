@@ -1645,7 +1645,10 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                 if( entityType == messageConstants.common.SCHOOL ) {
                     entityInformation = _.keyBy(entities,"metaInformation.externalId");
                 } else{
-                    entityInformation = _.keyBy(entities,"metaInformation.name");
+                    
+                    entities.forEach(entity => {
+                        entityInformation[entity.metaInformation.name.toLowerCase()] = entity;
+                    });
                 }
 
                 for( let pointerToRegistry = 0;
@@ -1670,23 +1673,16 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                         entityId = entityInformation[parsedData.entityExternalId]._id;
 
                     } else {
-                        
-                        let regName = parsedData.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
-                        let entityName = new RegExp("^" + regName + "$","i");
 
-                        for(let key in entityInformation){
-                            if(entityName.test(key)){
-                                entityId = entityInformation[key]._id;
-                            }
-                        }
-
-                        if(!entityId) {
+                        if( !entityInformation[parsedData.entityName.toLowerCase()] ) {
                             singleCsvData["_SYSTEM_ID"] = ""; 
                             singleCsvData["STATUS"] = 
                             messageConstants.apiResponses.ENTITY_NOT_FOUND;
                             input.push(singleCsvData);
                             continue;
                         }
+
+                        entityId = entityInformation[parsedData.entityName.toLowerCase()]._id;
 
                     }
 
