@@ -588,9 +588,10 @@ module.exports = class EntitiesHelper {
                             "createdBy": userDetails.id
                         }
 
-                        if (singleEntity.locationId) {
-                            entityCreation.registryDetails["locationId"] =  singleEntity.locationId;
-                            delete singleEntity.locationId;
+                        if (singleEntity._locationId) {
+                            entityCreation.registryDetails["locationId"] =  singleEntity._locationId;
+                            entityCreation.registryDetails["code"] =  singleEntity.externalId;
+                            entityCreation.registryDetails["lastUpdatedAt"] =  new Date();
                         }
 
                         if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
@@ -671,10 +672,10 @@ module.exports = class EntitiesHelper {
 
                     let updateData = {};
 
-                    if( singleEntity.hasOwnProperty("locationId") ) {
-                       updateData["registryDetails.locationId"] = singleEntity.locationId;
-
-                       delete singleEntity.locationId;
+                    if( singleEntity.hasOwnProperty("_locationId") ) {
+                       updateData["registryDetails.locationId"] = singleEntity._locationId;
+                       updateData["registryDetails.code"] = singleEntity.externalId;
+                       updateData["registryDetails.lastUpdatedAt"] = new Date();
                     }
 
                     if( singleEntity.hasOwnProperty("allowedRoles") ) {
