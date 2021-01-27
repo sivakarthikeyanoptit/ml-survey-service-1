@@ -68,7 +68,8 @@ module.exports = class Entities extends Abstract {
         "A2", 
         "A3"
     ],
-    "locationId": "123e4567-e89b-12d3-a456-426614174001"
+    "locationId": "123e4567-e89b-12d3-a456-426614174001",
+    "code" : "Test"
   }]
   *}
   * @apiUse successBody
