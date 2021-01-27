@@ -59,6 +59,12 @@ module.exports = class EntitiesHelper {
                     let registryDetails = {};
                     if (singleEntity.locationId) {
                         registryDetails["locationId"] = singleEntity.locationId;
+                        if(singleEntity.code){
+                            registryDetails["code"] = singleEntity.code  ;
+                        }
+                        
+
+                        registryDetails["lastUpdatedAt"] =  new Date();
                     }
 
                     let entityDoc = {
@@ -66,7 +72,7 @@ module.exports = class EntitiesHelper {
                         "entityType": queryParams.type,
                         "registryDetails": registryDetails,
                         "groups": {},
-                        "metaInformation": _.omit(singleEntity,"locationId"),
+                        "metaInformation": _.omit(singleEntity,["locationId","code"]),
                         "updatedBy": userDetails.id,
                         "createdBy": userDetails.id,
                         "userId" : userDetails.id
@@ -384,8 +390,15 @@ module.exports = class EntitiesHelper {
                 let registryDetails = {};
 
                 if (data.locationId) {
-                    registryDetails["locationId"] =  data.locationId
+                    registryDetails["locationId"] =  data.locationId;
+
+                    if(data.code){
+                        registryDetails["code"] =  data.code;
+                        delete data.code;
+                    } 
+                    registryDetails["lastUpdatedAt"] =  new Date();
                     delete data.locationId;
+                    
                 }
 
                 if (entityType == "parent") {
@@ -588,9 +601,15 @@ module.exports = class EntitiesHelper {
                             "createdBy": userDetails.id
                         }
 
-                        if (singleEntity.locationId) {
-                            entityCreation.registryDetails["locationId"] =  singleEntity.locationId;
-                            delete singleEntity.locationId;
+                        Object.keys(singleEntity).forEach(function(key){
+                            if(key.startsWith('registry-')){
+                                let newKey = key.replace('registry-', '');
+                                entityCreation.registryDetails[newKey] = singleEntity[key];
+                            }
+                        })
+
+                        if(entityCreation.registryDetails && Object.keys(entityCreation.registryDetails).length > 0){
+                            entityCreation.registryDetails["lastUpdatedAt"] =  new Date();
                         }
 
                         if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
@@ -670,11 +689,17 @@ module.exports = class EntitiesHelper {
                     }
 
                     let updateData = {};
+                    updateData.registryDetails = {};
 
-                    if( singleEntity.hasOwnProperty("locationId") ) {
-                       updateData["registryDetails.locationId"] = singleEntity.locationId;
+                    Object.keys(singleEntity).forEach(function(key){
+                        if(key.startsWith('registry-')){
+                            let newKey = key.replace('registry-', '');
+                            updateData["registryDetails"][newKey] = singleEntity[key];
+                        }
+                    })
 
-                       delete singleEntity.locationId;
+                    if(updateData.registryDetails && Object.keys(updateData.registryDetails).length > 0){
+                        updateData["registryDetails"]["lastUpdatedAt"] =  new Date();
                     }
 
                     if( singleEntity.hasOwnProperty("allowedRoles") ) {
