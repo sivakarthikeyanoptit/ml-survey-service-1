@@ -5,6 +5,9 @@
  * Description : All Entities related information.
  */
 
+const { promises } = require("fs");
+const apiResponses = require("../../generics/messageConstants/apiResponses");
+
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
@@ -1537,7 +1540,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
    * @returns {Object} consists of SYSTEM_ID
    */
 
-    static registryMappingUpload(registryCSVData,userDetails, entityType) {
+    static registryMappingUpload(registryCSVData,userId, entityType) {
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -1554,196 +1557,307 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
                     });
                 }());
 
-                let pushToES = [],entityNames = [],parentLocationIds = [],entityDoc = [],entityExternalId = [];
-                let entityNotFoundInSheet = [], allEntities = [], entityFound = [];
-                let parentEntityInformation,locationQuery,parentLocationEntities;
+                let entityNames = [],parentLocationIds = [],entityExternalIds = [];
+                let parentEntityInformation = {};
+                let parsedCsvData = [];
                 
-                registryCSVData.forEach(entity=>{
+                registryCSVData.forEach(entity => {
+
                     entity = gen.utils.valueParser(entity);
-                    let name = entity.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
-                    entityNames.push(new RegExp("^" + name + "$","i"));
-                    parentLocationIds.push(entity.parentLocationId);
-                    entityExternalId.push(entity.entityExternalId);
-                });
+                    parsedCsvData.push(entity);
 
-                let filteredQuery = {
-                    "entityType": entityType,
-                    "metaInformation.name": { $in : entityNames }
-                }
-
-                let schoolQuery = {
-                    "entityType": entityType,
-                    "metaInformation.externalId": { $in : entityExternalId }
-                }
-
-                if(parentLocationIds && parentLocationIds.length > 0){
-
-                    locationQuery = {
-                        "registryDetails.locationId":{ $in : parentLocationIds }
+                    if( entityType ===  messageConstants.common.SCHOOL ) {
+                        entityExternalIds.push(entity.entityExternalId);
+                    } else {
+                        let name = entity.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
+                        entityNames.push(new RegExp("^" + name + "$","i"));
                     }
 
-                    parentLocationEntities = await this.entityDocuments(locationQuery,["registryDetails.locationId","groups"]);
-                    parentEntityInformation = _.keyBy(parentLocationEntities,"registryDetails.locationId");
+                    if( entity.parentLocationId && entity.parentLocationId !== "" ) {
+                        parentLocationIds.push(entity.parentLocationId);
+                    }
+                });
+
+                let filteredQuery = { "entityType": entityType };
+
+                if( entityNames.length > 0 ) {
+                    filteredQuery["metaInformation.name"] = { $in : entityNames };
                 }
 
-                let entityInformation; 
-                if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
-                    let entities =  await this.entityDocuments(schoolQuery,["_id","metaInformation.externalId", "registryDetails.locationId"]);
+                if( entityExternalIds.length > 0 ) {
+                    filteredQuery["metaInformation.externalId"] = { $in : entityExternalIds };
+                }
+
+                if( parentLocationIds && parentLocationIds.length > 0 ) {
+
+                    let parenEntities = 
+                    await this.entityDocuments({
+                        "registryDetails.locationId" : { $in : parentLocationIds }
+                    },["registryDetails.locationId"]);
+
+                    parentEntityInformation = 
+                    _.keyBy(
+                        parenEntities,
+                        "registryDetails.locationId"
+                    );
+                }
+
+                let entities = 
+                await this.entityDocuments(filteredQuery,[
+                    "_id",
+                    "metaInformation.name",
+                    "metaInformation.externalId"
+                ]);
+
+                if( !entities.length > 0 ) {
+                    throw { 
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    }
+                }
+
+                let entityInformation = {};
+                 
+                if( entityType == messageConstants.common.SCHOOL ) {
                     entityInformation = _.keyBy(entities,"metaInformation.externalId");
-                }else{
-                    let entities =  await this.entityDocuments(filteredQuery,["_id","metaInformation.name", "registryDetails.locationId"]);
+                } else{
                     entityInformation = _.keyBy(entities,"metaInformation.name");
                 }
 
-                for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
+                for( let pointerToRegistry = 0;
+                    pointerToRegistry < registryCSVData.length; 
+                    pointerToRegistry ++ 
+                ) {
+                    
+                    let singleCsvData = registryCSVData[pointerToRegistry];
+                    let parsedData = gen.utils.valueParser(singleCsvData);
+                    let entityId = "";
 
-                    let entityDocument;
-                    let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
-                    let checkEntityExist = false;
-                    let entityDetail;
-                    let entityName;
+                    if( entityType == messageConstants.common.SCHOOL ) {
+                        
+                        if( !entityInformation[parsedData.entityExternalId] ) {
 
-                    if( entityInformation && Object.keys(entityInformation).length > 0 ){
-
-                        if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
-
-                            if(registry.entityExternalId in entityInformation){
-                                checkEntityExist  = true;
-                                entityDetail = entityInformation[registry.entityExternalId];
-                            }
-                        }else{
-
-                            let regName = registry.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
-                            entityName = new RegExp("^" + regName + "$","i")
-
-                            for(let key in entityInformation){
-                                if(entityName.test(key)){
-                                    checkEntityExist  = true;
-                                    entityDetail = entityInformation[key];
-                                }
-                            }
+                            singleCsvData["_SYSTEM_ID"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            input.push(singleCsvData);
+                            continue;
                         }
 
-                        if(checkEntityExist){
-
-                            let registryDetails = {
-                                "locationId":registry.locationId,
-                                "code":registry.entityExternalId,
-                                "name":registry.entityName,
-                                "lastUpdatedAt": new Date()
-                            }
-
-                            if(registry.parentLocationId){
-
-                                if(parentLocationEntities &&  parentLocationEntities.length > 0){
-                                    if(registry.parentLocationId in parentEntityInformation){
-                                        if("groups" in parentEntityInformation[registry.parentLocationId]){
-                                            if(entityType in parentEntityInformation[registry.parentLocationId]["groups"]){
-                                                let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
-                                                let entityGroupIds = [];
-
-                                                if(entityGroup && entityGroup.length > 0){
-
-                                                    entityGroup.forEach(groupId=>{
-                                                        entityGroupIds.push(groupId.toString());
-                                                    });
-
-                                                    allEntities.push(...entityGroupIds);
-                                                
-                                                    if(entityGroupIds.includes(entityDetail._id.toString())){
-                                                        if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
-                                                            locationQuery = {
-                                                                "entityType": entityType,
-                                                                "metaInformation.externalId": registry.entityExternalId
-                                                            }
-                                                        }else{
-                                                            locationQuery = {
-                                                                "entityType": entityType,
-                                                                "metaInformation.name": entityName
-                                                            }
-                                                        }
-
-                                                        entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
-                                                    }else{
-                                                        registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
-                                                    }
-                                                }else{
-                                                    registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
-                                                }
-                                            }  
-                                        }
-                                    } 
-                                }
-                            }else{
-
-                                locationQuery = {
-                                    "entityType": entityType,
-                                    "metaInformation.name": entityName
-                                }
-
-                                entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
-                            }
-                        }
-
-                    }
-
-                    if (entityDocument && entityDocument._id) {
-
-                        registry["_SYSTEM_ID"] = entityDocument._id; 
-                        registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
-                        pushToES.push(entityDocument._id);
-                        entityFound.push(entityDocument._id.toString());
-
+                        entityId = entityInformation[parsedData.entityExternalId]._id;
                     } else {
-
-                        registry["_SYSTEM_ID"] = "";
-                        if(!registry.status){
-                            registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
-                        }
                         
+                        let regName = parsedData.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
+                        let entityName = new RegExp("^" + regName + "$","i");
+
+                        if( !entityInformation[entityName] ) {
+
+                            singleCsvData["_SYSTEM_ID"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            input.push(singleCsvData);
+                            continue;
+                        }
+
+                        entityId = entityInformation[parsedData.entityExternalId]._id;
                     }
 
-                    input.push(registry);
+                    if( 
+                        parsedData.parentLocationId && 
+                        parsedData.parentLocationId !== "" 
+                    ) {
+
+                        if( !parentEntityInformation[parsedData.parentLocationId] ) {
+
+                            singleCsvData["_SYSTEM_ID"] = 
+                            messageConstants.apiResponses.INVALID_PARENT_ENTITY;
+                            input.push(singleCsvData);
+                            continue;  
+                        }
+
+                        let entityInParent = await this.entityDocuments({
+                            "_id" : parentEntityInformation[parsedData.parentLocationId]._id,
+                            [`groups.${entityType}`] : entityId
+                        },["_id"]);
+
+                        if( !entityInParent.length > 0 ) {
+
+                            singleCsvData["_SYSTEM_ID"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
+                            input.push(singleCsvData);
+                            continue; 
+                        }
+                    }
+
+                    let entityUpdated = 
+                    await database.models.entities.findOneAndUpdate(
+                        { _id : entityId }, { $set: {
+                            "registryDetails.locationId": parsedData.locationId,
+                            "registryDetails.code": parsedData.entityExternalId,
+                            "registryDetails.lastUpdatedAt": new Date(),
+                            updatedBy: userId
+                        }}, {_id : 1 }
+                    );
+
+                    if( !entityUpdated._id ) {
+
+                        singleCsvData["_SYSTEM_ID"] = 
+                        messageConstants.apiResponses.ENTITY_NOT_UPDATED;
+                        input.push(singleCsvData);
+                        continue;
+                    }
+
+                    singleCsvData["_SYSTEM_ID"] = entityUpdated._id;
+                    this.pushEntitiesToElasticSearch([entityUpdated._id]);
+                    input.push(singleCsvData);
                 }
 
-                if(allEntities && allEntities.length > 0){
+                // for(let pointerToCsv = 0 ; pointerToCsv < registryCSVData.length; pointerToCsv++){
 
-                    let uniqueIds = [...new Set(allEntities)];
-                    let uniqueEntityFound = [...new Set(entityFound)];
+                //     let entityDocument;
+                //     let registry = gen.utils.valueParser(registryCSVData[pointerToCsv]);
+                //     let checkEntityExist = false;
+                //     let entityDetail;
+                //     let entityName;
 
-                    let entityNotFoundInSheet = _.differenceWith(uniqueIds, uniqueEntityFound,_.isEqual);
-                    if(entityNotFoundInSheet && entityNotFoundInSheet.length > 0){
+                //     if( entityInformation && Object.keys(entityInformation).length > 0 ){
 
-                        let getDataQuery = {
-                            "registryDetails.locationId": { "$exists": false },
-                            "_id": { $in : entityNotFoundInSheet }
-                        }
+                //         if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
 
-                        let entityDataToAddDoc = await this.entityDocuments(getDataQuery,["metaInformation.externalId","metaInformation.name"]);
-                        let entityToAddInfo = _.keyBy(entityDataToAddDoc,"_id");
+                //             if(registry.entityExternalId in entityInformation){
+                //                 checkEntityExist  = true;
+                //                 entityDetail = entityInformation[registry.entityExternalId];
+                //             }
+                //         }else{
 
-                        if(entityToAddInfo && Object.keys(entityToAddInfo).length > 0){
-                            for(let pointer in entityToAddInfo){
+                //             let regName = registry.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
+                //             entityName = new RegExp("^" + regName + "$","i")
 
-                                let eachEntity = entityToAddInfo[pointer];
-                                let dataToAdd = [];
-                                dataToAdd["locationId"] = "";
-                                dataToAdd["entityExternalId"] = eachEntity.metaInformation.externalId;
-                                dataToAdd["entityName"] = eachEntity.metaInformation.name;
-                                dataToAdd["parentLocationId"] = "";
-                                dataToAdd["_SYSTEM_ID"] = eachEntity._id.toString();
-                                dataToAdd["status"] = messageConstants.apiResponses.REGISRY_NEED_TO_BE_ADD;
-                                input.push(dataToAdd);
-                            }
-                        }
+                //             for(let key in entityInformation){
+                //                 if(entityName.test(key)){
+                //                     checkEntityExist  = true;
+                //                     entityDetail = entityInformation[key];
+                //                 }
+                //             }
+                //         }
+
+                //         if(checkEntityExist){
+
+                //             let registryDetails = {
+                //                 "locationId":registry.locationId,
+                //                 "code":registry.entityExternalId,
+                //                 "name":registry.entityName,
+                //                 "lastUpdatedAt": new Date()
+                //             }
+
+                //             if(registry.parentLocationId){
+
+                //                 if(parentLocationEntities &&  parentLocationEntities.length > 0){
+                //                     if(registry.parentLocationId in parentEntityInformation){
+                //                         if("groups" in parentEntityInformation[registry.parentLocationId]){
+                //                             if(entityType in parentEntityInformation[registry.parentLocationId]["groups"]){
+                //                                 let entityGroup = parentEntityInformation[registry.parentLocationId]["groups"][entityType];
+                //                                 let entityGroupIds = [];
+
+                //                                 if(entityGroup && entityGroup.length > 0){
+
+                //                                     entityGroup.forEach(groupId=>{
+                //                                         entityGroupIds.push(groupId.toString());
+                //                                     });
+
+                //                                     allEntities.push(...entityGroupIds);
+                                                
+                //                                     if(entityGroupIds.includes(entityDetail._id.toString())){
+                //                                         if(entityType == messageConstants.common.ENTITY_TYPE_SCHOOL){
+                //                                             locationQuery = {
+                //                                                 "entityType": entityType,
+                //                                                 "metaInformation.externalId": registry.entityExternalId
+                //                                             }
+                //                                         }else{
+                //                                             locationQuery = {
+                //                                                 "entityType": entityType,
+                //                                                 "metaInformation.name": entityName
+                //                                             }
+                //                                         }
+
+                //                                         entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
+                //                                     }else{
+                //                                         registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
+                //                                     }
+                //                                 }else{
+                //                                     registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
+                //                                 }
+                //                             }  
+                //                         }
+                //                     } 
+                //                 }
+                //             }else{
+
+                //                 locationQuery = {
+                //                     "entityType": entityType,
+                //                     "metaInformation.name": entityName
+                //                 }
+
+                //                 entityDocument = await this.updateRegistry(locationQuery,registryDetails,userDetails.userId);
+                //             }
+                //         }
+
+                //     }
+
+                //     if (entityDocument && entityDocument._id) {
+
+                //         registry["_SYSTEM_ID"] = entityDocument._id; 
+                //         registry.status = messageConstants.apiResponses.ENTITIES_REGISTRY_DETAILS_UPDATED;
+                //         pushToES.push(entityDocument._id);
+                //         entityFound.push(entityDocument._id.toString());
+
+                //     } else {
+
+                //         registry["_SYSTEM_ID"] = "";
+                //         if(!registry.status){
+                //             registry.status = messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                //         }
+                        
+                //     }
+
+                //     input.push(registry);
+                // }
+
+                // if(allEntities && allEntities.length > 0){
+
+                //     let uniqueIds = [...new Set(allEntities)];
+                //     let uniqueEntityFound = [...new Set(entityFound)];
+
+                //     let entityNotFoundInSheet = _.differenceWith(uniqueIds, uniqueEntityFound,_.isEqual);
+                //     if(entityNotFoundInSheet && entityNotFoundInSheet.length > 0){
+
+                //         let getDataQuery = {
+                //             "registryDetails.locationId": { "$exists": false },
+                //             "_id": { $in : entityNotFoundInSheet }
+                //         }
+
+                //         let entityDataToAddDoc = await this.entityDocuments(getDataQuery,["metaInformation.externalId","metaInformation.name"]);
+                //         let entityToAddInfo = _.keyBy(entityDataToAddDoc,"_id");
+
+                //         if(entityToAddInfo && Object.keys(entityToAddInfo).length > 0){
+                //             for(let pointer in entityToAddInfo){
+
+                //                 let eachEntity = entityToAddInfo[pointer];
+                //                 let dataToAdd = [];
+                //                 dataToAdd["locationId"] = "";
+                //                 dataToAdd["entityExternalId"] = eachEntity.metaInformation.externalId;
+                //                 dataToAdd["entityName"] = eachEntity.metaInformation.name;
+                //                 dataToAdd["parentLocationId"] = "";
+                //                 dataToAdd["_SYSTEM_ID"] = eachEntity._id.toString();
+                //                 dataToAdd["status"] = messageConstants.apiResponses.REGISRY_NEED_TO_BE_ADD;
+                //                 input.push(dataToAdd);
+                //             }
+                //         }
 
                         
-                    }
-                }
+                //     }
+                // }
 
-                if(pushToES && pushToES.length > 0){
-                    await this.pushEntitiesToElasticSearch(pushToES);
-                }
+                // if(pushToES && pushToES.length > 0){
+                //     await this.pushEntitiesToElasticSearch(pushToES);
+                // }
 
                 input.push(null);
             

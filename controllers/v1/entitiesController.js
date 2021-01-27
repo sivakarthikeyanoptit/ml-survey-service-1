@@ -956,7 +956,12 @@ module.exports = class Entities extends Abstract {
           throw messageConstants.apiResponses.FILE_DATA_MISSING;
         }
 
-        let newRegistryData = await entitiesHelper.registryMappingUpload(registryCSVData, req.userDetails, req.query.entityType);
+        let newRegistryData = 
+        await entitiesHelper.registryMappingUpload(
+          registryCSVData, 
+          req.userDetails.userId, 
+          req.query.entityType
+        );
       
         return resolve(newRegistryData);
 
