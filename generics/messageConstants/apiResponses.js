@@ -341,5 +341,6 @@ module.exports = {
     "ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP":"Entity not found in parent entity group",
     "SOLUTION_DETAILS_NOT_FOUND" : "Could not found solution details",
     "INVALID_PARENT_ENTITY" : "Parent entity is invalid",
-    "ENTITY_NOT_UPDATED" : "Could not updated entity"
+    "ENTITY_NOT_UPDATED" : "Could not updated entity",
+    "CREATOR_CAN_NOT_SUBMIT_SURVEY" : "You are survey creator, you can not submit the survey"
 }
