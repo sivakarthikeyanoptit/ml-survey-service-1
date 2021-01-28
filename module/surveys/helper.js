@@ -880,7 +880,13 @@ module.exports = class SurveysHelper {
                 solutionDocument = solutionDocument[0];
                 
                 if (solutionDocument.author == userId) {
-                    throw new Error(messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY)
+                    return resolve({
+                        success: false,
+                        message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                        data: {
+                            isCreator : true
+                        }
+                    })
                 }
                 
                 let programDocument = [];
@@ -1475,7 +1481,13 @@ module.exports = class SurveysHelper {
             )
 
             if (solutionDocument.length > 0) {
-                throw new Error(messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY)
+                return resolve({
+                    success: false,
+                    message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                    data: {
+                        isCreator : true
+                    }
+                })
             }
 
             if (surveyId == "") {
