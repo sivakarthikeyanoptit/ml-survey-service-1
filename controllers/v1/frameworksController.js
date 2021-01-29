@@ -290,6 +290,7 @@ module.exports = class Frameworks extends Abstract {
  * @apiVersion 1.0.0
  * @apiName delete Framework
  * @apiGroup Frameworks
+ * @apiHeader {String} internal-access-token Authenticity token
  * @apiSampleRequest /assessment/api/v1/frameworks/delete/cbd074fa-dd11-11ea-a3bf-000d3af02677
  * @apiHeader {String} X-authenticated-user-token Authenticity token  
  * @apiUse successBody
