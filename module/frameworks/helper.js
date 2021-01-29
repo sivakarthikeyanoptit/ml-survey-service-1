@@ -9,6 +9,7 @@
     * FrameworksHelper
     * @class
 */
+
 module.exports = class FrameworksHelper {
     /**
    * Mandatory field required when creating framework.
@@ -69,19 +70,40 @@ module.exports = class FrameworksHelper {
                     throw new Error(messageConstants.apiResponses.FRAMEWORK_EXTERNAL_ID_REQUIRED_CHECK)
                 }
 
-                let updateResponse = await database.models.frameworks.updateOne(
+                let criteriaIds = [];
+
+                let frameworkDocument = await database.models.frameworks.findOne(
                     {
                         externalId: frameworkExternalId,
-                    },
-                    {
-                        $set: {
-                            isDeleted: true
-                        }
+                    },{ _id: 1, "themes.criteria": 1}).lean();
+
+                if (!frameworkDocument) {
+                  return resolve({
+                    status : httpStatusCode.bad_request.status,
+                    message : messageConstants.apiResponses.FRAMEWORK_NOT_FOUND
+                  });
+                }
+
+                if(frameworkDocument.themes && frameworkDocument.themes.length > 0){
+
+                  frameworkDocument.themes.map(function(value) {
+                    if(value.criteria &&  value.criteria.length > 0){
+                        value.criteria.map(function(key){
+                          criteriaIds.push(ObjectId(key.criteriaId))
+                        })
                     }
-                );
-                
-                if (updateResponse.nModified == 0) {
-                    throw new Error(messageConstants.apiResponses.FRAMEWORK_COULD_NOT_BE_DELETED)
+                  });
+
+                }
+
+                if(criteriaIds && criteriaIds.length > 0){
+                  await database.models.criteria.remove({'_id': {'$in':criteriaIds}});
+                }
+
+                let removedFramework = await database.models.frameworks.remove({'externalId': frameworkExternalId });
+
+                if(!removedFramework || !removedFramework.deletedCount){
+                  throw new Error(messageConstants.apiResponses.FRAMEWORK_COULD_NOT_BE_DELETED)
                 }
 
                 return resolve({
@@ -89,7 +111,6 @@ module.exports = class FrameworksHelper {
                     message: messageConstants.apiResponses.FRAMEWORK_DELETED,
                     data: true
                 });
-
 
             } catch (error) {
                 return resolve({
