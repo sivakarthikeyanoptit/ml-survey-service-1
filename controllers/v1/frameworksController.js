@@ -285,4 +285,46 @@ module.exports = class Frameworks extends Abstract {
     })
   }
 
+  /**
+ * @api {post} /assessment/api/v1/frameworks/delete/:frameworkExternalId delete Framework
+ * @apiVersion 1.0.0
+ * @apiName delete Framework
+ * @apiGroup Frameworks
+ * @apiSampleRequest /assessment/api/v1/frameworks/delete/cbd074fa-dd11-11ea-a3bf-000d3af02677
+ * @apiHeader {String} X-authenticated-user-token Authenticity token  
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
+  /**
+   * Delete framework.
+   * @method
+   * @name delete
+   * @param {Object} req -request Data.
+   * @param {String} req.params._id- framework External Id
+   * @returns {JSON} - message and status of framework deleted.
+   */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+          let result = await frameworksHelper.delete(req.params._id);
+
+          return resolve({
+            message: result.message
+          });
+
+      } catch (error) {
+          return reject({
+              status: error.status || httpStatusCode.internal_server_error.status,
+              message: error.message || httpStatusCode.internal_server_error.message,
+              errorObject: error
+          });
+      }
+
+    });
+  }
+
 };
