@@ -112,7 +112,8 @@ module.exports = async function (req, res, next) {
     "/solutions/list",
     "/programs/listByIds",
     "frameworks/delete/",
-    "questions/delete/"
+    "questions/delete/",
+    "observationSubmissions/disable/"
   ]
 
   var token = req.headers["x-authenticated-user-token"];
@@ -127,7 +128,8 @@ module.exports = async function (req, res, next) {
     "solutions/updateSolutions", 
     "solutions/addEntities",
     "frameworks/delete/",
-    "questions/delete/"
+    "questions/delete/",
+    "observationSubmissions/disable/"
   ];
   
   let performInternalAccessTokenCheck = false;

@@ -87,6 +87,7 @@ module.exports = {
     "OBSERVATION_SUBMISSION_CHECK": "Observation submission check completed successfully",
     "OBSERVATION_SUBMISSION_DELETED": "Observation submission deleted successfully",
     "OBSERVATION_SUBMISSION_UPDATED": "Observation submission updated successfully",
+    "OBSERVATION_SUBMISSION_DiSABLED": "Observation submission disabled successfully",
     "OBSERVATION_LINK_GENERATED": "Observation Link generated successfully",
     "OBSERVATION_LINK_VERIFIED": "Observation solution link verified successfully.",
     "SUBMISSION_NOT_FOUND": "No submission found.",
