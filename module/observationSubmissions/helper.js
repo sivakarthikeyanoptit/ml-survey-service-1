@@ -14,6 +14,7 @@ const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper")
+const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
 
 /**
     * ObservationSubmissionsHelper
@@ -670,7 +671,73 @@ module.exports = class ObservationSubmissionsHelper {
             return reject(error);
         }
     })
-  } 
+  }
+
+  /**
+    * Disable Observation Submission Based on Solution Id
+    * @method
+    * @name disable
+    * @param {String} submissionId - observation submissionId
+    * @returns {Json} - submission status.
+    */
+
+   static disable(solutionId = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (solutionId == "") {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+                }
+
+                let submissionDocument = await this.observationSubmissionsDocument({
+                    "solutionId" : ObjectId(solutionId) 
+                },["observationId"]);
+
+                if(!submissionDocument.length > 0){
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+                }
+
+                let observationId = [];
+                observationId = submissionDocument.map(submission => submission.observationId);
+
+                if(observationId && observationId.length > 0){
+
+                    let removeObservation = await database.models.observations.updateMany({
+                        _id : {$in : observationId}
+                    },
+                    {
+                        $set : { status : messageConstants.common.INACTIVE_STATUS}
+                    }).lean();
+
+                }
+
+                let submissionDocument = await database.models.observationSubmissions.updateMany({
+                    "solutionId" : ObjectId(solutionId) 
+                },
+                {
+                    $set : { status : messageConstants.common.INACTIVE_STATUS}
+                }).lean();
+
+                if (!submissionDocument || submissionDocument.nModified < 1 ) {
+                    throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
+                }
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.OBSERVATION_SUBMISSION_DiSABLED,
+                    data: false
+                });
+            }
+      
+            catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                })
+            }
+        })
+    }   
 
 };
 

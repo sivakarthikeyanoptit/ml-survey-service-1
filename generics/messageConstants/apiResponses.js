@@ -29,6 +29,9 @@ module.exports = {
     "FRAMEWORK_EXISTS": "Framework already exists",
     "FRAMEWORK_INSERTED": "Framework inserted successfully.",
     "FRAMEWORK_UPDATED": "Framework updated successfully.",
+    "FRAMEWORK_DELETED": "Framework deleted successfully.",
+    "FRAMEWORK_COULD_NOT_BE_DELETED": "Framework could not be deleted",
+    "FRAMEWORK_EXTERNAL_ID_REQUIRED_CHECK": "Framework ExternalId is required",
     "PROGRAM_NOT_FOUND": 'No program found.',
     "ROGRAM_EXISTS": "Program already exists",
     "PROGRAM_IMPORTED": "Program imported successfully.",
@@ -60,6 +63,9 @@ module.exports = {
     "CRITERIA_UPDATED": "Criteria updated successfully",
     "QUESTION_INSERTED": "Questions inserted successfully.",
     "QUESTION_NOT_FOUND": "No question found",
+    "QUESTION_ID_REQUIRED_CHECK": "QuestionId is required",
+    "QUESTION_COULD_NOT_BE_DELETED": "Question could not be deleted",
+    "QUESTION_DELETED": "Question deleted successfully.",
     "INSIGHTS_NOT_FOUND": "No insights found",
     "INSIGHTS_FETCHED": "Insights report fetched successfully.",
     "HIGH_LEVEL_INSIGHTS": "High Level Insights report fetched successfully.",
@@ -81,6 +87,7 @@ module.exports = {
     "OBSERVATION_SUBMISSION_CHECK": "Observation submission check completed successfully",
     "OBSERVATION_SUBMISSION_DELETED": "Observation submission deleted successfully",
     "OBSERVATION_SUBMISSION_UPDATED": "Observation submission updated successfully",
+    "OBSERVATION_SUBMISSION_DiSABLED": "Observation submission disabled successfully",
     "OBSERVATION_LINK_GENERATED": "Observation Link generated successfully",
     "OBSERVATION_LINK_VERIFIED": "Observation solution link verified successfully.",
     "SUBMISSION_NOT_FOUND": "No submission found.",
@@ -341,5 +348,6 @@ module.exports = {
     "ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP":"Entity not found in parent entity group",
     "SOLUTION_DETAILS_NOT_FOUND" : "Could not found solution details",
     "INVALID_PARENT_ENTITY" : "Parent entity is invalid",
-    "ENTITY_NOT_UPDATED" : "Could not updated entity"
+    "ENTITY_NOT_UPDATED" : "Could not updated entity",
+    "CREATOR_CAN_NOT_SUBMIT_SURVEY" : "You are survey creator, you can not submit the survey"
 }

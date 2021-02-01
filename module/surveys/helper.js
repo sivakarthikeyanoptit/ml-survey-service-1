@@ -879,6 +879,16 @@ module.exports = class SurveysHelper {
 
                 solutionDocument = solutionDocument[0];
                 
+                if (solutionDocument.author == userId) {
+                    return resolve({
+                        success: false,
+                        message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                        data: {
+                            isCreator : true
+                        }
+                    })
+                }
+                
                 let programDocument = [];
 
                 if (surveyDocument.programId) {
@@ -1150,7 +1160,8 @@ module.exports = class SurveysHelper {
                 "evidenceMethods",
                 "sections",
                 "captureGpsLocationAtQuestionLevel",
-                "enableQuestionReadOut"
+                "enableQuestionReadOut",
+                "author"
               ])
         })
     }
@@ -1359,6 +1370,7 @@ module.exports = class SurveysHelper {
                 if( mergedData.length > 0 ) {
                     
                     mergedData.forEach( surveyData => {
+                        surveyData.isCreator = true;
                         if( surveyData.solutionId ) {
                             solutionIds.push(ObjectId(surveyData.solutionId));
                         }
@@ -1377,13 +1389,15 @@ module.exports = class SurveysHelper {
             if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
 
                 totalCount += surveySubmissions.data.count;
-                mergedData = [...mergedData, ...surveySubmissions.data.data];
-               
+                
                 surveySubmissions.data.data.forEach( surveyData => {
+                    surveyData.isCreator = false;
                     if( surveyData.solutionId ) {
                         solutionIds.push(ObjectId(surveyData.solutionId));
                     }
                 });
+
+                mergedData = [...mergedData, ...surveySubmissions.data.data];
             }
            
             if( solutionIds.length > 0 ) {
@@ -1408,6 +1422,7 @@ module.exports = class SurveysHelper {
                     targetedSolutions.data.data.forEach(targetedSolution => {
                         targetedSolution.solutionId = targetedSolution._id;
                         targetedSolution._id = "";
+                        targetedSolution.isCreator = false;
                         mergedData.push(targetedSolution);
                         delete targetedSolution.type;
                         delete targetedSolution.externalId;
@@ -1470,6 +1485,23 @@ module.exports = class SurveysHelper {
                 throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
             }
 
+            let solutionDocument = await solutionsHelper.solutionDocuments
+            (
+                { _id: solutionId,
+                  author: userId },
+                ["_id"]
+            )
+
+            if (solutionDocument.length > 0) {
+                return resolve({
+                    success: false,
+                    message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                    data: {
+                        isCreator : true
+                    }
+                })
+            }
+
             if (surveyId == "") {
 
                 let surveyDocument = await this.surveyDocuments
@@ -1492,9 +1524,7 @@ module.exports = class SurveysHelper {
                     );
 
                     if (!solutionData.success) {
-                        throw {
-                            message : messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND
-                        }
+                        throw new Error(messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND)
                     }
 
                     let userOrgDetails = await this.getUserOrganisationDetails
@@ -1555,7 +1585,7 @@ module.exports = class SurveysHelper {
 
         }
         catch (error) {
-            return reject({
+            return resolve({
                 success: false,
                 message: error.message,
                 data: false
