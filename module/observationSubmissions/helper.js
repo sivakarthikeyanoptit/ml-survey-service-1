@@ -13,8 +13,6 @@ const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications")
 const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
-const programsHelper = require(MODULES_BASE_PATH + "/programs/helper")
-const observationsHelper = require(MODULES_BASE_PATH + "/observations/helper")
 
 /**
     * ObservationSubmissionsHelper
