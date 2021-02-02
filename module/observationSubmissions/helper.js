@@ -711,12 +711,14 @@ module.exports = class ObservationSubmissionsHelper {
 
                 }
 
+
                 let updateSubmissionDocument = await database.models.observationSubmissions.updateMany({
                     "solutionId" : ObjectId(solutionId) 
                 },
                 {
                     $set : { status : messageConstants.common.INACTIVE_STATUS}
                 }).lean();
+
 
                 if (!updateSubmissionDocument || updateSubmissionDocument.nModified < 1 ) {
                     throw new Error(messageConstants.apiResponses.SUBMISSION_NOT_FOUND)
