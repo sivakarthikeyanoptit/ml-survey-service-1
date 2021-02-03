@@ -9,7 +9,7 @@
 
 const request = require('request');
 const fs = require("fs");
-const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + "/";
+const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + process.env.KENDRA_BASE_URL +"/";
 
 /**
   * Get downloadable file.
