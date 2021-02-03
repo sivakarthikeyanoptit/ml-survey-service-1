@@ -987,31 +987,36 @@ module.exports = class QuestionsHelper {
                 if(criteriaQuestionDocument && criteriaQuestionDocument.length > 0){
 
                   for(let pointerToCriteriaQuestion = 0; pointerToCriteriaQuestion <criteriaQuestionDocument.length; pointerToCriteriaQuestion++){
-                    let evidences = criteriaQuestionDocument[pointerToCriteriaQuestion].evidences;
-                     
-                    evidences.forEach(evidenceMethod => {
-                      Object.keys(evidenceMethod.sections).forEach(function(key) {
+                    let newEvidences = criteriaQuestionDocument[pointerToCriteriaQuestion].evidences; 
 
-                        let updatedEvidenceMethod = evidenceMethod.sections[key].questions.filter(item => 
-                            item._id != questionId.toString()
-                        );
-                          
-                        if(updatedEvidenceMethod && updatedEvidenceMethod.length > 0){
+                    if(newEvidences && newEvidences.length > 0){
+
+                      newEvidences.forEach(evidenceMethod => {
+                        Object.keys(evidenceMethod.sections).forEach(function(key) {
+
+                          let updatedEvidenceMethod = evidenceMethod.sections[key].questions.filter(eachQuestion => 
+                              eachQuestion._id != questionId.toString()
+                          );
+                            
                           evidenceMethod.sections[key].questions = updatedEvidenceMethod;
 
-                        }
+                        });
 
                       });
 
-                    });
+                      let filterQuery = {
+                        _id : criteriaQuestionDocument[pointerToCriteriaQuestion]._id
+                      }
 
-                    let criteriaQuestionUpdatedDocument = await database.models.criteriaQuestions.findOneAndUpdate({
-                      "evidences.sections.questions._id": ObjectId(questionId)
-                    },{
-                      $set : { evidences: evidences}
-                    });
-                    
+                      let criteriaQuestionUpdatedDocument = await database.models.criteriaQuestions.update(
+                       filterQuery,
+                       {
+                          $set : { evidences: newEvidences}
+                       },{ upsert: true });
+                    }
+                 
                   }
+
                 }
 
                 let questionDocument = await database.models.questions.remove({'_id': ObjectId(questionId) });
