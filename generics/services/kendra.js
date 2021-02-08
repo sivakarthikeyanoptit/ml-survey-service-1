@@ -9,7 +9,7 @@
 
 const request = require('request');
 const fs = require("fs");
-const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + "/";
+const kendraServiceBaseURL = process.env.KENDRA_APPLICATION_ENDPOINT + process.env.KENDRA_BASE_URL +"/";
 
 /**
   * Get downloadable file.
@@ -209,12 +209,124 @@ const getUsersByEntityAndRole = function (
          }
      })
  }
- 
 
+/**
+  * User targetted solutions.
+  * @function
+  * @name solutionBasedOnRoleAndLocation
+  * @param {String} token - User token.
+  * @param {Object} bodyData - Requested body data.
+  * @param {String} searchText - Text to search.
+  * @returns {JSON} - List of user targetted solutions.
+*/
+
+const solutionBasedOnRoleAndLocation = function ( token,bodyData,type,searchText = "" ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            const url = 
+            kendraServiceBaseURL + messageConstants.endpoints.SOLUTIONS_BASED_ON_ROLE_LOCATION+ "?type="+ type +"&search="+ searchText;
+
+            const options = {
+                headers : {
+                    "content-type": "application/json",
+                    "internal-access-token": process.env.INTERNAL_ACCESS_TOKEN,
+                    "x-authenticated-user-token" : token
+                },
+                json : bodyData
+            };
+
+            request.post(url,options,kendraCallback);
+
+            function kendraCallback(err, data) {
+
+                let result = {
+                    success : true
+                };
+
+                if (err) {
+                    result.success = false;
+                } else {
+                    
+                    let response = data.body;
+                    
+                    if( response.status === httpStatusCode['ok'].status ) {
+                        result["data"] = response.result;
+                    } else {
+                        result.success = false;
+                    }
+                }
+
+                return resolve(result);
+            }
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+}
+
+/**
+  * Details of solution based on role and location.
+  * @function
+  * @name solutionDetailsBasedOnRoleAndLocation
+  * @param {String} token - User token.
+  * @param {Object} bodyData - Requested body data.
+  * @param {String} solutionId - Targeted solution id.
+  * @returns {JSON} - Details of solution based on role and location.
+*/
+
+const solutionDetailsBasedOnRoleAndLocation = function ( token,bodyData,solutionId ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            const url = 
+            kendraServiceBaseURL + messageConstants.endpoints.SOLUTION_DETAILS_BASED_ON_ROLE_LOCATION + "/" + solutionId;
+
+            const options = {
+                headers : {
+                    "content-type": "application/json",
+                    "internal-access-token": process.env.INTERNAL_ACCESS_TOKEN,
+                    "x-authenticated-user-token" : token
+                },
+                json : bodyData
+            };
+
+            request.post(url,options,kendraCallback);
+
+            function kendraCallback(err, data) {
+
+                let result = {
+                    success : true
+                };
+
+                if (err) {
+                    result.success = false;
+                } else {
+                    
+                    let response = data.body;
+                    
+                    if( response.status === httpStatusCode['ok'].status ) {
+                        result["data"] = response.result;
+                    } else {
+                        result.success = false;
+                    }
+                }
+
+                return resolve(result);
+            }
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+}
+ 
 module.exports = {
     getDownloadableUrl : getDownloadableUrl,
     upload : upload,
     getAppDetails : getAppDetails,
-    getUsersByEntityAndRole : getUsersByEntityAndRole
+    getUsersByEntityAndRole : getUsersByEntityAndRole,
+    solutionBasedOnRoleAndLocation : solutionBasedOnRoleAndLocation,
+    solutionDetailsBasedOnRoleAndLocation : solutionDetailsBasedOnRoleAndLocation
 };
-

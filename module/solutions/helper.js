@@ -9,8 +9,9 @@
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper");
 const userExtensionHelper = require(MODULES_BASE_PATH + "/userExtension/helper");
-const shikshalokamHelper = require(MODULES_BASE_PATH + "/shikshalokam/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
+const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * SolutionsHelper
@@ -644,10 +645,11 @@ module.exports = class SolutionsHelper {
    * @param {Number} pageSize - page limit.
    * @param {Number} pageNo - No of the page. 
    * @param {Object} projection - Projected data. 
+   * @param {String} search - Search text. 
    * @returns {Array} List of solutions document. 
    */
 
-  static search(filteredData, pageSize, pageNo,projection) {
+  static search(filteredData, pageSize, pageNo,projection,search = "") {
     return new Promise(async (resolve, reject) => {
       try {
 
@@ -666,6 +668,16 @@ module.exports = class SolutionsHelper {
             programId: 1,
             entityTypeId: 1
           };
+        }
+
+        if ( search !== "" ) {
+          filteredData["$match"]["$or"] = [];
+          filteredData["$match"]["$or"].push(
+            { 
+              "name": new RegExp(search, 'i') 
+            }, { 
+            "description": new RegExp(search, 'i') 
+          });
         }
 
         let facetQuery = {};
@@ -801,22 +813,6 @@ module.exports = class SolutionsHelper {
             } else {
               matchQuery["$match"]["type"] = messageConstants.common.ASSESSMENT;
               matchQuery["$match"]["subType"] = type;
-            }
-
-            if( 
-              process.env.USE_USER_ORGANISATION_ID_FILTER && 
-              process.env.USE_USER_ORGANISATION_ID_FILTER === "ON" 
-            ) {
-              
-              let organisationAndRootOrganisation = 
-              await shikshalokamHelper.getUserOrganisation(
-                token,
-                userId
-              );
-              
-              matchQuery["$match"]["createdFor"] = {
-                $in : organisationAndRootOrganisation.createdFor
-              }
             }
 
             matchQuery["$match"]["$or"] = [
@@ -1147,6 +1143,14 @@ module.exports = class SolutionsHelper {
           );
   
           if (duplicateSolutionDocument._id) {
+
+            if( data.scope && Object.keys(data.scope).length > 0 ) {
+              await this.setScope(
+                newSolutionDocument.programId,
+                duplicateSolutionDocument._id,
+                data.scope
+              );
+            }
 
             if (duplicateSolutionDocument.type == messageConstants.common.OBSERVATION) {
 
@@ -1709,5 +1713,159 @@ module.exports = class SolutionsHelper {
     });
    }
 
+    /**
+   * Set scope in solution
+   * @method
+   * @name setScope
+   * @param {String} programId - program id.
+   * @param {String} solutionId - solution id.
+   * @param {Object} scopeData - scope data. 
+   * @returns {JSON} - scope in solution.
+   */
+
+  static setScope( programId,solutionId,scopeData ) {
+
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let programData = 
+        await programsHelper.programDocument({ _id : programId },["_id","scope"]);
+ 
+        if( !programData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.PROGRAM_NOT_FOUND
+          });
+        }
+
+        let solutionData = await this.solutionDocuments({ _id : solutionId },["_id"]);
+
+        if( !solutionData.length > 0 ) {
+          return resolve({
+            status : httpStatusCode.bad_request.status,
+            message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+          });
+        }
+
+        if( programData[0].scope ) {
+          
+          let currentSolutionScope = programData[0].scope;
+
+          if( Object.keys(scopeData).length > 0 ) {
+
+            if( scopeData.entityType ) {
+              
+              let entityType =  await entityTypesHelper.list(
+                {
+                  name : scopeData.entityType
+                },
+                {
+                  "name" : 1 ,"_id" : 1
+                }
+              );
+          
+              currentSolutionScope.entityType = entityType[0].name;
+              currentSolutionScope.entityTypeId = entityType[0]._id;
+
+            }
+
+            if( scopeData.entities && scopeData.entities.length > 0 ) {
+              
+              let entities = 
+              await entitiesHelper.entityDocuments(
+                {
+                  _id : { $in : scopeData.entities },
+                  entityTypeId : currentSolutionScope.entityTypeId
+                },["_id"]
+              );
   
+              if( !entities.length > 0 ) {
+                return resolve({
+                  status : httpStatusCode.bad_request.status,
+                  message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                });
+              }
+
+              let entityIds = [];
+
+            for( let entity = 0; entity < entities.length; entity ++ ) {
+              
+              let entityQuery = {
+                _id : { $in : currentSolutionScope.entities },
+                [`groups.${currentSolutionScope.entityType}`] : entities[entity]._id
+              }
+
+              let entityInParent = 
+              await entitiesHelper.entityDocuments(entityQuery);
+
+              if( entityInParent.length > 0 ) {
+                entityIds.push(ObjectId(entities[entity]._id));
+              }
+            }
+
+            if( !entityIds.length > 0 ) {
+              
+              return resolve({
+                status : httpStatusCode.bad_request.status,
+                message : messageConstants.apiResponses.SCOPE_ENTITY_INVALID
+              });
+
+            }
+
+            currentSolutionScope.entities = entityIds;
+            }
+
+            if( scopeData.roles.length > 0 ) {
+              
+              let userRoles = await userRolesHelper.list({
+                code : { $in : scopeData.roles }
+              },{
+                "_id" : 1,
+                "code" : 1
+              });
+  
+              if( !userRoles.length > 0 ) {
+                return resolve({
+                  status : httpStatusCode.bad_request.status,
+                  message : messageConstants.apiResponses.INVALID_ROLE_CODE
+                });
+              }
+  
+              currentSolutionScope["roles"] = userRoles;
+
+            }
+          }
+
+          let updateSolution = 
+          await database.models.solutions.findOneAndUpdate(
+            {
+              _id : solutionId
+            },
+            { $set : { scope : currentSolutionScope }},{ new: true }
+          ).lean();
+  
+          if( !updateSolution._id ) {
+            throw {
+              status : messageConstants.apiResponses.SOLUTION_SCOPE_NOT_ADDED
+            };
+          }
+          solutionData = updateSolution;
+
+        }
+
+        return resolve({
+          success : true,
+          message : messageConstants.apiResponses.SOLUTION_UPDATED
+        });
+
+      } catch (error) {
+          return resolve({
+            success : false
+          });
+      }
+
+    })
+  } 
+
 };

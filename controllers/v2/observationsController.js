@@ -512,7 +512,8 @@ module.exports = class Observations extends v1Observation {
                     {
                         metaInformation: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        registryDetails: 1
                     }
                 ).lean();
 
@@ -522,6 +523,10 @@ module.exports = class Observations extends v1Observation {
                         status: httpStatusCode.bad_request.status, 
                         message: responseMessage 
                     });
+                }
+
+                if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+                    entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
                 }
 
                 const submissionNumber = req.query.submissionNumber && req.query.submissionNumber > 1 ? parseInt(req.query.submissionNumber) : 1;

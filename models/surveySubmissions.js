@@ -42,7 +42,8 @@ module.exports = {
         default : false,
         type : Boolean
       },
-      surveyInformation: Object
+      surveyInformation: Object,
+      appInformation : Object
     }
   };
 

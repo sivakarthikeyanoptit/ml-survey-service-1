@@ -124,7 +124,6 @@ module.exports = class SurveysHelper {
     });
   }
 
-
     /**
     * Create survey solution template.
     * @method
@@ -402,8 +401,6 @@ module.exports = class SurveysHelper {
             }
         });
     }
-    
-
 
     /**
    * Map survey solution to program.
@@ -836,7 +833,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "", submissionId = "") {
+    static details(surveyId = "", userId= "", submissionId = "",appName = "",appVersion = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -881,6 +878,16 @@ module.exports = class SurveysHelper {
                 }
 
                 solutionDocument = solutionDocument[0];
+                
+                if (solutionDocument.author == userId) {
+                    return resolve({
+                        success: false,
+                        message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                        data: {
+                            isCreator : true
+                        }
+                    })
+                }
                 
                 let programDocument = [];
 
@@ -1030,6 +1037,16 @@ module.exports = class SurveysHelper {
                         submissionDocument.programExternalId = programDocument[0].externalId;
                     }
 
+                    submissionDocument.appInformation = {};
+
+                    if( appName !== "" ) {
+                      submissionDocument.appInformation["appName"] = appName;
+                    } 
+              
+                    if( appVersion !== "" ) {
+                      submissionDocument.appInformation["appVersion"] = appVersion;
+                    }
+
                     let submissionDoc = await database.models.surveySubmissions.create(
                         submissionDocument
                     );
@@ -1143,7 +1160,8 @@ module.exports = class SurveysHelper {
                 "evidenceMethods",
                 "sections",
                 "captureGpsLocationAtQuestionLevel",
-                "enableQuestionReadOut"
+                "enableQuestionReadOut",
+                "author"
               ])
         })
     }
@@ -1240,5 +1258,340 @@ module.exports = class SurveysHelper {
             }
         })
     }
+
+    /**
+      * List of surveys.
+      * @method
+      * @name surveys
+      * @param {Object} query - filter query object
+      * @param {String} pageSize - Size of page.
+      * @param {String} pageNo - page no.
+      * @param {String} search - search text.
+      * @param {Array} fieldsArray - projection fields.
+      * @returns {Object} List of surveys.
+     */
+
+    static surveys(query, pageSize, pageNo, searchQuery, fieldsArray) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let matchQuery = {
+                    $match : query
+                };
+
+                if (searchQuery && searchQuery.length > 0) {
+                    matchQuery["$match"]["$or"] = searchQuery;
+                }
+                let projection = {}
+                fieldsArray.forEach(field => {
+                    projection[field] = 1;
+                });
+
+                let aggregateData = [];
+                aggregateData.push(matchQuery);
+                aggregateData.push({
+                    $project: projection
+                }, {
+                    $facet: {
+                        "totalCount": [
+                            { "$count": "count" }
+                        ],
+                        "data": [
+                            { $skip: pageSize * (pageNo - 1) },
+                            { $limit: pageSize }
+                        ],
+                    }
+                }, {
+                    $project: {
+                        "data": 1,
+                        "count": {
+                            $arrayElemAt: ["$totalCount.count", 0]
+                        }
+                    }
+                });
+
+                let result =
+                await database.models.surveys.aggregate(aggregateData);
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.SURVEYS_FETCHED,
+                    data: {
+                        data: result[0].data,
+                        count: result[0].count ? result[0].count : 0
+                    }
+                })
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message,
+                    data : {
+                        data : [],
+                        count : 0
+                    }
+                });
+            }
+        })
+    }
+
+    /**
+    * Get list of surveys with the targetted ones.
+    * @method
+    * @name getSurvey
+    * @param {Object} bodyData - Requested body data.
+    * @param {String} userId - Logged in user Id.
+    * @param {String} pageSize - size of page.
+    * @param {String} pageNo - page number.
+    * @param {String} search - search text.
+    * @returns {Object}
+   */
+
+   static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                userId,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
+                search
+            );
+
+            let solutionIds = [];
+
+            let totalCount = 0;
+            let mergedData = [];
+            
+            if( surveySolutions.success && surveySolutions.data ) {
+
+                totalCount = surveySolutions.data.count;
+                mergedData = surveySolutions.data.data;
+
+                if( mergedData.length > 0 ) {
+                    
+                    mergedData.forEach( surveyData => {
+                        surveyData.isCreator = true;
+                        if( surveyData.solutionId ) {
+                            solutionIds.push(ObjectId(surveyData.solutionId));
+                        }
+                    });
+                }
+            }
+
+            let surveySubmissions = await surveySubmissionsHelper.surveyList
+            (
+                userId,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
+                search
+            )
+            
+            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+
+                totalCount += surveySubmissions.data.count;
+                
+                surveySubmissions.data.data.forEach( surveyData => {
+                    surveyData.isCreator = false;
+                    if( surveyData.solutionId ) {
+                        solutionIds.push(ObjectId(surveyData.solutionId));
+                    }
+                });
+
+                mergedData = [...mergedData, ...surveySubmissions.data.data];
+            }
+           
+            if( solutionIds.length > 0 ) {
+                bodyData["filter"] = {};
+                bodyData["filter"]["skipSolutions"] = solutionIds; 
+            }
+
+            let targetedSolutions = 
+            await kendraService.solutionBasedOnRoleAndLocation
+            (
+                token,
+                bodyData,
+                messageConstants.common.SURVEY,
+                search
+            );
+          
+            if (targetedSolutions.success) {
+
+                if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
+                    totalCount += targetedSolutions.data.count;
+
+                    targetedSolutions.data.data.forEach(targetedSolution => {
+                        targetedSolution.solutionId = targetedSolution._id;
+                        targetedSolution._id = "";
+                        targetedSolution.isCreator = false;
+                        mergedData.push(targetedSolution);
+                        delete targetedSolution.type;
+                        delete targetedSolution.externalId;
+                    })
+                }
+            }
+
+            if( mergedData.length > 0 ) {
+               let startIndex = pageSize * (pageNo - 1);
+               let endIndex = startIndex + pageSize;
+               mergedData = mergedData.slice(startIndex,endIndex) 
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+            
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
+
+      /**
+      * survey details.
+      * @method
+      * @name detailsV2
+      * @param {Object} bodyData - Request body data.
+      * @param  {String} surveyId - surveyId.
+      * @param {String} solutionId - solutionId
+      * @param {String} userId - logged in userId
+      * @param {String} token - logged in user token
+      * @param {String} [ appName = "" ] - app name
+      * @param {String} [ appVersion = "" ] - app version
+      * @returns {JSON} - returns survey solution, program and questions.
+    */
+
+   static detailsV2(bodyData, surveyId = "", solutionId= "",userId= "", token= "", appName = "",appVersion = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+
+            if (solutionId == "") {
+                throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED);
+            }
+
+            if (token == "") {
+                throw new Error(messageConstants.apiResponses.REQUIRED_USER_AUTH_TOKEN)
+            }
+
+            let solutionDocument = await solutionsHelper.solutionDocuments
+            (
+                { _id: solutionId,
+                  author: userId },
+                ["_id"]
+            )
+
+            if (solutionDocument.length > 0) {
+                return resolve({
+                    success: false,
+                    message: messageConstants.apiResponses.CREATOR_CAN_NOT_SUBMIT_SURVEY,
+                    data: {
+                        isCreator : true
+                    }
+                })
+            }
+
+            if (surveyId == "") {
+
+                let surveyDocument = await this.surveyDocuments
+                    ({
+                        solutionId: solutionId,
+                        createdBy: userId
+                    },
+                        ["_id"]);
+               
+                if (surveyDocument.length > 0) {
+                    surveyId = surveyDocument[0]._id;
+                }
+                else {
+
+                    let solutionData = await kendraService.solutionDetailsBasedOnRoleAndLocation
+                    (
+                        token,
+                        bodyData,
+                        solutionId
+                    );
+
+                    if (!solutionData.success) {
+                        throw new Error(messageConstants.apiResponses.SOLUTION_DETAILS_NOT_FOUND)
+                    }
+
+                    let userOrgDetails = await this.getUserOrganisationDetails
+                    (
+                        [userId],
+                        token
+                    )
+
+                    userOrgDetails = userOrgDetails.data;
+
+                    if (!userOrgDetails[userId] || !Array.isArray(userOrgDetails[userId].rootOrganisations) || userOrgDetails[userId].rootOrganisations.length < 1) {
+                        throw new Error(messageConstants.apiResponses.ORGANISATION_DETAILS_NOT_FOUND_FOR_USER)
+                    }
+
+                    let createSurveyDocument = await this.createSurveyDocument
+                    (
+                        userId,
+                        solutionData.data,
+                        userOrgDetails[userId]
+                    )
+
+                    if (!createSurveyDocument.success) {
+                        throw new Error(messageConstants.apiResponses.SURVEY_CREATION_FAILED)
+                    }
+
+                    surveyId = createSurveyDocument.data._id;
+                }
+            }
+
+            let validateSurvey = await this.validateSurvey
+            (
+                surveyId,
+                userId
+            )
+
+            if (!validateSurvey.success) {
+                return resolve(validateSurvey);
+            }
+            
+            let surveyDetails = await this.details
+            (
+                surveyId,
+                userId,
+                validateSurvey.data.submissionId,
+                appName,
+                appVersion
+            )
+
+            if (!surveyDetails.success) {
+                return resolve(surveyDetails);
+            }
+
+            return resolve({
+                success: true,
+                message: surveyDetails.message,
+                data: surveyDetails.data
+            });
+
+        }
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    })
+   }
     
 }
