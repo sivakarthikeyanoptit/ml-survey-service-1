@@ -28,15 +28,14 @@ let db_connect = function(configData) {
   * @method
   * @name cassandra_connect
   * @param {Object} cassandraConfigurationData  - configuration data for cassandra.
-  * Currently not required
 */
 
-// let cassandra_connect = function (cassandraConfigurationData) {
-//   global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
-//   if( !global.Abstract ){
-//     global.Abstract = require("../generics/abstract");
-//   }
-// };
+let cassandra_connect = function (cassandraConfigurationData) {
+  global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
+  if( !global.Abstract ){
+    global.Abstract = require("../generics/abstract");
+  }
+};
 
 /**
   * Elastic search configuration.
