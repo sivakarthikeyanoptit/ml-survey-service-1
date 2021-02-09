@@ -1,8 +1,8 @@
 /**
- * name : samiksha.js
+ * name : improvement-project.js
  * author : Aman Jung Karki
  * Date : 11-Nov-2019
- * Description : All samiksha related api call.
+ * Description : All improvement project related api call.
  */
 
 //dependencies
@@ -10,24 +10,24 @@
 const request = require('request');
 
 /**
-  * Get list of unnati improvement projects.
+  * Get list of project template lists.
   * @function
-  * @name getImprovementProjects
+  * @name templateLists
   * @param {Array} improvementProjectIds - improvement project external ids.
   * @param {String} token - logged in user token. 
   * @returns {Array} Array of improvement projects.
 */
 
-var getImprovementProjects = function (improvementProjectIds,token) {
+var templateLists = function (improvementProjectIds,token) {
 
     let bodyData = {
         "externalIds" : improvementProjectIds
     }
 
     const improvementProjectsUrl = 
-    process.env.UNNATI_APPLICATION_HOST + 
-    process.env.UNNATI_APPLICATION_BASE_URL + 
-    messageConstants.endpoints.GET_IMPROVEMENT_PROJECTS;
+    process.env.IMPROVEMENT_PROJECT_HOST + 
+    process.env.IMPROVEMENT_PROJECT_BASE_URL + 
+    messageConstants.endpoints.GET_PROJECT_TEMPLATE_LISTS;
 
     return new Promise((resolve, reject) => {
         try {
@@ -39,14 +39,14 @@ var getImprovementProjects = function (improvementProjectIds,token) {
                         message : messageConstants.apiResponses.UNNATI_SERVICE_DOWN
                     })
                 } else {
-                    let listOfImprovementProjecys = response.body;
-                    return resolve(listOfImprovementProjecys);
+                    let listOfImprovementProjects = response.body;
+                    return resolve(listOfImprovementProjects);
                 }
             }
 
             request.post(improvementProjectsUrl, {
                 headers: {
-                    "x-auth-token": token
+                    "X-authenticated-user-token": token
                 },
                 json : bodyData
             }, unnatiCallBack);
@@ -59,5 +59,5 @@ var getImprovementProjects = function (improvementProjectIds,token) {
 }
 
 module.exports = {
-    getImprovementProjects : getImprovementProjects
+    templateLists : templateLists
 };
