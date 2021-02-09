@@ -1,4 +1,12 @@
 require("dotenv").config();
+
+//express
+const express = require("express");
+let app = express();
+
+// Health check
+require("./healthCheck")(app);
+
 //config and routes
 global.config = require("./config");
 require("./config/globalVariable")();
@@ -11,10 +19,6 @@ if(!environmentData.success) {
 }
 
 let router = require("./routes");
-
-//express
-const express = require("express");
-let app = express();
 
 //required modules
 const fileUpload = require("express-fileupload");

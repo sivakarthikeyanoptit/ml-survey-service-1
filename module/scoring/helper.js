@@ -440,6 +440,7 @@ module.exports = class ScoringHelper {
                                                 const levelKey = levelArrayFromHighToLow[levelIndex];
                                                 if(expressionResult[levelKey] && expressionResult[levelKey].result) {
                                                     score = levelKey;
+                                                    break;
                                                 }
                                             }
                                         }

@@ -50,6 +50,7 @@ module.exports = {
       }
     },
     project : Object,
-    referenceFrom : String
+    referenceFrom : String,
+    appInformation : Object
   }
 };
