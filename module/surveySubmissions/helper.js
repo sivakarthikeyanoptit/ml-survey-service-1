@@ -415,5 +415,197 @@ module.exports = class SurveySubmissionsHelper {
     })
 }
 
+    
+    /**
+    * List of surveys for user.
+    * @method
+    * @name surveyList
+    * @param {String} userId - logged in userId
+    * @param {String} pageNo - page number
+    * @param {String} pageSize - page size.
+    * @returns {Json} - survey list.
+    */
+
+    static surveyList(userId = "", pageNo, pageSize, search) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+                }
+
+                let result = {
+                    data: [],
+                    count : 0
+                }
+
+                let submissionMatchQuery = { "$match": { "createdBy": userId } };
+
+                if (search !== "") {
+                    submissionMatchQuery["$match"]["$or"] = [
+                        { "surveyInformation.name": new RegExp(search, 'i') },
+                        { "surveyInformation.description": new RegExp(search, 'i') }
+                    ];
+                }
+
+                let surveySubmissions = await database.models.surveySubmissions.aggregate
+                (
+                    [
+                       submissionMatchQuery,
+                        {
+                            "$project": {
+                                'submissionId': "$_id",
+                                "surveyId": 1,
+                                "solutionId": 1,
+                                "surveyInformation.name" : 1,
+                                "surveyInformation.endDate": 1,
+                                "surveyInformation.description": 1,
+                                "status": 1,
+                                "_id": 0
+
+                            }
+                        },
+                        {
+                            $facet: {
+                                "totalCount": [
+                                    { "$count": "count" }
+                                ],
+                                "data": [
+                                    { $skip: pageSize * (pageNo - 1) },
+                                    { $limit: pageSize }
+                                ],
+                            }
+                        }, {
+                            $project: {
+                                "data": 1,
+                                "count": {
+                                    $arrayElemAt: ["$totalCount.count", 0]
+                                }
+                            }
+                        }
+                    ]
+                )
+
+                if (surveySubmissions[0].data && surveySubmissions[0].data.length > 0) {
+                    surveySubmissions[0].data.forEach( async surveySubmission => {
+                        if (new Date() > new Date(surveySubmission.surveyInformation.endDate)) {
+                             surveySubmission.status = messageConstants.common.EXPIRED
+                        }
+                        surveySubmission.name = surveySubmission.surveyInformation.name;
+                        surveySubmission.description = surveySubmission.surveyInformation.description;
+                        surveySubmission._id = surveySubmission.surveyId;
+                        delete surveySubmission.surveyId;
+                        delete surveySubmission["surveyInformation"];
+                        result.data.push(surveySubmission);
+                    })
+                    result.count = surveySubmissions[0].count ? result.count + surveySubmissions[0].count : result.count;
+                }
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.SURVEYS_FETCHED,
+                    data: {
+                        data: result.data,
+                        count: result.count 
+                    }
+                })
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
+     /**
+    * List of created survey solutions by user.
+    * @method
+    * @name surveySolutions
+    * @param {String} userId - logged in userId
+    * @param {String} search - search key
+    * @returns {Json} - survey list.
+    */
+
+    static surveySolutions(userId, pageNo, pageSize, search) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+            
+            let solutionMatchQuery = {
+                "$match": {
+                    "author": userId,
+                    "type": messageConstants.common.SURVEY,
+                    "isReusable": false,
+                    "isDeleted": false
+                }
+            }
+
+            if (search !== "") {
+                solutionMatchQuery["$match"]["$or"] = [
+                    { "name": new RegExp(search, 'i') },
+                    { "description": new RegExp(search, 'i') }
+                ];
+            }
+
+            let result = await solutionsHelper.solutionDocumentsByAggregateQuery
+                (
+                    [
+                        solutionMatchQuery,
+                        {
+                            "$project": {
+                                "solutionId": "$_id",
+                                "name": 1,
+                                "description": 1,
+                                "status": 1,
+                                "_id": 0
+
+                            }
+                        },
+                        {
+                            $facet: {
+                                "totalCount": [
+                                    { "$count": "count" }
+                                ],
+                                "data": [
+                                    { $skip: pageSize * (pageNo - 1) },
+                                    { $limit: pageSize }
+                                ],
+                            }
+                        }, {
+                            $project: {
+                                "data": 1,
+                                "count": {
+                                    $arrayElemAt: ["$totalCount.count", 0]
+                                }
+                            }
+                        }
+                    ]
+                )
+
+            return resolve({
+                success: true,
+                data: {
+                    data: result[0].data,
+                    count: result[0].count ? result[0].count : 0
+                }
+            })
+
+        } catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            });
+        }
+    });
+}
+
+
 
 }

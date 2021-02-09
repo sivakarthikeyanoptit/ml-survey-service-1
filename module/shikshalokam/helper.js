@@ -3,8 +3,7 @@ const userProfileFetchEndpoint = (process.env.SHIKSHALOKAM_USER_PROFILE_FETCH_EN
 const shikshalokamBaseHost = (process.env.SHIKSHALOKAM_BASE_HOST && process.env.SHIKSHALOKAM_BASE_HOST != "") ? process.env.SHIKSHALOKAM_BASE_HOST : ""
 const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 
-module.exports = class shikshalokamHelper {
-
+module.exports = class ShikshalokamHelper {
 
     static getUserOrganisation(authToken = "", keycloakUserId = "") {
         return new Promise(async (resolve, reject) => {

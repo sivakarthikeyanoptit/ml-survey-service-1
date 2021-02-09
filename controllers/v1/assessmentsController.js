@@ -174,7 +174,8 @@ module.exports = class Assessments {
                     {
                         metaInformation: 1,
                         entityTypeId: 1,
-                        entityType: 1
+                        entityType: 1,
+                        registryDetails: 1
                     }
                 ).lean();
 
@@ -184,6 +185,10 @@ module.exports = class Assessments {
                         status: httpStatusCode.bad_request.status, 
                         message: responseMessage 
                     });
+                }
+
+                if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+                    entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
                 }
 
                 let solutionQueryObject = {
@@ -403,10 +408,23 @@ module.exports = class Assessments {
                 submissionDocument.evidences = submissionDocumentEvidences;
                 submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
                 submissionDocument.criteria = submissionDocumentCriterias;
-                
+
                 let submissionNumber = 
                 req.query.submissionNumber ? parseInt(req.query.submissionNumber) : 1;
                 submissionDocument.submissionNumber = submissionNumber;
+                submissionDocument.appInformation = {};
+
+                if( req.headers["x-app-id"] || req.headers.appname ) {
+                    submissionDocument.appInformation["appName"] = 
+                    req.headers["x-app-id"] ? req.headers["x-app-id"] :
+                    req.headers.appname;
+                  } 
+            
+                  if( req.headers["x-app-ver"] || req.headers.appversion ) {
+                    submissionDocument.appInformation["appVersion"] = 
+                    req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+                    req.headers.appversion;
+                  }
 
                 let submissionDoc = await submissionsHelper.findSubmissionByEntityProgram(
                     submissionDocument,

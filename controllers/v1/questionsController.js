@@ -738,4 +738,47 @@ module.exports = class Questions extends Abstract {
     });
   }
 
+    /**
+ * @api {post} /assessment/api/v1/questions/delete/:questionId delete Question
+ * @apiVersion 1.0.0
+ * @apiName delete Question
+ * @apiGroup Questions
+ * @apiHeader {String} internal-access-token Authenticity token
+ * @apiSampleRequest /assessment/api/v1/questions/delete/5da829874c67d63cca1bd9d0
+ * @apiHeader {String} X-authenticated-user-token Authenticity token  
+ * @apiUse successBody
+ * @apiUse errorBody
+ */
+
+  /**
+   * Delete Question.
+   * @method
+   * @name delete
+   * @param {Object} req -request Data.
+   * @param {String} req.params._id- question Id
+   * @returns {JSON} - message and status of question deleted.
+   */
+
+  async delete(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+          let result = await questionsHelper.delete(req.params._id);
+
+          return resolve({
+            message: result.message
+          });
+
+      } catch (error) {
+          return reject({
+              status: error.status || httpStatusCode.internal_server_error.status,
+              message: error.message || httpStatusCode.internal_server_error.message,
+              errorObject: error
+          });
+      }
+
+    });
+  }
+
 };

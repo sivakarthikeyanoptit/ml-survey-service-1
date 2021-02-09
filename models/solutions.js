@@ -66,10 +66,6 @@ module.exports = {
     creator: String,
     linkTitle: String,
     linkUrl: String,
-    link: {
-      type: String,
-      index: true
-    },
     isAPrivateProgram : {
       default : false,
       type : Boolean
@@ -97,6 +93,21 @@ module.exports = {
     projectTemplateId : {
       type : "ObjectId",
       index: true
+    },
+    scope : {
+      entityType : String,
+      entityTypeId : "ObjectId",
+      entities : {
+        type : Array,
+        index : true
+      },
+      roles : [{
+        _id : "ObjectId",
+        code : {
+          type : String,
+          index : true
+        }
+      }]
     }
   }
 };

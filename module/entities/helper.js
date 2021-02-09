@@ -5,10 +5,15 @@
  * Description : All Entities related information.
  */
 
+const { promises } = require("fs");
+const apiResponses = require("../../generics/messageConstants/apiResponses");
+
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
 const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
+const FileStream = require(ROOT_PATH + "/generics/fileStream");
+
 
  /**
     * EntitiesHelper
@@ -50,13 +55,24 @@ module.exports = class EntitiesHelper {
                     if( singleEntity.createdBySolutionId ) {
                         singleEntity.createdBySolutionId = ObjectId(singleEntity.solutionId);
                     }
+                    
+                    let registryDetails = {};
+                    if (singleEntity.locationId) {
+                        registryDetails["locationId"] = singleEntity.locationId;
+                        if(singleEntity.code){
+                            registryDetails["code"] = singleEntity.code  ;
+                        }
+                        
+
+                        registryDetails["lastUpdatedAt"] =  new Date();
+                    }
 
                     let entityDoc = {
                         "entityTypeId": entityTypeDocument._id,
                         "entityType": queryParams.type,
-                        "regsitryDetails": {},
+                        "registryDetails": registryDetails,
                         "groups": {},
-                        "metaInformation": singleEntity,
+                        "metaInformation": _.omit(singleEntity,["locationId","code"]),
                         "updatedBy": userDetails.id,
                         "createdBy": userDetails.id,
                         "userId" : userDetails.id
@@ -371,13 +387,26 @@ module.exports = class EntitiesHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 let entityInformation;
+                let registryDetails = {};
+
+                if (data.locationId) {
+                    registryDetails["locationId"] =  data.locationId;
+
+                    if(data.code){
+                        registryDetails["code"] =  data.code;
+                        delete data.code;
+                    } 
+                    registryDetails["lastUpdatedAt"] =  new Date();
+                    delete data.locationId;
+                    
+                }
 
                 if (entityType == "parent") {
                     entityInformation = await this.parentRegistryUpdate(entityId, data);
                 } else {
                     entityInformation = await database.models.entities.findOneAndUpdate(
                         { _id: ObjectId(entityId) },
-                        { metaInformation: data },
+                        { metaInformation: data, registryDetails : registryDetails },
                         { new: true }
                     ).lean();
                 }
@@ -566,10 +595,21 @@ module.exports = class EntitiesHelper {
                         let entityCreation = {
                             "entityTypeId": entityTypeDocument._id,
                             "entityType": entityType,
-                            "regsitryDetails": {},
+                            "registryDetails": {},
                             "groups": {},
                             "updatedBy": userDetails.id,
                             "createdBy": userDetails.id
+                        }
+
+                        Object.keys(singleEntity).forEach(function(key){
+                            if(key.startsWith('registry-')){
+                                let newKey = key.replace('registry-', '');
+                                entityCreation.registryDetails[newKey] = singleEntity[key];
+                            }
+                        })
+
+                        if(entityCreation.registryDetails && Object.keys(entityCreation.registryDetails).length > 0){
+                            entityCreation.registryDetails["lastUpdatedAt"] =  new Date();
                         }
 
                         if( singleEntity.allowedRoles && singleEntity.allowedRoles.length > 0 ) {
@@ -649,6 +689,18 @@ module.exports = class EntitiesHelper {
                     }
 
                     let updateData = {};
+                    updateData.registryDetails = {};
+
+                    Object.keys(singleEntity).forEach(function(key){
+                        if(key.startsWith('registry-')){
+                            let newKey = key.replace('registry-', '');
+                            updateData["registryDetails"][newKey] = singleEntity[key];
+                        }
+                    })
+
+                    if(updateData.registryDetails && Object.keys(updateData.registryDetails).length > 0){
+                        updateData["registryDetails"]["lastUpdatedAt"] =  new Date();
+                    }
 
                     if( singleEntity.hasOwnProperty("allowedRoles") ) {
 
@@ -1010,7 +1062,7 @@ module.exports = class EntitiesHelper {
                 }
 
                 let entitiesDocuments;
-                
+
                 if( sortedData !== "" ) {
                 entitiesDocuments = await database.models.entities
                     .find(queryObject, projectionObject)
@@ -1026,7 +1078,6 @@ module.exports = class EntitiesHelper {
                     .lean();
                 }
                 
-
                 return resolve(entitiesDocuments);
             } catch (error) {
                 return reject({
@@ -1283,7 +1334,8 @@ module.exports = class EntitiesHelper {
                             "entityTypeId",
                             "updatedAt",
                             "createdAt",
-                            "allowedRoles"
+                            "allowedRoles",
+                            "registryDetails"
                         ]);
 
                     for (let entity = 0; entity < entityDocuments.length; entity++) {
@@ -1297,7 +1349,8 @@ module.exports = class EntitiesHelper {
                             entityType: entityDocument.entityType,
                             entityTypeId: entityDocument.entityTypeId,
                             updatedAt: entityDocument.updatedAt,
-                            createdAt: entityDocument.createdAt
+                            createdAt: entityDocument.createdAt,
+                            registryDetails: entityDocument.registryDetails
                         }
 
                         if( entityDocument.allowedRoles && entityDocument.allowedRoles.length > 0 ) {
@@ -1502,6 +1555,317 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
   })
 }
 
+ /**
+   * Upload registry via csv.
+   * @method
+   * @name registryMappingUpload
+   * @param {Array} registryCSVData
+   * @param {Object} userDetails -logged in user data.
+   * @param {String} entityType - entity Type.   
+   * @returns {Object} consists of SYSTEM_ID
+   */
+
+    static registryMappingUpload(registryCSVData,userId, entityType) {
+
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                const fileName = `Registry-Upload`;
+                let fileStream = new FileStream(fileName);
+                let input = fileStream.initStream();
+
+                (async function () {
+                    await fileStream.getProcessorPromise();
+                    return resolve({
+                      isResponseAStream: true,
+                      fileNameWithPath: fileStream.fileNameWithPath()
+                    });
+                }());
+
+                let entityNames = [],parentLocationIds = [],entityExternalIds = [];
+                let parentEntityInformation = {};
+                let parsedCsvData = [];
+                
+                registryCSVData.forEach(entity => {
+
+                    entity = gen.utils.valueParser(entity);
+                    parsedCsvData.push(entity);
+
+                    if( entityType ===  messageConstants.common.SCHOOL ) {
+                        entityExternalIds.push(entity.entityExternalId);
+                    } else {
+                        let name = entity.entityName.replace(/[*+?^${}|()[\]\\]/g, '\\$&');
+                        entityNames.push(new RegExp("^" + name + "$","i"));
+                    }
+
+                    if( entity.parentLocationId && entity.parentLocationId !== "" ) {
+                        parentLocationIds.push(entity.parentLocationId);
+                    }
+                });
+
+                let filteredQuery = { "entityType": entityType };
+
+                if( entityNames.length > 0 ) {
+                    filteredQuery["metaInformation.name"] = { $in : entityNames };
+                }
+
+                if( entityExternalIds.length > 0 ) {
+                    filteredQuery["metaInformation.externalId"] = { $in : entityExternalIds };
+                }
+
+                if( parentLocationIds && parentLocationIds.length > 0 ) {
+
+                    let parenEntities = 
+                    await this.entityDocuments({
+                        "registryDetails.locationId" : { $in : parentLocationIds }
+                    },["registryDetails.locationId"]);
+
+                    parentEntityInformation = 
+                    _.keyBy(
+                        parenEntities,
+                        "registryDetails.locationId"
+                    );
+                }
+
+                let entities = 
+                await this.entityDocuments(filteredQuery,[
+                    "_id",
+                    "metaInformation.name",
+                    "metaInformation.externalId"
+                ]);
+
+                if( !entities.length > 0 ) {
+                    throw { 
+                        message : messageConstants.apiResponses.ENTITY_NOT_FOUND
+                    }
+                }
+
+                let entityInformation = {};
+                 
+                if( entityType == messageConstants.common.SCHOOL ) {
+                    entityInformation = _.keyBy(entities,"metaInformation.externalId");
+                } else{
+                    
+                    entities.forEach(entity => {
+                        entityInformation[entity.metaInformation.name.toLowerCase()] = entity;
+                    });
+                }
+
+                for( let pointerToRegistry = 0;
+                    pointerToRegistry < registryCSVData.length; 
+                    pointerToRegistry ++ 
+                ) {
+                    
+                    let singleCsvData = registryCSVData[pointerToRegistry];
+                    let parsedData = gen.utils.valueParser(singleCsvData);
+                    let entityId = "";
+
+                    if( entityType == messageConstants.common.SCHOOL ) {
+                        
+                        if( !entityInformation[parsedData.entityExternalId] ) {
+                            singleCsvData["_SYSTEM_ID"] = ""; 
+                            singleCsvData["STATUS"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            input.push(singleCsvData);
+                            continue;
+                        }
+
+                        entityId = entityInformation[parsedData.entityExternalId]._id;
+
+                    } else {
+
+                        if( !entityInformation[parsedData.entityName.toLowerCase()] ) {
+                            singleCsvData["_SYSTEM_ID"] = ""; 
+                            singleCsvData["STATUS"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            input.push(singleCsvData);
+                            continue;
+                        }
+
+                        entityId = entityInformation[parsedData.entityName.toLowerCase()]._id;
+
+                    }
+
+                    if( 
+                        parsedData.parentLocationId && 
+                        parsedData.parentLocationId !== "" 
+                    ) {
+
+                        if( !parentEntityInformation[parsedData.parentLocationId] ) {
+
+                            singleCsvData["_SYSTEM_ID"] = ""; 
+                            singleCsvData["STATUS"] = 
+                            messageConstants.apiResponses.INVALID_PARENT_ENTITY;
+                            input.push(singleCsvData);
+                            continue;  
+                        }
+
+                        let entityInParent = await this.entityDocuments({
+                            "_id" : parentEntityInformation[parsedData.parentLocationId]._id,
+                            [`groups.${entityType}`] : entityId
+                        },["_id"]);
+
+                        if( !entityInParent.length > 0 ) {
+                            singleCsvData["_SYSTEM_ID"] = ""; 
+                            singleCsvData["STATUS"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND_IN_PARENT_ENTITY_GROUP;
+                            input.push(singleCsvData);
+                            continue; 
+                        }
+                    }
+
+                    let entityUpdated = 
+                    await database.models.entities.findOneAndUpdate(
+                        { _id : entityId }, { $set: {
+                            "registryDetails.locationId": parsedData.locationId,
+                            "registryDetails.code": parsedData.entityExternalId,
+                            "registryDetails.lastUpdatedAt": new Date(),
+                            updatedBy: userId
+                        }}, {_id : 1 }
+                    );
+
+                    if( !entityUpdated._id ) {
+                        singleCsvData["_SYSTEM_ID"] = ""; 
+                        singleCsvData["STATUS"] = 
+                        messageConstants.apiResponses.ENTITY_NOT_UPDATED;
+                        input.push(singleCsvData);
+                        continue;
+                    }
+
+                    singleCsvData["_SYSTEM_ID"] = entityUpdated._id;
+                    singleCsvData["STATUS"] = messageConstants.common.SUCCESS;
+                    this.pushEntitiesToElasticSearch([entityUpdated._id]);
+                    input.push(singleCsvData);
+                }
+
+                if( Object.keys(parentEntityInformation).length > 0 ) {
+                    
+                    let entityTypeInGroups = `groups.${entityType}`;
+                    let parentEntities = await this.entityDocuments({
+                        "registryDetails.locationId" : { $in : Object.keys(parentEntityInformation) },
+                        groups : { $exists : true }
+                    },[entityTypeInGroups,"registryDetails.locationId"]);
+
+                    if( parentEntities.length > 0 ) {
+
+                        for( 
+                            let parentEntity = 0; 
+                            parentEntity < parentEntities.length;
+                            parentEntity ++
+                        ) {
+                            let parentLocationId = parentEntities[parentEntity].registryDetails.locationId;
+                            let parentEntityGroups = parentEntities[parentEntity].groups;
+                            let entityIds = parentEntityGroups[entityType];
+                            
+                            let childsWithNolocation = 
+                            await this.entityDocuments({
+                                _id : { $in : entityIds },
+                                "registryDetails.locationId" : { $exists : false }
+                            },["metaInformation.externalId","metaInformation.name"]);
+
+                            if( childsWithNolocation.length > 0 ) {
+                                childsWithNolocation.forEach(entity => {
+                                    
+                                    let singleCsv = {
+                                        locationId : "",
+                                        entityExternalId : entity.metaInformation.externalId,
+                                        entityName : entity.metaInformation.name,
+                                        parentLocationId : parentLocationId,
+                                        _SYSTEM_ID : entity._id.toString(),
+                                        STATUS : messageConstants.apiResponses.REGISRY_NEED_TO_BE_ADD
+                                    }
+
+                                    input.push(singleCsv);
+                                })
+                            }
+                        }
+                    }
+
+                }
+
+                input.push(null);
+            
+            } catch (error) {
+                return reject(error);
+            }
+        })
+
+    }
+
+    /**
+   * update registry in entities.
+   * @method
+   * @name updateRegistry
+   * @param {Object} filteredQuery - filteredQuery
+   * @param {String} userId - userId
+   * @param {Object} registryDetails - registryDetails
+   * @returns {Object} entity Document
+   */
+
+  static updateRegistry(filteredQuery, registryDetails, userId) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let updateEntityDocument = 
+                        await database.models.entities.findOneAndUpdate(filteredQuery, {
+                            $set: {
+                                "registryDetails.locationId": registryDetails.locationId,
+                                "registryDetails.code": registryDetails.code,
+                                "registryDetails.lastUpdatedAt": registryDetails.lastUpdatedAt,
+                                updatedBy: userId
+                            }
+                        }, {
+                        projection : {
+                          _id : 1
+                        }
+                    });
+
+            return resolve(updateEntityDocument);
+
+        } catch(error) {
+            return reject(error);
+        }
+    })
+  }
+
+  /**
+   * update registry in entities.
+   * @method
+   * @name listByLocationIds
+   * @param {Object} locationIds - locationIds
+   * @returns {Object} entity Document
+   */
+
+  static listByLocationIds(locationIds) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let entities = 
+            await this.entityDocuments({
+                "registryDetails.locationId" : { $in : locationIds }
+            },["metaInformation", "entityType", "entityTypeId","registryDetails"]);
+
+            if( !entities.length > 0 ) {
+                throw {
+                    message : messageConstants.apiResponses.ENTITIES_FETCHED
+                }
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.ENTITY_FETCHED,
+                data : entities
+            });
+
+        } catch(error) {
+            return resolve({
+                success : false,
+                message : error.message
+            });
+        }
+    })
+  }
+
 };
 
 
@@ -1576,5 +1940,6 @@ function addTagsInEntities(entityMetaInformation) {
         }
     })
   }
+
 
 

@@ -67,8 +67,10 @@ module.exports = class Entities extends Abstract {
         "A1", 
         "A2", 
         "A3"
-    ]}
-	 	]
+    ],
+    "locationId": "123e4567-e89b-12d3-a456-426614174001",
+    "code" : "Test"
+  }]
   *}
   * @apiUse successBody
   * @apiUse errorBody
@@ -119,6 +121,9 @@ module.exports = class Entities extends Abstract {
                 ],
                 "createdByProgramId": "5d8f36c430c4af40b646c4ba",
                 "createdBySolutionId": "5d8f36c430c4af40b646c4bb"
+            },
+            "registryDetails" : {
+              "_id" : "123e4567-e89b-12d3-a456-426614174001"
             },
             "updatedBy": "e97b5582-471c-4649-8401-3cc4249359bb",
             "createdBy": "e97b5582-471c-4649-8401-3cc4249359bb",
@@ -378,7 +383,8 @@ module.exports = class Entities extends Abstract {
   *    		  "programId": "",
   *    		  "callResponse":"",
   *         "createdByProgramId" : "5b98d7b6d4f87f317ff615ee",
-  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a"
+  *         "parentEntityId" : "5bfe53ea1d0c350d61b78d0a",
+  *         "locationId": "123e4567-e89b-12d3-a456-426614174001"
   *   }
   * @apiUse successBody
   * @apiUse errorBody
@@ -795,7 +801,8 @@ module.exports = class Entities extends Abstract {
 
         let projection = [
           schemaMetaInformation+".externalId",
-          schemaMetaInformation+".name"
+          schemaMetaInformation+".name",
+          "registryDetails.locationId"
         ];
         
         let skippingValue = req.pageSize * (req.pageNo - 1);
@@ -822,6 +829,7 @@ module.exports = class Entities extends Abstract {
           return {
             externalId : entityDocument.metaInformation.externalId,
             name : entityDocument.metaInformation.name,
+            locationId : entityDocument.registryDetails.locationId,
             _id : entityDocument._id
           }
         })
@@ -904,6 +912,153 @@ module.exports = class Entities extends Abstract {
           message: error.message || httpStatusCode.internal_server_error.message,
           errorObject: error
         })
+
+      }
+
+
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/entities/registryMappingUpload?entityType=entityType Bulk Upload Registry
+  * @apiVersion 1.0.0
+  * @apiName Bulk Upload Registry CSV
+  * @apiGroup Entities
+  * @apiSampleRequest /assessment/api/v1/entities/registryMappingUpload?entityType=state
+  * @apiParam {File} registry Mandatory registry file of type CSV.
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+     /**
+   * Bulk upload registry.
+   * @method
+   * @name registryMappingUpload
+   * @param {Object} req - requested data.
+   * @param {Object} req.files.registry - registry data.         
+   * @param {String} req.query.entityType - entity Type.         
+   * @returns {CSV} - A CSV with name Registry-Upload is saved inside the folder
+   */
+
+  registryMappingUpload(req) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        req.setTimeout(1200000);
+
+        if (!req.files || !req.files.registry) {
+          throw messageConstants.apiResponses.REGISTRY_FILE_NOT_FOUND;
+        }
+
+        let registryCSVData = await csv().fromString(req.files.registry.data.toString());
+
+        if (!registryCSVData || registryCSVData.length < 1) {
+          throw messageConstants.apiResponses.FILE_DATA_MISSING;
+        }
+
+        let newRegistryData = 
+        await entitiesHelper.registryMappingUpload(
+          registryCSVData, 
+          req.userDetails.userId, 
+          req.query.entityType
+        );
+      
+        return resolve(newRegistryData);
+
+      } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          })
+
+      }
+
+
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/entities/listByLocationIds Entities list by location ids.
+  * @apiVersion 1.0.0
+  * @apiName Entities list by location ids.
+  * @apiGroup Entities
+  * @param {json} Request-Body:
+  * {
+  *   "locationIds" : [
+  *     "236f5cff-c9af-4366-b0b6-253a1789766a",
+  *     "1dcbc362-ec4c-4559-9081-e0c2864c2931"
+  *   ]
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entities fetched successfull",
+    "status": 200,
+    "result": [
+        {
+            "_id": "5db173598a8e070bedca6ba1",
+            "entityTypeId": "5d7a290e6371783ceb11064c",
+            "entityType": "state",
+            "metaInformation": {
+                "externalId": "DL",
+                "name": "Delhi",
+                "region": "NORTH",
+                "capital": "NEW DELHI"
+            },
+            "registryDetails": {
+                "locationId": "236f5cff-c9af-4366-b0b6-253a1789766a"
+            }
+        },
+        {
+            "_id": "5db1738b8a8e070bedca6bae",
+            "entityTypeId": "5d15a959e9185967a6d5e8ac",
+            "entityType": "district",
+            "metaInformation": {
+                "externalId": "DL-West A",
+                "Dist name": "West A",
+                "region": "West A",
+                "districtId": "",
+                "state": "Delhi"
+            },
+            "registryDetails": {
+                "locationId": "1dcbc362-ec4c-4559-9081-e0c2864c2931"
+            }
+        }
+    ]
+  }
+  */
+
+     /**
+   * List of entities by location ids.
+   * @method
+   * @name listByLocationIds
+   * @param {Object} req - requested data.
+   * @param {Object} req.body.locationIds - registry data.         
+   * @returns {Object} - 
+   */
+
+  listByLocationIds(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let entitiesData = 
+        await entitiesHelper.listByLocationIds(
+          req.body.locationIds
+        );
+
+        entitiesData.result = entitiesData.data;
+
+        return resolve(entitiesData);
+        
+      } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          })
 
       }
 
