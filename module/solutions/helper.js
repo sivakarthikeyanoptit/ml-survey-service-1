@@ -815,6 +815,22 @@ module.exports = class SolutionsHelper {
               matchQuery["$match"]["subType"] = type;
             }
 
+            if( 
+              process.env.USE_USER_ORGANISATION_ID_FILTER && 
+              process.env.USE_USER_ORGANISATION_ID_FILTER === "ON" 
+            ) {
+
+              let organisationAndRootOrganisation = 
+              await shikshalokamHelper.getUserOrganisation(
+                token,
+                userId
+              );
+
+              matchQuery["$match"]["createdFor"] = {
+                $in : organisationAndRootOrganisation.createdFor
+              }
+            }
+
             matchQuery["$match"]["$or"] = [
               { 
                 "name": new RegExp(searchText, 'i') 

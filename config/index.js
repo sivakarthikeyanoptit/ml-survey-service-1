@@ -118,9 +118,7 @@ db_connect(configuration);
 
 kafka_connect(configuration);
 
-// Commented out temporarily
-
-// cassandra_connect(configuration.DB_Config.connection.cassandra);
+cassandra_connect(configuration.DB_Config.connection.cassandra);
 
 elasticsearch_connect(configuration.DB_Config.connection.elasticSearch);
 
