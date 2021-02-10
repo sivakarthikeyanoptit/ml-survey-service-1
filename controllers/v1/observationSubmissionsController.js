@@ -113,7 +113,8 @@ module.exports = class ObservationSubmissions extends Abstract {
         }, [
           "metaInformation",
           "entityTypeId",
-          "entityType"
+          "entityType",
+          "registryDetails"
         ]);
 
         if (!entityDocument[0]) {
@@ -124,6 +125,10 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
         
         entityDocument = entityDocument[0];
+
+        if (entityDocument.registryDetails && Object.keys(entityDocument.registryDetails).length > 0) {
+          entityDocument.metaInformation.registryDetails = entityDocument.registryDetails;
+        }
 
         let solutionDocument = await solutionsHelper.solutionDocuments({
           _id: observationDocument.solutionId,
@@ -266,6 +271,19 @@ module.exports = class ObservationSubmissions extends Abstract {
       submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
       submissionDocument.criteria = submissionDocumentCriterias;
       submissionDocument.submissionNumber = lastSubmissionNumber;
+      submissionDocument.appInformation = {};
+
+      if( req.headers["x-app-id"] || req.headers.appname ) {
+        submissionDocument.appInformation["appName"] = 
+        req.headers["x-app-id"] ? req.headers["x-app-id"] :
+        req.headers.appname;
+      } 
+
+      if( req.headers["x-app-ver"] || req.headers.appversion ) {
+        submissionDocument.appInformation["appVersion"] = 
+        req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+        req.headers.appversion;
+      }
 
       let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
 
@@ -1239,6 +1257,52 @@ module.exports = class ObservationSubmissions extends Abstract {
           (
             req.params._id
           );
+
+        return resolve({
+           message: submissionDocument.message,
+           result: submissionDocument.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+  /**
+  * @api {post} /assessment/api/v1/observationSubmissions/disable/:solutionId
+  * @apiVersion 1.0.0
+  * @apiName Disable Observation Submission Based on Solution Id 
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/disable/5d1a002d2dfd8135bc8e1615
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Observation submission disabled successfuly",
+    "status": 200,
+    "result": false
+  }
+
+  */
+   /**
+   * Disable Observation Submission Based on Solution Id
+   * @method
+   * @name disable
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution id. 
+   * @returns {JSON} consists of ids of the observation submission disabled.
+   */
+  async disable(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let submissionDocument =
+         await observationSubmissionsHelper.disable(req.params._id);
 
         return resolve({
            message: submissionDocument.message,

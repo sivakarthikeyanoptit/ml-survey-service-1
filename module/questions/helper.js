@@ -962,4 +962,83 @@ module.exports = class QuestionsHelper {
     })
   }
 
+   /**
+     * Delete Question.
+     * @method
+     * @name delete
+     * @param {String} questionId - question Id 
+     * @returns {String} - message.
+     */
+
+    static delete(questionId= "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if(questionId == ""){
+                    throw new Error(messageConstants.apiResponses.QUESTION_ID_REQUIRED_CHECK)
+                }
+
+                let criteriaQuestionDocument = await database.models.criteriaQuestions.find(
+                    {
+                        "evidences.sections.questions._id": ObjectId(questionId)
+                    }
+                    ,{ _id: 1, "evidences": 1}).lean();
+
+                if(criteriaQuestionDocument && criteriaQuestionDocument.length > 0){
+
+                  for(let pointerToCriteriaQuestion = 0; pointerToCriteriaQuestion <criteriaQuestionDocument.length; pointerToCriteriaQuestion++){
+                    let newEvidences = criteriaQuestionDocument[pointerToCriteriaQuestion].evidences; 
+
+                    if(newEvidences && newEvidences.length > 0){
+
+                      newEvidences.forEach(evidenceMethod => {
+                        Object.keys(evidenceMethod.sections).forEach(function(key) {
+
+                          let updatedEvidenceMethod = evidenceMethod.sections[key].questions.filter(eachQuestion => 
+                              eachQuestion._id != questionId.toString()
+                          );
+                            
+                          evidenceMethod.sections[key].questions = updatedEvidenceMethod;
+
+                        });
+
+                      });
+
+                      let filterQuery = {
+                        _id : criteriaQuestionDocument[pointerToCriteriaQuestion]._id
+                      }
+
+                      let criteriaQuestionUpdatedDocument = await database.models.criteriaQuestions.update(
+                       filterQuery,
+                       {
+                          $set : { evidences: newEvidences}
+                       },{ upsert: true });
+                    }
+                 
+                  }
+
+                }
+
+                let questionDocument = await database.models.questions.remove({'_id': ObjectId(questionId) });
+
+                if(!questionDocument || !questionDocument.deletedCount){
+                  throw new Error(messageConstants.apiResponses.QUESTION_COULD_NOT_BE_DELETED)
+                }
+
+                return resolve({
+                  success: true,
+                  message: messageConstants.apiResponses.QUESTION_DELETED,
+                  data: false
+                });
+
+            } catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                });
+            }
+        });
+    }
+
 };

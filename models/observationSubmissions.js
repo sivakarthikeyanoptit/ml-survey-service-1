@@ -52,6 +52,7 @@ module.exports = {
     scoringSystem: String,
     isRubricDriven: { type : Boolean, default: false },
     project : Object,
-    referenceFrom : String
+    referenceFrom : String,
+    appInformation : Object
   }
 };
