@@ -44,5 +44,10 @@ module.exports = {
     SUBMISSIONS: "submissions",
     VERSION_1 : "v1",
     VERSION_2 : "v2",
-    PROJECT : "project"
+    PROJECT : "project",
+    IMPROVEMENT_PROJECT : "improvementProject",
+    SCHOOL : "school",
+    DEFAULT_PAGE_NO : 1,
+    DEFAULT_PAGE_SIZE : 100,
+    SUCCESS : "success"
 }

@@ -963,16 +963,24 @@ module.exports = class Solutions extends Abstract {
       try {
 
         let findQuery = {
-          _id: req.params._id,
           status : "active",
           isDeleted : false,
           type:{
             $in: [
               "assessment",
-              "observation"
+              "observation",
+              "survey"
             ]
           }
         };
+
+        let validateSolutionId = gen.utils.isValidMongoId(req.params._id);
+
+        if( validateSolutionId ) {
+          findQuery["_id"] = req.params._id;
+        } else {
+          findQuery["externalId"] = req.params._id;
+        }
 
         let projectionFields = [
           "name",
@@ -1169,11 +1177,7 @@ module.exports = class Solutions extends Abstract {
           req.query.solutionId,
           req.body.programExternalId,
           req.userDetails.id,
-          {
-            externalId : req.body.externalId,
-            name : req.body.name,
-            description : req.body.description
-          }
+          _.omit(req.body,["programExternalId"])
         );
 
         return resolve({
@@ -1469,10 +1473,17 @@ module.exports = class Solutions extends Abstract {
     }
 
     /**
-    * @api {get} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
+    * @api {post} /assessment/api/v1/solutions/verifyLink/{{link}} Verify Observation Link And get details
     * @apiVersion 1.0.0
     * @apiName Verify Observation Solution Link
     * @apiGroup Solutions
+     * @apiParamExample {json} Request-Body:
+    * {
+        "role" : "HM",
+   		  "state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+      }
     * @apiHeader {String} X-authenticated-user-token Authenticity token
     * @apiParam {String} link Observation Solution Link.
     * @apiSampleRequest /assessment/api/v1/solutions/verifyLink/38cd93bdb87489c3890fe0ab00e7d406
@@ -1531,7 +1542,8 @@ module.exports = class Solutions extends Abstract {
                 let result = await observationsHelper.verifyLink(
                     req.params._id,
                     req.rspObj.userToken,
-                    req.userDetails.userId
+                    req.userDetails.userId,
+                    req.body
                 );
 
                 return (resolve(result))
