@@ -37,6 +37,9 @@ module.exports = (req) => {
             req.checkBody("solutionIds").exists().withMessage("Required solution external ids")
             .isArray().withMessage("solutionIds should be array")
             .notEmpty().withMessage("solutionIds cannot be empty");
+        },
+        targetedSolutionDetails : function () {
+            req.checkParams("_id").exists().withMessage("Required solution id");
         }
     }
 

@@ -200,16 +200,25 @@ module.exports = class criteriaHelper {
 
         if ( improvementProjectIds.length > 0 ) {
           
-          let improvementProjects = await improvementProjectService.getImprovementProjects(
+          let improvementProjects = await improvementProjectService.templateLists(
             improvementProjectIds,
             token
           );
 
           if( improvementProjects.result && improvementProjects.result.length > 0 ) {
-          
-            let improvements = improvementProjects.result.reduce((ac, improvementProject) => ({
-              ...ac, [improvementProject.externalId]: improvementProject
-            }), {});
+
+            let improvements = {};
+
+            improvementProjects.result.forEach( improvement => {
+              if( !improvements[improvement.externalId] ) {
+                improvements[improvement.externalId] = {
+                  _id : ObjectId(improvement._id),
+                  title : improvement.title,
+                  goal : improvement.goal,
+                  externalId : improvement.externalId
+                }
+              }
+            })
   
             Object.keys(improvementObj).forEach(improvement=>{
             

@@ -6,6 +6,9 @@ module.exports = (req) => {
         },
         update: function () {
             req.checkQuery('frameworkExternalId').exists().withMessage("required framework externalId");
+        },
+        delete: function () {
+            req.checkParams('_id').exists().withMessage("required framework externalId");
         }
     }
 

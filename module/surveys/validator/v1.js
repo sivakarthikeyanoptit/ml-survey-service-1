@@ -25,6 +25,9 @@ module.exports = (req) => {
         details: function () {
             req.checkParams('_id').exists().withMessage("required survey id")
             .isMongoId().withMessage("Invalid survey id");
+        },
+        getSurvey : function () {
+            req.checkBody('role').exists().withMessage("required user role");
         }
     }
 
