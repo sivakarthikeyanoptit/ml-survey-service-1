@@ -829,7 +829,7 @@ module.exports = class Entities extends Abstract {
           return {
             externalId : entityDocument.metaInformation.externalId,
             name : entityDocument.metaInformation.name,
-            locationId : entityDocument.registryDetails.locationId,
+            locationId : (entityDocument.registryDetails && entityDocument.registryDetails.locationId) ? entityDocument.registryDetails.locationId : "",
             _id : entityDocument._id
           }
         })
