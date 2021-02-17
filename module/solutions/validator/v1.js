@@ -40,7 +40,13 @@ module.exports = (req) => {
         },
         targetedSolutionDetails : function () {
             req.checkParams("_id").exists().withMessage("Required solution id");
-        }
+        },
+        deleteCriteria: function () {
+            req.checkParams("_id").exists().withMessage("Required solution externalId");
+            req.checkBody("criteriaIds").exists().withMessage("Required criteria Ids data")
+            .isArray().withMessage("criteriaIds should be array")
+            .notEmpty().withMessage("criteriaIds cannot be empty")
+        },
     }
 
     if (solutionValidator[req.params.method]) solutionValidator[req.params.method]();
