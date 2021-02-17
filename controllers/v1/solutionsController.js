@@ -1764,5 +1764,51 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
+
+  /**
+  * @api {post} /assessment/api/v1/solutions/deleteCriteria/{solutionsExternalID} Delete Criteria From Solution
+  * @apiVersion 1.0.0
+  * @apiName Delete Criteria From Solution
+  * @apiGroup Solutions
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/deleteCriteria/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+    /**
+   * Delete Criteria From Solution.
+   * @method
+   * @name deleteCriteria
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   * @param {CSV} req.files.themes - criteria to be deleted from solution.
+   * csv consists of ### seperated data for theme,aoi,indicators field.
+   * ex: Theme1###T1###10(nameOfTheme###externalIdOfTheme###weightageOfTheme)
+   * @returns {CSV}
+   */
+
+  async deleteCriteria(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let headerSequence;
+        let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
+
+        let solutionThemes = await solutionsHelper.deleteCriteria(req.params._id, themes, headerSequence);
+
+        return resolve(solutionThemes);
+
+      }
+      catch (error) {
+        reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+      }
+    })
+  }
   
 };

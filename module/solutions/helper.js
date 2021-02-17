@@ -1882,6 +1882,179 @@ module.exports = class SolutionsHelper {
       }
 
     })
-  } 
+  }
+
+  /**
+   * Delete Criteria From Solution
+   * @method
+   * @name deleteCriteria
+   * @param {String} solutionExternalId - solution ExternalId.
+   * @param {Array} themes - themes.
+   * @param {Object} headerSequence - headerSequence. 
+   * @returns {CSV} 
+   */
+
+  static deleteCriteria(solutionExternalId, themes, headerSequence) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+          let solutionDocument = await this.solutionDocuments({ externalId : solutionExternalId },["_id","themes"]);
+          if( !solutionDocument.length > 0 ) {
+            return resolve({
+              status : httpStatusCode.bad_request.status,
+              message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+            });
+          }
+
+          let themeDataExistCheck = solutionDocument[0].themes;
+          if(!themeDataExistCheck.length > 0){
+            return resolve({
+              status : httpStatusCode.bad_request.status,
+              message : messageConstants.apiResponses.THEMES_NOT_FOUND
+            });
+          }
+
+          const fileName = `Solution-Criteria-Result`;
+          let fileStream = new FileStream(fileName);
+          let input = fileStream.initStream();
+
+          (async function () {
+            await fileStream.getProcessorPromise();
+            return resolve({
+              isResponseAStream: true,
+              fileNameWithPath: fileStream.fileNameWithPath()
+            });
+          })();
+
+          let themeModified,themeTobeUpdated;
+
+          for (let pointerToTheme = 0; pointerToTheme < themes.length; pointerToTheme++) {
+
+            let solutionDoc = await this.solutionDocuments({ externalId : solutionExternalId },["_id","themes"]);
+            let themeData = solutionDocument[0].themes;
+            let result = {};
+            let csvObject = {};
+
+            csvObject = { ...themes[pointerToTheme] };
+            csvObject["status"] = "";
+            let themesKey = Object.keys(themes[pointerToTheme]);
+
+            themesKey.forEach(themeKey => {
+
+              let themesSplittedArray = [];
+
+              if (themes[pointerToTheme][themeKey] !== "") {
+                themesSplittedArray = themes[pointerToTheme][themeKey].split("###");
+                if(themeKey == "theme"){
+                  result['name'] = themesSplittedArray[0];
+                }
+              }
+
+              if(themeKey == "criteriaInternalId"){
+                if(themes[pointerToTheme][themeKey] !== ""){
+                  result['criteriaId'] = themesSplittedArray[0];
+                }else{
+                  csvObject["status"] = messageConstants.apiResponses.CRITERIA_ID_MISSING;
+                }
+              }
+             
+            })
+
+            if(Object.keys(result).length > 0){
+
+              themeTobeUpdated  = themeData.filter(eachTheme => 
+                      eachTheme.name == result.name
+                    );
+              
+              themeModified = themeData.filter(eachTheme => 
+                    eachTheme.name != result.name
+                  );
+
+              if(themeTobeUpdated && themeTobeUpdated.length > 0){
+
+                let criteriaData = themeTobeUpdated[0].criteria;
+                if(criteriaData && criteriaData != undefined){
+
+                  let criteriaTobeUpdated  = criteriaData.filter(eachCriteria => 
+                    eachCriteria.criteriaId != result.criteriaId
+                  );
+
+                  themeTobeUpdated[0].criteria = criteriaTobeUpdated;
+                  csvObject["status"] = messageConstants.apiResponses.CRITERIA_REMOVED;
+                  themeModified.push(themeTobeUpdated[0]);
+
+                }else{
+                  csvObject["status"] = messageConstants.apiResponses.CRITERIA_NOT_FOUND;
+                }
+
+                let childrenData = themeTobeUpdated[0].children;
+
+                if(childrenData && childrenData != undefined){
+
+                  childrenData.forEach(childKey => {
+
+                    let childCriteria = childKey.criteria;
+                    let childData = childKey.children;
+
+                    if(childCriteria &&  childCriteria != undefined){
+
+                      let criteriaTobeUpdated  = childCriteria.filter(eachCriteria => 
+                        eachCriteria.criteriaId != result.criteriaId
+                      );
+
+                      childKey.criteria = criteriaTobeUpdated;
+                      csvObject["status"] = messageConstants.apiResponses.CRITERIA_REMOVED;
+                      
+                    }else{
+                      csvObject["status"] = messageConstants.apiResponses.CRITERIA_NOT_FOUND;
+                    }
+
+                    if(childData && childData != undefined){
+                        
+                      childData.forEach(nestedKey => {
+                        let nestedCriteria = nestedKey.criteria;
+
+                        if(nestedCriteria){
+                          let nestedCriteriaTobeUpdated  = nestedCriteria.filter(nested => 
+                            nested.criteriaId != result.criteriaId
+                          );
+
+                          nestedKey.criteria = nestedCriteriaTobeUpdated;
+                          csvObject["status"] = messageConstants.apiResponses.CRITERIA_REMOVED;
+                          
+                        }else{
+                          csvObject["status"] = messageConstants.apiResponses.CRITERIA_NOT_FOUND;
+                        }
+
+                      })
+                    }
+
+                  })
+
+                  themeModified.push(themeTobeUpdated[0]);
+                
+                }
+              
+              }
+
+              let solutionUpdated = await this.updateSolutionDocument
+                  (
+                    { externalId: solutionExternalId },
+                    { $set: { themes: themeModified } }
+                  )
+              
+            }  
+          
+            input.push(csvObject);    
+
+          }
+
+          input.push(null);
+        
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }  
 
 };

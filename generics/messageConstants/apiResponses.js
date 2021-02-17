@@ -350,5 +350,8 @@ module.exports = {
     "INVALID_PARENT_ENTITY" : "Parent entity is invalid",
     "ENTITY_NOT_UPDATED" : "Could not updated entity",
     "CREATOR_CAN_NOT_SUBMIT_SURVEY" : "You are survey creator, you can not submit the survey",
-    "APP_INFORMATION_ADDED" : "App information added successfully in submission"
+    "APP_INFORMATION_ADDED" : "App information added successfully in submission",
+    "CRITERIA_ID_MISSING": "Criteria id required",
+    "CRITERIA_REMOVED": "Criteria removed successfully",
+    "THEMES_NOT_FOUND":"Themes Not Found"
 }
