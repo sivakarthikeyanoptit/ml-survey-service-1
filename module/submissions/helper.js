@@ -1892,5 +1892,50 @@ module.exports = class SubmissionsHelper {
     })
   }
 
+   /**
+   * Add app information in submissions
+   * @method
+   * @name addAppInformation
+   * @param {String} submissionId - submission id.
+   * @param {Object} appInformation - App information
+   * @param {String} modelName - submission model
+   * @returns {JSON} Updated appInformation message
+   */
+
+  static addAppInformation( submissionId,appInformation,modelName ) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let appDetails = {};
+
+            if( appInformation.appName) {
+                appDetails["appName"] = appInformation.appName;
+            }
+
+            if( appInformation.appVersion ) {
+                appDetails["appVersion"] = appInformation.appVersion;
+            }
+
+            if( Object.keys(appDetails).length > 0 ) {
+
+                await database.models[modelName].findOneAndUpdate(
+                    {
+                        _id : submissionId
+                    },
+                    {
+                        $set : { appInformation : appDetails }
+                    }
+                );
+            }
+            return resolve({
+                message : messageConstants.apiResponses.APP_INFORMATION_ADDED
+            });
+
+        } catch (error) {
+            return reject(error);
+        }
+    })
+  }
+
 };
 

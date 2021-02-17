@@ -349,5 +349,6 @@ module.exports = {
     "SOLUTION_DETAILS_NOT_FOUND" : "Could not found solution details",
     "INVALID_PARENT_ENTITY" : "Parent entity is invalid",
     "ENTITY_NOT_UPDATED" : "Could not updated entity",
-    "CREATOR_CAN_NOT_SUBMIT_SURVEY" : "You are survey creator, you can not submit the survey"
+    "CREATOR_CAN_NOT_SUBMIT_SURVEY" : "You are survey creator, you can not submit the survey",
+    "APP_INFORMATION_ADDED" : "App information added successfully in submission"
 }

@@ -271,19 +271,6 @@ module.exports = class ObservationSubmissions extends Abstract {
       submissionDocument.evidencesStatus = Object.values(submissionDocumentEvidences);
       submissionDocument.criteria = submissionDocumentCriterias;
       submissionDocument.submissionNumber = lastSubmissionNumber;
-      submissionDocument.appInformation = {};
-
-      if( req.headers["x-app-id"] || req.headers.appname ) {
-        submissionDocument.appInformation["appName"] = 
-        req.headers["x-app-id"] ? req.headers["x-app-id"] :
-        req.headers.appname;
-      } 
-
-      if( req.headers["x-app-ver"] || req.headers.appversion ) {
-        submissionDocument.appInformation["appVersion"] = 
-        req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
-        req.headers.appversion;
-      }
 
       let newObservationSubmissionDocument = await database.models.observationSubmissions.create(submissionDocument);
 
@@ -518,6 +505,28 @@ module.exports = class ObservationSubmissions extends Abstract {
           await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
         } else if(response.result.status && response.result.status === "ratingPending") {
           await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+        }
+
+        let appInformation = {};
+
+        if( req.headers["x-app-id"] || req.headers.appname ) {
+          appInformation["appName"] = 
+          req.headers["x-app-id"] ? req.headers["x-app-id"] :
+          req.headers.appname;
+        } 
+
+        if( req.headers["x-app-ver"] || req.headers.appversion ) {
+          appInformation["appVersion"] = 
+          req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+          req.headers.appversion;
+        }
+
+        if( Object.keys(appInformation).length > 0 ) {
+          await submissionsHelper.addAppInformation(
+            req.params._id,
+            appInformation,
+            "observationSubmissions"
+          );
         }
 
         return resolve(response);
