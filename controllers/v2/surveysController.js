@@ -226,12 +226,7 @@ module.exports = class Surveys extends v1Survey{
                 surveyId,
                 req.query.solutionId,
                 req.userDetails.userId,
-                req.rspObj.userToken,
-                req.headers["x-app-id"]  ? 
-                req.headers["x-app-id"]  : 
-                req.headers.appname ? req.headers.appname : "",
-                req.headers["x-app-ver"] ? 
-                req.headers["x-app-ver"] : req.headers.appversion ? req.headers.appversion : ""
+                req.rspObj.userToken
             );
 
             return resolve({

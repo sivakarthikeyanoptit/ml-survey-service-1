@@ -818,12 +818,7 @@ module.exports = class Surveys extends Abstract {
             (
                 req.params._id,
                 req.userDetails.userId,
-                validateSurvey.data.submissionId,
-                req.headers["x-app-id"]  ? 
-                req.headers["x-app-id"]  : 
-                req.headers.appname ? req.headers.appname : "",
-                req.headers["x-app-ver"] ? 
-                req.headers["x-app-ver"] : req.headers.appversion ? req.headers.appversion : ""
+                validateSurvey.data.submissionId
             );
 
             return resolve({
