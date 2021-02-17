@@ -1773,6 +1773,10 @@ module.exports = class Solutions extends Abstract {
   * @apiParam {File} themes Mandatory file upload with themes data.
   * @apiSampleRequest /assessment/api/v1/solutions/deleteCriteria/EF-DCPCR-2018-001 
   * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiParamExample {json} Request-Body:
+  * {
+  *     "criteriaIds": ["5beaa888af0065f0e0a10515",5be15cc849e0121f01b21805]
+  * }
   * @apiUse successBody
   * @apiUse errorBody
   */
@@ -1783,21 +1787,13 @@ module.exports = class Solutions extends Abstract {
    * @name deleteCriteria
    * @param {Object} req - requested data.
    * @param {String} req.params._id - solution external id.
-   * @param {CSV} req.files.themes - criteria to be deleted from solution.
-   * csv consists of ### seperated data for theme,aoi,indicators field.
-   * ex: Theme1###T1###10(nameOfTheme###externalIdOfTheme###weightageOfTheme)
-   * @returns {CSV}
    */
 
   async deleteCriteria(req) {
     return new Promise(async (resolve, reject) => {
       try {
 
-        let headerSequence;
-        let themes = await csv().fromString(req.files.themes.data.toString()).on('header', (headers) => { headerSequence = headers });
-
-        let solutionThemes = await solutionsHelper.deleteCriteria(req.params._id, themes, headerSequence);
-
+        let solutionThemes = await solutionsHelper.deleteCriteria(req.params._id, req.body.criteriaIds);
         return resolve(solutionThemes);
 
       }
