@@ -833,7 +833,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "", submissionId = "",appName = "",appVersion = "") {
+    static details(surveyId = "", userId= "", submissionId = "") {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1035,16 +1035,6 @@ module.exports = class SurveysHelper {
                     if (programDocument.length > 0) {
                         submissionDocument.programId = programDocument[0]._id;
                         submissionDocument.programExternalId = programDocument[0].externalId;
-                    }
-
-                    submissionDocument.appInformation = {};
-
-                    if( appName !== "" ) {
-                      submissionDocument.appInformation["appName"] = appName;
-                    } 
-              
-                    if( appVersion !== "" ) {
-                      submissionDocument.appInformation["appVersion"] = appVersion;
                     }
 
                     let submissionDoc = await database.models.surveySubmissions.create(
@@ -1464,12 +1454,10 @@ module.exports = class SurveysHelper {
       * @param {String} solutionId - solutionId
       * @param {String} userId - logged in userId
       * @param {String} token - logged in user token
-      * @param {String} [ appName = "" ] - app name
-      * @param {String} [ appVersion = "" ] - app version
       * @returns {JSON} - returns survey solution, program and questions.
     */
 
-   static detailsV2(bodyData, surveyId = "", solutionId= "",userId= "", token= "", appName = "",appVersion = "") {
+   static detailsV2(bodyData, surveyId = "", solutionId= "",userId= "", token= "") {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -1568,9 +1556,7 @@ module.exports = class SurveysHelper {
             (
                 surveyId,
                 userId,
-                validateSurvey.data.submissionId,
-                appName,
-                appVersion
+                validateSurvey.data.submissionId
             )
 
             if (!surveyDetails.success) {
