@@ -1764,5 +1764,47 @@ module.exports = class Solutions extends Abstract {
       }
     });
   }
+
+  /**
+  * @api {post} /assessment/api/v1/solutions/deleteCriteria/{solutionsExternalID} Delete Criteria From Solution
+  * @apiVersion 1.0.0
+  * @apiName Delete Criteria From Solution
+  * @apiGroup Solutions
+  * @apiParam {File} themes Mandatory file upload with themes data.
+  * @apiSampleRequest /assessment/api/v1/solutions/deleteCriteria/EF-DCPCR-2018-001 
+  * @apiHeader {String} X-authenticated-user-token Authenticity token   
+  * @apiParamExample {json} Request-Body:
+  * {
+  *     "criteriaIds": ["5beaa888af0065f0e0a10515",5be15cc849e0121f01b21805]
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+    /**
+   * Delete Criteria From Solution.
+   * @method
+   * @name deleteCriteria
+   * @param {Object} req - requested data.
+   * @param {String} req.params._id - solution external id.
+   */
+
+  async deleteCriteria(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let solutionThemes = await solutionsHelper.deleteCriteria(req.params._id, req.body.criteriaIds);
+        return resolve(solutionThemes);
+
+      }
+      catch (error) {
+        reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        })
+      }
+    })
+  }
   
 };

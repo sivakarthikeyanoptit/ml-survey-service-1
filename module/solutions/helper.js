@@ -1882,6 +1882,112 @@ module.exports = class SolutionsHelper {
       }
 
     })
-  } 
+  }
+
+  /**
+   * Delete Criteria From Solution
+   * @method
+   * @name deleteCriteria
+   * @param {String} solutionExternalId - solution ExternalId.
+   * @param {Array} criteriaIds - criteriaIds.
+   * @returns {JSON} 
+   */
+
+  static deleteCriteria(solutionExternalId, criteriaIds) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+          let solutionDocument = await this.solutionDocuments({ externalId : solutionExternalId },["_id","themes"]);
+          if( !solutionDocument.length > 0 ) {
+            return resolve({
+              status : httpStatusCode.bad_request.status,
+              message : messageConstants.apiResponses.SOLUTION_NOT_FOUND
+            });
+          }
+
+          let themeData = solutionDocument[0].themes;
+          if(!themeData.length > 0){
+            return resolve({
+              status : httpStatusCode.bad_request.status,
+              message : messageConstants.apiResponses.THEMES_NOT_FOUND
+            });
+          }
+
+          for(let pointerToTheme = 0; pointerToTheme < themeData.length; pointerToTheme++ ){
+
+            let currentTheme = themeData[pointerToTheme];
+            for(let pointerToCriteriaArray = 0; pointerToCriteriaArray < criteriaIds.length; pointerToCriteriaArray++){
+
+              let criteriaId = criteriaIds[pointerToCriteriaArray];
+              let criteriaData = currentTheme.criteria;
+
+              if(criteriaData && criteriaData != undefined){
+
+                let criteriaTobeUpdated  = criteriaData.filter(eachCriteria => 
+                  eachCriteria.criteriaId != criteriaId
+                );
+                currentTheme.criteria = criteriaTobeUpdated;
+
+              }
+
+              let childrenData = currentTheme.children;
+              if(childrenData && childrenData != undefined){
+
+                childrenData.forEach(childKey => {
+
+                  let childCriteria = childKey.criteria;
+                  let childData = childKey.children;
+
+                  if(childCriteria &&  childCriteria != undefined){
+
+                    let criteriaTobeUpdated  = childCriteria.filter(eachCriteria => 
+                      eachCriteria.criteriaId != criteriaId
+                    );
+
+                    childKey.criteria = criteriaTobeUpdated;
+                  }
+
+                  if(childData && childData != undefined){
+                      
+                    childData.forEach(nestedKey => {
+
+                      let nestedCriteria = nestedKey.criteria;
+                      if(nestedCriteria){
+
+                        let nestedCriteriaTobeUpdated  = nestedCriteria.filter(nested => 
+                          nested.criteriaId != criteriaId
+                        );
+
+                        nestedKey.criteria = nestedCriteriaTobeUpdated;
+                        
+                      }
+                    })
+                  }
+                })
+              }
+            }
+          }
+
+          let solutionUpdated = await this.updateSolutionDocument({ externalId: solutionExternalId },
+                            { $set: { themes: themeData } }
+                          );
+
+          let message = "";
+          if(solutionUpdated.success == true){
+            message = messageConstants.apiResponses.CRITERIA_REMOVED;
+          }else{
+            message = messageConstants.apiResponses.CRITERIA_COULD_NOT_BE_DELETED;
+          }
+
+          return resolve({
+            success : true,
+            message : message
+          });
+
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }  
 
 };
