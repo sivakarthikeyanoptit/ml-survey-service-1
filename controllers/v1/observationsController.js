@@ -847,10 +847,11 @@ module.exports = class Observations extends Abstract {
                 }
 
                 let assessment = {};
-
+                
                 assessment.name = solutionDocument.name;
                 assessment.description = solutionDocument.description;
                 assessment.externalId = solutionDocument.externalId;
+                assessment.pageHeading = solutionDocument.pageHeading;
 
                 let criteriaId = new Array;
                 let criteriaObject = {};

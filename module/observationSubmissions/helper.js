@@ -465,7 +465,8 @@ module.exports = class ObservationSubmissionsHelper {
                 "completedDate",
                 "ratingCompletedAt",
                 "observationInformation.name",
-                "observationId"
+                "observationId",
+                "scoringSystem"
             ];
 
             let result = await this.observationSubmissionsDocument
