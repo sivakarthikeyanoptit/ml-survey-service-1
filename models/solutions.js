@@ -108,6 +108,10 @@ module.exports = {
           index : true
         }
       }]
+    },
+    pageHeading: {
+      default : "Domains",
+      type : String
     }
   }
 };
