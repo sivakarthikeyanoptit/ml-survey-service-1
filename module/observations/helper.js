@@ -1980,4 +1980,124 @@ module.exports = class ObservationsHelper {
     })
   }
 
+    /**
+    * Add entity to observation.
+    * @method
+    * @name addEntityToObservation
+    * @param {String} observationId - observation id.
+    * @param {Object} requestedData - requested data.
+    * @param {String} userId - logged in user id.
+    * @returns {JSON} message - regarding either entity is added to observation or not.
+    */
+
+     static addEntityToObservation(observationId,requestedData,userId) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let responseMessage = "Updated successfully.";
+
+                let observationDocument = await this.observationDocuments(
+                    {
+                        _id: observationId,
+                        createdBy: userId,
+                        status: { $ne: "inactive" }
+                    },
+                    ["entityTypeId","status"]
+                );
+
+                if (observationDocument[0].status != messageConstants.common.PUBLISHED) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
+                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
+                    });
+                }
+
+                let entitiesToAdd = 
+                await entitiesHelper.validateEntities(
+                    requestedData, 
+                    observationDocument[0].entityTypeId
+                );
+
+                if (entitiesToAdd.entityIds.length > 0) {
+                    await database.models.observations.updateOne(
+                        {
+                            _id: observationDocument[0]._id
+                        },
+                        {
+                            $addToSet: { entities: entitiesToAdd.entityIds }
+                        }
+                    );
+                }
+
+
+                if (entitiesToAdd.entityIds.length != requestedData.length) {
+                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
+                }
+
+                return resolve({
+                    message: responseMessage
+                });
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+    * Remove entity from observation.
+    * @method
+    * @name removeEntityFromObservation
+    * @param {String} observationId - observation id.
+    * @param {Object} requestedData - requested data.
+    * @param {String} userId - logged in user id.
+    * @returns {JSON} observation remoevable message
+    */
+
+     static removeEntityFromObservation(observationId,requestedData,userId) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(observationId),
+                        status: { $ne: "completed" },
+                        createdBy: userId
+                    },
+                    {
+                        $pull: {
+                            entities: { $in: gen.utils.arrayIdsTobjectIds(requestedData) }
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: messageConstants.apiResponses.ENTITY_REMOVED
+                })
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
 };

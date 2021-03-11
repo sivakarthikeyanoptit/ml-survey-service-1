@@ -373,8 +373,8 @@ module.exports = class Observations extends Abstract {
 
     }
 
-    /**
-     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
+     /**
+     * @api {post} /assessment/api/v1/observations/addOrRemoveEntity/:observationId Map entities to observations
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
      * @apiGroup Observations
@@ -389,121 +389,36 @@ module.exports = class Observations extends Abstract {
     /**
     * Add entity to observation.
     * @method
-    * @name addEntityToObservation
+    * @name addOrRemoveEntity
     * @param {Object} req -request Data.
     * @param {String} req.params._id -Observation id. 
     * @returns {JSON} message - regarding either entity is added to observation or not.
     */
 
-    async addEntityToObservation(req) {
+    async addOrRemoveEntity(req) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                let responseMessage = "Updated successfully.";
-
-                let observationDocument = await database.models.observations.findOne(
-                    {
-                        _id: req.params._id,
-                        createdBy: req.userDetails.userId,
-                        status: { $ne: "inactive" }
-                    },
-                    {
-                        entityTypeId: 1,
-                        status: 1
-                    }
-                ).lean();
-
-                if (observationDocument.status != "published") {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
-                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
-                    });
+                let response = {};
+                if( req.method === "POST" ) {
+                    response = 
+                    await observationsHelper.addEntityToObservation(
+                        req.params._id,
+                        req.body.data,
+                        req.userDetails.id
+                    )
+                } else {
+                    response = 
+                    await observationsHelper.removeEntityFromObservation(
+                        req.params._id,
+                        req.body.data,
+                        req.userDetails.id
+                    ) 
                 }
 
-                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId);
-
-                if (entitiesToAdd.entityIds.length > 0) {
-                    await database.models.observations.updateOne(
-                        {
-                            _id: observationDocument._id
-                        },
-                        {
-                            $addToSet: { entities: entitiesToAdd.entityIds }
-                        }
-                    );
-                }
-
-
-                if (entitiesToAdd.entityIds.length != req.body.data.length) {
-                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
-                }
-
-                return resolve({
-                    message: responseMessage
-                });
-
-
-            } catch (error) {
-                return reject({
-                    status: error.status || httpStatusCode.internal_server_error.status,
-                    message: error.message || httpStatusCode.internal_server_error.message,
-                    errorObject: error
-                });
-            }
-
-        });
-
-    }
-
-    /**
-     * @api {post} /assessment/api/v1/observations/removeEntityFromObservation/:observationId Un Map entities to observations
-     * @apiVersion 1.0.0
-     * @apiName Un Map entities to observations
-     * @apiGroup Observations
-    * @apiParamExample {json} Request-Body:
-     * {
-     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
-     * }
-     * @apiUse successBody
-     * @apiUse errorBody
-     */
-
-
-    /**
-    * Remove entity from observation.
-    * @method
-    * @name removeEntityFromObservation
-    * @param {Object} req -request Data.
-    * @param {String} req.params._id -observation id. 
-    * @returns {JSON} observation remoevable message
-    */
-
-    async removeEntityFromObservation(req) {
-
-        return new Promise(async (resolve, reject) => {
-
-            try {
-
-                await database.models.observations.updateOne(
-                    {
-                        _id: ObjectId(req.params._id),
-                        status: { $ne: "completed" },
-                        createdBy: req.userDetails.id
-                    },
-                    {
-                        $pull: {
-                            entities: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) }
-                        }
-                    }
-                );
-
-                return resolve({
-                    message: messageConstants.apiResponses.ENTITY_REMOVED
-                })
-
+                return resolve(response);
 
             } catch (error) {
                 return reject({

@@ -739,7 +739,106 @@ module.exports = class ObservationSubmissionsHelper {
                 })
             }
         })
-    }   
+    }
+    
+    /**
+   * Delete Observation submissions.
+   * @method
+   * @name delete
+   * @param {String} submissionId -observation submissions id.
+   * @param {String} userId - logged in user id.
+   * @returns {JSON} - message that observation submission is deleted.
+   */
+
+  static delete(submissionId,userId) {
+    return new Promise(async (resolve, reject) => {
+
+      try {
+
+        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_DELETED;
+
+        let submissionDocument = await database.models.observationSubmissions.deleteOne(
+          {
+            "_id": submissionId,
+            status: "started",
+            createdBy: userId
+          }
+        );
+
+        if (!submissionDocument.n) {
+          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+        }
+
+        let response = {
+          message: message
+        };
+
+        return resolve(response);
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+
+    })
+  }
+
+     /**
+   * Set Observation Submission Title.
+   * @method
+   * @name title
+   * @param {String} submissionId -observation submissions id.
+   * @param {String} userId - logged in user id.
+   * @param {String} title - submission title.
+   * @returns {JSON} - message that observation submission title is set.
+   */
+
+    static setTitle(submissionId,userId,title) {
+        return new Promise(async (resolve, reject) => {
+    
+          try {
+    
+            let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_UPDATED;
+    
+            let submissionDocument = await database.models.observationSubmissions.findOneAndUpdate(
+              {
+                _id: submissionId,
+                createdBy: userId
+              },
+              {
+                $set : {
+                  title : title
+                }
+              }, {
+                projection : {
+                  _id : 1
+                }
+              }
+            );
+    
+            if (!submissionDocument || !submissionDocument._id) {
+              throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+            }
+    
+            let response = {
+              message: message
+            };
+    
+            return resolve(response);
+    
+          } catch (error) {
+            return reject({
+              status: error.status || httpStatusCode.internal_server_error.status,
+              message: error.message || httpStatusCode.internal_server_error.message,
+              errorObject: error
+            });
+          }
+    
+        })
+    }
 
 };
 
