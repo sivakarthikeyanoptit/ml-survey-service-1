@@ -374,6 +374,105 @@ module.exports = class Observations extends Abstract {
     }
 
      /**
+     * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
+     * @apiVersion 1.0.0
+     * @apiName Map entities to observations
+     * @apiGroup Observations
+     * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    /**
+    * Add entity to observation.
+    * @method
+    * @name addEntityToObservation
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -Observation id. 
+    * @returns {JSON} message - regarding either entity is added to observation or not.
+    */
+
+     async addEntityToObservation(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let result = 
+                await observationsHelper.addEntityToObservation(
+                    req.params._id,
+                    req.body.data,
+                    req.userDetails.id
+                );
+
+                return resolve(result);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+     * @api {post} /assessment/api/v1/observations/removeEntityFromObservation/:observationId Un Map entities to observations
+     * @apiVersion 1.0.0
+     * @apiName Un Map entities to observations
+     * @apiGroup Observations
+    * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+
+    /**
+    * Remove entity from observation.
+    * @method
+    * @name removeEntityFromObservation
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -observation id. 
+    * @returns {JSON} observation remoevable message
+    */
+
+    async removeEntityFromObservation(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let result = 
+                await observationsHelper.removeEntityFromObservation(
+                    req.params._id,
+                    req.body.data,
+                    req.userDetails.id
+                );
+                
+                return resolve(result);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+     /**
      * @api {post} /assessment/api/v1/observations/addOrRemoveEntity/:observationId Map entities to observations
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
@@ -1770,6 +1869,83 @@ module.exports = class Observations extends Abstract {
       }
     })
   }
+
+
+    /**
+    * @api {post} /assessment/api/v1/observations/getObservation?page=:page&limit=:limit&search=:search
+    * List of observations and targetted ones.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/getObservation?page=1&limit=10&search=a
+    * @apiParamExample {json} Request:
+    * {
+    *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
+    * @apiParamExample {json} Response:
+    {
+    "message": "Targeted observations fetched successfully",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5f9288fd5e25636ce6dcad66",
+                "name": "obs1",
+                "description": "observation1",
+                "solutionId": "5f9288fd5e25636ce6dcad65",
+                "programId": "5d287326652f311044f41dbb"
+            },
+            {
+                "_id": "5fc7aa9e73434430731f6a10",
+                "solutionId": "5fb4fce4c7439a3412ff013b",
+                "programId": "5f5b216a9c70bd2973aee29f",
+                "name": "My Solution",
+                "description": "My Solution Description"
+            }
+        ],
+        "count": 2
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of observations and targetted ones.
+      * @method
+      * @name getObservation
+      * @param {Object} req - request data.
+      * @returns {JSON} List of observations with targetted ones.
+     */
+
+     async getObservation(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observations = await observationsHelper.getObservation(
+                    req.body,
+                    req.userDetails.userId,
+                    req.userDetails.userToken,
+                    req.pageSize,
+                    req.pageNo,
+                    req.searchText
+                );
+
+                observations["result"] = observations.data;
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
 
 
     /**

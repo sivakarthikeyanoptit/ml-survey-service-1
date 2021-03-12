@@ -1336,14 +1336,14 @@ module.exports = class SurveysHelper {
     * @returns {Object}
    */
 
-   static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
+   static getSurvey( userId,pageSize,pageNo,search = "") {
     return new Promise(async (resolve, reject) => {
         try {
             
             let surveySolutions = await surveySubmissionsHelper.surveySolutions(
                 userId,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
+                pageSize,
+                pageNo,
                 search
             );
 
@@ -1390,41 +1390,41 @@ module.exports = class SurveysHelper {
                 mergedData = [...mergedData, ...surveySubmissions.data.data];
             }
            
-            if( solutionIds.length > 0 ) {
-                bodyData["filter"] = {};
-                bodyData["filter"]["skipSolutions"] = solutionIds; 
-            }
+            // if( solutionIds.length > 0 ) {
+            //     bodyData["filter"] = {};
+            //     bodyData["filter"]["skipSolutions"] = solutionIds; 
+            // }
 
-            let targetedSolutions = 
-            await kendraService.solutionBasedOnRoleAndLocation
-            (
-                token,
-                bodyData,
-                messageConstants.common.SURVEY,
-                search
-            );
+            // let targetedSolutions = 
+            // await kendraService.solutionBasedOnRoleAndLocation
+            // (
+            //     token,
+            //     bodyData,
+            //     messageConstants.common.SURVEY,
+            //     search
+            // );
           
-            if (targetedSolutions.success) {
+            // if (targetedSolutions.success) {
 
-                if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
-                    totalCount += targetedSolutions.data.count;
+            //     if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
+            //         totalCount += targetedSolutions.data.count;
 
-                    targetedSolutions.data.data.forEach(targetedSolution => {
-                        targetedSolution.solutionId = targetedSolution._id;
-                        targetedSolution._id = "";
-                        targetedSolution.isCreator = false;
-                        mergedData.push(targetedSolution);
-                        delete targetedSolution.type;
-                        delete targetedSolution.externalId;
-                    })
-                }
-            }
+            //         targetedSolutions.data.data.forEach(targetedSolution => {
+            //             targetedSolution.solutionId = targetedSolution._id;
+            //             targetedSolution._id = "";
+            //             targetedSolution.isCreator = false;
+            //             mergedData.push(targetedSolution);
+            //             delete targetedSolution.type;
+            //             delete targetedSolution.externalId;
+            //         })
+            //     }
+            // }
 
-            if( mergedData.length > 0 ) {
-               let startIndex = pageSize * (pageNo - 1);
-               let endIndex = startIndex + pageSize;
-               mergedData = mergedData.slice(startIndex,endIndex) 
-            }
+            // if( mergedData.length > 0 ) {
+            //    let startIndex = pageSize * (pageNo - 1);
+            //    let endIndex = startIndex + pageSize;
+            //    mergedData = mergedData.slice(startIndex,endIndex) 
+            // }
 
             return resolve({
                 success : true,

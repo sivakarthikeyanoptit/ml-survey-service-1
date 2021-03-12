@@ -16,6 +16,10 @@ module.exports = (req) => {
             req.checkQuery('entityId').exists().withMessage("required entity id")
         },
 
+        title: function () {
+            req.checkBody('title').exists().notEmpty().withMessage("required observation submission title")
+        },
+
         pushCompletedObservationSubmissionForReporting: function () {
             req.checkParams('_id').exists().withMessage("required submission id")
         },

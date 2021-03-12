@@ -1600,6 +1600,7 @@ module.exports = class ObservationsHelper {
                         { "description" : new RegExp(search, 'i') }
                     ];
                 }
+
                 let projection1 = {
                     $project : {
                         "name" : 1, 
@@ -1655,6 +1656,131 @@ module.exports = class ObservationsHelper {
             }
         })
     }
+
+     /**
+    * Get list of observations with the targetted ones.
+    * @method
+    * @name getObservation
+    * @param {String} userId - Logged in user id.
+    * @param {String} userToken - Logged in user token.
+    * @returns {Object}
+   */
+
+   static getObservation( bodyData,userId,token,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            let observations = await this.userAssigned(
+                userId,
+                pageNo,
+                pageSize,
+                search
+            );
+
+            let solutionIds = [];
+
+            let totalCount = 0;
+            let mergedData = [];
+
+            if( observations.success && observations.data ) {
+
+                totalCount = observations.data.count;
+                mergedData = observations.data.data;
+
+                if( mergedData.length > 0 ) {
+
+                    let programIds = [];
+
+                    mergedData.forEach( observationData => {
+                        if( observationData.solutionId ) {
+                            solutionIds.push(observationData.solutionId);
+                        }
+
+                        if( observationData.programId ) {
+                            programIds.push(observationData.programId);
+                        }
+                    });
+
+                    let programsData = await programsHelper.list({
+                        _id : { $in : programIds }
+                    },["name"]);
+
+                    if( programsData.length > 0 ) {
+                        
+                        let programs = 
+                        programsData.reduce(
+                            (ac, program) => 
+                            ({ ...ac, [program._id.toString()]: program }), {}
+                        );
+
+                        mergedData = mergedData.map( data => {
+                            if( programs[data.programId.toString()]) {
+                                data.programName = programs[data.programId.toString()].name;
+                            }
+                            return data;
+                        })
+                    }
+
+                }
+            }
+
+            if( solutionIds.length > 0 ) {
+                bodyData["filter"] = {};
+                bodyData["filter"]["skipSolutions"] = solutionIds; 
+            }
+
+            let targetedSolutions = 
+            await kendraService.solutionBasedOnRoleAndLocation
+            (
+                token,
+                bodyData,
+                messageConstants.common.OBSERVATION,
+                search
+            );
+
+            if( targetedSolutions.success ) {
+
+                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
+                    totalCount += targetedSolutions.data.count;
+
+                    if( mergedData.length !== pageSize ) {
+
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            mergedData.push(targetedSolution);
+                            delete targetedSolution.type; 
+                            delete targetedSolution.externalId;
+                        });
+                    }
+                }
+
+            }
+
+            if( mergedData.length > 0 ) {
+                let startIndex = pageSize * (pageNo - 1);
+                let endIndex = startIndex + pageSize;
+                mergedData = mergedData.slice(startIndex,endIndex) 
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.TARGETED_OBSERVATION_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
 
     /**
     * List of observation entities.

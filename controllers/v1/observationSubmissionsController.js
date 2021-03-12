@@ -305,6 +305,245 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+    /**
+  * @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} Create Observation Submission
+  * @apiVersion 1.0.0
+  * @apiName Create Observation Submission
+  * @apiGroup Observation Submissions
+  * @apiParamExample {json} Request-Body:
+  * {
+  * 	"evidence": {
+  *                   "externalId" : "",
+  *                   "answers" : {
+  *                       "5be442149a14ba4b5038dce4" : {
+  *                           "qid" : "",
+  *                           "responseType":"",
+  *                           "value" : [ 
+  *                               {
+  *                                   "5be442dd9a14ba4b5038dce5" : {
+  *                                       "qid" : "",
+  *                                       "value" : "",
+  *                                       "remarks" : "",
+  *                                       "fileName" : [],
+  *                                       "payload" : {
+  *                                           "question" : [ 
+  *                                               "", 
+  *                                               ""
+  *                                           ],
+  *                                           "labels" : [ 
+  *                                               ""
+  *                                           ],
+  *                                           "responseType" : ""
+  *                                       },
+  *                                       "criteriaId" : ""
+  *                                   },
+  *                                   "5be52f5d9a14ba4b5038dd0c" : {
+  *                                       "qid" : "",
+  *                                       "value" : [ 
+  *                                           "String", 
+  *                                           "String"
+  *                                       ],
+  *                                       "remarks" : "",
+  *                                       "fileName" : [],
+  *                                       "payload" : {
+  *                                           "question" : [ 
+  *                                               "", 
+  *                                               ""
+  *                                           ],
+  *                                           "labels" : [ 
+  *                                              "String", 
+  *                                           "String"
+  *                                           ],
+  *                                           "responseType" : """
+  *                                       },
+  *                                       "criteriaId" : ""
+  *                                   }
+  *                               }
+  *                           ],
+  *                           "remarks" : "",
+  *                           "fileName" : [],
+  *                           "payload" : {
+  *                               "question" : [ 
+  *                                   "String"", 
+  *                                   "Stgring"
+  *                               ],
+  *                              "labels" : [ 
+  *                                   [ 
+  *                                       [ 
+  *                                           {
+  *                                               "_id" : "",
+  *                                               "question" : [ 
+  *                                                   "String", 
+  *                                                   "String"
+  *                                               ],
+  *                                               "options" : [ 
+  *                                                   {
+  *                                                       "value" : "",
+  *                                                       "label" : ""
+  *                                                   }
+  *                                               ],
+  *                                               "children" : [],
+  *                                               "questionGroup" : [ 
+  *                                                   ""
+  *                                               ],
+  *                                               "fileName" : [],
+  *                                               "instanceQuestions" : [],
+  *                                               "deleted" : Boolean,
+  *                                               "tip" : "",
+  *                                               "externalId" : "",
+  *                                               "visibleIf" : "",
+  *                                               "file" : "",
+  *                                               "responseType" : "",
+  *                                               "validation" : {
+  *                                                   "required" : Boolean
+  *                                               },
+  *                                               "showRemarks" : Boolean,
+  *                                               "isCompleted" : Boolean,
+  *                                               "remarks" : "",
+  *                                               "value" : "",
+  *                                               "canBeNotApplicable" : "Boolean",
+  *                                               "usedForScoring" : "",
+  *                                               "modeOfCollection" : "",
+  *                                               "questionType" : "",
+  *                                               "accessibility" : "",
+  *                                               "updatedAt" : "Date",
+  *                                               "createdAt" : "Date",
+  *                                               "__v" : 0,
+  *                                               "payload" : {
+  *                                                   "criteriaId" : ""
+  *                                               }
+  *                                           }, 
+  *                                           {
+  *                                               "_id" : "",
+  *                                               "question" : [ 
+  *                                                   "String", 
+  *                                                   "String"
+  *                                               ],
+  *                                               "options" : [ 
+  *                                                   {
+  *                                                       "value" : "",
+  *                                                       "label" : ""
+  *                                                   }
+  *                                               ],
+  *                                               "children" : [],
+  *                                               "questionGroup" : [ 
+  *                                                   "String"
+  *                                               ],
+  *                                               "fileName" : [],
+  *                                               "instanceQuestions" : [],
+  *                                               "deleted" : Boolean,
+  *                                               "tip" : "",
+  *                                               "externalId" : "",
+  *                                               "visibleIf" : "",
+  *                                               "file" : "",
+  *                                               "responseType" : "",
+  *                                               "validation" : {
+  *                                                   "required" : Boolean
+  *                                               },
+  *                                               "showRemarks" : Boolean,
+  *                                               "isCompleted" : Boolean,
+  *                                               "remarks" : "",
+  *                                               "value" : "",
+  *                                               "canBeNotApplicable" : "Boolean",
+  *                                               "usedForScoring" : "",
+  *                                               "modeOfCollection" : "",
+  *                                               "questionType" : "",
+  *                                               "accessibility" : "",
+  *                                               "updatedAt" : "Date",
+  *                                               "createdAt" : "Date",
+  *                                               "__v" : 0,
+  *                                               "payload" : {
+  *                                                   "criteriaId" : ""
+  *                                               }
+  *                                           }
+  *                                       ], 
+  *                                   ]
+  *                               ],
+  *                               "responseType" : ""
+  *                           },
+  *                           "criteriaId" : ""
+  *                       }
+  *                   },
+  *                   "startTime" : Date,
+  *                   "endTime" : Date,
+  *                   "gpsLocation" : "String,String",
+  *                   "submittedBy" : """,
+  *                   "isValid" : Boolean
+  *               }
+  * }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * make observation submissions.
+   * @method
+   * @name make
+   * @param {Object} req -request data.
+   * @returns {JSON} - observation submissions creation.
+   */
+
+    async make(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+          (
+            req.params._id,
+            req.body.evidence.externalId,
+            req.userDetails.userId
+          )
+  
+          if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
+             throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
+          }
+  
+          let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+  
+          if (response.result.status && response.result.status === "completed") {
+            await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+          } else if(response.result.status && response.result.status === "ratingPending") {
+            await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+          }
+  
+          let appInformation = {};
+  
+          if( req.headers["x-app-id"] || req.headers.appname ) {
+            appInformation["appName"] = 
+            req.headers["x-app-id"] ? req.headers["x-app-id"] :
+            req.headers.appname;
+          } 
+  
+          if( req.headers["x-app-ver"] || req.headers.appversion ) {
+            appInformation["appVersion"] = 
+            req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+            req.headers.appversion;
+          }
+  
+          if( Object.keys(appInformation).length > 0 ) {
+            await submissionsHelper.addAppInformation(
+              req.params._id,
+              appInformation,
+              "observationSubmissions"
+            );
+          }
+  
+          return resolve(response);
+  
+        } catch (error) {
+  
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+  
+        }
+  
+      })
+    }
+
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" Check Submissions Status 
   * @apiVersion 1.0.0
@@ -359,6 +598,98 @@ module.exports = class ObservationSubmissions extends Abstract {
 
     })
   }
+
+  /**
+  * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete Observation Submission
+  * @apiVersion 1.0.0
+  * @apiName Delete Observation Submission
+  * @apiGroup Observation Submissions
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * Delete Observation submissions.
+   * @method
+   * @name delete
+   * @param {String} req.params._id -observation submissions id.
+   * @returns {JSON} - message that observation submission is deleted.
+   */
+
+    async delete(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let result = await observationSubmissionsHelper.delete(
+            req.params._id,
+            req.userDetails.userId
+          );
+
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+        }
+  
+      })
+    }
+  
+    /**
+    * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
+    * @apiVersion 1.0.0
+    * @apiName Set Observation Submission Title
+    * @apiGroup Observation Submissions
+    * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
+    * @apiParamExample {json} Request-Body:
+    * {
+    *   "title" : "Observation Submission Title",
+    * }
+    * @apiParamExample {json} Response:
+    * {
+    *    "message": "Observation submission updated successfully",
+    *    "status": 200
+    *  }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+  
+     /**
+     * Set Observation Submission Title.
+     * @method
+     * @name title
+     * @param {String} req.params._id -observation submissions id.
+     * @returns {JSON} - message that observation submission title is set.
+     */
+  
+    async title(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+
+          let result = await observationSubmissionsHelper.setTitle(
+            req.params._id,
+            req.userDetails.userId,
+            req.body.title
+          );
+  
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+        }
+  
+      })
+    }
+  
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
