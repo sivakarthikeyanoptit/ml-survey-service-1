@@ -1194,7 +1194,8 @@ module.exports = class ObservationsHelper {
                 let observationSolutionData = await solutionHelper.solutionDocuments({
                     link: link,
                     type : messageConstants.common.OBSERVATION,
-                    isReusable : false
+                    isReusable : false,
+                    status: { $ne : messageConstants.common.INACTIVE_STATUS }
                 },[
                     "externalId",
                     "subType",
@@ -1216,28 +1217,6 @@ module.exports = class ObservationsHelper {
                         message: messageConstants.apiResponses.INVALID_LINK,
                         result: []
                     });  
-                }
-
-                if(observationSolutionData[0].status != messageConstants.common.ACTIVE_STATUS) {
-                    return resolve({
-                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
-                        result: []
-                    });   
-                }
-
-                if (new Date() > new Date(observationSolutionData[0].endDate)) {
-                    if (observationSolutionData[0].status == messageConstants.common.ACTIVE_STATUS) {
-                        await solutionHelper.updateSolutionDocument
-                        (
-                            { link : link },
-                            { $set : { status: messageConstants.common.INACTIVE_STATUS } }
-                        )
-                    }
-                    
-                    return resolve({
-                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
-                        result: []
-                    });
                 }
                 
                 let observationData = await this.observationDocuments({
