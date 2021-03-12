@@ -1773,21 +1773,14 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-    * @api {post} /assessment/api/v1/observations/getObservation?page=:page&limit=:limit&search=:search
-    * List of observations and targetted ones.
+    * @api {get} /assessment/api/v1/observations/userAssigned?page=:page&limit=:limit&search=:search
+    * List of user assigned observations.
     * @apiVersion 1.0.0
     * @apiGroup Observations
-    * @apiSampleRequest /assessment/api/v1/observations/getObservation?page=1&limit=10&search=a
-    * @apiParamExample {json} Request:
-    * {
-    *   "role" : "HM",
-   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
-        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
-        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
-    }
+    * @apiSampleRequest /assessment/api/v1/observations/userAssigned?page=1&limit=10&search=a
     * @apiParamExample {json} Response:
     {
-    "message": "Targeted observations fetched successfully",
+    "message": "List of user assigned observations",
     "status": 200,
     "result": {
         "data": [
@@ -1814,23 +1807,20 @@ module.exports = class Observations extends Abstract {
     */
 
     /**
-      * List of observations and targetted ones.
-      * @method
-      * @name getObservation
+      * List of user assigned observations.
+      * @name userAssigned
       * @param {Object} req - request data.
       * @returns {JSON} List of observations with targetted ones.
      */
 
-    async getObservation(req) {
+    async userAssigned(req) {
         return new Promise(async (resolve, reject) => {
             try {
 
-                let observations = await observationsHelper.getObservation(
-                    req.body,
+                let observations = await observationsHelper.userAssigned(
                     req.userDetails.userId,
-                    req.userDetails.userToken,
-                    req.pageSize,
                     req.pageNo,
+                    req.pageSize,
                     req.searchText
                 );
 

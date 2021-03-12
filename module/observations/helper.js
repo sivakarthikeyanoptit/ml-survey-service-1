@@ -21,7 +21,6 @@ const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PO
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
-const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * ObservationsHelper
@@ -1574,60 +1573,71 @@ module.exports = class ObservationsHelper {
 
 
     /**
-      * List of observations.
+      * List of user assigned observations.
       * @method
-      * @name observations
-      * @param pageSize - Size of page.
-      * @param pageNo - Recent page no.
-      * @param search - search text.
-      * @returns {Object} List of observations.
+      * @name userAssigned
+      * @param {String} userId - logged in user id.
+      * @param {Number} pageNo - Recent page no.
+      * @param {Number} pageSize - Size of page.
+      * @param {String} search - search text.
+      * @returns {Object} List of user assigned observations.
      */
 
-    static observations(query, pageNo, pageSize, searchQuery, fieldsArray) {
+    static userAssigned(userId, pageNo, pageSize, search ) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let matchQuery = {
-                    $match : query
+                    $match : {
+                        createdBy : userId,
+                        deleted : false,
+                    }
                 };
 
-                if (searchQuery && searchQuery.length > 0) {
-                    matchQuery["$match"]["$or"] = searchQuery;
+                if (search && search !== "" ) {
+                    matchQuery["$match"]["$or"] = [
+                        { "name" : new RegExp(search, 'i') },
+                        { "description" : new RegExp(search, 'i') }
+                    ];
                 }
-                let projection = {}
-                fieldsArray.forEach(field => {
-                    projection[field] = 1;
-                });
+                let projection1 = {
+                    $project : {
+                        "name" : 1, 
+                        "description" : 1,
+                        "solutionId" : 1,
+                        "programId" : 1
+                    }
+                };
+
+                let facetQuery = {};
+                facetQuery["$facet"] = {};
+        
+                facetQuery["$facet"]["totalCount"] = [
+                  { "$count": "count" }
+                ];
+        
+                facetQuery["$facet"]["data"] = [
+                  { $skip: pageSize * (pageNo - 1) },
+                  { $limit: pageSize }
+                ];
+
+                let projection2 = {};
+                projection2["$project"] = {
+                  "data": 1,
+                  "count": {
+                    $arrayElemAt: ["$totalCount.count", 0]
+                  }
+                };
 
                 let aggregateData = [];
-                aggregateData.push(matchQuery);
-                aggregateData.push({
-                    $project: projection
-                }, {
-                    $facet: {
-                        "totalCount": [
-                            { "$count": "count" }
-                        ],
-                        "data": [
-                            { $skip: pageSize * (pageNo - 1) },
-                            { $limit: pageSize }
-                        ],
-                    }
-                }, {
-                    $project: {
-                        "data": 1,
-                        "count": {
-                            $arrayElemAt: ["$totalCount.count", 0]
-                        }
-                    }
-                });
+                aggregateData.push(matchQuery,projection1,facetQuery,projection2);
 
                 let result =
                 await database.models.observations.aggregate(aggregateData);
 
                 return resolve({
                     success: true,
-                    message: messageConstants.apiResponses.OBSERVATIONS_FETCHED,
+                    message: messageConstants.apiResponses.USER_ASSIGNED_OBSERVATION_FETCHED,
                     data: {
                         data: result[0].data,
                         count: result[0].count ? result[0].count : 0
@@ -1645,147 +1655,6 @@ module.exports = class ObservationsHelper {
             }
         })
     }
-
-    /**
-    * Get list of observations with the targetted ones.
-    * @method
-    * @name getObservation
-    * @param {String} userId - Logged in user id.
-    * @param {String} userToken - Logged in user token.
-    * @returns {Object}
-   */
-
-   static getObservation( bodyData,userId,token,pageSize,pageNo,search = "") {
-    return new Promise(async (resolve, reject) => {
-        try {
-            
-            let query = {
-                createdBy : userId,
-                deleted : false,
-                programId : { $exists : true }
-            }
-
-            let searchQuery = [];
-
-            if (search !== "") {
-                searchQuery = [
-                    { "name" : new RegExp(search, 'i') },
-                    { "description" : new RegExp(search, 'i') }
-                ];
-            }
-
-            let observations = await this.observations(
-                query,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
-                searchQuery,
-                ["name", "description","solutionId","programId"]
-            );
-
-            let solutionIds = [];
-
-            let totalCount = 0;
-            let mergedData = [];
-
-            if( observations.success && observations.data ) {
-
-                totalCount = observations.data.count;
-                mergedData = observations.data.data;
-
-                if( mergedData.length > 0 ) {
-
-                    let programIds = [];
-
-                    mergedData.forEach( observationData => {
-                        if( observationData.solutionId ) {
-                            solutionIds.push(observationData.solutionId);
-                        }
-
-                        if( observationData.programId ) {
-                            programIds.push(observationData.programId);
-                        }
-                    });
-
-                    let programsData = await programsHelper.list({
-                        _id : { $in : programIds }
-                    },["name"]);
-
-                    if( programsData.length > 0 ) {
-                        
-                        let programs = 
-                        programsData.reduce(
-                            (ac, program) => 
-                            ({ ...ac, [program._id.toString()]: program }), {}
-                        );
-
-                        mergedData = mergedData.map( data => {
-                            if( programs[data.programId.toString()]) {
-                                data.programName = programs[data.programId.toString()].name;
-                            }
-                            return data;
-                        })
-                    }
-
-                }
-            }
-
-            if( solutionIds.length > 0 ) {
-                bodyData["filter"] = {};
-                bodyData["filter"]["skipSolutions"] = solutionIds; 
-            }
-
-            let targetedSolutions = 
-            await kendraService.solutionBasedOnRoleAndLocation
-            (
-                token,
-                bodyData,
-                messageConstants.common.OBSERVATION,
-                search
-            );
-
-            if( targetedSolutions.success ) {
-
-                if( targetedSolutions.data.data && targetedSolutions.data.data.length > 0 ) {
-                    totalCount += targetedSolutions.data.count;
-
-                    if( mergedData.length !== pageSize ) {
-
-                        targetedSolutions.data.data.forEach(targetedSolution => {
-                            targetedSolution.solutionId = targetedSolution._id;
-                            targetedSolution._id = "";
-                            mergedData.push(targetedSolution);
-                            delete targetedSolution.type; 
-                            delete targetedSolution.externalId;
-                        });
-                    }
-                }
-
-            }
-
-            if( mergedData.length > 0 ) {
-                let startIndex = pageSize * (pageNo - 1);
-                let endIndex = startIndex + pageSize;
-                mergedData = mergedData.slice(startIndex,endIndex) 
-            }
-
-            return resolve({
-                success : true,
-                message : messageConstants.apiResponses.TARGETED_OBSERVATION_FETCHED,
-                data : {
-                    data : mergedData,
-                    count : totalCount
-                }
-            });
-
-        } catch (error) {
-            return resolve({
-                success : false,
-                message : error.message,
-                data : []
-            });
-        }
-    })
-  }
 
     /**
     * List of observation entities.
