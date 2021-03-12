@@ -906,4 +906,64 @@ module.exports = class Surveys extends Abstract {
         })
     }
 
+     /**
+    * @api {get} /assessment/api/v1/surveys/userAssigned?page=:page&limit=:limit&search=:search
+    * User assigned list of surveys.
+    * @apiVersion 1.0.0
+    * @apiGroup Surveys
+    * @apiSampleRequest /assessment/api/v1/surveys/userAssigned?page=1&limit=10
+    * @apiParamExample {json} Response:
+    {
+    "message": "List of user assigned surveys",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5fe1f060d12d8c7c3d9ebe97",
+                "solutionId": "5f92b5b79a530908731ac195",
+                "name": "survey and feedback solution",
+                "description": "test survey and feedback solution"
+            }
+        ],
+        "count": 1
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * User assigned list of surveys.
+      * @method
+      * @name userAssigned
+      * @param {Object} req - request data.
+      * @returns {JSON} List of user assigned surveys.
+     */
+
+     async userAssigned(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let surveys = await surveysHelper.userAssigned(
+                    req.userDetails.userId,
+                    req.pageSize,
+                    req.pageNo,
+                    req.searchText
+                );
+
+                return resolve({
+                    message: surveys.message,
+                    result: surveys.data
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
 }

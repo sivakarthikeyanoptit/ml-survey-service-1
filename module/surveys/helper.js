@@ -1336,114 +1336,114 @@ module.exports = class SurveysHelper {
     * @returns {Object}
    */
 
-   static getSurvey( userId,pageSize,pageNo,search = "") {
-    return new Promise(async (resolve, reject) => {
-        try {
-            
-            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
-                userId,
-                pageSize,
-                pageNo,
-                search
-            );
-
-            let solutionIds = [];
-
-            let totalCount = 0;
-            let mergedData = [];
-            
-            if( surveySolutions.success && surveySolutions.data ) {
-
-                totalCount = surveySolutions.data.count;
-                mergedData = surveySolutions.data.data;
-
-                if( mergedData.length > 0 ) {
+    static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                    userId,
+                    messageConstants.common.DEFAULT_PAGE_NO,
+                    messageConstants.common.DEFAULT_PAGE_SIZE,
+                    search
+                );
+    
+                let solutionIds = [];
+    
+                let totalCount = 0;
+                let mergedData = [];
+                
+                if( surveySolutions.success && surveySolutions.data ) {
+    
+                    totalCount = surveySolutions.data.count;
+                    mergedData = surveySolutions.data.data;
+    
+                    if( mergedData.length > 0 ) {
+                        
+                        mergedData.forEach( surveyData => {
+                            surveyData.isCreator = true;
+                            if( surveyData.solutionId ) {
+                                solutionIds.push(ObjectId(surveyData.solutionId));
+                            }
+                        });
+                    }
+                }
+    
+                let surveySubmissions = await surveySubmissionsHelper.surveyList
+                (
+                    userId,
+                    messageConstants.common.DEFAULT_PAGE_NO,
+                    messageConstants.common.DEFAULT_PAGE_SIZE,
+                    search
+                )
+                
+                if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+    
+                    totalCount += surveySubmissions.data.count;
                     
-                    mergedData.forEach( surveyData => {
-                        surveyData.isCreator = true;
+                    surveySubmissions.data.data.forEach( surveyData => {
+                        surveyData.isCreator = false;
                         if( surveyData.solutionId ) {
                             solutionIds.push(ObjectId(surveyData.solutionId));
                         }
                     });
+    
+                    mergedData = [...mergedData, ...surveySubmissions.data.data];
                 }
-            }
-
-            let surveySubmissions = await surveySubmissionsHelper.surveyList
-            (
-                userId,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
-                search
-            )
-            
-            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
-
-                totalCount += surveySubmissions.data.count;
-                
-                surveySubmissions.data.data.forEach( surveyData => {
-                    surveyData.isCreator = false;
-                    if( surveyData.solutionId ) {
-                        solutionIds.push(ObjectId(surveyData.solutionId));
+               
+                if( solutionIds.length > 0 ) {
+                    bodyData["filter"] = {};
+                    bodyData["filter"]["skipSolutions"] = solutionIds; 
+                }
+    
+                let targetedSolutions = 
+                await kendraService.solutionBasedOnRoleAndLocation
+                (
+                    token,
+                    bodyData,
+                    messageConstants.common.SURVEY,
+                    search
+                );
+              
+                if (targetedSolutions.success) {
+    
+                    if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
+                        totalCount += targetedSolutions.data.count;
+    
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            targetedSolution.isCreator = false;
+                            mergedData.push(targetedSolution);
+                            delete targetedSolution.type;
+                            delete targetedSolution.externalId;
+                        })
+                    }
+                }
+    
+                if( mergedData.length > 0 ) {
+                   let startIndex = pageSize * (pageNo - 1);
+                   let endIndex = startIndex + pageSize;
+                   mergedData = mergedData.slice(startIndex,endIndex) 
+                }
+    
+                return resolve({
+                    success : true,
+                    message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
+                    data : {
+                        data : mergedData,
+                        count : totalCount
                     }
                 });
-
-                mergedData = [...mergedData, ...surveySubmissions.data.data];
+                
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message,
+                    data : []
+                });
             }
-           
-            // if( solutionIds.length > 0 ) {
-            //     bodyData["filter"] = {};
-            //     bodyData["filter"]["skipSolutions"] = solutionIds; 
-            // }
-
-            // let targetedSolutions = 
-            // await kendraService.solutionBasedOnRoleAndLocation
-            // (
-            //     token,
-            //     bodyData,
-            //     messageConstants.common.SURVEY,
-            //     search
-            // );
-          
-            // if (targetedSolutions.success) {
-
-            //     if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
-            //         totalCount += targetedSolutions.data.count;
-
-            //         targetedSolutions.data.data.forEach(targetedSolution => {
-            //             targetedSolution.solutionId = targetedSolution._id;
-            //             targetedSolution._id = "";
-            //             targetedSolution.isCreator = false;
-            //             mergedData.push(targetedSolution);
-            //             delete targetedSolution.type;
-            //             delete targetedSolution.externalId;
-            //         })
-            //     }
-            // }
-
-            // if( mergedData.length > 0 ) {
-            //    let startIndex = pageSize * (pageNo - 1);
-            //    let endIndex = startIndex + pageSize;
-            //    mergedData = mergedData.slice(startIndex,endIndex) 
-            // }
-
-            return resolve({
-                success : true,
-                message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
-                data : {
-                    data : mergedData,
-                    count : totalCount
-                }
-            });
-            
-        } catch (error) {
-            return resolve({
-                success : false,
-                message : error.message,
-                data : []
-            });
-        }
-    })
-  }
+        })
+      }
 
       /**
       * survey details.
@@ -1579,5 +1579,81 @@ module.exports = class SurveysHelper {
         }
     })
    }
+
+      /**
+    * List of user assigned surveys.
+    * @method
+    * @name userAssigned
+    * @param {String} userId - Logged in user Id.
+    * @param {String} pageSize - size of page.
+    * @param {String} pageNo - page number.
+    * @param {String} search - search text.
+    * @returns {Object}
+   */
+
+   static userAssigned( userId,pageSize,pageNo,search = "") {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                userId,
+                pageNo,
+                pageSize,
+                search
+            );
+
+            let totalCount = 0;
+            let mergedData = [];
+            
+            if( surveySolutions.success && surveySolutions.data ) {
+
+                totalCount = surveySolutions.data.count;
+                mergedData = surveySolutions.data.data;
+
+                if( mergedData.length > 0 ) {
+                    
+                    mergedData.forEach( surveyData => {
+                        surveyData.isCreator = true;
+                    });
+                }
+            }
+
+            let surveySubmissions = await surveySubmissionsHelper.surveyList
+            (
+                userId,
+                pageNo,
+                pageSize,
+                search
+            )
+            
+            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+
+                totalCount += surveySubmissions.data.count;
+                
+                surveySubmissions.data.data.forEach( surveyData => {
+                    surveyData.isCreator = false;
+                });
+
+                mergedData = [...mergedData, ...surveySubmissions.data.data];
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.USER_ASSIGNED_SURVEY_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+            
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
     
 }

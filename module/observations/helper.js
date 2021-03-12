@@ -21,6 +21,7 @@ const appsPortalBaseUrl = (process.env.APP_PORTAL_BASE_URL && process.env.APP_PO
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
+const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
 
 /**
     * ObservationsHelper
