@@ -415,7 +415,8 @@ module.exports = class AssessmentsHelper {
                 "enableQuestionReadOut",
                 "allowMultipleAssessemts",
                 "scoringSystem",
-                "isRubricDriven"
+                "isRubricDriven",
+                "pageHeading"
             ]);
         })
     }
