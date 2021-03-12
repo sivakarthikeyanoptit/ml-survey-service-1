@@ -995,7 +995,8 @@ module.exports = class ObservationsHelper {
                 scoringSystem: 1,
                 isRubricDriven: 1,
                 project : 1,
-                referenceFrom : 1
+                referenceFrom : 1,
+                pageHeading:1
             });
         })
     }
@@ -1019,7 +1020,8 @@ module.exports = class ObservationsHelper {
                 "captureGpsLocationAtQuestionLevel",
                 "enableQuestionReadOut",
                 "scoringSystem",
-                "isRubricDriven"
+                "isRubricDriven",
+                "pageHeading"
             ]);
         })
     }
@@ -1788,7 +1790,7 @@ module.exports = class ObservationsHelper {
                     observationId = observationData[0]._id;
                 } else {
 
-                    let solutionData = 
+                     let solutionData = 
                     await kendraService.solutionDetailsBasedOnRoleAndLocation(
                         token,
                         bodyData,
@@ -1841,10 +1843,25 @@ module.exports = class ObservationsHelper {
 
             let entitiesList = await this.listEntities(observationId);
 
+            let observationData = await this.observationDocuments({
+                _id : observationId,
+            },["_id","solutionId"]);
+            
+            let solutionData;
+            if(observationData[0]){
+                 solutionData = 
+                await solutionHelper.solutionDocuments({
+                    _id : observationData[0].solutionId
+                },[
+                    "allowMultipleAssessemts",
+                ]);
+            }
+
             return resolve({
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
+                    "allowMultipleAssessemts":solutionData[0].allowMultipleAssessemts,
                     _id : observationId,
                     "entities" : entitiesList.data.entities,
                     entityType : entitiesList.data.entityType
@@ -1916,6 +1933,9 @@ module.exports = class ObservationsHelper {
                     name : currentEntities.metaInformation.name,
                     submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
                 };
+                if(observationSubmissions.length == 1){
+                    entity['submissionId']=observationSubmissions[0]._id;
+                }
 
                 entities.push(entity);
             }

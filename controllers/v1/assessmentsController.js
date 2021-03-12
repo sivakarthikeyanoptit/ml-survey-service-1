@@ -304,6 +304,7 @@ module.exports = class Assessments {
                 assessment.name = solutionDocument.name;
                 assessment.description = solutionDocument.description;
                 assessment.externalId = solutionDocument.externalId;
+                assessment.pageHeading = solutionDocument.pageHeading;
 
                 let criteriaId = new Array;
                 let criteriaObject = {};
