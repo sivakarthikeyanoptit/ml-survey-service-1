@@ -1572,7 +1572,6 @@ module.exports = class ObservationsHelper {
         })
     }
 
-
     /**
       * List of user assigned observations.
       * @method
@@ -1581,10 +1580,11 @@ module.exports = class ObservationsHelper {
       * @param {Number} pageNo - Recent page no.
       * @param {Number} pageSize - Size of page.
       * @param {String} search - search text.
+      * @param {String} [ filter = ""] - filter text.
       * @returns {Object} List of user assigned observations.
      */
 
-    static userAssigned(userId, pageNo, pageSize, search ) {
+    static userAssigned(userId, pageNo, pageSize, search,filter = "" ) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1600,6 +1600,14 @@ module.exports = class ObservationsHelper {
                         { "name" : new RegExp(search, 'i') },
                         { "description" : new RegExp(search, 'i') }
                     ];
+                }
+
+                if ( filter && filter !== "" ) {
+                    if( filter === messageConstants.common.CREATED_BY_ME ) {
+                        matchQuery["$match"]["isAPrivateProgram"] = true;
+                    } else {
+                        matchQuery["$match"]["isAPrivateProgram"] = false;
+                    }
                 }
 
                 let projection1 = {

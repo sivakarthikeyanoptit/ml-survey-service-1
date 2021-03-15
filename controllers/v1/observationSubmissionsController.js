@@ -1385,7 +1385,7 @@ module.exports = class ObservationSubmissions extends Abstract {
               }
             }
 
-          } else {
+          } else if( req.method === "DELETE" ) {
             
             response = await observationSubmissionsHelper.delete(
               req.params._id,

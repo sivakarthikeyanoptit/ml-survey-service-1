@@ -51,7 +51,7 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required observation id");
             req.checkQuery('entityId').exists().withMessage("required entity id");
         },
-        addOrRemoveEntity: function () {
+        updateEntities: function () {
             req.checkParams('_id').exists().withMessage("required observation id")
         }
     }

@@ -907,11 +907,11 @@ module.exports = class Surveys extends Abstract {
     }
 
      /**
-    * @api {get} /assessment/api/v1/surveys/userAssigned?page=:page&limit=:limit&search=:search
+    * @api {get} /assessment/api/v1/surveys/userAssigned?page=:page&limit=:limit&search=:search&filter=:filter
     * User assigned list of surveys.
     * @apiVersion 1.0.0
     * @apiGroup Surveys
-    * @apiSampleRequest /assessment/api/v1/surveys/userAssigned?page=1&limit=10
+    * @apiSampleRequest /assessment/api/v1/surveys/userAssigned?page=1&limit=10&filter=assignedToMe
     * @apiParamExample {json} Response:
     {
     "message": "List of user assigned surveys",
@@ -948,7 +948,8 @@ module.exports = class Surveys extends Abstract {
                     req.userDetails.userId,
                     req.pageSize,
                     req.pageNo,
-                    req.searchText
+                    req.searchText,
+                    req.query.filter
                 );
 
                 return resolve({

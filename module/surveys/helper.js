@@ -1588,10 +1588,11 @@ module.exports = class SurveysHelper {
     * @param {String} pageSize - size of page.
     * @param {String} pageNo - page number.
     * @param {String} search - search text.
+    * @param {String} filter - filter text.
     * @returns {Object}
    */
 
-   static userAssigned( userId,pageSize,pageNo,search = "") {
+   static userAssigned( userId,pageSize,pageNo,search = "",filter) {
     return new Promise(async (resolve, reject) => {
         try {
             
@@ -1599,7 +1600,8 @@ module.exports = class SurveysHelper {
                 userId,
                 pageNo,
                 pageSize,
-                search
+                search,
+                filter
             );
 
             let totalCount = 0;
@@ -1623,7 +1625,8 @@ module.exports = class SurveysHelper {
                 userId,
                 pageNo,
                 pageSize,
-                search
+                search,
+                filter
             )
             
             if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {

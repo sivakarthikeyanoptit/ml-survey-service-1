@@ -473,7 +473,7 @@ module.exports = class Observations extends Abstract {
     }
 
      /**
-     * @api {post} /assessment/api/v1/observations/addOrRemoveEntity/:observationId Map entities to observations
+     * @api {post} /assessment/api/v1/observations/updateEntities/:observationId Map entities to observations
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
      * @apiGroup Observations
@@ -488,13 +488,13 @@ module.exports = class Observations extends Abstract {
     /**
     * Add entity to observation.
     * @method
-    * @name addOrRemoveEntity
+    * @name updateEntities
     * @param {Object} req -request Data.
     * @param {String} req.params._id -Observation id. 
     * @returns {JSON} message - regarding either entity is added to observation or not.
     */
 
-    async addOrRemoveEntity(req) {
+    async updateEntities(req) {
 
         return new Promise(async (resolve, reject) => {
 
@@ -508,7 +508,7 @@ module.exports = class Observations extends Abstract {
                         req.body.data,
                         req.userDetails.id
                     )
-                } else {
+                } else if( req.method === "DELETE" ) {
                     response = 
                     await observationsHelper.removeEntityFromObservation(
                         req.params._id,
@@ -1949,11 +1949,11 @@ module.exports = class Observations extends Abstract {
 
 
     /**
-    * @api {get} /assessment/api/v1/observations/userAssigned?page=:page&limit=:limit&search=:search
+    * @api {get} /assessment/api/v1/observations/userAssigned?page=:page&limit=:limit&search=:search&filter=:filter
     * List of user assigned observations.
     * @apiVersion 1.0.0
     * @apiGroup Observations
-    * @apiSampleRequest /assessment/api/v1/observations/userAssigned?page=1&limit=10&search=a
+    * @apiSampleRequest /assessment/api/v1/observations/userAssigned?page=1&limit=10&search=a&filter=assignedToMe
     * @apiParamExample {json} Response:
     {
     "message": "List of user assigned observations",
@@ -1997,7 +1997,8 @@ module.exports = class Observations extends Abstract {
                     req.userDetails.userId,
                     req.pageNo,
                     req.pageSize,
-                    req.searchText
+                    req.searchText,
+                    req.query.filter
                 );
 
                 observations["result"] = observations.data;
