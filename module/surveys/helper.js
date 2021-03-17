@@ -693,7 +693,7 @@ module.exports = class SurveysHelper {
      * @returns {JSON} - returns survey solution,program and question details.
      */
 
-    static getDetailsByLink(link= "", userId= "", token= "") {
+    static getDetailsByLink(link= "", userId= "", token= "", roleInformation = {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -799,7 +799,8 @@ module.exports = class SurveysHelper {
                 (
                     surveyId,
                     userId,
-                    validateSurvey.data.submissionId
+                    validateSurvey.data.submissionId,
+                    roleInformation
                 )
 
                 if (!surveyDetails.success) {

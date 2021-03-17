@@ -583,10 +583,13 @@ module.exports = class Surveys extends Abstract {
 
         try {
 
+            let bodyData = req.body ? req.body : {};
+
             let surveyDetails = await surveysHelper.getDetailsByLink(
                 req.params._id,
                 req.userDetails.userId,
-                req.rspObj.userToken
+                req.rspObj.userToken,
+                bodyData
             );
 
             return resolve({
