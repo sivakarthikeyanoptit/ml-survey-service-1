@@ -38,6 +38,12 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiParam {String} entityId Entity ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/create/5d2c1c57037306041ef0c7ea?entityId=5d2c1c57037306041ef0c8fa
+  {
+      "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+  }
   * @apiParamExample {json} Response:
   * "result": [
         {
@@ -207,6 +213,10 @@ module.exports = class ObservationSubmissions extends Abstract {
           scoringSystem: solutionDocument.scoringSystem,
           isRubricDriven: solutionDocument.isRubricDriven
       };
+
+      if (req.body && req.body.role) {
+         submissionDocument.currentRoleInformation = req.body;
+      }
 
       if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
         submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
@@ -1316,6 +1326,145 @@ module.exports = class ObservationSubmissions extends Abstract {
         return resolve({
            message: submissionDocument.message,
            result: submissionDocument.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+   /**
+  * @api {post} /assessment/api/v1/observationSubmissions/solutions
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission solutions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/solutions
+  * @apiParamExample {json} Request:
+  * {
+  *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Observation solutions fetched successfuly",
+    "status": 200,
+     "result": {
+        "data": [
+            {
+                "solutionId": "5f27d602109a1176fea53599",
+                "programId": "5f27d602109a1176fea53598",
+                "entityType": "school",
+                "observationId": "5f27d602109a1176fea5359a",
+                "name": "Primary Teachers Feedback Form"
+            }
+        ],
+        "entityType": [
+            "school"
+        ],
+        "count": 1
+    }
+  }
+
+  */
+   /**
+   * Get observation submission solutions
+   * @method
+   * @name solutions
+   * @returns {JSON} consists of solutions, count and entityTypes.
+   */
+  async solutions(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let entityType =  req.query.entityType ? req.query.entityType : "";
+        
+        let solutions = await observationSubmissionsHelper.solutions
+        (
+          req.body,
+          req.userDetails.userId,
+          entityType,
+          req.pageSize,
+          req.pageNo
+        );
+
+        return resolve({
+           message: solutions.message,
+           result: solutions.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+    /**
+  * @api {get} /assessment/api/v1/observationSubmissions/entities
+  * @apiVersion 1.0.0
+  * @apiName Get entities from observation Submissions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/entities
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Entities fetched successfully.",
+    "status": 200,
+    "result": {
+        "_id": "601111552d0bbd2f0c3229c4",
+        "entities": [
+            {
+                "_id": "5fd098e2e049735a86b748af",
+                "externalId": "D_AP-D004",
+                "name": "EAST GODAVARI",
+                "submissionsCount": 2
+            }
+        ],
+        "count": 1,
+        "solutionName": "AP-TEST-PROGRAM-3.6.5-OBS-IMP-PROJECT-2-DEO",
+        "isRubricDriven": true,
+        "scoringSystem": "pointsBasedScoring",
+        "entityType": "district",
+        "allowMultipleAssessemts": false
+    }
+}
+  */
+   /**
+   * Get entities from observation Submissions
+   * @method
+   * @name entities
+   * @returns {JSON} list of entities.
+   */
+  async entities(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        let result = await observationSubmissionsHelper.entities
+        (
+            req.params._id,
+            req.userDetails.userId,
+            req.pageSize,
+            req.pageNo
+        );
+
+        return resolve({
+           message: result.message,
+           result: result.data
         });
 
       } catch (error) {

@@ -13,6 +13,8 @@ const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications")
 const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 
 /**
     * ObservationSubmissionsHelper
@@ -739,7 +741,255 @@ module.exports = class ObservationSubmissionsHelper {
                 })
             }
         })
+    }
+    
+    
+    /**
+    * Get observation submission solutions.
+    * @method
+    * @name solutions
+    * @param {String} userId - logged in userId
+    * @param {String} pageSize - page size
+    * @param {String} pageNo - page number
+    * @param {String} search - search key
+    * @returns {Json} - returns solutions, entityTypes.
+    */
+
+    static solutions(bodyData, userId = "", entityType = "", pageSize, pageNo) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                if (userId == "") {
+                    throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+                }
+
+                let matchQuery = {
+                    $match: {
+                        createdBy: userId,
+                        deleted: false,
+                        status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                        "currentRoleInformation.role" : bodyData.role
+                    }
+                };
+               
+                if (entityType !== "") {
+                    matchQuery["$match"]["entityType"] = entityType;
+                }
+
+                let projection = {
+                    "solutionId": 1,
+                    "programId": 1,
+                    "_id": 0,
+                    "entityType": 1
+                }
+
+                let aggregateData = [];
+                aggregateData.push(matchQuery);
+
+                aggregateData.push(
+                    {
+                        $project: projection
+                    },
+                    { $sort: { createdAt: -1 } });
+
+                let submissionDocuments = await database.models.observationSubmissions.aggregate(aggregateData);
+                
+                if (submissionDocuments.length == 0) {
+                    throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+                }
+
+                let uniqueSolutions = {};
+                let entityTypes = [];
+
+                let solutions = submissionDocuments.filter(obj => !uniqueSolutions[obj.solutionId] && (uniqueSolutions[obj.solutionId] = true));
+                
+                let count = solutions.length;
+                
+                let startIndex = pageSize * (pageNo - 1);
+                let endIndex = startIndex + pageSize;
+                let submissionSolutions = solutions.slice(startIndex, endIndex)
+               
+                let solutionMap = {};
+
+                submissionSolutions.forEach(solution => {
+                    solutionMap[solution.solutionId] = solution;
+
+                    if (!entityTypes.includes(solution.entityType)) {
+                        entityTypes.push(solution.entityType);
+                    }
+                })
+
+                let solutionDocuments = [];
+
+                if (Object.keys(solutionMap).length > 0) {
+                    solutionDocuments = await solutionHelper.solutionDocuments
+                        ({
+                            _id: { $in: Object.keys(solutionMap) }
+                        },
+                            [ "name",
+                              "programName"
+                            ]
+                        )
+
+                        solutionDocuments.forEach(solution => {
+                        if (solutionMap[solution._id]) {
+                            solutionMap[solution._id]["name"] = solution.name;
+                            solutionMap[solution._id]["programName"] = solution.programName;
+                        }
+                    })
+                }
+
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.SOLUTION_FETCHED,
+                    data: {
+                        data: Object.values(solutionMap),
+                        entityType: entityTypes,
+                        count: count
+                    }
+                });
+            }
+            catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                })
+            }
+        })
     }   
+
+
+     /**
+    * Get entities from observation submissions.
+    * @method
+    * @name entities
+    * @param {String} solutionId - solutionId
+    * @param {String} userId - logged in userId
+    * @returns {Json} - returns entities.
+    */
+
+   static entities(solutionId = "", userId = "", pageSize, pageNo) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            if (solutionId == "") {
+                throw new Error(messageConstants.apiResponses.SOLUTION_ID_REQUIRED)
+            }
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+           
+            let submissionDocuments = await this.observationSubmissionsDocument
+            ( {
+                createdBy : userId,
+                deleted : false,
+                status : messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                solutionId : solutionId
+            },
+              [
+                  "entityId",
+                  "observationId"
+              ]
+            )
+           
+            if (!submissionDocuments.length) {
+                throw new Error(messageConstants.apiResponses.ENTITY_NOT_FOUND)
+            }
+
+            let uniqueEntity = {};
+            let uniqueEntities = submissionDocuments.filter(obj => !uniqueEntity[obj.entityId] && (uniqueEntity[obj.entityId] = true));
+            
+            let count = uniqueEntities.length;
+                
+            let startIndex = pageSize * (pageNo - 1);
+            let endIndex = startIndex + pageSize;
+            uniqueEntities = uniqueEntities.slice(startIndex, endIndex)
+               
+            let entityIds = [];
+
+            uniqueEntities.forEach( entity => {
+                entityIds.push(entity.entityId);
+            })
+            
+            let entitiesData = await entitiesHelper.entityDocuments({
+                _id : { $in : entityIds }
+            },["metaInformation.externalId","metaInformation.name"]);
+           
+            if( !entitiesData.length > 0 ) {
+                throw {
+                    message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                }
+            }
+
+            let entities = [];
+
+            for ( 
+                let pointerToEntities = 0; 
+                pointerToEntities < entitiesData.length;
+                pointerToEntities++
+            ) {
+
+                let currentEntities = entitiesData[pointerToEntities];
+                
+                let observationSubmissions = await this.observationSubmissionsDocument({
+                    observationId : submissionDocuments[0].observationId,
+                    entityId : currentEntities._id
+                },["_id"]);
+                
+                let entity = {
+                    _id : currentEntities._id,
+                    externalId : currentEntities.metaInformation.externalId,
+                    name : currentEntities.metaInformation.name,
+                    submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
+                };
+
+                entities.push(entity);
+            }
+
+            let result = {
+                _id: submissionDocuments[0].observationId,
+                entities: entities,
+                count: count
+            }
+
+            let solutionData = await solutionHelper.solutionDocuments
+            ({
+                    _id : solutionId
+                },[
+                    "name",
+                    "allowMultipleAssessemts",
+                    "isRubricDriven",
+                    "scoringSystem",
+                    "entityType"
+                ]
+            )
+
+            if (solutionData.length > 0) {
+                delete solutionData[0]._id;
+                result.solutionName = solutionData[0].name;
+                result.isRubricDriven = solutionData[0].isRubricDriven;
+                result.scoringSystem = solutionData[0].scoringSystem;
+                result.entityType = solutionData[0].entityType;
+                result.allowMultipleAssessemts = solutionData[0].allowMultipleAssessemts;
+            }
+            
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.ENTITIES_FETCHED,
+                data: result
+            });
+        }
+  
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            })
+        }
+    })
+}   
 
 };
 

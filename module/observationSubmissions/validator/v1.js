@@ -38,6 +38,15 @@ module.exports = (req) => {
         status: function () {
             req.checkParams('_id').exists().withMessage("required submission id")
             .isMongoId().withMessage("Invalid submission id");
+        },
+
+        solutions: function () {
+            req.checkBody('role').exists().withMessage("request body required");
+        },
+        
+        entities: function () {
+            req.checkParams('_id').exists().withMessage("required solution id")
+            .isMongoId().withMessage("Invalid solution id");
         }
     }
 
