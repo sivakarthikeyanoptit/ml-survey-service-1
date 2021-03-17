@@ -43,7 +43,8 @@ module.exports = {
         type : Boolean
       },
       surveyInformation: Object,
-      appInformation : Object
+      appInformation : Object,
+      currentRoleInformation: Object
     }
   };
 
