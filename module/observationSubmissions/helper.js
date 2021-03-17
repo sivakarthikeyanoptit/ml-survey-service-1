@@ -13,6 +13,8 @@ const emailClient = require(ROOT_PATH + "/generics/helpers/emailCommunications")
 const scoringHelper = require(MODULES_BASE_PATH + "/scoring/helper")
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper")
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper")
+const entitiesHelper = require(MODULES_BASE_PATH + "/entities/helper")
+const solutionHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 
 /**
     * ObservationSubmissionsHelper
@@ -739,7 +741,189 @@ module.exports = class ObservationSubmissionsHelper {
                 })
             }
         })
-    }   
+    } 
+    
+    
+     /**
+    * Get observation submission solutions.
+    * @method
+    * @name solutionList
+    * @param {String} userId - logged in userId
+    * @param {String} pageSize - page size
+    * @param {String} pageNo - page number
+    * @param {String} search - search key
+    * @returns {Json} - returns solutions, entityTypes.
+    */
+
+   static solutionList(bodyData, userId = "", entityType = "", pageSize, pageNo) {
+    return new Promise(async (resolve, reject) => {
+        try {
+
+            if (userId == "") {
+                throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
+            }
+             
+            let matchQuery = {
+                $match: {
+                    createdBy: userId,
+                    deleted: false,
+                    status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                    "userRoleInformation.role" : bodyData.role,
+                    submissionNumber: 1
+                }
+            };
+           
+            if (entityType !== "") {
+                matchQuery["$match"]["entityType"] = entityType;
+            }
+
+            let aggregateData = [];
+            aggregateData.push(matchQuery);
+
+            aggregateData.push(
+                { $sort: { "createdAt": -1 }},
+                {
+                 
+                  $group : {
+                      _id : "$solutionId",
+                      "submissions" : {"$push" : {
+                                            solutionId: "$solutionId",
+                                            programId: "$programId",
+                                            observationId: "$observationId",
+                                            entityId: "$entityId",
+                                            scoringSystem: "$scoringSystem",
+                                            isRubricDriven: "$isRubricDriven",
+                                            entityType: "$entityType"
+                                        }}
+                   }
+                },{
+                    $facet: {
+                        "totalCount": [
+                            { "$count": "count" }
+                        ],
+                        "data": [
+                            { $skip: pageSize * (pageNo - 1) },
+                            { $limit: pageSize }
+                        ],
+                    }
+                }, {
+                    $project: {
+                        "data": 1,
+                        "count": {
+                            $arrayElemAt: ["$totalCount.count", 0]
+                        }
+                    }
+                }
+                );
+
+            let submissionDocuments = await database.models.observationSubmissions.aggregate(aggregateData);
+           
+            if (submissionDocuments[0].data.length == 0) {
+                throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+            }
+
+            let entityIds = [];
+            let entityTypes = [];
+            let solutionIds = [];
+            let submissionSolutions = [];
+
+            submissionDocuments[0].data.forEach(submission => {
+                submissionSolutions = [...submissionSolutions, ...submission.submissions];
+                submission.submissions.forEach(submissionData => {
+
+                    entityIds.push(submissionData.entityId);
+                    solutionIds.push(submissionData.solutionId);
+                    if (!entityTypes.includes(submissionData.entityType)) {
+                        entityTypes.push(submissionData.entityType);
+                    }
+                });
+            });
+
+            submissionSolutions = _.groupBy(submissionSolutions, "solutionId");
+
+            let entitiesData = await entitiesHelper.entityDocuments({
+                _id: { $in: entityIds }
+            }, ["metaInformation.externalId", "metaInformation.name"]);
+
+            if (!entitiesData.length > 0) {
+                throw {
+                    message: messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                }
+            }
+
+            let entities = {};
+
+            for ( 
+                let pointerToEntities = 0; 
+                pointerToEntities < entitiesData.length;
+                pointerToEntities++
+            ) {
+
+                let currentEntities = entitiesData[pointerToEntities];
+                
+                let entity = {
+                    _id : currentEntities._id,
+                    externalId : currentEntities.metaInformation.externalId,
+                    name : currentEntities.metaInformation.name
+                };
+
+                entities[currentEntities._id] = entity;
+            }
+
+            let solutionDocuments = await solutionHelper.solutionDocuments
+            ({
+                 _id: { $in: solutionIds }
+            },
+                ["name",
+                 "programName"
+                ]
+            )
+
+            let solutionMap = {};
+            solutionDocuments.forEach(solution => {
+                solutionMap[solution._id] = solution;
+            })
+
+            let data = [];
+           
+            Object.keys(submissionSolutions).forEach(solution => {
+                let solutionObject = submissionSolutions[solution][0];
+               
+                solutionObject.entities = [];
+               
+                submissionSolutions[solution].forEach( singleSubmission => {
+                    if (entities[singleSubmission.entityId]) {
+                        solutionObject.entities.push(entities[singleSubmission.entityId]);
+                    }
+                    if (solutionMap[singleSubmission.solutionId]) {
+                        solutionObject.programName = solutionMap[singleSubmission.solutionId]["programName"];
+                        solutionObject.name = solutionMap[singleSubmission.solutionId]["name"];
+                    }
+                })
+                delete solutionObject.entityId;
+                data.push(solutionObject);
+            })
+           
+            return resolve({
+                success: true,
+                message: messageConstants.apiResponses.SOLUTION_FETCHED,
+                data: {
+                    data: data,
+                    entityType: entityTypes,
+                    count: submissionDocuments[0].count
+                }
+            });
+        }
+        catch (error) {
+            return resolve({
+                success: false,
+                message: error.message,
+                data: false
+            })
+        }
+    })
+}   
+
 
 };
 

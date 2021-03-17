@@ -693,7 +693,7 @@ module.exports = class SurveysHelper {
      * @returns {JSON} - returns survey solution,program and question details.
      */
 
-    static getDetailsByLink(link= "", userId= "", token= "") {
+    static getDetailsByLink(link= "", userId= "", token= "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -799,7 +799,8 @@ module.exports = class SurveysHelper {
                 (
                     surveyId,
                     userId,
-                    validateSurvey.data.submissionId
+                    validateSurvey.data.submissionId,
+                    roleInformation
                 )
 
                 if (!surveyDetails.success) {
@@ -833,7 +834,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "", submissionId = "") {
+    static details(surveyId = "", userId= "", submissionId = "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1028,7 +1029,8 @@ module.exports = class SurveysHelper {
                         surveyInformation: {
                             ..._.omit(surveyDocument, ["_id", "deleted", "__v"])
                         },
-                        isAPrivateProgram: surveyDocument.isAPrivateProgram
+                        isAPrivateProgram: surveyDocument.isAPrivateProgram,
+                        userRoleInformation: roleInformation
                     };
                     submissionDocument.surveyInformation.startDate = new Date();
 
@@ -1556,7 +1558,8 @@ module.exports = class SurveysHelper {
             (
                 surveyId,
                 userId,
-                validateSurvey.data.submissionId
+                validateSurvey.data.submissionId,
+                bodyData
             )
 
             if (!surveyDetails.success) {

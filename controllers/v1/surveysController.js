@@ -387,12 +387,19 @@ module.exports = class Surveys extends Abstract {
 
 
      /**
-     * @api {get} /assessment/api/v1/surveys/getDetailsByLink/:link Get the survey details by link
+     * @api {post} /assessment/api/v1/surveys/getDetailsByLink/:link Get the survey details by link
      * @apiVersion 1.0.0
      * @apiName Get the survey details by link
      * @apiGroup Surveys
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/surveys/getDetailsByLink/392f95246771664a81335f1be7d109f3
+     * @apiParamExample {json} Request:
+     * {
+     *  "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+      }
      * @apiParamExample {json} Response:
      * {
      *  "status": 200,
@@ -583,10 +590,13 @@ module.exports = class Surveys extends Abstract {
 
         try {
 
+            let bodyData = req.body ? req.body : {};
+
             let surveyDetails = await surveysHelper.getDetailsByLink(
                 req.params._id,
                 req.userDetails.userId,
-                req.rspObj.userToken
+                req.rspObj.userToken,
+                bodyData
             );
 
             return resolve({

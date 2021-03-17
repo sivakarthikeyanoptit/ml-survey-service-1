@@ -288,7 +288,7 @@ module.exports = class Observations extends v1Observation {
     }
 
     /**
-     * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
+     * @api {post} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
      * @apiVersion 2.0.0
      * @apiName Assessments
      * @apiGroup Observations
@@ -296,6 +296,13 @@ module.exports = class Observations extends v1Observation {
      * @apiParam {String} entityId Entity ID.
      * @apiParam {Int} submissionNumber Submission Number.
      * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
+     * @apiParamExample {json} Request:
+     * {
+     *  "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+     }
      * @apiParamExample {json} Response:
      * {
         "evidences": [
@@ -656,6 +663,10 @@ module.exports = class Observations extends v1Observation {
                     entityProfile: {},
                     status: "started"
                 };
+
+                if (req.body && req.body.role) {
+                    submissionDocument.userRoleInformation = req.body;
+                }
 
                  if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
         submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
