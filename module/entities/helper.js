@@ -5,9 +5,6 @@
  * Description : All Entities related information.
  */
 
-const { promises } = require("fs");
-const apiResponses = require("../../generics/messageConstants/apiResponses");
-
 // Dependencies
 const entityTypesHelper = require(MODULES_BASE_PATH + "/entityTypes/helper");
 const elasticSearch = require(ROOT_PATH + "/generics/helpers/elasticSearch");
@@ -1864,6 +1861,39 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
             });
         }
     })
+  }
+
+   /**
+   * Observation entiites search response data.
+   * @method
+   * @name observationSearchEntitiesResponse
+   * @param {Array} entities - entities data.
+   * @param {Array} observationEntityIds - List of entities in observation.
+   * @returns {Object} entity Document
+   */
+
+  static observationSearchEntitiesResponse(entities,observationEntityIds) {
+
+    let observationEntities = [];
+    
+    if ( observationEntityIds && observationEntityIds.length > 0 ) {
+        observationEntities = observationEntityIds.map(entity => entity);
+    }
+
+    if( entities.length > 0 ) {
+        entities.forEach(eachMetaData => {
+            eachMetaData.selected = (observationEntities.length > 0 && observationEntities.includes(eachMetaData._id.toString())) ? true : false;
+            if(eachMetaData.districtName && eachMetaData.districtName != "") {
+                eachMetaData.name += ", "+eachMetaData.districtName;
+            }
+    
+            if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
+                eachMetaData.name += ", "+eachMetaData.externalId;
+            }
+        })
+    }
+
+    return entities;
   }
 
 };
