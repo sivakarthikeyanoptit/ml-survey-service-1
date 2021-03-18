@@ -38,6 +38,13 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiParam {String} entityId Entity ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/create/5d2c1c57037306041ef0c7ea?entityId=5d2c1c57037306041ef0c8fa
+  * @apiParamExample {json} Request:
+  * {
+  *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
   * @apiParamExample {json} Response:
   * "result": [
         {
@@ -207,6 +214,10 @@ module.exports = class ObservationSubmissions extends Abstract {
           scoringSystem: solutionDocument.scoringSystem,
           isRubricDriven: solutionDocument.isRubricDriven
       };
+       
+      if (req.body && req.body.role) {
+        submissionDocument.userRoleInformation = req.body;
+      }
 
       if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
         submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
@@ -1316,6 +1327,94 @@ module.exports = class ObservationSubmissions extends Abstract {
         return resolve({
            message: submissionDocument.message,
            result: submissionDocument.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+
+    /**
+  * @api {post} /assessment/api/v1/observationSubmissions/solutionList
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission solutions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/solutionList
+  * @apiParamExample {json} Request:
+  * {
+  *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Solutions fetched successfully",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "solutionId": "600b21c57ea68a7ed9278873",
+                "programId": "600ab53cc7de076e6f993724",
+                "observationId": "60113bcf2d0bbd2f0c3229dc",
+                "scoringSystem": null,
+                "isRubricDriven": false,
+                "entityType": "district",
+                "entities": [
+                    {
+                        "_id": "5fd098e2e049735a86b748b7",
+                        "externalId": "D_AP-D012",
+                        "name": "ANANTAPUR"
+                    },
+                    {
+                        "_id": "5fd098e2e049735a86b748b2",
+                        "externalId": "D_AP-D007",
+                        "name": "GUNTUR"
+                    }
+                ],
+                "programName": "AP-TEST-PROGRAM-3.6.5",
+                "name": "AP-TEST-PROGRAM-3.6.5-OBS-IMP-PROJECT-2-DEO"
+            }
+        ],
+        "entityType": [
+            "district"
+        ],
+        "count": 1
+    }
+}
+  */
+   /**
+   * Get observation submission solutions
+   * @method
+   * @name solutionList
+   * @returns {JSON} consists of solutions, count and entityTypes.
+   */
+  async solutionList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let entityType =  req.query.entityType ? req.query.entityType : "";
+        
+        let solutions = await observationSubmissionsHelper.solutionList
+        (
+          req.body,
+          req.userDetails.userId,
+          entityType,
+          req.pageSize,
+          req.pageNo
+        );
+
+        return resolve({
+           message: solutions.message,
+           result: solutions.data
         });
 
       } catch (error) {
