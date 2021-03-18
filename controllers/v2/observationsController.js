@@ -112,36 +112,89 @@ module.exports = class Observations extends v1Observation {
                 //     userAllowedEntities = [];
                 // }
 
+                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
+
                 if( !(userAllowedEntities.length > 0) && req.query.parentEntityId ) {
 
                     let entityType = entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP+"."+result.entityType;
 
                     let entitiesData = await entitiesHelper.entityDocuments({
-                        _id:req.query.parentEntityId,
-                        [entityType] : { $exists : true }
+                        _id:req.query.parentEntityId
                       }, [
-                        entityType
+                        entityType,
+                        "entityType",
+                        "metaInformation.name",
+                        "metaInformation.addressLine1",
+                        "metaInformation.addressLine2",
+                        "metaInformation.externalId",
+                        "metaInformation.districtName"
                       ]);
 
-                    if( entitiesData.length > 0 ) {
+                    if( entitiesData.length > 0 && entitiesData[0].groups && entitiesData[0].groups[result.entityType]  ) {
                         userAllowedEntities = 
                         entitiesData[0][entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP][result.entityType];
                     } else {
-                        response["message"] = 
-                        messageConstants.apiResponses.ENTITY_NOT_FOUND;
 
                         response.result = [];
-                        response.result.push({
-                            "count":0,
-                            "data" : []
-                        });  
+                        if( entitiesData[0] && entitiesData[0].entityType === result.entityType ) {
+
+                            if( entitiesData[0].metaInformation ) {
+                                
+                                if( entitiesData[0].metaInformation.name ) {
+                                    entitiesData[0]["name"] = entitiesData[0].metaInformation.name;
+                                }
+
+                                if( entitiesData[0].metaInformation.externalId ) {
+                                    entitiesData[0]["externalId"] = entitiesData[0].metaInformation.externalId;
+                                }
+
+                                if( entitiesData[0].metaInformation.addressLine1 ) {
+                                    entitiesData[0]["addressLine1"] = entitiesData[0].metaInformation.addressLine1;
+                                }
+
+                                if( entitiesData[0].metaInformation.addressLine2 ) {
+                                    entitiesData[0]["addressLine2"] = entitiesData[0].metaInformation.addressLine2;
+                                }
+
+                                if( entitiesData[0].metaInformation.districtName ) {
+                                    entitiesData[0]["districtName"] = entitiesData[0].metaInformation.districtName;
+                                }
+
+                                entitiesData[0] = _.pick(
+                                    entitiesData[0],
+                                    ["_id","name","externalId","addressLine1","addressLine2","districtName"]
+                                )
+                            }
+
+                            let data = 
+                            await entitiesHelper.observationSearchEntitiesResponse(
+                                entitiesData,
+                                result.entities
+                            );
+
+                            response["message"] = messageData;
+
+                            response.result.push({
+                                "count" : 1,
+                                "data" : data
+                            });
+
+                        } else {
+                            response["message"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            
+                            response.result.push({
+                                "count":0,
+                                "data" : []
+                            });
+                        }  
 
                         return resolve(response);
                     }
                 }
 
                 let userAclInformation = await userExtensionHelper.userAccessControlList(
-                    req.userDetails.userId
+                    userId
                 );
 
                 let tags = [];
@@ -165,25 +218,16 @@ module.exports = class Observations extends v1Observation {
                     userAllowedEntities : 
                     false,
                     tags
-                    );
+                );
 
-                let observationEntityIds = new Array;
-                if ( result.entities && result.entities.length > 0 ) {
-                    observationEntityIds = result.entities.map(entity => entity.toString());
-                }
+                let data = 
+                await entitiesHelper.observationSearchEntitiesResponse(
+                    entityDocuments[0].data,
+                    result.entities
+                )
 
-                entityDocuments[0].data.forEach(eachMetaData => {
-                    eachMetaData.selected = (observationEntityIds.length > 0 && observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
-                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
-                        eachMetaData.name += ", "+eachMetaData.districtName;
-                    }
+                entityDocuments[0].data = data;
 
-                    if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
-                        eachMetaData.name += ", "+eachMetaData.externalId;
-                    }
-                })
-
-                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if ( !(entityDocuments[0].count) ) {
                     entityDocuments[0].count = 0;
                     messageData = messageConstants.apiResponses.ENTITY_NOT_FOUND;
