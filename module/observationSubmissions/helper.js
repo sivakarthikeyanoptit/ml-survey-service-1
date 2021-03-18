@@ -762,15 +762,35 @@ module.exports = class ObservationSubmissionsHelper {
             if (userId == "") {
                 throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
             }
+
+            let query = {
+                createdBy: userId,
+                deleted: false,
+                status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                "userRoleInformation.role" : bodyData.role,
+                submissionNumber: 1
+            }
+
+            let submissions = await this.observationSubmissionsDocument
+            (
+               query,
+               ["entityType"]
+            )
+
+            if (submissions.length == 0) {
+                throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
+            }
+
+            let entityTypes = [];
+
+            submissions.forEach( submission => {
+                if (!entityTypes.includes(submission.entityType)) {
+                    entityTypes.push(submission.entityType);
+                }
+            })
              
             let matchQuery = {
-                $match: {
-                    createdBy: userId,
-                    deleted: false,
-                    status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
-                    "userRoleInformation.role" : bodyData.role,
-                    submissionNumber: 1
-                }
+                $match: query
             };
            
             if (entityType !== "") {
@@ -823,7 +843,6 @@ module.exports = class ObservationSubmissionsHelper {
             }
 
             let entityIds = [];
-            let entityTypes = [];
             let solutionIds = [];
             let submissionSolutions = [];
 
@@ -833,9 +852,6 @@ module.exports = class ObservationSubmissionsHelper {
 
                     entityIds.push(submissionData.entityId);
                     solutionIds.push(submissionData.solutionId);
-                    if (!entityTypes.includes(submissionData.entityType)) {
-                        entityTypes.push(submissionData.entityType);
-                    }
                 });
             });
 
