@@ -1877,7 +1877,7 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
     let observationEntities = [];
     
     if ( observationEntityIds && observationEntityIds.length > 0 ) {
-        observationEntities = observationEntityIds.map(entity => entity);
+        observationEntities = observationEntityIds.map(entity => entity.toString());
     }
 
     if( entities.length > 0 ) {
