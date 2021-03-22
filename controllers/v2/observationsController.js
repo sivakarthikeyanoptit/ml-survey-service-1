@@ -13,6 +13,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController");
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * Observations
@@ -709,6 +710,16 @@ module.exports = class Observations extends v1Observation {
                 };
 
                 if (req.body && req.body.role) {
+                    
+                    let roleDocument = await userRolesHelper.list
+                    ( { code : req.body.role },
+                      [ "_id"]
+                    )
+
+                    if (roleDocument[0]._id) {
+                        req.body.roleId = roleDocument[0]._id; 
+                    }
+
                     submissionDocument.userRoleInformation = req.body;
                 }
 

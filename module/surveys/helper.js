@@ -20,6 +20,7 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * SurveysHelper
@@ -1029,10 +1030,23 @@ module.exports = class SurveysHelper {
                         surveyInformation: {
                             ..._.omit(surveyDocument, ["_id", "deleted", "__v"])
                         },
-                        isAPrivateProgram: surveyDocument.isAPrivateProgram,
-                        userRoleInformation: roleInformation
+                        isAPrivateProgram: surveyDocument.isAPrivateProgram
                     };
                     submissionDocument.surveyInformation.startDate = new Date();
+
+                    if (Object.keys(roleInformation).length > 0 && roleInformation.role) {
+                    
+                        let roleDocument = await userRolesHelper.list
+                        ( { code : roleInformation.role },
+                          [ "_id"]
+                        )
+
+                        if (roleDocument.length > 0) {
+                            roleInformation.roleId = roleDocument[0]._id; 
+                        }
+    
+                        submissionDocument.userRoleInformation = roleInformation;
+                    }
 
                     if (programDocument.length > 0) {
                         submissionDocument.programId = programDocument[0]._id;
