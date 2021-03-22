@@ -762,84 +762,63 @@ module.exports = class ObservationSubmissionsHelper {
             if (userId == "") {
                 throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
             }
-             
-            let matchQuery = {
-                $match: {
-                    createdBy: userId,
-                    deleted: false,
-                    status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
-                    "userRoleInformation.role" : bodyData.role,
-                    submissionNumber: 1
-                }
-            };
-           
-            if (entityType !== "") {
-                matchQuery["$match"]["entityType"] = entityType;
+            
+            let query = {
+                createdBy: userId,
+                deleted: false,
+                status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
+                "userRoleInformation.role" : bodyData.role,
+                submissionNumber: 1
             }
 
-            let aggregateData = [];
-            aggregateData.push(matchQuery);
+            if (entityType !== "") {
+                query["entityType"] = entityType;
+            }
 
-            aggregateData.push(
-                { $sort: { "createdAt": -1 }},
-                {
-                 
-                  $group : {
-                      _id : "$solutionId",
-                      "submissions" : {"$push" : {
-                                            solutionId: "$solutionId",
-                                            programId: "$programId",
-                                            observationId: "$observationId",
-                                            entityId: "$entityId",
-                                            scoringSystem: "$scoringSystem",
-                                            isRubricDriven: "$isRubricDriven",
-                                            entityType: "$entityType"
-                                        }}
-                   }
-                },{
-                    $facet: {
-                        "totalCount": [
-                            { "$count": "count" }
-                        ],
-                        "data": [
-                            { $skip: pageSize * (pageNo - 1) },
-                            { $limit: pageSize }
-                        ],
-                    }
-                }, {
-                    $project: {
-                        "data": 1,
-                        "count": {
-                            $arrayElemAt: ["$totalCount.count", 0]
-                        }
-                    }
-                }
-                );
+            let submissions = await this.observationSubmissionsDocument
+            (
+               query,
+               [
+                "solutionId",
+                "programId",
+                "observationId",
+                "entityId",
+                "scoringSystem",
+                "isRubricDriven",
+                "entityType"
+               ],
+               { "createdAt": -1 }
+            )
 
-            let submissionDocuments = await database.models.observationSubmissions.aggregate(aggregateData);
-           
-            if (submissionDocuments[0].data.length == 0) {
+            if (submissions.length == 0) {
                 throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
             }
 
-            let entityIds = [];
             let entityTypes = [];
+
+            submissions.forEach( submission => {
+                if (!entityTypes.includes(submission.entityType)) {
+                    entityTypes.push(submission.entityType);
+                }
+            })
+
+            submissions = _.groupBy( submissions, "solutionId");
+            
+            let count = Object.keys(submissions).length;
+
+            let startIndex = pageSize * (pageNo - 1);
+            let endIndex = startIndex + pageSize;
+            let submissionDocuments = Object.keys(submissions).slice(startIndex,endIndex) 
+           
+            let entityIds = [];
             let solutionIds = [];
-            let submissionSolutions = [];
 
-            submissionDocuments[0].data.forEach(submission => {
-                submissionSolutions = [...submissionSolutions, ...submission.submissions];
-                submission.submissions.forEach(submissionData => {
-
+            submissionDocuments.forEach(submission => {
+                submissions[submission].forEach(submissionData => {
                     entityIds.push(submissionData.entityId);
                     solutionIds.push(submissionData.solutionId);
-                    if (!entityTypes.includes(submissionData.entityType)) {
-                        entityTypes.push(submissionData.entityType);
-                    }
                 });
             });
-
-            submissionSolutions = _.groupBy(submissionSolutions, "solutionId");
 
             let entitiesData = await entitiesHelper.entityDocuments({
                 _id: { $in: entityIds }
@@ -886,12 +865,12 @@ module.exports = class ObservationSubmissionsHelper {
 
             let data = [];
            
-            Object.keys(submissionSolutions).forEach(solution => {
-                let solutionObject = submissionSolutions[solution][0];
+            submissionDocuments.forEach(solution => {
+                let solutionObject = submissions[solution][0];
                
                 solutionObject.entities = [];
                
-                submissionSolutions[solution].forEach( singleSubmission => {
+                submissions[solution].forEach( singleSubmission => {
                     if (entities[singleSubmission.entityId]) {
                         solutionObject.entities.push(entities[singleSubmission.entityId]);
                     }
@@ -901,6 +880,7 @@ module.exports = class ObservationSubmissionsHelper {
                     }
                 })
                 delete solutionObject.entityId;
+                delete solutionObject._id;
                 data.push(solutionObject);
             })
            
@@ -910,7 +890,7 @@ module.exports = class ObservationSubmissionsHelper {
                 data: {
                     data: data,
                     entityType: entityTypes,
-                    count: submissionDocuments[0].count
+                    count: count
                 }
             });
         }
