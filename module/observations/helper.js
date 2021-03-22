@@ -1604,8 +1604,10 @@ module.exports = class ObservationsHelper {
 
                 if ( filter && filter !== "" ) {
                     if( filter === messageConstants.common.CREATED_BY_ME ) {
-                        matchQuery["$match"]["isAPrivateProgram"] = true;
-                    } else {
+                        matchQuery["$match"]["isAPrivateProgram"] = {
+                            $ne : false
+                        };
+                    } else if ( filter === messageConstants.common.ASSIGN_TO_ME ) {
                         matchQuery["$match"]["isAPrivateProgram"] = false;
                     }
                 }
