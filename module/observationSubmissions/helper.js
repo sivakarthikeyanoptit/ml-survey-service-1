@@ -263,7 +263,7 @@ module.exports = class ObservationSubmissionsHelper {
 
                 let submissionDocument = await database.models.observationSubmissions.findOne(
                     {_id : ObjectId(submissionId)},
-                    { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1, "programExternalId": 1 }
+                    { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1, "programExternalId": 1, "scoringSystem": 1 }
                 ).lean();
         
                 if (!submissionDocument._id) {
@@ -273,7 +273,7 @@ module.exports = class ObservationSubmissionsHelper {
                 let solutionDocument = await database.models.solutions.findOne({
                     externalId: submissionDocument.solutionExternalId,
                     type : "observation",
-                    scoringSystem : "pointsBasedScoring"
+                    // scoringSystem : "pointsBasedScoring"
                 }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, sendSubmissionRatingEmailsTo : 1}).lean();
 
                 if (!solutionDocument) {
@@ -285,7 +285,7 @@ module.exports = class ObservationSubmissionsHelper {
                 }
 
                 submissionDocument.submissionCollection = "observationSubmissions";
-                submissionDocument.scoringSystem = "pointsBasedScoring";
+                // submissionDocument.scoringSystem = "pointsBasedScoring";
 
                 let allCriteriaInSolution = new Array;
                 let allQuestionIdInSolution = new Array;
@@ -308,53 +308,56 @@ module.exports = class ObservationSubmissionsHelper {
                     allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
                 }
 
-                if(allQuestionIdInSolution.length > 0) {
+                if (submissionDocument.scoringSystem == "pointsBasedScoring") {
 
-                    solutionQuestions = await questionsHelper.questionDocument({
-                        _id : {
-                        $in : allQuestionIdInSolution
-                        },
-                        responseType : {
-                        $in : [
-                            "radio",
-                            "multiselect",
-                            "slider"
-                        ]
-                        }
-                    }, [
-                        "weightage",
-                        "options",
-                        "sliderOptions",
-                        "responseType"
-                    ]);
+                    if (allQuestionIdInSolution.length > 0) {
 
-                }
+                        solutionQuestions = await questionsHelper.questionDocument({
+                            _id: {
+                                $in: allQuestionIdInSolution
+                            },
+                            responseType: {
+                                $in: [
+                                    "radio",
+                                    "multiselect",
+                                    "slider"
+                                ]
+                            }
+                        }, [
+                                "weightage",
+                                "options",
+                                "sliderOptions",
+                                "responseType"
+                            ]);
 
-                if(solutionQuestions.length > 0) {
-                submissionDocument.questionDocuments = {};
-                solutionQuestions.forEach(question => {
-                    submissionDocument.questionDocuments[question._id.toString()] = {
-                    _id : question._id,
-                    weightage : question.weightage
-                    };
-                    let questionMaxScore = 0;
-                    if(question.options && question.options.length > 0) {
-                    if(question.responseType != "multiselect") {
-                        questionMaxScore = _.maxBy(question.options, 'score').score;
                     }
-                    question.options.forEach(option => {
-                        if(question.responseType == "multiselect") {
-                        questionMaxScore += option.score;
-                        }
-                        (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : "";
-                    })
+
+                    if (solutionQuestions.length > 0) {
+                        submissionDocument.questionDocuments = {};
+                        solutionQuestions.forEach(question => {
+                            submissionDocument.questionDocuments[question._id.toString()] = {
+                                _id: question._id,
+                                weightage: question.weightage
+                            };
+                            let questionMaxScore = 0;
+                            if (question.options && question.options.length > 0) {
+                                if (question.responseType != "multiselect") {
+                                    questionMaxScore = _.maxBy(question.options, 'score').score;
+                                }
+                                question.options.forEach(option => {
+                                    if (question.responseType == "multiselect") {
+                                        questionMaxScore += option.score;
+                                    }
+                                    (option.score && option.score > 0) ? submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] = option.score : "";
+                                })
+                            }
+                            if (question.sliderOptions && question.sliderOptions.length > 0) {
+                                questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+                                submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
+                            }
+                            submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
+                        })
                     }
-                    if(question.sliderOptions && question.sliderOptions.length > 0) {
-                    questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
-                    submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
-                    }
-                    submissionDocument.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
-                })
                 }
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
