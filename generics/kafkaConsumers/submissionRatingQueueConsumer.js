@@ -7,7 +7,7 @@ var messageReceived = function (message) {
 
     try {
         console.log("############################ OBSERVATION SUBMISSIONS HELPER ####################")
-        console.log("observationSubmissionsHelper");
+        console.log(observationSubmissionsHelper);
         let parsedMessage = JSON.parse(message.value)
       
         // Parsed Message Strucutre
