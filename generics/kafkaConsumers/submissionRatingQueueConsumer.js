@@ -16,8 +16,10 @@ var messageReceived = function (message) {
         //     submissionId : observationSubmissionId
         //   }
         console.log("############################ AUTO RATING LOGS STARTS ############################")
-        console.log(parsedMessage)
+        console.log(parsedMessage);
         console.log("############################ AUTO RATING LOGS ENDS ############################")
+        console.log("############## SUBMISSION MODEL ############################")
+        console.log(parsedMessage.submissionModel)
         if(parsedMessage.submissionModel == "observationSubmissions") {
             console.log("###################### coming inside observationSubmissions ###########");
             const observationSubmissionRatingResponse = await observationSubmissionsHelper.rateSubmissionById(parsedMessage.submissionId)
