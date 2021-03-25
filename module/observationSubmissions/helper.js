@@ -256,8 +256,7 @@ module.exports = class ObservationSubmissionsHelper {
             let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
 
             try {
-                console.log("############################ AUTO RATING LOGS STARTS ############################")
-                console.log(submissionId)
+               
                 if (submissionId == "") {
                     throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
                 }
@@ -363,8 +362,6 @@ module.exports = class ObservationSubmissionsHelper {
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
-                console.log(resultingArray)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.observationSubmissions.updateOne(
                         {
@@ -385,8 +382,6 @@ module.exports = class ObservationSubmissionsHelper {
 
             } catch (error) {
 
-                console.log(error)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
