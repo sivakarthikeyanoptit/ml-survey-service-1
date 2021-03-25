@@ -30,12 +30,12 @@ let db_connect = function(configData) {
   * @param {Object} cassandraConfigurationData  - configuration data for cassandra.
 */
 
-// let cassandra_connect = function (cassandraConfigurationData) {
-//   global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
-//   if( !global.Abstract ){
-//     global.Abstract = require("../generics/abstract");
-//   }
-// };
+let cassandra_connect = function (cassandraConfigurationData) {
+  global.cassandraDatabase = require("./db/cassandra")(cassandraConfigurationData);
+  if( !global.Abstract ){
+    global.Abstract = require("../generics/abstract");
+  }
+};
 
 /**
   * Elastic search configuration.
@@ -117,8 +117,7 @@ db_connect(configuration);
 
 kafka_connect(configuration);
 
-// Commented out temporarily
-// cassandra_connect(configuration.DB_Config.connection.cassandra);
+cassandra_connect(configuration.DB_Config.connection.cassandra);
 
 elasticsearch_connect(configuration.DB_Config.connection.elasticSearch);
 
