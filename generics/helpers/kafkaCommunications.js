@@ -97,7 +97,10 @@ const pushSubmissionToKafkaQueueForRating = function (message) {
 const pushObservationSubmissionToKafkaQueueForRating = function (message) {
   return new Promise(async (resolve, reject) => {
       try {
-
+        console.log("############################ AUTO RATING LOGS STARTS ############################")
+        console.log(submissionRatingQueueKafkaTopic)
+        console.log(message)
+        console.log("############################ AUTO RATING LOGS ENDS ############################")
           let kafkaPushStatus = await pushMessageToKafka([{
             topic: submissionRatingQueueKafkaTopic,
             messages: JSON.stringify(message)

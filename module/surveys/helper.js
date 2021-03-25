@@ -20,6 +20,7 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * SurveysHelper
@@ -693,7 +694,7 @@ module.exports = class SurveysHelper {
      * @returns {JSON} - returns survey solution,program and question details.
      */
 
-    static getDetailsByLink(link= "", userId= "", token= "") {
+    static getDetailsByLink(link= "", userId= "", token= "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -799,7 +800,8 @@ module.exports = class SurveysHelper {
                 (
                     surveyId,
                     userId,
-                    validateSurvey.data.submissionId
+                    validateSurvey.data.submissionId,
+                    roleInformation
                 )
 
                 if (!surveyDetails.success) {
@@ -833,7 +835,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "", submissionId = "") {
+    static details(surveyId = "", userId= "", submissionId = "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1031,6 +1033,20 @@ module.exports = class SurveysHelper {
                         isAPrivateProgram: surveyDocument.isAPrivateProgram
                     };
                     submissionDocument.surveyInformation.startDate = new Date();
+
+                    if (Object.keys(roleInformation).length > 0 && roleInformation.role) {
+                    
+                        let roleDocument = await userRolesHelper.list
+                        ( { code : roleInformation.role },
+                          [ "_id"]
+                        )
+
+                        if (roleDocument.length > 0) {
+                            roleInformation.roleId = roleDocument[0]._id; 
+                        }
+    
+                        submissionDocument.userRoleInformation = roleInformation;
+                    }
 
                     if (programDocument.length > 0) {
                         submissionDocument.programId = programDocument[0]._id;
@@ -1556,7 +1572,8 @@ module.exports = class SurveysHelper {
             (
                 surveyId,
                 userId,
-                validateSurvey.data.submissionId
+                validateSurvey.data.submissionId,
+                bodyData
             )
 
             if (!surveyDetails.success) {

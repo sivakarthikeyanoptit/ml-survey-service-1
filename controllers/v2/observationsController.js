@@ -13,6 +13,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const v1Observation = require(ROOT_PATH + "/controllers/v1/observationsController");
 const assessmentsHelper = require(MODULES_BASE_PATH + "/assessments/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * Observations
@@ -112,36 +113,89 @@ module.exports = class Observations extends v1Observation {
                 //     userAllowedEntities = [];
                 // }
 
+                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
+
                 if( !(userAllowedEntities.length > 0) && req.query.parentEntityId ) {
 
                     let entityType = entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP+"."+result.entityType;
 
                     let entitiesData = await entitiesHelper.entityDocuments({
-                        _id:req.query.parentEntityId,
-                        [entityType] : { $exists : true }
+                        _id:req.query.parentEntityId
                       }, [
-                        entityType
+                        entityType,
+                        "entityType",
+                        "metaInformation.name",
+                        "metaInformation.addressLine1",
+                        "metaInformation.addressLine2",
+                        "metaInformation.externalId",
+                        "metaInformation.districtName"
                       ]);
 
-                    if( entitiesData.length > 0 ) {
+                    if( entitiesData.length > 0 && entitiesData[0].groups && entitiesData[0].groups[result.entityType]  ) {
                         userAllowedEntities = 
                         entitiesData[0][entitiesHelper.entitiesSchemaData().SCHEMA_ENTITY_GROUP][result.entityType];
                     } else {
-                        response["message"] = 
-                        messageConstants.apiResponses.ENTITY_NOT_FOUND;
 
                         response.result = [];
-                        response.result.push({
-                            "count":0,
-                            "data" : []
-                        });  
+                        if( entitiesData[0] && entitiesData[0].entityType === result.entityType ) {
+
+                            if( entitiesData[0].metaInformation ) {
+                                
+                                if( entitiesData[0].metaInformation.name ) {
+                                    entitiesData[0]["name"] = entitiesData[0].metaInformation.name;
+                                }
+
+                                if( entitiesData[0].metaInformation.externalId ) {
+                                    entitiesData[0]["externalId"] = entitiesData[0].metaInformation.externalId;
+                                }
+
+                                if( entitiesData[0].metaInformation.addressLine1 ) {
+                                    entitiesData[0]["addressLine1"] = entitiesData[0].metaInformation.addressLine1;
+                                }
+
+                                if( entitiesData[0].metaInformation.addressLine2 ) {
+                                    entitiesData[0]["addressLine2"] = entitiesData[0].metaInformation.addressLine2;
+                                }
+
+                                if( entitiesData[0].metaInformation.districtName ) {
+                                    entitiesData[0]["districtName"] = entitiesData[0].metaInformation.districtName;
+                                }
+
+                                entitiesData[0] = _.pick(
+                                    entitiesData[0],
+                                    ["_id","name","externalId","addressLine1","addressLine2","districtName"]
+                                )
+                            }
+
+                            let data = 
+                            await entitiesHelper.observationSearchEntitiesResponse(
+                                entitiesData,
+                                result.entities
+                            );
+
+                            response["message"] = messageData;
+
+                            response.result.push({
+                                "count" : 1,
+                                "data" : data
+                            });
+
+                        } else {
+                            response["message"] = 
+                            messageConstants.apiResponses.ENTITY_NOT_FOUND;
+                            
+                            response.result.push({
+                                "count":0,
+                                "data" : []
+                            });
+                        }  
 
                         return resolve(response);
                     }
                 }
 
                 let userAclInformation = await userExtensionHelper.userAccessControlList(
-                    req.userDetails.userId
+                    userId
                 );
 
                 let tags = [];
@@ -165,25 +219,16 @@ module.exports = class Observations extends v1Observation {
                     userAllowedEntities : 
                     false,
                     tags
-                    );
+                );
 
-                let observationEntityIds = new Array;
-                if ( result.entities && result.entities.length > 0 ) {
-                    observationEntityIds = result.entities.map(entity => entity.toString());
-                }
+                let data = 
+                await entitiesHelper.observationSearchEntitiesResponse(
+                    entityDocuments[0].data,
+                    result.entities
+                )
 
-                entityDocuments[0].data.forEach(eachMetaData => {
-                    eachMetaData.selected = (observationEntityIds.length > 0 && observationEntityIds.includes(eachMetaData._id.toString())) ? true : false;
-                    if(eachMetaData.districtName && eachMetaData.districtName != "") {
-                        eachMetaData.name += ", "+eachMetaData.districtName;
-                    }
+                entityDocuments[0].data = data;
 
-                    if( eachMetaData.externalId && eachMetaData.externalId !== "" ) {
-                        eachMetaData.name += ", "+eachMetaData.externalId;
-                    }
-                })
-
-                let messageData = messageConstants.apiResponses.ENTITY_FETCHED;
                 if ( !(entityDocuments[0].count) ) {
                     entityDocuments[0].count = 0;
                     messageData = messageConstants.apiResponses.ENTITY_NOT_FOUND;
@@ -288,7 +333,7 @@ module.exports = class Observations extends v1Observation {
     }
 
     /**
-     * @api {get} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
+     * @api {post} /assessment/api/v2/observations/assessment/:observationId?entityId=:entityId&submissionNumber=submissionNumber Assessments
      * @apiVersion 2.0.0
      * @apiName Assessments
      * @apiGroup Observations
@@ -296,6 +341,13 @@ module.exports = class Observations extends v1Observation {
      * @apiParam {String} entityId Entity ID.
      * @apiParam {Int} submissionNumber Submission Number.
      * @apiSampleRequest /assessment/api/v2/observations/assessment/5d286eace3cee10152de9efa?entityId=5d286b05eb569501488516c4&submissionNumber=1
+     * @apiParamExample {json} Request:
+     * {
+     *  "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+     }
      * @apiParamExample {json} Response:
      * {
         "evidences": [
@@ -656,6 +708,20 @@ module.exports = class Observations extends v1Observation {
                     entityProfile: {},
                     status: "started"
                 };
+
+                if (req.body && req.body.role) {
+                    
+                    let roleDocument = await userRolesHelper.list
+                    ( { code : req.body.role },
+                      [ "_id"]
+                    )
+
+                    if (roleDocument[0]._id) {
+                        req.body.roleId = roleDocument[0]._id; 
+                    }
+
+                    submissionDocument.userRoleInformation = req.body;
+                }
 
                  if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
         submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;

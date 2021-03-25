@@ -106,7 +106,7 @@ module.exports = class ProgramsHelper {
           limitingValue = pageSize;
         }
 
-        let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue);
+        let programDocuments = await database.models.programs.find(queryObject, projectionObject).skip(pageIndexValue).limit(limitingValue).lean();
 
         return resolve(programDocuments);
 

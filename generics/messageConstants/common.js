@@ -49,5 +49,6 @@ module.exports = {
     SCHOOL : "school",
     DEFAULT_PAGE_NO : 1,
     DEFAULT_PAGE_SIZE : 100,
-    SUCCESS : "success"
+    SUCCESS : "success",
+    ALL_ROLES : "all"
 }
