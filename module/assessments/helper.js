@@ -417,7 +417,8 @@ module.exports = class AssessmentsHelper {
                 "allowMultipleAssessemts",
                 "scoringSystem",
                 "isRubricDriven",
-                "pageHeading"
+                "pageHeading",
+                "criteriaLevelReport"
             ]);
         })
     }

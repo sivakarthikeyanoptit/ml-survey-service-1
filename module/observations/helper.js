@@ -1022,7 +1022,8 @@ module.exports = class ObservationsHelper {
                 "enableQuestionReadOut",
                 "scoringSystem",
                 "isRubricDriven",
-                "pageHeading"
+                "pageHeading",
+                "criteriaLevelReport"
             ]);
         })
     }

@@ -54,6 +54,7 @@ module.exports = {
     project : Object,
     referenceFrom : String,
     appInformation : Object,
-    userRoleInformation : Object
+    userRoleInformation : Object,
+    criteriaLevelReport : Boolean
   }
 };
