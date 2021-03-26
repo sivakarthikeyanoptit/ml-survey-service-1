@@ -256,9 +256,7 @@ module.exports = class ObservationSubmissionsHelper {
             let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
 
             try {
-                console.log("############################ AUTO RATING LOGS STARTS ############################")
-                console.log(submissionId)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
+               
                 if (submissionId == "") {
                     throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
                 }
@@ -364,9 +362,6 @@ module.exports = class ObservationSubmissionsHelper {
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
-                console.log("############################ AUTO RATING LOGS STARTS ############################")
-                console.log(resultingArray)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.observationSubmissions.updateOne(
                         {
@@ -387,9 +382,6 @@ module.exports = class ObservationSubmissionsHelper {
 
             } catch (error) {
 
-                console.log("############################ AUTO RATING LOGS STARTS ############################")
-                console.log(error)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
@@ -774,6 +766,7 @@ module.exports = class ObservationSubmissionsHelper {
             if (userId == "") {
                 throw new Error(messageConstants.apiResponses.USER_ID_REQUIRED_CHECK)
             }
+            let result = {};
             
             let query = {
                 createdBy: userId,
@@ -783,54 +776,111 @@ module.exports = class ObservationSubmissionsHelper {
                 submissionNumber: 1
             }
 
+            if (pageNo == 1) {
+
+                let submissions = await this.observationSubmissionsDocument
+                (
+                   query,
+                   [
+                    "entityType"
+                   ]
+                )
+                
+                if (submissions.length == 0) {
+                    return resolve({
+                        success: true,
+                        message: messageConstants.apiResponses.SOLUTION_NOT_FOUND,
+                        data: {
+                            entityType: [],
+                            data: [],
+                            count: 0
+                        }
+                    });
+                }
+
+                let entityTypes = [];
+                submissions.forEach(submission => {
+                    if (!entityTypes.includes(submission.entityType)) {
+                        entityTypes.push(submission.entityType);
+                    }
+                })
+                
+                result.entityType = entityTypes;
+            }
+
             if (entityType !== "") {
                 query["entityType"] = entityType;
             }
 
-            let submissions = await this.observationSubmissionsDocument
-            (
-               query,
-               [
-                "solutionId",
-                "programId",
-                "observationId",
-                "entityId",
-                "scoringSystem",
-                "isRubricDriven",
-                "entityType"
-               ],
-               { "createdAt": -1 }
-            )
-
-            if (submissions.length == 0) {
-                throw new Error(messageConstants.apiResponses.SOLUTION_NOT_FOUND)
-            }
-
-            let entityTypes = [];
-
-            submissions.forEach( submission => {
-                if (!entityTypes.includes(submission.entityType)) {
-                    entityTypes.push(submission.entityType);
-                }
-            })
-
-            submissions = _.groupBy( submissions, "solutionId");
-            
-            let count = Object.keys(submissions).length;
-
-            let startIndex = pageSize * (pageNo - 1);
-            let endIndex = startIndex + pageSize;
-            let submissionDocuments = Object.keys(submissions).slice(startIndex,endIndex) 
+            let matchQuery = {
+                $match: query
+            };
            
+            let aggregateData = [];
+            aggregateData.push(matchQuery);
+
+            aggregateData.push(
+                {
+                 
+                  $group : {
+                      _id : "$solutionId",
+                      "submissions" : {"$push" : {
+                                            solutionId: "$solutionId",
+                                            programId: "$programId",
+                                            observationId: "$observationId",
+                                            entityId: "$entityId",
+                                            scoringSystem: "$scoringSystem",
+                                            isRubricDriven: "$isRubricDriven",
+                                            entityType: "$entityType"
+                                        }}
+                   }
+                },
+                { $sort: { "createdAt": -1, "_id": -1}},
+                {
+                    $facet: {
+                        "totalCount": [
+                            { "$count": "count" }
+                        ],
+                        "data": [
+                            { $skip: pageSize * (pageNo - 1) },
+                            { $limit: pageSize }
+                        ],
+                    }
+                }, {
+                    $project: {
+                        "data": 1,
+                        "count": {
+                            $arrayElemAt: ["$totalCount.count", 0]
+                        }
+                    }
+                }
+            );
+
+            let observationSubmissions = await database.models.observationSubmissions.aggregate(aggregateData);
+           
+            if (observationSubmissions.length == 0 || observationSubmissions[0].data.length == 0) {
+                return resolve({
+                    success: true,
+                    message: messageConstants.apiResponses.SOLUTION_NOT_FOUND,
+                    data: {
+                        data: observationSubmissions[0].data,
+                        count: observationSubmissions[0].count ? observationSubmissions[0].count : 0
+                    }
+                });
+            }
+            
+            let submissionDocuments = {};
             let entityIds = [];
             let solutionIds = [];
+            result.count = observationSubmissions[0].count;
 
-            submissionDocuments.forEach(submission => {
-                submissions[submission].forEach(submissionData => {
+            observationSubmissions[0].data.forEach( submission => {
+                submissionDocuments[submission._id] = submission.submissions;
+                submission.submissions.forEach ( submissionData => {
                     entityIds.push(submissionData.entityId);
                     solutionIds.push(submissionData.solutionId);
-                });
-            });
+                })
+            })
 
             let entitiesData = await entitiesHelper.entityDocuments({
                 _id: { $in: entityIds }
@@ -875,14 +925,14 @@ module.exports = class ObservationSubmissionsHelper {
                 solutionMap[solution._id] = solution;
             })
 
-            let data = [];
+            result.data = [];
            
-            submissionDocuments.forEach(solution => {
-                let solutionObject = submissions[solution][0];
+            Object.keys(submissionDocuments).forEach(solution => {
+                let solutionObject = submissionDocuments[solution][0];
                
                 solutionObject.entities = [];
                
-                submissions[solution].forEach( singleSubmission => {
+                submissionDocuments[solution].forEach( singleSubmission => {
                     if (entities[singleSubmission.entityId]) {
                         solutionObject.entities.push(entities[singleSubmission.entityId]);
                     }
@@ -893,17 +943,14 @@ module.exports = class ObservationSubmissionsHelper {
                 })
                 delete solutionObject.entityId;
                 delete solutionObject._id;
-                data.push(solutionObject);
+                result.data.push(solutionObject);
             })
-           
+
+            
             return resolve({
                 success: true,
                 message: messageConstants.apiResponses.SOLUTION_FETCHED,
-                data: {
-                    data: data,
-                    entityType: entityTypes,
-                    count: count
-                }
+                data: result
             });
         }
         catch (error) {

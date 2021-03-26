@@ -8,19 +8,13 @@ var messageReceived = function (message) {
     try {
 
         let parsedMessage = JSON.parse(message.value)
-      
-        // Parsed Message Strucutre
-        //   {
-        //     submissionModel : "observationSubmissions/submissions",
-        //     submissionId : observationSubmissionId
-        //   }
-        console.log("############################ AUTO RATING LOGS STARTS ############################")
-        console.log(parsedMessage)
-        console.log("############################ AUTO RATING LOGS ENDS ############################")
+    
         if(parsedMessage.submissionModel == "observationSubmissions") {
             const observationSubmissionRatingResponse = await observationSubmissionsHelper.rateSubmissionById(parsedMessage.submissionId)
+            console.log(observationSubmissionRatingResponse)
         } else if (parsedMessage.submissionModel == "submissions") {
             const submissionRatingResponse = await submissionsHelper.rateSubmissionById(parsedMessage.submissionId)
+            console.log(submissionRatingResponse)
         }
 
         return resolve("Message Processed.");
