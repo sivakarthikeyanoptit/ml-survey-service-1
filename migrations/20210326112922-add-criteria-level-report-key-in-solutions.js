@@ -3,6 +3,8 @@ module.exports = {
     global.migrationMsg = "Add criteria level report key in solutions";
     await db.collection('solutions').updateMany({"scoringSystem": "pointsBasedScoring"}, {$set: {criteriaLevelReport: false}});
     await db.collection('solutions').updateMany({"scoringSystem": {$exists:true,$nin : ["pointsBasedScoring",null]}}, {$set: {criteriaLevelReport: true}});
+    await db.collection('observationSubmissions').updateMany({"scoringSystem": "pointsBasedScoring"}, {$set: {criteriaLevelReport: false}});
+    await db.collection('observationSubmissions').updateMany({"scoringSystem": {$exists:true,$nin : ["pointsBasedScoring",null]}}, {$set: {criteriaLevelReport: true}});
     return;
   },
 
