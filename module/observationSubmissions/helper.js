@@ -473,7 +473,8 @@ module.exports = class ObservationSubmissionsHelper {
                 "observationInformation.name",
                 "observationId",
                 "scoringSystem",
-                "isRubricDriven"
+                "isRubricDriven",
+                "criteriaLevelReport"
             ];
 
             let result = await this.observationSubmissionsDocument
