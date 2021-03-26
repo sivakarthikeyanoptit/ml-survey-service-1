@@ -390,7 +390,8 @@ module.exports = class AssessmentsHelper {
                 scoringSystem: 1,
                 isRubricDriven: 1,
                 project : 1,
-                referenceFrom : 1
+                referenceFrom : 1,
+                criteriaLevelReport : 1
             });
         })
     }

@@ -154,7 +154,8 @@ module.exports = class ObservationSubmissions extends Abstract {
           "scoringSystem",
           "isRubricDriven",
           "project",
-          "referenceFrom"
+          "referenceFrom",
+          "criteriaLevelReport"
         ]);
 
         if (!solutionDocument[0]) {
@@ -214,6 +215,10 @@ module.exports = class ObservationSubmissions extends Abstract {
           scoringSystem: solutionDocument.scoringSystem,
           isRubricDriven: solutionDocument.isRubricDriven
       };
+
+      if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+        submissionDocument["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+      }
        
       if (req.body && req.body.role) {
         submissionDocument.userRoleInformation = req.body;

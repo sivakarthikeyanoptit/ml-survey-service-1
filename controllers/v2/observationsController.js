@@ -709,6 +709,10 @@ module.exports = class Observations extends v1Observation {
                     status: "started"
                 };
 
+                if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+                    submissionDocument["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+                }
+
                 if (req.body && req.body.role) {
                     
                     let roleDocument = await userRolesHelper.list
