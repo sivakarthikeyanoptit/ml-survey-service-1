@@ -832,7 +832,8 @@ module.exports = class ObservationSubmissionsHelper {
                                             entityId: "$entityId",
                                             scoringSystem: "$scoringSystem",
                                             isRubricDriven: "$isRubricDriven",
-                                            entityType: "$entityType"
+                                            entityType: "$entityType",
+                                            criteriaLevelReport : "$criteriaLevelReport"
                                         }}
                    }
                 },
