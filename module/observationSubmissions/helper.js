@@ -773,8 +773,7 @@ module.exports = class ObservationSubmissionsHelper {
                 createdBy: userId,
                 deleted: false,
                 status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
-                "userRoleInformation.role" : bodyData.role,
-                submissionNumber: 1
+                "userRoleInformation.role" : bodyData.role
             }
 
             if (pageNo == 1) {
@@ -822,22 +821,9 @@ module.exports = class ObservationSubmissionsHelper {
 
             aggregateData.push(
                 {
-                 
                   $group : {
-                      _id : "$solutionId",
-                      "submissions" : {"$push" : {
-                                            solutionId: "$solutionId",
-                                            programId: "$programId",
-                                            observationId: "$observationId",
-                                            entityId: "$entityId",
-                                            scoringSystem: "$scoringSystem",
-                                            isRubricDriven: "$isRubricDriven",
-                                            entityType: "$entityType",
-                                            criteriaLevelReport : "$criteriaLevelReport"
-                                        }}
-                   }
-                },
-                { $sort: { "createdAt": -1, "_id": -1}},
+                    _id: "$solutionId"
+                }},
                 {
                     $facet: {
                         "totalCount": [
@@ -870,18 +856,38 @@ module.exports = class ObservationSubmissionsHelper {
                     }
                 });
             }
-            
-            let submissionDocuments = {};
-            let entityIds = [];
+           
             let solutionIds = [];
-            result.count = observationSubmissions[0].count;
 
             observationSubmissions[0].data.forEach( submission => {
-                submissionDocuments[submission._id] = submission.submissions;
-                submission.submissions.forEach ( submissionData => {
-                    entityIds.push(submissionData.entityId);
-                    solutionIds.push(submissionData.solutionId);
-                })
+                solutionIds.push(submission._id);
+            })
+            
+            query["solutionId"] = { $in : solutionIds};
+            query["submissionNumber"] = 1;
+            
+            let submissions = await this.observationSubmissionsDocument
+            (
+               _.omit(query,["userRoleInformation.role"]),
+               [
+                "solutionId",
+                "programId",
+                "observationId",
+                "entityId",
+                "scoringSystem",
+                "isRubricDriven",
+                "entityType",
+                "criteriaLevelReport"
+               ],
+               { createdAt: -1, _id: -1}
+            );
+
+            let submissionDocuments = _.groupBy(submissions, "solutionId");
+            let entityIds = [];
+            result.count = observationSubmissions[0].count;
+
+            submissions.forEach( submission => {
+               entityIds.push(submission.entityId);
             })
 
             let entitiesData = await entitiesHelper.entityDocuments({
