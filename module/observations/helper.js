@@ -1220,6 +1220,28 @@ module.exports = class ObservationsHelper {
                         result: []
                     });  
                 }
+
+                if(observationSolutionData[0].status != messageConstants.common.ACTIVE_STATUS) {
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: []
+                    });   
+                }
+
+                if (new Date() > new Date(observationSolutionData[0].endDate)) {
+                    if (observationSolutionData[0].status == messageConstants.common.ACTIVE_STATUS) {
+                        await solutionHelper.updateSolutionDocument
+                        (
+                            { link : link },
+                            { $set : { status: messageConstants.common.INACTIVE_STATUS } }
+                        )
+                    }
+
+                    return resolve({
+                        message: messageConstants.apiResponses.LINK_IS_EXPIRED,
+                        result: []
+                    });
+                }
                 
                 let observationData = await this.observationDocuments({
                     solutionExternalId : observationSolutionData[0].externalId,
