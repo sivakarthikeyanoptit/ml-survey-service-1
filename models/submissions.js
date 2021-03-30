@@ -1,18 +1,33 @@
 module.exports = {
   name: "submissions",
   schema: {
-    entityId: "ObjectId",
-    programId: "ObjectId",
+    entityId: {
+      type : "ObjectId",
+      index : true
+    },
+    programId: {
+      type : "ObjectId",
+      index : true
+    },
     assessors: Array,
-    status: String,
+    status: {
+      type : String,
+      index : true
+    },
     evidencesStatus: Array,
     evidences: Object,
     criteria: Array,
     themes: Array,
     answers: Object,
-    entityExternalId: String,
+    entityExternalId: {
+      type : String,
+      index : true
+    },
     entityInformation: Object,
-    programExternalId: String,
+    programExternalId: {
+      type : String,
+      index : true 
+    },
     programInformation: Object,
     entityProfile: Object,
     ratingOfManualCriteriaEnabled: Boolean,
@@ -21,13 +36,28 @@ module.exports = {
     generalQuestions: Object,
     parentInterviewResponsesStatus: Array,
     parentInterviewResponses: Object,
-    completedDate: Date,
-    solutionId: "ObjectId",
-    solutionExternalId: String,
+    completedDate: {
+      type : Date,
+      index : true
+    },
+    solutionId: {
+      type : "ObjectId",
+      index : true
+    },
+    solutionExternalId: {
+      type : String,
+      index : true
+    },
     submissionsUpdatedHistory: Array,
     ratingCompletedAt: Date,
-    entityTypeId: "ObjectId",
-    entityType: String,
+    entityTypeId: {
+      type : "ObjectId",
+      index : true
+    },
+    entityType: {
+      type : String,
+      index : true
+    },
     pointsBasedMaxScore : { type : Number, default: 0 },
     pointsBasedScoreAchieved : { type : Number, default: 0 },
     pointsBasedPercentageScore : { type : Number, default: 0 },
@@ -35,7 +65,10 @@ module.exports = {
       default : false,
       type : Boolean
     },
-    submissionNumber : Number,
+    submissionNumber : {
+      type : Number,
+      index : true
+    },
     scoringSystem : String,
     isRubricDriven: { type : Boolean, default: false },
     numberOfAnsweredCriterias: { type : Number, default: 0 },

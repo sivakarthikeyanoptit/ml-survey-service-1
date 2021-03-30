@@ -20,7 +20,10 @@ module.exports = {
       updatedBy: String,
       createdBy: String,
       childHierarchyPath : Array,
-      userId : String,
+      userId : {
+        type : String,
+        index : true
+      },
       allowedRoles : Array
     }
   };
