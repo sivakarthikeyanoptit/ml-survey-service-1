@@ -996,7 +996,8 @@ module.exports = class ObservationsHelper {
                 isRubricDriven: 1,
                 project : 1,
                 referenceFrom : 1,
-                pageHeading:1
+                pageHeading:1,
+                criteriaLevelReport : 1
             });
         })
     }
@@ -1021,7 +1022,8 @@ module.exports = class ObservationsHelper {
                 "enableQuestionReadOut",
                 "scoringSystem",
                 "isRubricDriven",
-                "pageHeading"
+                "pageHeading",
+                "criteriaLevelReport"
             ]);
         })
     }
@@ -1196,7 +1198,8 @@ module.exports = class ObservationsHelper {
                 let observationSolutionData = await solutionHelper.solutionDocuments({
                     link: link,
                     type : messageConstants.common.OBSERVATION,
-                    isReusable : false
+                    isReusable : false,
+                    status: { $ne : messageConstants.common.INACTIVE_STATUS }
                 },[
                     "externalId",
                     "subType",
@@ -1235,7 +1238,7 @@ module.exports = class ObservationsHelper {
                             { $set : { status: messageConstants.common.INACTIVE_STATUS } }
                         )
                     }
-                    
+
                     return resolve({
                         message: messageConstants.apiResponses.LINK_IS_EXPIRED,
                         result: []
@@ -1832,24 +1835,21 @@ module.exports = class ObservationsHelper {
     
                     let entityTypes = Object.keys(_.omit(bodyData,["role"]));
     
-                    if( !entityTypes.includes(solutionData.data.entityType) ) {
-                        throw {
-                            message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+                    if( entityTypes.includes(solutionData.data.entityType) ) {
+
+                        let entityData = 
+                        await entitiesHelper.listByLocationIds(
+                            [bodyData[solutionData.data.entityType]]
+                        );
+        
+                        if( !entityData.success ) {
+                            return resolve(entityData);
                         }
+        
+                        solutionData.data["entities"] = [entityData.data[0]._id];
                     }
-    
-                    let entityData = 
-                    await entitiesHelper.listByLocationIds(
-                        [bodyData[solutionData.data.entityType]]
-                    );
-    
-                    if( !entityData.success ) {
-                        return resolve(entityData);
-                    }
-    
+
                     delete solutionData.data._id;
-    
-                    solutionData.data["entities"] = [entityData.data[0]._id];
     
                     let observation = await this.create(
                         solutionId,
@@ -1882,7 +1882,7 @@ module.exports = class ObservationsHelper {
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
-                    "allowMultipleAssessemts":solutionData[0].allowMultipleAssessemts,
+                    "allowMultipleAssessemts" : solutionData[0].allowMultipleAssessemts,
                     _id : observationId,
                     "entities" : entitiesList.data.entities,
                     entityType : entitiesList.data.entityType
@@ -1922,43 +1922,47 @@ module.exports = class ObservationsHelper {
                 };
             }
 
-            let entitiesData = await entitiesHelper.entityDocuments({
-                _id : { $in : observationDocument[0].entities }
-            },["metaInformation.externalId","metaInformation.name"]);
-
-            if( !entitiesData.length > 0 ) {
-                throw {
-                    message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
-                }
-            }
-
             let entities = [];
 
-            for ( 
-                let pointerToEntities = 0; 
-                pointerToEntities < entitiesData.length;
-                pointerToEntities++
-            ) {
+            if( observationDocument[0].entities && observationDocument[0].entities.length > 0 ) {
+                
+                let entitiesData = await entitiesHelper.entityDocuments({
+                    _id : { $in : observationDocument[0].entities }
+                },["metaInformation.externalId","metaInformation.name"]);
 
-                let currentEntities = entitiesData[pointerToEntities];
-
-                let observationSubmissions = 
-                await observationSubmissionsHelper.observationSubmissionsDocument({
-                    observationId : observationId,
-                    entityId : currentEntities._id
-                });
-
-                let entity = {
-                    _id : currentEntities._id,
-                    externalId : currentEntities.metaInformation.externalId,
-                    name : currentEntities.metaInformation.name,
-                    submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
-                };
-                if(observationSubmissions.length == 1){
-                    entity['submissionId']=observationSubmissions[0]._id;
+                if( !entitiesData.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                    }
                 }
 
-                entities.push(entity);
+                for ( 
+                    let pointerToEntities = 0; 
+                    pointerToEntities < entitiesData.length;
+                    pointerToEntities++
+                ) {
+                    
+                    let currentEntities = entitiesData[pointerToEntities];
+
+                    let observationSubmissions = 
+                    await observationSubmissionsHelper.observationSubmissionsDocument({
+                        observationId : observationId,
+                        entityId : currentEntities._id
+                    });
+
+                    let entity = {
+                        _id : currentEntities._id,
+                        externalId : currentEntities.metaInformation.externalId,
+                        name : currentEntities.metaInformation.name,
+                        submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
+                    };
+
+                    if(observationSubmissions.length == 1){
+                        entity['submissionId']=observationSubmissions[0]._id;
+                    }
+
+                    entities.push(entity);
+                }
             }
 
             return resolve({

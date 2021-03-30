@@ -841,6 +841,10 @@ module.exports = class Observations extends Abstract {
                     status: "started"
                 };
 
+                if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+                    submissionDocument["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+                }
+
                 if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
                     submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
                     submissionDocument["project"] = solutionDocument.project;

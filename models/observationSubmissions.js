@@ -53,6 +53,8 @@ module.exports = {
     isRubricDriven: { type : Boolean, default: false },
     project : Object,
     referenceFrom : String,
-    appInformation : Object
+    appInformation : Object,
+    userRoleInformation : Object,
+    criteriaLevelReport : Boolean
   }
 };
