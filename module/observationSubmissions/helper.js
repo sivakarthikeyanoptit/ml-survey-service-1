@@ -824,6 +824,7 @@ module.exports = class ObservationSubmissionsHelper {
                   $group : {
                     _id: "$solutionId"
                 }},
+                { $sort: { createdAt: -1, _id: -1}},
                 {
                     $facet: {
                         "totalCount": [
