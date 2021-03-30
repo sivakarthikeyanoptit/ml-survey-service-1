@@ -24,6 +24,7 @@ module.exports = {
     rootOrganisations : {
       type : [String],
       default : []
-    }
+    },
+    criteriaLevelReport : Boolean
   }
 };

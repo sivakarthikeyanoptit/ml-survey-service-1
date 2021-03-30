@@ -41,6 +41,9 @@ module.exports = (req) => {
         },
         update: function () {
             req.checkParams('_id').exists().withMessage("required observation submission id")
+        },
+        solutionList: function () {
+            req.checkBody('role').exists().withMessage("request body required");
         }
     }
 

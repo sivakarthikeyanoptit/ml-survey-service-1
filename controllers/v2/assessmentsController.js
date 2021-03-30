@@ -322,6 +322,10 @@ module.exports = class Assessments {
                     status: "started"
                 };
 
+                if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+                    submissionDocument["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+                }
+
                 if( 
                     solutionDocument.referenceFrom === messageConstants.common.PROJECT
                 ) {
