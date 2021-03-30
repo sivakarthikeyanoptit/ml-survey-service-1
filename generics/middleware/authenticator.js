@@ -168,6 +168,27 @@ module.exports = async function (req, res, next) {
     }
   }
 
+//api need either x-authenticated-user-token or internal access token
+ const insternalAccessTokenOrTokenPaths = ["userExtension/getProfile/","entities/relatedEntities/"];
+ let performInternalAccessTokenOrTokenCheck = false;
+  await Promise.all(insternalAccessTokenOrTokenPaths.map(async function (path) {
+    if (req.path.includes(path)) {
+      performInternalAccessTokenOrTokenCheck = true;
+    }
+  }));
+  
+  if (performInternalAccessTokenOrTokenCheck && !token) {
+    if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN ) {
+      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
+      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
+      rspObj.responseCode = responseCode.unauthorized.status;
+      return res.status(401).send(respUtil(rspObj));
+    }
+    else {
+        next();
+        return
+    }
+  }
 
   for (let pointerToByPassPath = 0; pointerToByPassPath < paths.length; pointerToByPassPath++) {
     if ((req.path.includes(paths[pointerToByPassPath]) || (req.query.csv && req.query.csv == true)) && req.headers["internal-access-token"] === process.env.INTERNAL_ACCESS_TOKEN) {

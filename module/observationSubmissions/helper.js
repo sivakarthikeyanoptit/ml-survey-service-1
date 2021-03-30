@@ -256,8 +256,7 @@ module.exports = class ObservationSubmissionsHelper {
             let emailRecipients = (process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS && process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS != "") ? process.env.SUBMISSION_RATING_DEFAULT_EMAIL_RECIPIENTS : "";
 
             try {
-                console.log("############################ AUTO RATING LOGS STARTS ############################")
-                console.log(submissionId)
+               
                 if (submissionId == "") {
                     throw new Error(messageConstants.apiResponses.OBSERVATION_SUBMISSION_ID_NOT_FOUND);
                 }
@@ -363,8 +362,6 @@ module.exports = class ObservationSubmissionsHelper {
 
                 let resultingArray = await scoringHelper.rateEntities([submissionDocument], "singleRateApi");
 
-                console.log(resultingArray)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 if(resultingArray.result.runUpdateQuery) {
                     await database.models.observationSubmissions.updateOne(
                         {
@@ -385,8 +382,6 @@ module.exports = class ObservationSubmissionsHelper {
 
             } catch (error) {
 
-                console.log(error)
-                console.log("############################ AUTO RATING LOGS ENDS ############################")
                 emailClient.pushMailToEmailService(emailRecipients,messageConstants.apiResponses.OBSERVATION_AUTO_RATING_FAILED+" - "+submissionId,error.message);
                 return reject(error);
             }
@@ -478,7 +473,8 @@ module.exports = class ObservationSubmissionsHelper {
                 "observationInformation.name",
                 "observationId",
                 "scoringSystem",
-                "isRubricDriven"
+                "isRubricDriven",
+                "criteriaLevelReport"
             ];
 
             let result = await this.observationSubmissionsDocument
@@ -777,8 +773,7 @@ module.exports = class ObservationSubmissionsHelper {
                 createdBy: userId,
                 deleted: false,
                 status: messageConstants.common.SUBMISSION_STATUS_COMPLETED,
-                "userRoleInformation.role" : bodyData.role,
-                submissionNumber: 1
+                "userRoleInformation.role" : bodyData.role
             }
 
             if (pageNo == 1) {
@@ -826,21 +821,10 @@ module.exports = class ObservationSubmissionsHelper {
 
             aggregateData.push(
                 {
-                 
                   $group : {
-                      _id : "$solutionId",
-                      "submissions" : {"$push" : {
-                                            solutionId: "$solutionId",
-                                            programId: "$programId",
-                                            observationId: "$observationId",
-                                            entityId: "$entityId",
-                                            scoringSystem: "$scoringSystem",
-                                            isRubricDriven: "$isRubricDriven",
-                                            entityType: "$entityType"
-                                        }}
-                   }
-                },
-                { $sort: { "createdAt": -1, "_id": -1}},
+                    _id: "$solutionId"
+                }},
+                { $sort: { createdAt: -1, _id: -1}},
                 {
                     $facet: {
                         "totalCount": [
@@ -873,18 +857,38 @@ module.exports = class ObservationSubmissionsHelper {
                     }
                 });
             }
-            
-            let submissionDocuments = {};
-            let entityIds = [];
+           
             let solutionIds = [];
-            result.count = observationSubmissions[0].count;
 
             observationSubmissions[0].data.forEach( submission => {
-                submissionDocuments[submission._id] = submission.submissions;
-                submission.submissions.forEach ( submissionData => {
-                    entityIds.push(submissionData.entityId);
-                    solutionIds.push(submissionData.solutionId);
-                })
+                solutionIds.push(submission._id);
+            })
+            
+            query["solutionId"] = { $in : solutionIds};
+            query["submissionNumber"] = 1;
+            
+            let submissions = await this.observationSubmissionsDocument
+            (
+               _.omit(query,["userRoleInformation.role"]),
+               [
+                "solutionId",
+                "programId",
+                "observationId",
+                "entityId",
+                "scoringSystem",
+                "isRubricDriven",
+                "entityType",
+                "criteriaLevelReport"
+               ],
+               { createdAt: -1, _id: -1}
+            );
+
+            let submissionDocuments = _.groupBy(submissions, "solutionId");
+            let entityIds = [];
+            result.count = observationSubmissions[0].count;
+
+            submissions.forEach( submission => {
+               entityIds.push(submission.entityId);
             })
 
             let entitiesData = await entitiesHelper.entityDocuments({

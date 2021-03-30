@@ -996,7 +996,8 @@ module.exports = class ObservationsHelper {
                 isRubricDriven: 1,
                 project : 1,
                 referenceFrom : 1,
-                pageHeading:1
+                pageHeading:1,
+                criteriaLevelReport : 1
             });
         })
     }
@@ -1021,7 +1022,8 @@ module.exports = class ObservationsHelper {
                 "enableQuestionReadOut",
                 "scoringSystem",
                 "isRubricDriven",
-                "pageHeading"
+                "pageHeading",
+                "criteriaLevelReport"
             ]);
         })
     }
