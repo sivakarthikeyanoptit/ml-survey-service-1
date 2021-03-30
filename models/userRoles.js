@@ -3,7 +3,9 @@ module.exports = {
     schema: {
       code: {
         type: String,
-        required: true
+        required: true,
+        index : true,
+        unique : true
       },
       title: {
         type: String,

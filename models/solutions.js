@@ -6,8 +6,14 @@ module.exports = {
       index: true,
       unique: true
     },
-    isReusable: Boolean,
-    name: String,
+    isReusable: {
+      type : Boolean,
+      index : true
+    },
+    name: {
+      type : String,
+      index : true
+    },
     description: String,
     author: String,
     parentSolutionId: "ObjectId",
@@ -15,7 +21,10 @@ module.exports = {
     language: Array,
     keywords: Array,
     concepts: Array,
-    createdFor: Array,
+    createdFor: {
+      type : Array,
+      index : true
+    },
     scoringSystem: String,
     levelToScoreMapping: Object,
     themes: Array,
@@ -47,7 +56,10 @@ module.exports = {
     entityProfileFieldsPerEntityTypes: Object,
     startDate: Date,
     endDate: Date,
-    status: String,
+    status: {
+      type : String,
+      index : true
+    },
     evidenceMethods: Object,
     sections: Object,
     registry: Array,

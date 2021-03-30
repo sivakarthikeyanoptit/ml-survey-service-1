@@ -1,13 +1,19 @@
 module.exports = {
     name: "staticLinks",
     schema: {
-      value: String,
+      value: {
+        type : String,
+        index : true
+      },
       title: String,
       link: String,
       createdBy: String,
       updatedBy: String,
       status: String,
-      appType: String,
+      appType: {
+        type : String,
+        index : true
+      },
       metaInformation: Object,
       isDeleted: {
         type : Boolean,
