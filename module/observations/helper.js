@@ -1645,7 +1645,9 @@ module.exports = class ObservationsHelper {
                 };
 
                 let aggregateData = [];
-                aggregateData.push(matchQuery,projection1,facetQuery,projection2);
+                aggregateData.push(matchQuery,{
+                    $sort : { "updatedAt" : -1 }
+                },projection1,facetQuery,projection2);
 
                 let result =
                 await database.models.observations.aggregate(aggregateData);
