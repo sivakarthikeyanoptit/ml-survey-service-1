@@ -1836,16 +1836,14 @@ static deleteUserRoleFromEntitiesElasticSearch(entityId = "", role = "", userId 
   static listByLocationIds(locationIds) {
     return new Promise(async (resolve, reject) => {
         try {
-            
+
             let filterQuery = {
-                "registryDetails.code" : { $in : locationIds }
-              };
-      
-            if( gen.utils.checkValidUUID( locationIds[0] ) ) {
-                filterQuery = {
-                  "registryDetails.locationId" : locationIds
-                };
-            } 
+                $or : [{
+                  "registryDetails.code" : { $in : locationIds }
+                },{
+                  "registryDetails.locationId" : { $in : locationIds }
+                }]
+              };      
 
             let entities = 
             await this.entityDocuments(

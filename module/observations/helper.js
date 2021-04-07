@@ -1267,14 +1267,12 @@ module.exports = class ObservationsHelper {
                 })
 
                 let filterQuery = {
-                    "registryDetails.code" : { $in : registryIds }
-                  };
-          
-                if( gen.utils.checkValidUUID( registryIds[0] ) ) {
-                    filterQuery = {
-                      "registryDetails.locationId" : registryIds
-                    };
-                } 
+                    $or : [{
+                        "registryDetails.code" : { $in : registryIds }
+                    },{
+                        "registryDetails.locationId" : { $in : registryIds }
+                    }]
+                };      
               
                 let entitiyDocuments = await entitiesHelper.entityDocuments(
                     filterQuery,

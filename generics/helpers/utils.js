@@ -259,19 +259,6 @@ function removeDuplicatesFromArray(data, key) {
   return uniqueArray;
 }
 
- /**
-  * check whether string is valid uuid.
-  * @function
-  * @name checkValidUUID
-  * @param {String} str 
-  * @returns {Boolean} returns a Boolean value true/false
-*/
-
-function checkValidUUID(str) {
-  var pattern = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
-  return pattern.test(str);
-}
-
 module.exports = {
   camelCaseToTitleCase : camelCaseToTitleCase,
   lowerCase : lowerCase,
@@ -292,6 +279,5 @@ module.exports = {
   isValidMongoId : isValidMongoId,
   generateUUId : generateUUId,
   md5Hash : md5Hash,
-  removeDuplicatesFromArray : removeDuplicatesFromArray,
-  checkValidUUID : checkValidUUID
+  removeDuplicatesFromArray : removeDuplicatesFromArray
 };
