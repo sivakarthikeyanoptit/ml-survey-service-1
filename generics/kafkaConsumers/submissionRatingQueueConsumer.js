@@ -8,13 +8,7 @@ var messageReceived = function (message) {
     try {
 
         let parsedMessage = JSON.parse(message.value)
-      
-        // Parsed Message Strucutre
-        //   {
-        //     submissionModel : "observationSubmissions/submissions",
-        //     submissionId : observationSubmissionId
-        //   }
-
+    
         if(parsedMessage.submissionModel == "observationSubmissions") {
             const observationSubmissionRatingResponse = await observationSubmissionsHelper.rateSubmissionById(parsedMessage.submissionId)
         } else if (parsedMessage.submissionModel == "submissions") {
@@ -36,7 +30,6 @@ var errorTriggered = function (error) {
   return new Promise(function (resolve, reject) {
 
     try {
-      console.log(error)
       return resolve("Error Processed");
     } catch (error) {
       return reject(error);

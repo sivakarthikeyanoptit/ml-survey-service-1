@@ -97,7 +97,7 @@ const pushSubmissionToKafkaQueueForRating = function (message) {
 const pushObservationSubmissionToKafkaQueueForRating = function (message) {
   return new Promise(async (resolve, reject) => {
       try {
-
+       
           let kafkaPushStatus = await pushMessageToKafka([{
             topic: submissionRatingQueueKafkaTopic,
             messages: JSON.stringify(message)

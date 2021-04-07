@@ -38,7 +38,7 @@ module.exports = class insightsHelper {
           
                 let solutionDocument = await database.models.solutions.findOne(
                   {_id : submissionDocument.solutionId},
-                  {themes : 1, scoringSystem : 1, levelToScoreMapping : 1}
+                  {themes : 1, scoringSystem : 1, levelToScoreMapping : 1,criteriaLevelReport : 1}
                 );
           
                 if(!solutionDocument._id) {

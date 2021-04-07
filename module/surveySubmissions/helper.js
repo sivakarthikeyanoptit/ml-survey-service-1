@@ -423,10 +423,11 @@ module.exports = class SurveySubmissionsHelper {
     * @param {String} userId - logged in userId
     * @param {String} pageNo - page number
     * @param {String} pageSize - page size.
+    * @param {String} filter - filter text.
     * @returns {Json} - survey list.
     */
 
-    static surveyList(userId = "", pageNo, pageSize, search) {
+    static surveyList(userId = "", pageNo, pageSize, search,filter) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -446,6 +447,16 @@ module.exports = class SurveySubmissionsHelper {
                         { "surveyInformation.name": new RegExp(search, 'i') },
                         { "surveyInformation.description": new RegExp(search, 'i') }
                     ];
+                }
+
+                if ( filter && filter !== "" ) {
+                    if( filter === messageConstants.common.CREATED_BY_ME ) {
+                        matchQuery["$match"]["isAPrivateProgram"] = {
+                            $ne : false
+                        };
+                    } else if ( filter === messageConstants.common.ASSIGN_TO_ME ) {
+                        matchQuery["$match"]["isAPrivateProgram"] = false;
+                    }
                 }
 
                 let surveySubmissions = await database.models.surveySubmissions.aggregate
@@ -526,10 +537,11 @@ module.exports = class SurveySubmissionsHelper {
     * @name surveySolutions
     * @param {String} userId - logged in userId
     * @param {String} search - search key
+    * @param {String} [filter = ""] - filter text
     * @returns {Json} - survey list.
     */
 
-    static surveySolutions(userId, pageNo, pageSize, search) {
+    static surveySolutions(userId, pageNo, pageSize, search,filter = "") {
     return new Promise(async (resolve, reject) => {
         try {
 
@@ -551,6 +563,16 @@ module.exports = class SurveySubmissionsHelper {
                     { "name": new RegExp(search, 'i') },
                     { "description": new RegExp(search, 'i') }
                 ];
+            }
+
+            if ( filter && filter !== "" ) {
+                if( filter === messageConstants.common.CREATED_BY_ME ) {
+                    matchQuery["$match"]["isAPrivateProgram"] = {
+                        $ne : false
+                    };
+                } else if ( filter === messageConstants.common.ASSIGN_TO_ME ) {
+                    matchQuery["$match"]["isAPrivateProgram"] = false;
+                }
             }
 
             let result = await solutionsHelper.solutionDocumentsByAggregateQuery

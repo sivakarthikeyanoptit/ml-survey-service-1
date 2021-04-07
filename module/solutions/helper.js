@@ -1646,7 +1646,8 @@ module.exports = class SolutionsHelper {
             "roles",
             "captureGpsLocationAtQuestionLevel",
             "enableQuestionReadOut",
-            "entities"
+            "entities",
+            "criteriaLevelReport"
         ])
 
           if( !solutionData.length > 0 ) {

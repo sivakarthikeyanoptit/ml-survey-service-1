@@ -1,17 +1,26 @@
 module.exports = {
   name: "entityAssessors",
   schema: {
-    userId: String,
+    userId: {
+      type : String,
+      index : true
+    },
     name: String,
     email: String,
     role: String,
-    programId: "ObjectId",
+    programId: {
+      type : "ObjectId",
+      index : true
+    },
     parentId: String,
     entities: [],
     createdBy: String,
     updatedBy: String,
     externalId: String,
-    solutionId: "ObjectId",
+    solutionId: {
+      type : "ObjectId",
+      index : true
+    },
     entityTypeId: "ObjectId",
     entityType: String
   }

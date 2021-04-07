@@ -38,6 +38,13 @@ module.exports = class ObservationSubmissions extends Abstract {
   * @apiHeader {String} X-authenticated-user-token Authenticity token
   * @apiParam {String} entityId Entity ID.
   * @apiSampleRequest /assessment/api/v1/observationSubmissions/create/5d2c1c57037306041ef0c7ea?entityId=5d2c1c57037306041ef0c8fa
+  * @apiParamExample {json} Request:
+  * {
+  *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
   * @apiParamExample {json} Response:
   * "result": [
         {
@@ -147,7 +154,8 @@ module.exports = class ObservationSubmissions extends Abstract {
           "scoringSystem",
           "isRubricDriven",
           "project",
-          "referenceFrom"
+          "referenceFrom",
+          "criteriaLevelReport"
         ]);
 
         if (!solutionDocument[0]) {
@@ -207,6 +215,14 @@ module.exports = class ObservationSubmissions extends Abstract {
           scoringSystem: solutionDocument.scoringSystem,
           isRubricDriven: solutionDocument.isRubricDriven
       };
+
+      if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+        submissionDocument["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+      }
+       
+      if (req.body && req.body.role) {
+        submissionDocument.userRoleInformation = req.body;
+      }
 
       if( solutionDocument.referenceFrom === messageConstants.common.PROJECT ) {
         submissionDocument["referenceFrom"] = messageConstants.common.PROJECT;
@@ -305,7 +321,7 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
-  /**
+    /**
   * @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} Create Observation Submission
   * @apiVersion 1.0.0
   * @apiName Create Observation Submission
@@ -483,66 +499,66 @@ module.exports = class ObservationSubmissions extends Abstract {
    * @returns {JSON} - observation submissions creation.
    */
 
-  async make(req) {
-    return new Promise(async (resolve, reject) => {
-
-      try {
-
-        let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
-        (
-          req.params._id,
-          req.body.evidence.externalId,
-          req.userDetails.userId
-        )
-
-        if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
-           throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
-        }
-
-        let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
-
-        if (response.result.status && response.result.status === "completed") {
-          await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
-        } else if(response.result.status && response.result.status === "ratingPending") {
-          await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
-        }
-
-        let appInformation = {};
-
-        if( req.headers["x-app-id"] || req.headers.appname ) {
-          appInformation["appName"] = 
-          req.headers["x-app-id"] ? req.headers["x-app-id"] :
-          req.headers.appname;
-        } 
-
-        if( req.headers["x-app-ver"] || req.headers.appversion ) {
-          appInformation["appVersion"] = 
-          req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
-          req.headers.appversion;
-        }
-
-        if( Object.keys(appInformation).length > 0 ) {
-          await submissionsHelper.addAppInformation(
+    async make(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+          (
             req.params._id,
-            appInformation,
-            "observationSubmissions"
-          );
+            req.body.evidence.externalId,
+            req.userDetails.userId
+          )
+  
+          if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
+             throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
+          }
+  
+          let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+  
+          if (response.result.status && response.result.status === "completed") {
+            await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+          } else if(response.result.status && response.result.status === "ratingPending") {
+            await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+          }
+  
+          let appInformation = {};
+  
+          if( req.headers["x-app-id"] || req.headers.appname ) {
+            appInformation["appName"] = 
+            req.headers["x-app-id"] ? req.headers["x-app-id"] :
+            req.headers.appname;
+          } 
+  
+          if( req.headers["x-app-ver"] || req.headers.appversion ) {
+            appInformation["appVersion"] = 
+            req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+            req.headers.appversion;
+          }
+  
+          if( Object.keys(appInformation).length > 0 ) {
+            await submissionsHelper.addAppInformation(
+              req.params._id,
+              appInformation,
+              "observationSubmissions"
+            );
+          }
+  
+          return resolve(response);
+  
+        } catch (error) {
+  
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+  
         }
-
-        return resolve(response);
-
-      } catch (error) {
-
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-
-      }
-
-    })
-  }
+  
+      })
+    }
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" Check Submissions Status 
@@ -599,7 +615,6 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
-
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete Observation Submission
   * @apiVersion 1.0.0
@@ -617,112 +632,80 @@ module.exports = class ObservationSubmissions extends Abstract {
    * @returns {JSON} - message that observation submission is deleted.
    */
 
-  async delete(req) {
-    return new Promise(async (resolve, reject) => {
+    async delete(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let result = await observationSubmissionsHelper.delete(
+            req.params._id,
+            req.userDetails.userId
+          );
 
-      try {
-
-        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_DELETED;
-
-        let submissionDocument = await database.models.observationSubmissions.deleteOne(
-          {
-            "_id": req.params._id,
-            status: "started",
-            createdBy: req.userDetails.userId
-          }
-        );
-
-        if (!submissionDocument.n) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
         }
+  
+      })
+    }
+  
+    /**
+    * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
+    * @apiVersion 1.0.0
+    * @apiName Set Observation Submission Title
+    * @apiGroup Observation Submissions
+    * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
+    * @apiParamExample {json} Request-Body:
+    * {
+    *   "title" : "Observation Submission Title",
+    * }
+    * @apiParamExample {json} Response:
+    * {
+    *    "message": "Observation submission updated successfully",
+    *    "status": 200
+    *  }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+  
+     /**
+     * Set Observation Submission Title.
+     * @method
+     * @name title
+     * @param {String} req.params._id -observation submissions id.
+     * @returns {JSON} - message that observation submission title is set.
+     */
+  
+    async title(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
 
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-
-      } catch (error) {
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-      }
-
-    })
-  }
-
-  /**
-  * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
-  * @apiVersion 1.0.0
-  * @apiName Set Observation Submission Title
-  * @apiGroup Observation Submissions
-  * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
-  * @apiParamExample {json} Request-Body:
-  * {
-  *   "title" : "Observation Submission Title",
-  * }
-  * @apiParamExample {json} Response:
-  * {
-  *    "message": "Observation submission updated successfully",
-  *    "status": 200
-  *  }
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
-
-   /**
-   * Set Observation Submission Title.
-   * @method
-   * @name title
-   * @param {String} req.params._id -observation submissions id.
-   * @returns {JSON} - message that observation submission title is set.
-   */
-
-  async title(req) {
-    return new Promise(async (resolve, reject) => {
-
-      try {
-
-        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_UPDATED;
-
-        let submissionDocument = await database.models.observationSubmissions.findOneAndUpdate(
-          {
-            _id: req.params._id,
-            createdBy: req.userDetails.id
-          },
-          {
-            $set : {
-              title : req.body.title
-            }
-          }, {
-            projection : {
-              _id : 1
-            }
-          }
-        );
-
-        if (!submissionDocument || !submissionDocument._id) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+          let result = await observationSubmissionsHelper.setTitle(
+            req.params._id,
+            req.userDetails.userId,
+            req.body.title
+          );
+  
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
         }
-
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-
-      } catch (error) {
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-      }
-
-    })
-  }
+  
+      })
+    }
+  
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
@@ -861,9 +844,9 @@ module.exports = class ObservationSubmissions extends Abstract {
         let solutionDocument = await database.models.solutions.findOne({
           externalId: solutionId,
           type : "observation",
-          scoringSystem : "pointsBasedScoring"
+         // scoringSystem : "pointsBasedScoring"
         }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1}).lean()
-
+ 
         if (!solutionDocument) {
           return resolve({
             status: httpStatusCode.bad_request.status,
@@ -880,7 +863,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let submissionDocument = await database.models.observationSubmissions.findOne(
           queryObject,
-          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1 }
+          { "answers": 1, "criteria": 1, "evidencesStatus": 1, "entityInformation": 1, "entityProfile": 1, "solutionExternalId": 1 , "scoringSystem" : 1}
         ).lean();
 
         if (!submissionDocument._id) {
@@ -888,7 +871,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         }
 
         submissionDocument.submissionCollection = "observationSubmissions"
-        submissionDocument.scoringSystem = "pointsBasedScoring"
+        submissionDocument.scoringSystem = submissionDocument.scoringSystem;
 
         let allCriteriaInSolution = new Array
         let allQuestionIdInSolution = new Array
@@ -910,58 +893,60 @@ module.exports = class ObservationSubmissions extends Abstract {
 
           allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
         }
+        
+        if (submissionDocument.scoringSystem == "pointsBasedScoring") {
+          if (allQuestionIdInSolution.length > 0) {
 
-        if(allQuestionIdInSolution.length > 0) {
-
-          solutionQuestions = await questionsHelper.questionDocument({
-            _id : {
-              $in : allQuestionIdInSolution
-            },
-            responseType : {
-              $in : [
-                "radio",
-                "multiselect",
-                "slider"
-              ]
-            }
-          }, [
-            "weightage",
-            "options",
-            "sliderOptions",
-            "responseType"
-          ])
-
-        }
-
-        if(solutionQuestions.length > 0) {
-          submissionDocument.questionDocuments = {}
-          solutionQuestions.forEach(question => {
-            submissionDocument.questionDocuments[question._id.toString()] = {
-              _id : question._id,
-              weightage : question.weightage
-            }
-            let questionMaxScore = 0
-            if(question.options && question.options.length > 0) {
-              if(question.responseType != "multiselect") {
-                questionMaxScore = _.maxBy(question.options, 'score').score;
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id: {
+                $in: allQuestionIdInSolution
+              },
+              responseType: {
+                $in: [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
               }
-              question.options.forEach(option => {
-                if(question.responseType == "multiselect") {
-                  questionMaxScore += option.score
+            }, [
+                "weightage",
+                "options",
+                "sliderOptions",
+                "responseType"
+              ])
+
+          }
+
+          if (solutionQuestions.length > 0) {
+            submissionDocument.questionDocuments = {}
+            solutionQuestions.forEach(question => {
+              submissionDocument.questionDocuments[question._id.toString()] = {
+                _id: question._id,
+                weightage: question.weightage
+              }
+              let questionMaxScore = 0
+              if (question.options && question.options.length > 0) {
+                if (question.responseType != "multiselect") {
+                  questionMaxScore = _.maxBy(question.options, 'score').score;
                 }
-                if ("score" in option) {
-                  option.score >= 0 ? 
-                  submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] =
-                   option.score : "";
-                }
-              })
-            }
-            if(question.sliderOptions && question.sliderOptions.length > 0) {
-              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
-              submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
-            }
-            submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
-          })
+                question.options.forEach(option => {
+                  if (question.responseType == "multiselect") {
+                    questionMaxScore += option.score
+                  }
+                  if ("score" in option) {
+                    option.score >= 0 ?
+                      submissionDocument.questionDocuments[question._id.toString()][`${option.value}-score`] =
+                      option.score : "";
+                  }
+                })
+              }
+              if (question.sliderOptions && question.sliderOptions.length > 0) {
+                questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+                submissionDocument.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions
+              }
+              submissionDocument.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
+            })
+          }
         }
 
 
@@ -1036,7 +1021,7 @@ module.exports = class ObservationSubmissions extends Abstract {
         let solutionDocument = await database.models.solutions.findOne({
           externalId: solutionId,
           type : "observation",
-          scoringSystem : "pointsBasedScoring"
+          // scoringSystem : "pointsBasedScoring"
         }, { themes: 1, levelToScoreMapping: 1, scoringSystem : 1, flattenedThemes : 1, type : 1 }).lean();
 
         if (!solutionDocument) {
@@ -1058,7 +1043,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let submissionDocuments = await database.models.observationSubmissions.find(
           queryObject,
-          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, solutionExternalId: 1, entityExternalId: 1 }
+          { answers: 1, criteria: 1, evidencesStatus: 1, entityProfile: 1, entityInformation: 1, solutionExternalId: 1, entityExternalId: 1, scoringSystem: 1 }
         ).lean();
 
         if (!submissionDocuments) {
@@ -1067,7 +1052,7 @@ module.exports = class ObservationSubmissions extends Abstract {
 
         let commonSolutionDocumentParameters = {
           submissionCollection : "observationSubmissions",
-          scoringSystem : "pointsBasedScoring"
+          scoringSystem : submissionDocuments[0].scoringSystem
         };
 
         let allCriteriaInSolution = new Array;
@@ -1090,60 +1075,62 @@ module.exports = class ObservationSubmissions extends Abstract {
 
           allQuestionIdInSolution = gen.utils.getAllQuestionId(allCriteriaDocument);
         }
+        
+        if (submissionDocuments[0].scoringSystem == "pointsBasedScoring") {
+          if (allQuestionIdInSolution.length > 0) {
 
-        if(allQuestionIdInSolution.length > 0) {
-
-          solutionQuestions = await questionsHelper.questionDocument({
-            _id : {
-              $in : allQuestionIdInSolution
-            },
-            responseType : {
-              $in : [
-                "radio",
-                "multiselect",
-                "slider"
-              ]
-            }
-          }, [
-            "weightage",
-            "options",
-            "sliderOptions",
-            "responseType"
-          ]);
-
-        }
-
-        if(solutionQuestions.length > 0) {
-          commonSolutionDocumentParameters.questionDocuments = {};
-          solutionQuestions.forEach(question => {
-            commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
-              _id : question._id,
-              weightage : question.weightage
-            };
-            let questionMaxScore = 0;
-            if(question.options && question.options.length > 0) {
-              if(question.responseType != "multiselect") {
-                questionMaxScore = _.maxBy(question.options, 'score').score;
+            solutionQuestions = await questionsHelper.questionDocument({
+              _id: {
+                $in: allQuestionIdInSolution
+              },
+              responseType: {
+                $in: [
+                  "radio",
+                  "multiselect",
+                  "slider"
+                ]
               }
-              question.options.forEach(option => {
-                if(question.responseType == "multiselect") {
-                  questionMaxScore += option.score;
-                }
-                if("score" in option) {
+            }, [
+                "weightage",
+                "options",
+                "sliderOptions",
+                "responseType"
+              ]);
 
-                  option.score >= 0 ? 
-                  commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] = 
-                  option.score 
-                  : "";
+          }
+
+          if (solutionQuestions.length > 0) {
+            commonSolutionDocumentParameters.questionDocuments = {};
+            solutionQuestions.forEach(question => {
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()] = {
+                _id: question._id,
+                weightage: question.weightage
+              };
+              let questionMaxScore = 0;
+              if (question.options && question.options.length > 0) {
+                if (question.responseType != "multiselect") {
+                  questionMaxScore = _.maxBy(question.options, 'score').score;
                 }
-              })
-            }
-            if(question.sliderOptions && question.sliderOptions.length > 0) {
-              questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
-              commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
-            }
-            commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore =  (typeof questionMaxScore === "number") ? questionMaxScore : 0;
-          })
+                question.options.forEach(option => {
+                  if (question.responseType == "multiselect") {
+                    questionMaxScore += option.score;
+                  }
+                  if ("score" in option) {
+
+                    option.score >= 0 ?
+                      commonSolutionDocumentParameters.questionDocuments[question._id.toString()][`${option.value}-score`] =
+                      option.score
+                      : "";
+                  }
+                })
+              }
+              if (question.sliderOptions && question.sliderOptions.length > 0) {
+                questionMaxScore = _.maxBy(question.sliderOptions, 'score').score;
+                commonSolutionDocumentParameters.questionDocuments[question._id.toString()].sliderOptions = question.sliderOptions;
+              }
+              commonSolutionDocumentParameters.questionDocuments[question._id.toString()].maxScore = (typeof questionMaxScore === "number") ? questionMaxScore : 0;
+            })
+          }
         }
 
         if(commonSolutionDocumentParameters && Object.keys(commonSolutionDocumentParameters).length > 0) {
@@ -1316,6 +1303,206 @@ module.exports = class ObservationSubmissions extends Abstract {
         return resolve({
            message: submissionDocument.message,
            result: submissionDocument.data
+        });
+
+      } catch (error) {
+        return reject({
+          status: error.status || httpStatusCode.internal_server_error.status,
+          message: error.message || httpStatusCode.internal_server_error.message,
+          errorObject: error
+        });
+      }
+    })
+  }
+
+    /**
+  * @api {post} /assessment/api/v1/observationSubmissions/update/:observationSubmissionId Update Observation Submission
+  * @apiVersion 1.0.0
+  * @apiName Update Observation Submission
+  * @apiGroup Observation Submissions
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "title" : "Observation Submission Title",
+  * }
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/update/5d2c1c57037306041ef0c7ea
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Observation submission updated successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * make observation submissions.
+   * @method
+   * @name make
+   * @param {Object} req -request data.
+   * @returns {JSON} - observation submissions creation.
+   */
+
+    async update(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+
+          let response = {};
+          if( req.method === "POST" ) {
+
+            if( req.body.title ) {
+              
+              response = await observationSubmissionsHelper.setTitle(
+                req.params._id,
+                req.userDetails.userId,
+                req.body.title
+              );
+
+            } else if( req.body.evidences ) {
+              
+              let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+              (
+                req.params._id,
+                req.body.evidence.externalId,
+                req.userDetails.userId
+              );
+
+              if (
+                isSubmissionAllowed.data.allowed && 
+                isSubmissionAllowed.data.allowed == false
+              ) {
+                throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED);
+              }
+              
+              let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+              
+              if (response.result.status && response.result.status === "completed") {
+                await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+              } else if(response.result.status && response.result.status === "ratingPending") {
+                await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+              }
+
+              let appInformation = {};
+
+              if( req.headers["x-app-id"] || req.headers.appname ) {
+                appInformation["appName"] = 
+                req.headers["x-app-id"] ? req.headers["x-app-id"] :
+                req.headers.appname;
+              } 
+
+              if( req.headers["x-app-ver"] || req.headers.appversion ) {
+                appInformation["appVersion"] = 
+                req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+                req.headers.appversion;
+              }
+              
+              if( Object.keys(appInformation).length > 0 ) {
+                await submissionsHelper.addAppInformation(
+                  req.params._id,
+                  appInformation,
+                  "observationSubmissions"
+                );
+              }
+            }
+
+          } else if( req.method === "DELETE" ) {
+            
+            response = await observationSubmissionsHelper.delete(
+              req.params._id,
+              req.userDetails.userId
+            );
+          }
+
+          return resolve(response);
+  
+        } catch (error) {
+  
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+  
+        }
+  
+      })
+    }
+
+    /**
+  * @api {post} /assessment/api/v1/observationSubmissions/solutionList
+  * @apiVersion 1.0.0
+  * @apiName Get Observation Submission solutions
+  * @apiGroup Observation Submissions
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/solutionList
+  * @apiParamExample {json} Request:
+  * {
+  *   "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+      "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+      "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+    }
+  * @apiUse successBody
+  * @apiUse errorBody
+  * @apiParamExample {json} Response:
+  * {
+    "message": "Solutions fetched successfully",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "solutionId": "600b21c57ea68a7ed9278873",
+                "programId": "600ab53cc7de076e6f993724",
+                "observationId": "60113bcf2d0bbd2f0c3229dc",
+                "scoringSystem": null,
+                "isRubricDriven": false,
+                "entityType": "district",
+                "entities": [
+                    {
+                        "_id": "5fd098e2e049735a86b748b7",
+                        "externalId": "D_AP-D012",
+                        "name": "ANANTAPUR"
+                    },
+                    {
+                        "_id": "5fd098e2e049735a86b748b2",
+                        "externalId": "D_AP-D007",
+                        "name": "GUNTUR"
+                    }
+                ],
+                "programName": "AP-TEST-PROGRAM-3.6.5",
+                "name": "AP-TEST-PROGRAM-3.6.5-OBS-IMP-PROJECT-2-DEO"
+            }
+        ],
+        "entityType": [
+            "district"
+        ],
+        "count": 1
+    }
+}
+  */
+   /**
+   * Get observation submission solutions
+   * @method
+   * @name solutionList
+   * @returns {JSON} consists of solutions, count and entityTypes.
+   */
+  async solutionList(req) {
+    return new Promise(async (resolve, reject) => {
+      try {
+
+        let entityType =  req.query.entityType ? req.query.entityType : "";
+        
+        let solutions = await observationSubmissionsHelper.solutionList
+        (
+          req.body,
+          req.userDetails.userId,
+          entityType,
+          req.pageSize,
+          req.pageNo
+        );
+
+        return resolve({
+           message: solutions.message,
+           result: solutions.data
         });
 
       } catch (error) {
