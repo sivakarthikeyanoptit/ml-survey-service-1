@@ -996,7 +996,8 @@ module.exports = class ObservationsHelper {
                 isRubricDriven: 1,
                 project : 1,
                 referenceFrom : 1,
-                pageHeading:1
+                pageHeading:1,
+                criteriaLevelReport : 1
             });
         })
     }
@@ -1021,7 +1022,8 @@ module.exports = class ObservationsHelper {
                 "enableQuestionReadOut",
                 "scoringSystem",
                 "isRubricDriven",
-                "pageHeading"
+                "pageHeading",
+                "criteriaLevelReport"
             ]);
         })
     }
@@ -1196,7 +1198,8 @@ module.exports = class ObservationsHelper {
                 let observationSolutionData = await solutionHelper.solutionDocuments({
                     link: link,
                     type : messageConstants.common.OBSERVATION,
-                    isReusable : false
+                    isReusable : false,
+                    status: { $ne : messageConstants.common.INACTIVE_STATUS }
                 },[
                     "externalId",
                     "subType",
@@ -1235,7 +1238,7 @@ module.exports = class ObservationsHelper {
                             { $set : { status: messageConstants.common.INACTIVE_STATUS } }
                         )
                     }
-                    
+
                     return resolve({
                         message: messageConstants.apiResponses.LINK_IS_EXPIRED,
                         result: []
@@ -1262,10 +1265,19 @@ module.exports = class ObservationsHelper {
                 Object.keys(_.omit(bodyData,["role"])).forEach( requestedDataKey => {
                   registryIds.push(bodyData[requestedDataKey]);
                 })
+
+                let filterQuery = {
+                    $or : [{
+                        "registryDetails.code" : { $in : registryIds }
+                    },{
+                        "registryDetails.locationId" : { $in : registryIds }
+                    }]
+                };      
               
-                let entitiyDocuments = await entitiesHelper.entityDocuments({
-                  "registryDetails.locationId" : { $in : registryIds }
-                },["_id"]);
+                let entitiyDocuments = await entitiesHelper.entityDocuments(
+                    filterQuery,
+                    ["_id"]
+                );
                
                 if (entitiyDocuments.length > 0) {
                     userEntities = entitiyDocuments.map(entity => {
@@ -1572,62 +1584,86 @@ module.exports = class ObservationsHelper {
         })
     }
 
-
     /**
-      * List of observations.
+      * List of user assigned observations.
       * @method
-      * @name observations
-      * @param pageSize - Size of page.
-      * @param pageNo - Recent page no.
-      * @param search - search text.
-      * @returns {Object} List of observations.
+      * @name userAssigned
+      * @param {String} userId - logged in user id.
+      * @param {Number} pageNo - Recent page no.
+      * @param {Number} pageSize - Size of page.
+      * @param {String} search - search text.
+      * @param {String} [ filter = ""] - filter text.
+      * @returns {Object} List of user assigned observations.
      */
 
-    static observations(query, pageNo, pageSize, searchQuery, fieldsArray) {
+    static userAssigned(userId, pageNo, pageSize, search,filter = "" ) {
         return new Promise(async (resolve, reject) => {
             try {
 
                 let matchQuery = {
-                    $match : query
+                    $match : {
+                        createdBy : userId,
+                        deleted : false,
+                    }
                 };
 
-                if (searchQuery && searchQuery.length > 0) {
-                    matchQuery["$match"]["$or"] = searchQuery;
+                if (search && search !== "" ) {
+                    matchQuery["$match"]["$or"] = [
+                        { "name" : new RegExp(search, 'i') },
+                        { "description" : new RegExp(search, 'i') }
+                    ];
                 }
-                let projection = {}
-                fieldsArray.forEach(field => {
-                    projection[field] = 1;
-                });
+
+                if ( filter && filter !== "" ) {
+                    if( filter === messageConstants.common.CREATED_BY_ME ) {
+                        matchQuery["$match"]["isAPrivateProgram"] = {
+                            $ne : false
+                        };
+                    } else if ( filter === messageConstants.common.ASSIGN_TO_ME ) {
+                        matchQuery["$match"]["isAPrivateProgram"] = false;
+                    }
+                }
+
+                let projection1 = {
+                    $project : {
+                        "name" : 1, 
+                        "description" : 1,
+                        "solutionId" : 1,
+                        "programId" : 1
+                    }
+                };
+
+                let facetQuery = {};
+                facetQuery["$facet"] = {};
+        
+                facetQuery["$facet"]["totalCount"] = [
+                  { "$count": "count" }
+                ];
+        
+                facetQuery["$facet"]["data"] = [
+                  { $skip: pageSize * (pageNo - 1) },
+                  { $limit: pageSize }
+                ];
+
+                let projection2 = {};
+                projection2["$project"] = {
+                  "data": 1,
+                  "count": {
+                    $arrayElemAt: ["$totalCount.count", 0]
+                  }
+                };
 
                 let aggregateData = [];
-                aggregateData.push(matchQuery);
-                aggregateData.push({
-                    $project: projection
-                }, {
-                    $facet: {
-                        "totalCount": [
-                            { "$count": "count" }
-                        ],
-                        "data": [
-                            { $skip: pageSize * (pageNo - 1) },
-                            { $limit: pageSize }
-                        ],
-                    }
-                }, {
-                    $project: {
-                        "data": 1,
-                        "count": {
-                            $arrayElemAt: ["$totalCount.count", 0]
-                        }
-                    }
-                });
+                aggregateData.push(matchQuery,{
+                    $sort : { "updatedAt" : -1 }
+                },projection1,facetQuery,projection2);
 
                 let result =
                 await database.models.observations.aggregate(aggregateData);
 
                 return resolve({
                     success: true,
-                    message: messageConstants.apiResponses.OBSERVATIONS_FETCHED,
+                    message: messageConstants.apiResponses.USER_ASSIGNED_OBSERVATION_FETCHED,
                     data: {
                         data: result[0].data,
                         count: result[0].count ? result[0].count : 0
@@ -1646,7 +1682,7 @@ module.exports = class ObservationsHelper {
         })
     }
 
-    /**
+     /**
     * Get list of observations with the targetted ones.
     * @method
     * @name getObservation
@@ -1658,28 +1694,12 @@ module.exports = class ObservationsHelper {
    static getObservation( bodyData,userId,token,pageSize,pageNo,search = "") {
     return new Promise(async (resolve, reject) => {
         try {
-            
-            let query = {
-                createdBy : userId,
-                deleted : false,
-                programId : { $exists : true }
-            }
 
-            let searchQuery = [];
-
-            if (search !== "") {
-                searchQuery = [
-                    { "name" : new RegExp(search, 'i') },
-                    { "description" : new RegExp(search, 'i') }
-                ];
-            }
-
-            let observations = await this.observations(
-                query,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
-                searchQuery,
-                ["name", "description","solutionId","programId"]
+            let observations = await this.userAssigned(
+                userId,
+                pageNo,
+                pageSize,
+                search
             );
 
             let solutionIds = [];
@@ -1832,24 +1852,21 @@ module.exports = class ObservationsHelper {
     
                     let entityTypes = Object.keys(_.omit(bodyData,["role"]));
     
-                    if( !entityTypes.includes(solutionData.data.entityType) ) {
-                        throw {
-                            message : messageConstants.apiResponses.ENTITY_TYPE_MIS_MATCHED
+                    if( entityTypes.includes(solutionData.data.entityType) ) {
+
+                        let entityData = 
+                        await entitiesHelper.listByLocationIds(
+                            [bodyData[solutionData.data.entityType]]
+                        );
+        
+                        if( !entityData.success ) {
+                            return resolve(entityData);
                         }
+        
+                        solutionData.data["entities"] = [entityData.data[0]._id];
                     }
-    
-                    let entityData = 
-                    await entitiesHelper.listByLocationIds(
-                        [bodyData[solutionData.data.entityType]]
-                    );
-    
-                    if( !entityData.success ) {
-                        return resolve(entityData);
-                    }
-    
+
                     delete solutionData.data._id;
-    
-                    solutionData.data["entities"] = [entityData.data[0]._id];
     
                     let observation = await this.create(
                         solutionId,
@@ -1882,7 +1899,7 @@ module.exports = class ObservationsHelper {
                 success : true,
                 message : messageConstants.apiResponses.OBSERVATION_ENTITIES_FETCHED,
                 data : {
-                    "allowMultipleAssessemts":solutionData[0].allowMultipleAssessemts,
+                    "allowMultipleAssessemts" : solutionData[0].allowMultipleAssessemts,
                     _id : observationId,
                     "entities" : entitiesList.data.entities,
                     entityType : entitiesList.data.entityType
@@ -1922,43 +1939,47 @@ module.exports = class ObservationsHelper {
                 };
             }
 
-            let entitiesData = await entitiesHelper.entityDocuments({
-                _id : { $in : observationDocument[0].entities }
-            },["metaInformation.externalId","metaInformation.name"]);
-
-            if( !entitiesData.length > 0 ) {
-                throw {
-                    message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
-                }
-            }
-
             let entities = [];
 
-            for ( 
-                let pointerToEntities = 0; 
-                pointerToEntities < entitiesData.length;
-                pointerToEntities++
-            ) {
+            if( observationDocument[0].entities && observationDocument[0].entities.length > 0 ) {
+                
+                let entitiesData = await entitiesHelper.entityDocuments({
+                    _id : { $in : observationDocument[0].entities }
+                },["metaInformation.externalId","metaInformation.name"]);
 
-                let currentEntities = entitiesData[pointerToEntities];
-
-                let observationSubmissions = 
-                await observationSubmissionsHelper.observationSubmissionsDocument({
-                    observationId : observationId,
-                    entityId : currentEntities._id
-                });
-
-                let entity = {
-                    _id : currentEntities._id,
-                    externalId : currentEntities.metaInformation.externalId,
-                    name : currentEntities.metaInformation.name,
-                    submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
-                };
-                if(observationSubmissions.length == 1){
-                    entity['submissionId']=observationSubmissions[0]._id;
+                if( !entitiesData.length > 0 ) {
+                    throw {
+                        message : messageConstants.apiResponses.ENTITIES_NOT_FOUND
+                    }
                 }
 
-                entities.push(entity);
+                for ( 
+                    let pointerToEntities = 0; 
+                    pointerToEntities < entitiesData.length;
+                    pointerToEntities++
+                ) {
+                    
+                    let currentEntities = entitiesData[pointerToEntities];
+
+                    let observationSubmissions = 
+                    await observationSubmissionsHelper.observationSubmissionsDocument({
+                        observationId : observationId,
+                        entityId : currentEntities._id
+                    });
+
+                    let entity = {
+                        _id : currentEntities._id,
+                        externalId : currentEntities.metaInformation.externalId,
+                        name : currentEntities.metaInformation.name,
+                        submissionsCount : observationSubmissions.length > 0 ? observationSubmissions.length : 0
+                    };
+
+                    if(observationSubmissions.length == 1){
+                        entity['submissionId']=observationSubmissions[0]._id;
+                    }
+
+                    entities.push(entity);
+                }
             }
 
             return resolve({
@@ -1979,5 +2000,125 @@ module.exports = class ObservationsHelper {
         }
     })
   }
+
+    /**
+    * Add entity to observation.
+    * @method
+    * @name addEntityToObservation
+    * @param {String} observationId - observation id.
+    * @param {Object} requestedData - requested data.
+    * @param {String} userId - logged in user id.
+    * @returns {JSON} message - regarding either entity is added to observation or not.
+    */
+
+     static addEntityToObservation(observationId,requestedData,userId) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let responseMessage = "Updated successfully.";
+
+                let observationDocument = await this.observationDocuments(
+                    {
+                        _id: observationId,
+                        createdBy: userId,
+                        status: { $ne: "inactive" }
+                    },
+                    ["entityTypeId","status"]
+                );
+
+                if (observationDocument[0].status != messageConstants.common.PUBLISHED) {
+                    return resolve({
+                        status: httpStatusCode.bad_request.status,
+                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
+                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
+                    });
+                }
+
+                let entitiesToAdd = 
+                await entitiesHelper.validateEntities(
+                    requestedData, 
+                    observationDocument[0].entityTypeId
+                );
+
+                if (entitiesToAdd.entityIds.length > 0) {
+                    await database.models.observations.updateOne(
+                        {
+                            _id: observationDocument[0]._id
+                        },
+                        {
+                            $addToSet: { entities: entitiesToAdd.entityIds }
+                        }
+                    );
+                }
+
+
+                if (entitiesToAdd.entityIds.length != requestedData.length) {
+                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
+                }
+
+                return resolve({
+                    message: responseMessage
+                });
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
+
+    /**
+    * Remove entity from observation.
+    * @method
+    * @name removeEntityFromObservation
+    * @param {String} observationId - observation id.
+    * @param {Object} requestedData - requested data.
+    * @param {String} userId - logged in user id.
+    * @returns {JSON} observation remoevable message
+    */
+
+     static removeEntityFromObservation(observationId,requestedData,userId) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                await database.models.observations.updateOne(
+                    {
+                        _id: ObjectId(observationId),
+                        status: { $ne: "completed" },
+                        createdBy: userId
+                    },
+                    {
+                        $pull: {
+                            entities: { $in: gen.utils.arrayIdsTobjectIds(requestedData) }
+                        }
+                    }
+                );
+
+                return resolve({
+                    message: messageConstants.apiResponses.ENTITY_REMOVED
+                })
+
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+
+        });
+
+    }
 
 };

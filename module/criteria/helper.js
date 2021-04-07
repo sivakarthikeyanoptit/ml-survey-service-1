@@ -42,6 +42,19 @@ module.exports = class criteriaHelper {
                 } else {
                     existingCriteriaRubricLevels = Object.values(existingCriteria.rubric.levels);
                 }
+                
+                // To update the levels, which does not exists in the db
+                Object.keys(_.omit(criteriaRubricData, ['externalId', 'name', 'expressionVariables'])).map(level => {
+                  let levelExists = existingCriteriaRubricLevels.filter(function (o) { return o.level === level }).length > 0;
+
+                  if (!levelExists) {
+                    existingCriteriaRubricLevels.push ({
+                      level: level,
+                      label: 'Level ' + level.charAt(1),
+                      description: 'NA',
+                    });
+                  }
+                })
 
                 existingCriteriaRubricLevels.forEach(levelObject => {
 

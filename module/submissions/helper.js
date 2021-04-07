@@ -1096,7 +1096,8 @@ module.exports = class SubmissionsHelper {
                     "themes",
                     "evidenceMethods",
                     "scoringSystem",
-                    "isRubricDriven"
+                    "isRubricDriven",
+                    "criteriaLevelReport"
                 ]
             );
 
@@ -1180,6 +1181,10 @@ module.exports = class SubmissionsHelper {
                 criteria : submissionDocumentCriterias,
                 evidencesStatus : Object.values(submissionDocumentEvidences)
             };
+
+            if( solutionDocument.hasOwnProperty("criteriaLevelReport") ) {
+                submissionData["criteriaLevelReport"] = solutionDocument["criteriaLevelReport"];
+            }
 
             let submissionDoc = await this.createASubmission(
                 submissionData,
