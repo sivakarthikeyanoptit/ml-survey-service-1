@@ -387,12 +387,19 @@ module.exports = class Surveys extends Abstract {
 
 
      /**
-     * @api {get} /assessment/api/v1/surveys/getDetailsByLink/:link Get the survey details by link
+     * @api {post} /assessment/api/v1/surveys/getDetailsByLink/:link Get the survey details by link
      * @apiVersion 1.0.0
      * @apiName Get the survey details by link
      * @apiGroup Surveys
      * @apiHeader {String} X-authenticated-user-token Authenticity token
      * @apiSampleRequest /assessment/api/v1/surveys/getDetailsByLink/392f95246771664a81335f1be7d109f3
+     * @apiParamExample {json} Request:
+     * {
+     *  "role" : "HM",
+   		"state" : "236f5cff-c9af-4366-b0b6-253a1789766a",
+        "district" : "1dcbc362-ec4c-4559-9081-e0c2864c2931",
+        "school" : "c5726207-4f9f-4f45-91f1-3e9e8e84d824"
+      }
      * @apiParamExample {json} Response:
      * {
      *  "status": 200,
@@ -583,10 +590,13 @@ module.exports = class Surveys extends Abstract {
 
         try {
 
+            let bodyData = req.body ? req.body : {};
+
             let surveyDetails = await surveysHelper.getDetailsByLink(
                 req.params._id,
                 req.userDetails.userId,
-                req.rspObj.userToken
+                req.rspObj.userToken,
+                bodyData
             );
 
             return resolve({
@@ -889,6 +899,67 @@ module.exports = class Surveys extends Abstract {
                     req.pageSize,
                     req.pageNo,
                     req.searchText
+                );
+
+                return resolve({
+                    message: surveys.message,
+                    result: surveys.data
+                });
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+     /**
+    * @api {get} /assessment/api/v1/surveys/userAssigned?page=:page&limit=:limit&search=:search&filter=:filter
+    * User assigned list of surveys.
+    * @apiVersion 1.0.0
+    * @apiGroup Surveys
+    * @apiSampleRequest /assessment/api/v1/surveys/userAssigned?page=1&limit=10&filter=assignedToMe
+    * @apiParamExample {json} Response:
+    {
+    "message": "List of user assigned surveys",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5fe1f060d12d8c7c3d9ebe97",
+                "solutionId": "5f92b5b79a530908731ac195",
+                "name": "survey and feedback solution",
+                "description": "test survey and feedback solution"
+            }
+        ],
+        "count": 1
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * User assigned list of surveys.
+      * @method
+      * @name userAssigned
+      * @param {Object} req - request data.
+      * @returns {JSON} List of user assigned surveys.
+     */
+
+     async userAssigned(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let surveys = await surveysHelper.userAssigned(
+                    req.userDetails.userId,
+                    req.pageSize,
+                    req.pageNo,
+                    req.searchText,
+                    req.query.filter
                 );
 
                 return resolve({

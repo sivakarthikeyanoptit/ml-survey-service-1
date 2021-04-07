@@ -353,5 +353,7 @@ module.exports = {
     "APP_INFORMATION_ADDED" : "App information added successfully in submission",
     "CRITERIA_COULD_NOT_BE_DELETED": "Could not found criteria",
     "CRITERIA_REMOVED": "Criteria removed successfully",
-    "THEMES_NOT_FOUND":"Themes Not Found"
+    "THEMES_NOT_FOUND":"Themes Not Found",
+    "USER_ASSIGNED_OBSERVATION_FETCHED" : "List of user assigned observations",
+    "USER_ASSIGNED_SURVEY_FETCHED" : "List of user assigned surveys"
 }

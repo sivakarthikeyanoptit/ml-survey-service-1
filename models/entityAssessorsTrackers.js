@@ -1,7 +1,10 @@
 module.exports = {
     name: "entityAssessorsTrackers",
     schema: {
-        assessorUserId: String,
+        assessorUserId: {
+            type : String,
+            index : true
+        },
         assessorId: "ObjectId",
         action: String,
         actionObject: Array,
@@ -10,9 +13,15 @@ module.exports = {
         dateOfOperation: Date,
         validFrom: Date,
         validTo: Date,
-        programId: "ObjectId",
+        programId: {
+            type : "ObjectId",
+            index : true
+        },
         updatedData: Array,
-        solutionId: "ObjectId",
+        solutionId: {
+            type : "ObjectId",
+            index : true
+        },
         entityTypeId: "ObjectId",
         entityType: String
     }

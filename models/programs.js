@@ -1,11 +1,18 @@
 module.exports = {
   name: "programs",
   schema: {
-    externalId: String,
+    externalId: {
+      type : String,
+      index : true,
+      unique : true
+    },
     name: String,
     description: String,
     owner: String,
-    createdBy: String,
+    createdBy: {
+      type : String,
+      index : true
+    },
     updatedBy: String,
     status: String,
     resourceType: [String],

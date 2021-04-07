@@ -20,6 +20,7 @@ const kendraService = require(ROOT_PATH + "/generics/services/kendra");
 const surveySolutionTemplate = "-SURVEY-TEMPLATE";
 const surveyAndFeedback = "SF";
 const questionsHelper = require(MODULES_BASE_PATH + "/questions/helper");
+const userRolesHelper = require(MODULES_BASE_PATH + "/userRoles/helper");
 
 /**
     * SurveysHelper
@@ -693,7 +694,7 @@ module.exports = class SurveysHelper {
      * @returns {JSON} - returns survey solution,program and question details.
      */
 
-    static getDetailsByLink(link= "", userId= "", token= "") {
+    static getDetailsByLink(link= "", userId= "", token= "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -799,7 +800,8 @@ module.exports = class SurveysHelper {
                 (
                     surveyId,
                     userId,
-                    validateSurvey.data.submissionId
+                    validateSurvey.data.submissionId,
+                    roleInformation
                 )
 
                 if (!surveyDetails.success) {
@@ -833,7 +835,7 @@ module.exports = class SurveysHelper {
       * @returns {JSON} - returns survey solution, program and questions.
      */
 
-    static details(surveyId = "", userId= "", submissionId = "") {
+    static details(surveyId = "", userId= "", submissionId = "", roleInformation= {}) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1031,6 +1033,20 @@ module.exports = class SurveysHelper {
                         isAPrivateProgram: surveyDocument.isAPrivateProgram
                     };
                     submissionDocument.surveyInformation.startDate = new Date();
+
+                    if (Object.keys(roleInformation).length > 0 && roleInformation.role) {
+                    
+                        let roleDocument = await userRolesHelper.list
+                        ( { code : roleInformation.role },
+                          [ "_id"]
+                        )
+
+                        if (roleDocument.length > 0) {
+                            roleInformation.roleId = roleDocument[0]._id; 
+                        }
+    
+                        submissionDocument.userRoleInformation = roleInformation;
+                    }
 
                     if (programDocument.length > 0) {
                         submissionDocument.programId = programDocument[0]._id;
@@ -1336,114 +1352,114 @@ module.exports = class SurveysHelper {
     * @returns {Object}
    */
 
-   static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
-    return new Promise(async (resolve, reject) => {
-        try {
-            
-            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
-                userId,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
-                search
-            );
-
-            let solutionIds = [];
-
-            let totalCount = 0;
-            let mergedData = [];
-            
-            if( surveySolutions.success && surveySolutions.data ) {
-
-                totalCount = surveySolutions.data.count;
-                mergedData = surveySolutions.data.data;
-
-                if( mergedData.length > 0 ) {
+    static getSurvey( bodyData,userId,token,pageSize,pageNo,search = "") {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                    userId,
+                    messageConstants.common.DEFAULT_PAGE_NO,
+                    messageConstants.common.DEFAULT_PAGE_SIZE,
+                    search
+                );
+    
+                let solutionIds = [];
+    
+                let totalCount = 0;
+                let mergedData = [];
+                
+                if( surveySolutions.success && surveySolutions.data ) {
+    
+                    totalCount = surveySolutions.data.count;
+                    mergedData = surveySolutions.data.data;
+    
+                    if( mergedData.length > 0 ) {
+                        
+                        mergedData.forEach( surveyData => {
+                            surveyData.isCreator = true;
+                            if( surveyData.solutionId ) {
+                                solutionIds.push(ObjectId(surveyData.solutionId));
+                            }
+                        });
+                    }
+                }
+    
+                let surveySubmissions = await surveySubmissionsHelper.surveyList
+                (
+                    userId,
+                    messageConstants.common.DEFAULT_PAGE_NO,
+                    messageConstants.common.DEFAULT_PAGE_SIZE,
+                    search
+                )
+                
+                if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+    
+                    totalCount += surveySubmissions.data.count;
                     
-                    mergedData.forEach( surveyData => {
-                        surveyData.isCreator = true;
+                    surveySubmissions.data.data.forEach( surveyData => {
+                        surveyData.isCreator = false;
                         if( surveyData.solutionId ) {
                             solutionIds.push(ObjectId(surveyData.solutionId));
                         }
                     });
+    
+                    mergedData = [...mergedData, ...surveySubmissions.data.data];
                 }
-            }
-
-            let surveySubmissions = await surveySubmissionsHelper.surveyList
-            (
-                userId,
-                messageConstants.common.DEFAULT_PAGE_NO,
-                messageConstants.common.DEFAULT_PAGE_SIZE,
-                search
-            )
-            
-            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
-
-                totalCount += surveySubmissions.data.count;
-                
-                surveySubmissions.data.data.forEach( surveyData => {
-                    surveyData.isCreator = false;
-                    if( surveyData.solutionId ) {
-                        solutionIds.push(ObjectId(surveyData.solutionId));
+               
+                if( solutionIds.length > 0 ) {
+                    bodyData["filter"] = {};
+                    bodyData["filter"]["skipSolutions"] = solutionIds; 
+                }
+    
+                let targetedSolutions = 
+                await kendraService.solutionBasedOnRoleAndLocation
+                (
+                    token,
+                    bodyData,
+                    messageConstants.common.SURVEY,
+                    search
+                );
+              
+                if (targetedSolutions.success) {
+    
+                    if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
+                        totalCount += targetedSolutions.data.count;
+    
+                        targetedSolutions.data.data.forEach(targetedSolution => {
+                            targetedSolution.solutionId = targetedSolution._id;
+                            targetedSolution._id = "";
+                            targetedSolution.isCreator = false;
+                            mergedData.push(targetedSolution);
+                            delete targetedSolution.type;
+                            delete targetedSolution.externalId;
+                        })
+                    }
+                }
+    
+                if( mergedData.length > 0 ) {
+                   let startIndex = pageSize * (pageNo - 1);
+                   let endIndex = startIndex + pageSize;
+                   mergedData = mergedData.slice(startIndex,endIndex) 
+                }
+    
+                return resolve({
+                    success : true,
+                    message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
+                    data : {
+                        data : mergedData,
+                        count : totalCount
                     }
                 });
-
-                mergedData = [...mergedData, ...surveySubmissions.data.data];
+                
+            } catch (error) {
+                return resolve({
+                    success : false,
+                    message : error.message,
+                    data : []
+                });
             }
-           
-            if( solutionIds.length > 0 ) {
-                bodyData["filter"] = {};
-                bodyData["filter"]["skipSolutions"] = solutionIds; 
-            }
-
-            let targetedSolutions = 
-            await kendraService.solutionBasedOnRoleAndLocation
-            (
-                token,
-                bodyData,
-                messageConstants.common.SURVEY,
-                search
-            );
-          
-            if (targetedSolutions.success) {
-
-                if (targetedSolutions.data.data && targetedSolutions.data.data.length > 0) {
-                    totalCount += targetedSolutions.data.count;
-
-                    targetedSolutions.data.data.forEach(targetedSolution => {
-                        targetedSolution.solutionId = targetedSolution._id;
-                        targetedSolution._id = "";
-                        targetedSolution.isCreator = false;
-                        mergedData.push(targetedSolution);
-                        delete targetedSolution.type;
-                        delete targetedSolution.externalId;
-                    })
-                }
-            }
-
-            if( mergedData.length > 0 ) {
-               let startIndex = pageSize * (pageNo - 1);
-               let endIndex = startIndex + pageSize;
-               mergedData = mergedData.slice(startIndex,endIndex) 
-            }
-
-            return resolve({
-                success : true,
-                message : messageConstants.apiResponses.TARGETED_SURVEY_FETCHED,
-                data : {
-                    data : mergedData,
-                    count : totalCount
-                }
-            });
-            
-        } catch (error) {
-            return resolve({
-                success : false,
-                message : error.message,
-                data : []
-            });
-        }
-    })
-  }
+        })
+      }
 
       /**
       * survey details.
@@ -1556,7 +1572,8 @@ module.exports = class SurveysHelper {
             (
                 surveyId,
                 userId,
-                validateSurvey.data.submissionId
+                validateSurvey.data.submissionId,
+                bodyData
             )
 
             if (!surveyDetails.success) {
@@ -1579,5 +1596,84 @@ module.exports = class SurveysHelper {
         }
     })
    }
+
+      /**
+    * List of user assigned surveys.
+    * @method
+    * @name userAssigned
+    * @param {String} userId - Logged in user Id.
+    * @param {String} pageSize - size of page.
+    * @param {String} pageNo - page number.
+    * @param {String} search - search text.
+    * @param {String} filter - filter text.
+    * @returns {Object}
+   */
+
+   static userAssigned( userId,pageSize,pageNo,search = "",filter) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            let surveySolutions = await surveySubmissionsHelper.surveySolutions(
+                userId,
+                pageNo,
+                pageSize,
+                search,
+                filter
+            );
+
+            let totalCount = 0;
+            let mergedData = [];
+            
+            if( surveySolutions.success && surveySolutions.data ) {
+
+                totalCount = surveySolutions.data.count;
+                mergedData = surveySolutions.data.data;
+
+                if( mergedData.length > 0 ) {
+                    
+                    mergedData.forEach( surveyData => {
+                        surveyData.isCreator = true;
+                    });
+                }
+            }
+
+            let surveySubmissions = await surveySubmissionsHelper.surveyList
+            (
+                userId,
+                pageNo,
+                pageSize,
+                search,
+                filter
+            )
+            
+            if( surveySubmissions.success && surveySubmissions.data.data.length > 0 ) {
+
+                totalCount += surveySubmissions.data.count;
+                
+                surveySubmissions.data.data.forEach( surveyData => {
+                    surveyData.isCreator = false;
+                });
+
+                mergedData = [...mergedData, ...surveySubmissions.data.data];
+            }
+
+            return resolve({
+                success : true,
+                message : messageConstants.apiResponses.USER_ASSIGNED_SURVEY_FETCHED,
+                data : {
+                    data : mergedData,
+                    count : totalCount
+                }
+            });
+            
+        } catch (error) {
+            return resolve({
+                success : false,
+                message : error.message,
+                data : []
+            });
+        }
+    })
+  }
     
 }

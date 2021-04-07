@@ -7,7 +7,9 @@ module.exports = {
       },
       userId: {
         type: String,
-        required: true
+        required: true,
+        index : true,
+        unique : true
       },
       roles: Array,
       createdBy: {
@@ -20,7 +22,8 @@ module.exports = {
       },
       status: {
         type: String,
-        default: "active"
+        default: "active",
+        index : true
       },
       isDeleted: {
         type: Boolean,
