@@ -1265,10 +1265,21 @@ module.exports = class ObservationsHelper {
                 Object.keys(_.omit(bodyData,["role"])).forEach( requestedDataKey => {
                   registryIds.push(bodyData[requestedDataKey]);
                 })
+
+                let filterQuery = {
+                    "registryDetails.code" : { $in : registryIds }
+                  };
+          
+                if( gen.utils.checkValidUUID( registryIds[0] ) ) {
+                    filterQuery = {
+                      "registryDetails.locationId" : registryIds
+                    };
+                } 
               
-                let entitiyDocuments = await entitiesHelper.entityDocuments({
-                  "registryDetails.locationId" : { $in : registryIds }
-                },["_id"]);
+                let entitiyDocuments = await entitiesHelper.entityDocuments(
+                    filterQuery,
+                    ["_id"]
+                );
                
                 if (entitiyDocuments.length > 0) {
                     userEntities = entitiyDocuments.map(entity => {
