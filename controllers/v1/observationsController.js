@@ -373,7 +373,7 @@ module.exports = class Observations extends Abstract {
 
     }
 
-    /**
+     /**
      * @api {post} /assessment/api/v1/observations/addEntityToObservation/:observationId Map entities to observations
      * @apiVersion 1.0.0
      * @apiName Map entities to observations
@@ -395,56 +395,20 @@ module.exports = class Observations extends Abstract {
     * @returns {JSON} message - regarding either entity is added to observation or not.
     */
 
-    async addEntityToObservation(req) {
+     async addEntityToObservation(req) {
 
         return new Promise(async (resolve, reject) => {
 
             try {
 
-                let responseMessage = "Updated successfully.";
+                let result = 
+                await observationsHelper.addEntityToObservation(
+                    req.params._id,
+                    req.body.data,
+                    req.userDetails.id
+                );
 
-                let observationDocument = await database.models.observations.findOne(
-                    {
-                        _id: req.params._id,
-                        createdBy: req.userDetails.userId,
-                        status: { $ne: "inactive" }
-                    },
-                    {
-                        entityTypeId: 1,
-                        status: 1
-                    }
-                ).lean();
-
-                if (observationDocument.status != "published") {
-                    return resolve({
-                        status: httpStatusCode.bad_request.status,
-                        message: messageConstants.apiResponses.OBSERVATION_ALREADY_COMPLETED +
-                        messageConstants.apiResponses.OBSERVATION_NOT_PUBLISHED
-                    });
-                }
-
-                let entitiesToAdd = await entitiesHelper.validateEntities(req.body.data, observationDocument.entityTypeId);
-
-                if (entitiesToAdd.entityIds.length > 0) {
-                    await database.models.observations.updateOne(
-                        {
-                            _id: observationDocument._id
-                        },
-                        {
-                            $addToSet: { entities: entitiesToAdd.entityIds }
-                        }
-                    );
-                }
-
-
-                if (entitiesToAdd.entityIds.length != req.body.data.length) {
-                    responseMessage = messageConstants.apiResponses.ENTITIES_NOT_UPDATE;
-                }
-
-                return resolve({
-                    message: responseMessage
-                });
-
+                return resolve(result);
 
             } catch (error) {
                 return reject({
@@ -487,23 +451,73 @@ module.exports = class Observations extends Abstract {
 
             try {
 
-                await database.models.observations.updateOne(
-                    {
-                        _id: ObjectId(req.params._id),
-                        status: { $ne: "completed" },
-                        createdBy: req.userDetails.id
-                    },
-                    {
-                        $pull: {
-                            entities: { $in: gen.utils.arrayIdsTobjectIds(req.body.data) }
-                        }
-                    }
+                let result = 
+                await observationsHelper.removeEntityFromObservation(
+                    req.params._id,
+                    req.body.data,
+                    req.userDetails.id
                 );
+                
+                return resolve(result);
 
-                return resolve({
-                    message: messageConstants.apiResponses.ENTITY_REMOVED
-                })
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
 
+        });
+
+    }
+
+     /**
+     * @api {post} /assessment/api/v1/observations/updateEntities/:observationId Map entities to observations
+     * @apiVersion 1.0.0
+     * @apiName Map entities to observations
+     * @apiGroup Observations
+     * @apiParamExample {json} Request-Body:
+     * {
+     *	    "data": ["5beaa888af0065f0e0a10515","5beaa888af0065f0e0a10516"]
+     * }
+     * @apiUse successBody
+     * @apiUse errorBody
+     */
+
+    /**
+    * Add entity to observation.
+    * @method
+    * @name updateEntities
+    * @param {Object} req -request Data.
+    * @param {String} req.params._id -Observation id. 
+    * @returns {JSON} message - regarding either entity is added to observation or not.
+    */
+
+    async updateEntities(req) {
+
+        return new Promise(async (resolve, reject) => {
+
+            try {
+
+                let response = {};
+                if( req.method === "POST" ) {
+                    response = 
+                    await observationsHelper.addEntityToObservation(
+                        req.params._id,
+                        req.body.data,
+                        req.userDetails.id
+                    )
+                } else if( req.method === "DELETE" ) {
+                    response = 
+                    await observationsHelper.removeEntityFromObservation(
+                        req.params._id,
+                        req.body.data,
+                        req.userDetails.id
+                    ) 
+                }
+
+                return resolve(response);
 
             } catch (error) {
                 return reject({
@@ -1910,7 +1924,7 @@ module.exports = class Observations extends Abstract {
       * @returns {JSON} List of observations with targetted ones.
      */
 
-    async getObservation(req) {
+     async getObservation(req) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -1921,6 +1935,74 @@ module.exports = class Observations extends Abstract {
                     req.pageSize,
                     req.pageNo,
                     req.searchText
+                );
+
+                observations["result"] = observations.data;
+
+                return resolve(observations);
+
+            } catch (error) {
+                return reject({
+                    status: error.status || httpStatusCode.internal_server_error.status,
+                    message: error.message || httpStatusCode.internal_server_error.message,
+                    errorObject: error
+                });
+            }
+        })
+    }
+
+
+    /**
+    * @api {get} /assessment/api/v1/observations/userAssigned?page=:page&limit=:limit&search=:search&filter=:filter
+    * List of user assigned observations.
+    * @apiVersion 1.0.0
+    * @apiGroup Observations
+    * @apiSampleRequest /assessment/api/v1/observations/userAssigned?page=1&limit=10&search=a&filter=assignedToMe
+    * @apiParamExample {json} Response:
+    {
+    "message": "List of user assigned observations",
+    "status": 200,
+    "result": {
+        "data": [
+            {
+                "_id": "5f9288fd5e25636ce6dcad66",
+                "name": "obs1",
+                "description": "observation1",
+                "solutionId": "5f9288fd5e25636ce6dcad65",
+                "programId": "5d287326652f311044f41dbb"
+            },
+            {
+                "_id": "5fc7aa9e73434430731f6a10",
+                "solutionId": "5fb4fce4c7439a3412ff013b",
+                "programId": "5f5b216a9c70bd2973aee29f",
+                "name": "My Solution",
+                "description": "My Solution Description"
+            }
+        ],
+        "count": 2
+    }
+}
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+
+    /**
+      * List of user assigned observations.
+      * @name userAssigned
+      * @param {Object} req - request data.
+      * @returns {JSON} List of observations with targetted ones.
+     */
+
+    async userAssigned(req) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                let observations = await observationsHelper.userAssigned(
+                    req.userDetails.userId,
+                    req.pageNo,
+                    req.pageSize,
+                    req.searchText,
+                    req.query.filter
                 );
 
                 observations["result"] = observations.data;

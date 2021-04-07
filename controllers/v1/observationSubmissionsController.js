@@ -321,7 +321,7 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
-  /**
+    /**
   * @api {post} /assessment/api/v1/observationSubmissions/make/{{submissionId}} Create Observation Submission
   * @apiVersion 1.0.0
   * @apiName Create Observation Submission
@@ -499,66 +499,66 @@ module.exports = class ObservationSubmissions extends Abstract {
    * @returns {JSON} - observation submissions creation.
    */
 
-  async make(req) {
-    return new Promise(async (resolve, reject) => {
-
-      try {
-
-        let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
-        (
-          req.params._id,
-          req.body.evidence.externalId,
-          req.userDetails.userId
-        )
-
-        if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
-           throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
-        }
-
-        let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
-
-        if (response.result.status && response.result.status === "completed") {
-          await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
-        } else if(response.result.status && response.result.status === "ratingPending") {
-          await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
-        }
-
-        let appInformation = {};
-
-        if( req.headers["x-app-id"] || req.headers.appname ) {
-          appInformation["appName"] = 
-          req.headers["x-app-id"] ? req.headers["x-app-id"] :
-          req.headers.appname;
-        } 
-
-        if( req.headers["x-app-ver"] || req.headers.appversion ) {
-          appInformation["appVersion"] = 
-          req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
-          req.headers.appversion;
-        }
-
-        if( Object.keys(appInformation).length > 0 ) {
-          await submissionsHelper.addAppInformation(
+    async make(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+          (
             req.params._id,
-            appInformation,
-            "observationSubmissions"
-          );
+            req.body.evidence.externalId,
+            req.userDetails.userId
+          )
+  
+          if (isSubmissionAllowed.data.allowed && isSubmissionAllowed.data.allowed == false) {
+             throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED)
+          }
+  
+          let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+  
+          if (response.result.status && response.result.status === "completed") {
+            await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+          } else if(response.result.status && response.result.status === "ratingPending") {
+            await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+          }
+  
+          let appInformation = {};
+  
+          if( req.headers["x-app-id"] || req.headers.appname ) {
+            appInformation["appName"] = 
+            req.headers["x-app-id"] ? req.headers["x-app-id"] :
+            req.headers.appname;
+          } 
+  
+          if( req.headers["x-app-ver"] || req.headers.appversion ) {
+            appInformation["appVersion"] = 
+            req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+            req.headers.appversion;
+          }
+  
+          if( Object.keys(appInformation).length > 0 ) {
+            await submissionsHelper.addAppInformation(
+              req.params._id,
+              appInformation,
+              "observationSubmissions"
+            );
+          }
+  
+          return resolve(response);
+  
+        } catch (error) {
+  
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+  
         }
-
-        return resolve(response);
-
-      } catch (error) {
-
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-
-      }
-
-    })
-  }
+  
+      })
+    }
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/isAllowed:observationSubmissionId?evidenceId="LW" Check Submissions Status 
@@ -615,7 +615,6 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
-
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/delete/:observationSubmissionId Delete Observation Submission
   * @apiVersion 1.0.0
@@ -633,112 +632,80 @@ module.exports = class ObservationSubmissions extends Abstract {
    * @returns {JSON} - message that observation submission is deleted.
    */
 
-  async delete(req) {
-    return new Promise(async (resolve, reject) => {
+    async delete(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+  
+          let result = await observationSubmissionsHelper.delete(
+            req.params._id,
+            req.userDetails.userId
+          );
 
-      try {
-
-        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_DELETED;
-
-        let submissionDocument = await database.models.observationSubmissions.deleteOne(
-          {
-            "_id": req.params._id,
-            status: "started",
-            createdBy: req.userDetails.userId
-          }
-        );
-
-        if (!submissionDocument.n) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
         }
+  
+      })
+    }
+  
+    /**
+    * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
+    * @apiVersion 1.0.0
+    * @apiName Set Observation Submission Title
+    * @apiGroup Observation Submissions
+    * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
+    * @apiParamExample {json} Request-Body:
+    * {
+    *   "title" : "Observation Submission Title",
+    * }
+    * @apiParamExample {json} Response:
+    * {
+    *    "message": "Observation submission updated successfully",
+    *    "status": 200
+    *  }
+    * @apiUse successBody
+    * @apiUse errorBody
+    */
+  
+     /**
+     * Set Observation Submission Title.
+     * @method
+     * @name title
+     * @param {String} req.params._id -observation submissions id.
+     * @returns {JSON} - message that observation submission title is set.
+     */
+  
+    async title(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
 
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-
-      } catch (error) {
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-      }
-
-    })
-  }
-
-  /**
-  * @api {post} /assessment/api/v1/observationSubmissions/title/:observationSubmissionId Set Observation Submission Title
-  * @apiVersion 1.0.0
-  * @apiName Set Observation Submission Title
-  * @apiGroup Observation Submissions
-  * @apiSampleRequest /assessment/api/v1/observationSubmissions/title/5d2c1c57037306041ef0c7ea
-  * @apiParamExample {json} Request-Body:
-  * {
-  *   "title" : "Observation Submission Title",
-  * }
-  * @apiParamExample {json} Response:
-  * {
-  *    "message": "Observation submission updated successfully",
-  *    "status": 200
-  *  }
-  * @apiUse successBody
-  * @apiUse errorBody
-  */
-
-   /**
-   * Set Observation Submission Title.
-   * @method
-   * @name title
-   * @param {String} req.params._id -observation submissions id.
-   * @returns {JSON} - message that observation submission title is set.
-   */
-
-  async title(req) {
-    return new Promise(async (resolve, reject) => {
-
-      try {
-
-        let message = messageConstants.apiResponses.OBSERVATION_SUBMISSION_UPDATED;
-
-        let submissionDocument = await database.models.observationSubmissions.findOneAndUpdate(
-          {
-            _id: req.params._id,
-            createdBy: req.userDetails.id
-          },
-          {
-            $set : {
-              title : req.body.title
-            }
-          }, {
-            projection : {
-              _id : 1
-            }
-          }
-        );
-
-        if (!submissionDocument || !submissionDocument._id) {
-          throw messageConstants.apiResponses.SUBMISSION_NOT_FOUND;;
+          let result = await observationSubmissionsHelper.setTitle(
+            req.params._id,
+            req.userDetails.userId,
+            req.body.title
+          );
+  
+          return resolve(result);
+  
+        } catch (error) {
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
         }
-
-        let response = {
-          message: message
-        };
-
-        return resolve(response);
-
-      } catch (error) {
-        return reject({
-          status: error.status || httpStatusCode.internal_server_error.status,
-          message: error.message || httpStatusCode.internal_server_error.message,
-          errorObject: error
-        });
-      }
-
-    })
-  }
+  
+      })
+    }
+  
 
   /**
   * @api {get} /assessment/api/v1/observationSubmissions/pushCompletedObservationSubmissionForReporting/:observationSubmissionId Push Completed Observation Submission for Reporting
@@ -1348,6 +1315,118 @@ module.exports = class ObservationSubmissions extends Abstract {
     })
   }
 
+    /**
+  * @api {post} /assessment/api/v1/observationSubmissions/update/:observationSubmissionId Update Observation Submission
+  * @apiVersion 1.0.0
+  * @apiName Update Observation Submission
+  * @apiGroup Observation Submissions
+  * @apiParamExample {json} Request-Body:
+  * {
+  *   "title" : "Observation Submission Title",
+  * }
+  * @apiSampleRequest /assessment/api/v1/observationSubmissions/update/5d2c1c57037306041ef0c7ea
+  * @apiParamExample {json} Response:
+  * {
+  *    "message": "Observation submission updated successfully",
+  *    "status": 200
+  *  }
+  * @apiUse successBody
+  * @apiUse errorBody
+  */
+
+   /**
+   * make observation submissions.
+   * @method
+   * @name make
+   * @param {Object} req -request data.
+   * @returns {JSON} - observation submissions creation.
+   */
+
+    async update(req) {
+      return new Promise(async (resolve, reject) => {
+  
+        try {
+
+          let response = {};
+          if( req.method === "POST" ) {
+
+            if( req.body.title ) {
+              
+              response = await observationSubmissionsHelper.setTitle(
+                req.params._id,
+                req.userDetails.userId,
+                req.body.title
+              );
+
+            } else if( req.body.evidences ) {
+              
+              let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
+              (
+                req.params._id,
+                req.body.evidence.externalId,
+                req.userDetails.userId
+              );
+
+              if (
+                isSubmissionAllowed.data.allowed && 
+                isSubmissionAllowed.data.allowed == false
+              ) {
+                throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED);
+              }
+              
+              let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+              
+              if (response.result.status && response.result.status === "completed") {
+                await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
+              } else if(response.result.status && response.result.status === "ratingPending") {
+                await observationSubmissionsHelper.pushObservationSubmissionToQueueForRating(req.params._id);
+              }
+
+              let appInformation = {};
+
+              if( req.headers["x-app-id"] || req.headers.appname ) {
+                appInformation["appName"] = 
+                req.headers["x-app-id"] ? req.headers["x-app-id"] :
+                req.headers.appname;
+              } 
+
+              if( req.headers["x-app-ver"] || req.headers.appversion ) {
+                appInformation["appVersion"] = 
+                req.headers["x-app-ver"] ? req.headers["x-app-ver"] :
+                req.headers.appversion;
+              }
+              
+              if( Object.keys(appInformation).length > 0 ) {
+                await submissionsHelper.addAppInformation(
+                  req.params._id,
+                  appInformation,
+                  "observationSubmissions"
+                );
+              }
+            }
+
+          } else if( req.method === "DELETE" ) {
+            
+            response = await observationSubmissionsHelper.delete(
+              req.params._id,
+              req.userDetails.userId
+            );
+          }
+
+          return resolve(response);
+  
+        } catch (error) {
+  
+          return reject({
+            status: error.status || httpStatusCode.internal_server_error.status,
+            message: error.message || httpStatusCode.internal_server_error.message,
+            errorObject: error
+          });
+  
+        }
+  
+      })
+    }
 
     /**
   * @api {post} /assessment/api/v1/observationSubmissions/solutionList

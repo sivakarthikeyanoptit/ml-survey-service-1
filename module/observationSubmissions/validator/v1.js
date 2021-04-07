@@ -39,7 +39,9 @@ module.exports = (req) => {
             req.checkParams('_id').exists().withMessage("required submission id")
             .isMongoId().withMessage("Invalid submission id");
         },
-
+        update: function () {
+            req.checkParams('_id').exists().withMessage("required observation submission id")
+        },
         solutionList: function () {
             req.checkBody('role').exists().withMessage("request body required");
         }
