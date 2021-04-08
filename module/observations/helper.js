@@ -1697,8 +1697,8 @@ module.exports = class ObservationsHelper {
 
             let observations = await this.userAssigned(
                 userId,
-                pageNo,
-                pageSize,
+                messageConstants.common.DEFAULT_PAGE_NO,
+                messageConstants.common.DEFAULT_PAGE_SIZE,
                 search
             );
 
