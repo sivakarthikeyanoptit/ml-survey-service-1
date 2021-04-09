@@ -1358,7 +1358,7 @@ module.exports = class ObservationSubmissions extends Abstract {
                 req.body.title
               );
 
-            } else if( req.body.evidences ) {
+            } else if( req.body.evidence ) {
               
               let isSubmissionAllowed = await observationSubmissionsHelper.isAllowed
               (
@@ -1374,7 +1374,7 @@ module.exports = class ObservationSubmissions extends Abstract {
                 throw new Error(messageConstants.apiResponses.MULTIPLE_SUBMISSIONS_NOT_ALLOWED);
               }
               
-              let response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
+              response = await submissionsHelper.createEvidencesInSubmission(req, "observationSubmissions", false);
               
               if (response.result.status && response.result.status === "completed") {
                 await observationSubmissionsHelper.pushCompletedObservationSubmissionForReporting(req.params._id);
