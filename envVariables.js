@@ -87,7 +87,7 @@ let enviromentVariables = {
     "message" : "Required mongodb url",
     "optional" : false
   },
-  "USER_SERVICE_BASE_URL" : {
+  "USER_SERVICE_URL" : {
     "message" : "Required user service base url",
     "optional" : false
   },
