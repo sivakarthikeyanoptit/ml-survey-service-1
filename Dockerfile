@@ -12,7 +12,7 @@ RUN npm install
 COPY . /opt/assessment
 
 #expose the application port
-EXPOSE 4201
+EXPOSE 3000
 
 #start the application
 CMD node app.js

@@ -132,7 +132,7 @@ var getUserInfo = function (token, userId) {
 
 
   let options = {
-    host: process.env.SHIKSHALOKAM_BASE_HOST,
+    host: process.env.BASE_HOST,
     port: 443,
     path: "/api/user/v1/read/" + userId,
     method: "GET",
@@ -180,7 +180,7 @@ var getKeycloakUserIdByLoginId = function (token, userName) {
     }
   }
 
-  let url = "https://" + process.env.SHIKSHALOKAM_BASE_HOST + "/api/user/v1/search"
+  let url = "https://" + process.env.BASE_HOST + "/api/user/v1/search"
   let options = {
     headers: {
       "content-type": "application/json",

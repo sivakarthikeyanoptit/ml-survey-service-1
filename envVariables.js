@@ -35,10 +35,6 @@ let enviromentVariables = {
     "message" : "Required mobile application app type value",
     "optional" : false
   },
-  "APPLICATION_BASE_HOST" : {
-    "message" : "Required Base host",
-    "optional" : false
-  },
   "AUTHORIZATION" : {
     "message" : "Required Server authorization code",
     "optional" : false
@@ -91,7 +87,7 @@ let enviromentVariables = {
     "message" : "Required mongodb url",
     "optional" : false
   },
-  "SHIKSHALOKAM_BASE_HOST" : {
+  "BASE_HOST" : {
     "message" : "Required shikshalokam base host",
     "optional" : false
   },
@@ -239,7 +235,7 @@ let enviromentVariables = {
     "message" : "Required email recipients for submission rating",
     "optional" : false
   },
-  "SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT" : {
+  "USER_PROFILE_FETCH_ENDPOINT" : {
     "message" : "Required user profile fetch API endpoint",
     "optional" : true
   },

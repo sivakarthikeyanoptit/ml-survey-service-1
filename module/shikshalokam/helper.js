@@ -1,6 +1,6 @@
 const Request = require(GENERIC_HELPERS_PATH + '/httpRequest');
-const userProfileFetchEndpoint = (process.env.SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT && process.env.SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT != "") ? process.env.SHIKSHALOKAM_USER_PROFILE_FETCH_ENDPOINT : "/api/user/v1/read";
-const shikshalokamBaseHost = (process.env.SHIKSHALOKAM_BASE_HOST && process.env.SHIKSHALOKAM_BASE_HOST != "") ? process.env.SHIKSHALOKAM_BASE_HOST : ""
+const userProfileFetchEndpoint = (process.env.USER_PROFILE_FETCH_ENDPOINT && process.env.USER_PROFILE_FETCH_ENDPOINT != "") ? process.env.USER_PROFILE_FETCH_ENDPOINT : "/api/user/v1/read";
+const shikshalokamBaseHost = (process.env.BASE_HOST && process.env.BASE_HOST != "") ? process.env.BASE_HOST : ""
 const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 
 module.exports = class ShikshalokamHelper {
