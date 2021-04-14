@@ -1,15 +1,15 @@
 FROM node:12
 
-WORKDIR /opt/assessment
+WORKDIR /opt/survey
 
 #copy package.json file
-COPY package.json /opt/assessment
+COPY package.json /opt/survey
 
 #install node packges
 RUN npm install
 
 #copy all files 
-COPY . /opt/assessment
+COPY . /opt/survey
 
 #expose the application port
 EXPOSE 3000

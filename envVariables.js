@@ -87,7 +87,7 @@ let enviromentVariables = {
     "message" : "Required mongodb url",
     "optional" : false
   },
-  "BASE_HOST" : {
+  "USER_SERVICE_BASE_URL" : {
     "message" : "Required shikshalokam base host",
     "optional" : false
   },

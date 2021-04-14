@@ -38,7 +38,7 @@ const userProfile = function ( token,userId ) {
                 }
             }
 
-            let url = "https://" + process.env.BASE_HOST + "/api/user/v1/read/" + userId;
+            let url = process.env.USER_SERVICE_BASE_URL + "/api/user/v1/read/" + userId;
 
             request.get(url,{
                 headers: {
