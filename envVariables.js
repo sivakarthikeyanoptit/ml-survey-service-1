@@ -88,7 +88,7 @@ let enviromentVariables = {
     "optional" : false
   },
   "USER_SERVICE_BASE_URL" : {
-    "message" : "Required shikshalokam base host",
+    "message" : "Required user service base url",
     "optional" : false
   },
   "DB" : {
