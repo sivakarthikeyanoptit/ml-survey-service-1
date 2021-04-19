@@ -128,9 +128,6 @@ var getUserInfo = function (token, userId) {
     })
   }
 
-  
-
-
   let options = {
     host: process.env.USER_SERVICE_URL,
     port: 443,

@@ -1,5 +1,5 @@
 const Request = require(GENERIC_HELPERS_PATH + '/httpRequest');
-const userProfileFetchEndpoint = (process.env.USER_PROFILE_FETCH_ENDPOINT && process.env.USER_PROFILE_FETCH_ENDPOINT != "") ? process.env.USER_PROFILE_FETCH_ENDPOINT : "/api/user/v1/read";
+const userProfileFetchEndpoint = "/api/user/v1/read";
 const shikshalokamBaseHost = (process.env.USER_SERVICE_URL && process.env.USER_SERVICE_URL != "") ? process.env.USER_SERVICE_URL : ""
 const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 
