@@ -7,12 +7,10 @@ const inputValidator = require(ROOT_PATH + "/generics/middleware/validator");
 
 module.exports = function (app) {
 
-  const applicationBaseUrl = process.env.APPLICATION_BASE_URL || "/assessment/"
-
-  app.use(applicationBaseUrl, authenticator);
-  app.use(applicationBaseUrl, pagination);
-  app.use(applicationBaseUrl, dataRangeFilter);
-  app.use(applicationBaseUrl, userPrograms);
+  app.use(authenticator);
+  app.use(pagination);
+  app.use(dataRangeFilter);
+  app.use(userPrograms);
 
   var router = async function (req, res, next) {
 
@@ -116,11 +114,11 @@ module.exports = function (app) {
     }
   };
 
-  app.all(applicationBaseUrl + "api/:version/:controller/:method", inputValidator, router);
-  app.all(applicationBaseUrl + "api/:version/:controller/:file/:method", inputValidator, router);
+  app.all("/api/:version/:controller/:method", inputValidator, router);
+  app.all("/api/:version/:controller/:file/:method", inputValidator, router);
 
-  app.all(applicationBaseUrl + "api/:version/:controller/:method/:_id", inputValidator, router);
-  app.all(applicationBaseUrl + "api/:version/:controller/:file/:method/:_id", inputValidator, router);
+  app.all("/api/:version/:controller/:method/:_id", inputValidator, router);
+  app.all("/api/:version/:controller/:file/:method/:_id", inputValidator, router);
 
   app.use((req, res, next) => {
     res.status(httpStatusCode.not_found.status).send(messageConstants.apiResponses.NOT_FOUND);

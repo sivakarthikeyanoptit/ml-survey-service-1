@@ -71,12 +71,16 @@ let enviromentVariables = {
     "optional" : false
   },
   "ML_CORE_SERVICE_URL" : {
-    "message" : "Required core service API endpoint",
-    "optional" : true
+    "message" : "Required core service url",
+    "optional" : false
   },
   "ML_PROJECT_SERVICE_URL" : {
-    "message" : "Required project service API endpoint",
-    "optional" : true
+    "message" : "Required project service url",
+    "optional" : false
+  },
+  "KEYCLOAK_PUBLIC_KEY_PATH" : {
+    "message" : "Required keycloak public key path",
+    "optional" : false
   }
 }
 

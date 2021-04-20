@@ -1,6 +1,6 @@
 const Request = require(GENERIC_HELPERS_PATH + '/httpRequest');
 const userProfileFetchEndpoint = "/api/user/v1/read";
-const shikshalokamBaseHost = (process.env.USER_SERVICE_URL && process.env.USER_SERVICE_URL != "") ? process.env.USER_SERVICE_URL : ""
+const shikshalokamBaseHost = process.env.USER_SERVICE_URL;
 const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 
 module.exports = class ShikshalokamHelper {

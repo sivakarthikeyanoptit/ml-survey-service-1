@@ -1,7 +1,6 @@
 let fs = require("fs"),
   path = require("path");
 const requireAll = require("require-all");
-mkdirp(path.join(__dirname + "/../logs/" + process.env.APPLICATION_ENV));
 mkdirp(path.join(__dirname + "/../" + "uploads"));
 
 gen = Object.assign(global, {});

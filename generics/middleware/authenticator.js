@@ -1,20 +1,13 @@
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 let slackClient = require("../helpers/slackCommunications");
-var messageUtil = require("./lib/messageUtil");
-var responseCode = require("../httpStatusCodes");
 
-const keycloakPublicKeyPath = "keycloak-public-keys/";
+const keycloakPublicKeyPath = process.env.KEYCLOAK_PUBLIC_KEY_PATH + "/";
 
-
-var reqMsg = messageUtil.REQUEST;
-
-var respUtil = function (resp) {
-  return {
-    status: resp.errCode,
-    message: resp.errMsg,
-    currentDate: new Date().toISOString()
-  };
+var invalidTokenMsg = {
+    "status" : 'ERR_TOKEN_FIELD_MISSING',
+    "message" : 'Required field token is missing',
+    "currentDate" : new Date().toISOString()
 };
 
 var removedHeaders = [
@@ -33,13 +26,6 @@ var removedHeaders = [
   "connection"
 ];
 
-async function getAllRoles(obj) {
-  let roles = await obj.roles;
-  await _.forEach(obj.organisations, async value => {
-    roles = await roles.concat(value.roles);
-  });
-  return roles;
-}
 
 module.exports = async function (req, res, next) {
 
@@ -99,10 +85,7 @@ module.exports = async function (req, res, next) {
   ]
 
   var token = req.headers["x-authenticated-user-token"];
-  if (!req.rspObj) req.rspObj = {};
-  var rspObj = req.rspObj;
 
-  
   let internalAccessApiPaths = [
     "createGesture", 
     "createEmoji", 
@@ -120,14 +103,10 @@ module.exports = async function (req, res, next) {
       performInternalAccessTokenCheck = true;
     }
   }));
-
   
   if (performInternalAccessTokenCheck) {
     if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN) {
-      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-      rspObj.responseCode = responseCode.unauthorized.status;
-      return res.status(401).send(respUtil(rspObj));
+      return res.status(401).send(invalidTokenMsg);
     }
   }
 
@@ -143,10 +122,7 @@ module.exports = async function (req, res, next) {
   
   if (performInternalAccessTokenAndTokenCheck) {
     if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN  || !token) {
-      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-      rspObj.responseCode = responseCode.unauthorized.status;
-      return res.status(401).send(respUtil(rspObj));
+      return res.status(401).send(invalidTokenMsg);
     }
   }
 
@@ -161,10 +137,7 @@ module.exports = async function (req, res, next) {
   
   if (performInternalAccessTokenOrTokenCheck && !token) {
     if (req.headers["internal-access-token"] !== process.env.INTERNAL_ACCESS_TOKEN ) {
-      rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-      rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-      rspObj.responseCode = responseCode.unauthorized.status;
-      return res.status(401).send(respUtil(rspObj));
+      return res.status(401).send(invalidTokenMsg);
     }
     else {
         next();
@@ -181,15 +154,12 @@ module.exports = async function (req, res, next) {
   }
 
   if (!token) {
-    rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-    rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.unauthorized.status;
-    return res.status(401).send(respUtil(rspObj));
+    return res.status(401).send(invalidTokenMsg);
   }
 
   var decoded = jwt.decode(token, { complete: true });
   if(decoded === null || decoded.header === undefined){
-    return res.status(HTTP_STATUS_CODE["unauthorized"].status).send(respUtil(rspObj));
+    return res.status(401).send(invalidTokenMsg);
   }
 
   const kid = decoded.header.kid;
@@ -202,14 +172,14 @@ module.exports = async function (req, res, next) {
     jwt.verify(token, cert, { algorithm: 'RS256' }, function (err, decode) {
 
       if (err) {
-        return res.status(401).send(respUtil(rspObj));
+        return res.status(401).send(invalidTokenMsg);
       }
 
       if (decode !== undefined) {
         const expiry = decode.exp;
         const now = new Date();
         if (now.getTime() > expiry * 1000) {
-          return res.status(401).send(respUtil(rspObj));
+          return res.status(401).send(invalidTokenMsg);
         }
 
         req.userDetails = {
@@ -224,15 +194,11 @@ module.exports = async function (req, res, next) {
         next();
       
       } else {
-
-        return res.status(401).send(respUtil(rspObj));
+        return res.status(401).send(invalidTokenMsg);
       }
 
     });
   } else {
-    rspObj.errCode = reqMsg.TOKEN.MISSING_CODE;
-    rspObj.errMsg = reqMsg.TOKEN.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.unauthorized.status;
-    return res.status(401).send(respUtil(rspObj));
+    return res.status(401).send(invalidTokenMsg);
   }
 };

@@ -1,5 +1,5 @@
 /**
- * Project          : Shikshalokam-Assessment
+ * Project          : Ml survey
  * Module           : Configuration
  * Source filename  : index.js
  * Description      : Environment related configuration variables
