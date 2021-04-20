@@ -66,10 +66,6 @@ let enviromentVariables = {
     "message" : "Required elastic search host",
     "optional" : false
   },
-  "ELASTICSEARCH_USER_EXTENSION_INDEX" : {
-    "message" : "Required user extension index",
-    "optional" : false
-  },
   "ELASTICSEARCH_ENTITIES_INDEX" : {
     "message" : "Required entities index",
     "optional" : false
