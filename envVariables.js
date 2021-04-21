@@ -81,6 +81,10 @@ let enviromentVariables = {
   "KEYCLOAK_PUBLIC_KEY_PATH" : {
     "message" : "Required keycloak public key path",
     "optional" : false
+  },
+  "ELASTIC_SEARCH_SNIFF_ON_START" : {
+    "message" : "Elastic search sniff on start",
+    "optional" : false
   }
 }
 

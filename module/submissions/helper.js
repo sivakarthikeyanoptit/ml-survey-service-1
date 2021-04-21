@@ -508,30 +508,14 @@ module.exports = class SubmissionsHelper {
                             status: (submissionDocument.status === "started") ? "inprogress" : submissionDocument.status
                         };
                     } else {
-                        runUpdateQuery = true;
-                        req.body.evidence.isValid = false;
+                        
+                        let submissionAllowed = await this.isAllowed(
+                            req.params._id,
+                            req.body.evidence.externalId,
+                            modelName
+                        );
 
-                        Object.entries(req.body.evidence.answers).forEach(answer => {
-                            if (answer[1].responseType === "matrix" && answer[1].notApplicable != true) {
-                                answer = this.getAnswersFromGeneralQuestion(answer, submissionDocument);
-                                answer[1].countOfInstances = answer[1].value.length;
-                            }
-                        });
-
-                        updateObject.$push = {
-                            ["evidences." + req.body.evidence.externalId + ".submissions"]: req.body.evidence
-                        };
-
-                        evidencesStatusToBeChanged['hasConflicts'] = true;
-                        evidencesStatusToBeChanged['submissions'].push(_.omit(req.body.evidence, "answers"));
-
-                        updateObject.$set = {
-                            evidencesStatus: submissionDocument.evidencesStatus,
-                            ["evidences." + req.body.evidence.externalId + ".hasConflicts"]: true,
-                            status: (submissionDocument.ratingOfManualCriteriaEnabled === true) ? "inprogress" : "blocked"
-                        };
-
-                        message = messageConstants.apiResponses.DUPLICATE_ECM_SUBMISSION;
+                        return resolve(submissionAllowed);
                     }
 
                 }
@@ -1941,6 +1925,76 @@ module.exports = class SubmissionsHelper {
         }
     })
   }
+
+    /**
+   * Check whether submission is allowed or not.
+   * @method
+   * @name isAllowed
+   * @param {String} submissionId - submission id.
+   * @param {String} evidenceId - evidence method id.
+   * @param {String} modelName - submission model name.
+   * @returns {JSON} Submissions allowed or not.
+   */
+
+    static isAllowed(submissionId, evidenceId,modelName) {
+        return new Promise(async (resolve, reject) => {
+            try {
+    
+                let result = {
+                    allowed: true
+                };
+
+                let queryObject =  { 
+                    "_id": submissionId,
+                    "evidencesStatus": { "$elemMatch": { externalId: evidenceId }}
+                };
+
+                let projection =  ["evidencesStatus.$"];
+                let submissionDocument = {};
+
+                if( modelName === messageConstants.common.OBSERVATION_SUBMISSIONS ) {
+                    submissionDocument = await observationSubmissionsHelper.observationSubmissionsDocument
+                    (
+                        queryObject,
+                        projection 
+                    );
+                } else {
+                    submissionDocument = await this.submissionDocuments
+                    (
+                        queryObject,
+                        projection 
+                    );
+                }
+                
+                if (!submissionDocument.length) {
+                    return resolve({
+                        status : httpStatusCode.bad_request.status,
+                        message : messageConstants.apiResponses.SUBMISSION_NOT_FOUND
+                    })
+                }
+    
+                if ( submissionDocument[0].evidencesStatus[0].isSubmitted ) {
+                    result.allowed = false;
+                }
+    
+                return resolve({
+                    success: true,
+                    message: result.allowed ? 
+                    messageConstants.apiResponses.SUBMISSION_ALLOWED : 
+                    messageConstants.apiResponses.SUBMISSION_NOT_ALLOWED,
+                    result: result
+                });
+            }
+      
+            catch (error) {
+                return resolve({
+                    success: false,
+                    message: error.message,
+                    data: false
+                })
+            }
+        })
+    }
 
 };
 
