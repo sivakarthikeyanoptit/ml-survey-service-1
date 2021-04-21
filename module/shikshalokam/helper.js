@@ -1,5 +1,4 @@
 const Request = require(GENERIC_HELPERS_PATH + '/httpRequest');
-const userProfileFetchEndpoint = "/api/user/v1/read";
 const shikshalokamBaseHost = process.env.USER_SERVICE_URL;
 const userOrganisationHelper = require(MODULES_BASE_PATH + "/userOrganisations/helper");
 
@@ -64,7 +63,7 @@ module.exports = class ShikshalokamHelper {
         return new Promise(async (resolve, reject) => {
             try {
 
-                if (shikshalokamBaseHost == "" || userProfileFetchEndpoint == "") {
+                if (shikshalokamBaseHost == "" || messageConstants.endpoints.USER_READ == "") {
                     throw new Error("User Profile read configuration is missing.");
                 }
                 
@@ -74,7 +73,7 @@ module.exports = class ShikshalokamHelper {
                     shikshalokamBaseHostUrl = "https://"+shikshalokamBaseHost
                 }
 
-                return resolve(shikshalokamBaseHostUrl + userProfileFetchEndpoint + "/" + keycloakUserId);
+                return resolve(shikshalokamBaseHostUrl + messageConstants.endpoints.USER_READ + "/" + keycloakUserId);
 
             } catch (error) {
                 return reject({

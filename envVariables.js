@@ -1,5 +1,5 @@
 let table = require("cli-table");
-var Log = require("log");
+const Log = require("log");
 
 let log = new Log("debug");
 
