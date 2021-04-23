@@ -977,4 +977,59 @@ module.exports = class Surveys extends Abstract {
         })
     }
 
+    
+    /**
+    * @api {get} /assessment/api/v1/surveys/getLink/{{surveySolutionId}}?appName:appName 
+    * @apiVersion 1.0.0
+    * @apiName Get survey shareable link
+    * @apiGroup Surveys
+    * @apiHeader {String} X-authenticated-user-token Authenticity token
+    * @apiParam {String} surveySolutionId Survey Solution External ID.
+    * @apiParam {String} appName Name of App.
+    * @apiSampleRequest /assessment/api/v1/surveys/getLink/diksha-test-survey?appName=samiksha
+    * @apiUse successBody
+    * @apiUse errorBody
+    * @apiParamExample {json} Response:
+    {
+      "message": "Survey solution Link generated successfully",
+      "status": 200,
+      "result": "https://apps.shikshalokam.org/samiksha/take-survey/8e8902eb1e13ae9c38dec8f1b5a4bdff"
+    }
+    */
+    /**
+   * Get survey Solution Sharing Link.
+   * @method
+   * @name getLink
+   * @param {Object} req -request Data.
+   * @param {String} req.params._id - survey solution externalId.
+   * @param {String} req.query.appName - app Name.
+   * @returns {JSON} 
+   */
+
+   async getLink(req) {
+
+    return new Promise(async (resolve, reject) => {
+
+        try {
+
+            let surveySolutionDetails = await surveysHelper.getLink(req.params._id, req.query.appName);
+
+            return resolve({
+                message: surveySolutionDetails.message,
+                result: surveySolutionDetails.data
+            })
+
+        } catch (error) {
+    
+            return reject({
+                status: error.status || httpStatusCode.internal_server_error.status,
+                message: error.message || httpStatusCode.internal_server_error.message,
+                errorObject: error
+            });
+        }
+
+    });
+
+}
+
 }
