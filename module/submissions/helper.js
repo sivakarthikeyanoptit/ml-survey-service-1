@@ -6,7 +6,6 @@
  */
 
 // Dependencies
-let slackClient = require(ROOT_PATH + "/generics/helpers/slackCommunications");
 let kafkaClient = require(ROOT_PATH + "/generics/helpers/kafkaCommunications");
 const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper");
 const criteriaHelper = require(MODULES_BASE_PATH + "/criteria/helper");
@@ -665,7 +664,8 @@ module.exports = class SubmissionsHelper {
                             message:kafkaMessage.message
                         }
                     };
-                    slackClient.kafkaErrorAlert(errorObject);
+                    
+                    console.log(errorObject);
                 }
 
                 return resolve(kafkaMessage);
@@ -705,7 +705,8 @@ module.exports = class SubmissionsHelper {
                             message:kafkaMessage.message
                         }
                     };
-                    slackClient.kafkaErrorAlert(errorObject);
+                    
+                    console.log(errorObject);
                 }
 
                 return resolve(kafkaMessage);
@@ -955,7 +956,8 @@ module.exports = class SubmissionsHelper {
                             message:kafkaMessage.message
                         }
                     };
-                    slackClient.kafkaErrorAlert(errorObject);
+                    
+                    console.log(errorObject);
                 }
 
                 return resolve(kafkaMessage);
@@ -1870,7 +1872,8 @@ module.exports = class SubmissionsHelper {
                         message:kafkaMessage.message
                     }
                 };
-                slackClient.kafkaErrorAlert(errorObject);
+                
+                console.log(errorObject);
             }
 
             return resolve(kafkaMessage);

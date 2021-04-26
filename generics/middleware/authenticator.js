@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
-let slackClient = require("../helpers/slackCommunications");
 
 const keycloakPublicKeyPath = process.env.KEYCLOAK_PUBLIC_KEY_PATH + "/";
 
@@ -51,7 +50,7 @@ module.exports = async function (req, res, next) {
 
       const slackMessageForBadRequest = { userIP: req.headers["x-real-ip"], method: req.method, url: req.url, headers: req.headers, body: req.body, errorMsg: msg, customFields: null };
 
-      slackClient.badSharedLinkAccessAttemptAlert(slackMessageForBadRequest);
+      console.log(slackMessageForBadRequest);
 
       let rspObj = {};
 
