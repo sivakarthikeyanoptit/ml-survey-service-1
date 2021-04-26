@@ -358,5 +358,6 @@ module.exports = {
     "USER_ASSIGNED_SURVEY_FETCHED" : "List of user assigned surveys",
     "SUBMISSION_NOT_ALLOWED" : "Submission not allowed",
     "SUBMISSION_ALLOWED" : "Submission is allowed",
-    "USER_ORGANISATION_NOT_FOUND" : "User organisation details not found"
+    "USER_ORGANISATION_NOT_FOUND" : "User organisation details not found",
+    "SURVEY_LINK_GENERATED" : "Survey solution link generated successfully"
 }
