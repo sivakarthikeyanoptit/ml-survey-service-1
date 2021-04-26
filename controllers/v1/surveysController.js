@@ -261,7 +261,7 @@ module.exports = class Surveys extends Abstract {
             let userIdByExternalId;
 
             if (users.length > 0) {
-                userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.rspObj.userToken, users);
+                userIdByExternalId = await assessorsHelper.getInternalUserIdByExternalId(req.userDetails.userToken, users);
                 if(Object.keys(userIdByExternalId).length > 0) {
                     Object.values(userIdByExternalId).forEach(userDetails => {
                         usersKeycloakIdMap[userDetails] = true;
@@ -273,7 +273,7 @@ module.exports = class Surveys extends Abstract {
                 
                 let userOrganisationDetails = await surveysHelper.getUserOrganisationDetails(
                     Object.keys(usersKeycloakIdMap), 
-                    req.rspObj.userToken
+                    req.userDetails.userToken
                 );
 
                 usersKeycloakIdMap = userOrganisationDetails.data;
@@ -595,7 +595,7 @@ module.exports = class Surveys extends Abstract {
             let surveyDetails = await surveysHelper.getDetailsByLink(
                 req.params._id,
                 req.userDetails.userId,
-                req.rspObj.userToken,
+                req.userDetails.userToken,
                 bodyData
             );
 
