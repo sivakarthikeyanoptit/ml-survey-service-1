@@ -21,6 +21,7 @@ const solutionsHelper = require(MODULES_BASE_PATH + "/solutions/helper")
 const FileStream = require(ROOT_PATH + "/generics/fileStream");
 const submissionsHelper = require(MODULES_BASE_PATH + "/submissions/helper");
 const programsHelper = require(MODULES_BASE_PATH + "/programs/helper");
+const userService = require( ROOT_PATH + "/generics/services/users" );
 
 /**
     * ObservationsHelper
@@ -92,10 +93,27 @@ module.exports = class ObservationsHelper {
                 }
 
                 let organisationAndRootOrganisation = 
-                await shikshalokamHelper.getOrganisationsAndRootOrganisations(
+                await userService.profile(
                     requestingUserAuthToken,
                     userId
                 );
+
+                if (!organisationAndRootOrganisation.success) {
+                    throw {
+                        message: messageConstants.apiResponses.USER_ORGANISATION_NOT_FOUND,
+                        status: httpStatusCode.bad_request.status
+                    }
+                }
+
+                let organisationAndRootOrganisation = {
+                    createdFor :
+                    organisationAndRootOrganisation.organisations.map(
+                        organisation => {
+                            return organisation.organisationId
+                        }
+                    ),
+                    rootOrganisations : [organisationAndRootOrganisation.rootOrgId]
+                }
 
                 let solutionData = 
                 await solutionHelper.solutionDocuments({
