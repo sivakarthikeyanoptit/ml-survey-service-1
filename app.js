@@ -1,3 +1,26 @@
+console.log("-------Deployment testing starts here------------------");
+console.log(APPLICATION_PORT)
+console.log(APPLICATION_ENV)
+console.log(MONGODB_URL)
+console.log(USER_SERVICE_URL)
+console.log(INTERNAL_ACCESS_TOKEN)
+console.log(KAFKA_COMMUNICATIONS_ON_OFF)
+console.log(KAFKA_URL)
+console.log(SUBMISSION_RATING_QUEUE_TOPIC)
+console.log(COMPLETED_OBSERVATION_SUBMISSION_TOPIC)
+console.log(INCOMPLETE_OBSERVATION_SUBMISSION_TOPIC)
+console.log(COMPLETED_SURVEY_SUBMISSION_TOPIC)
+console.log(KAFKA_GROUP_ID)
+console.log(IMPROVEMENT_PROJECT_SUBMISSION_TOPIC)
+console.log(ELASTICSEARCH_COMMUNICATIONS_ON_OFF)
+console.log(ELASTICSEARCH_HOST_URL)
+console.log(ELASTIC_SEARCH_SNIFF_ON_START)
+console.log(ELASTICSEARCH_ENTITIES_INDEX)
+console.log(ML_CORE_SERVICE_URL)
+console.log(ML_PROJECT_SERVICE_URL)
+console.log(KEYCLOAK_PUBLIC_KEY_PATH)
+console.log("-------Deployment testing ends   here------------------");
+
 require("dotenv").config();
 
 //express
